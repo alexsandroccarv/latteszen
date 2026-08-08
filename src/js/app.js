@@ -11,6 +11,7 @@
         pendingPdf: null,   // File aguardando gravação
         lattesParsed: null, // resultado do parse do XML
         currentPdfUrl: null,// URL (blob) do PDF exibido no painel lateral
+        sortOrder: 'desc',  // ordenação por ano no Catálogo
     };
 
     /* --------------------------- Utilidades ----------------------------- */
@@ -127,12 +128,29 @@
                     <i aria-hidden="true" class="fa-solid fa-list text-govbr-600 dark:text-unifesp-400"></i>
                     Itens catalogados <span id="itemCount" class="text-sm font-normal text-gray-500"></span>
                 </h2>
-                <input id="filterBox" type="search" placeholder="Filtrar por título, tipo ou categoria..."
-                       class="text-sm px-3 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 w-full sm:w-80">
+                <div class="flex items-center gap-2 flex-wrap">
+                    <label class="text-xs text-gray-500 flex items-center gap-1">
+                        <i aria-hidden="true" class="fa-solid fa-arrow-down-wide-short"></i> Ordenar por ano
+                        <select id="sortOrder" class="text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900">
+                            <option value="desc">Decrescente (recente → antigo)</option>
+                            <option value="asc">Crescente (antigo → recente)</option>
+                        </select>
+                    </label>
+                    <input id="filterBox" type="search" placeholder="Filtrar..."
+                           class="text-sm px-3 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 w-full sm:w-56">
+                </div>
             </div>
-            <div id="itemList" class="space-y-2"></div>`;
+            <div class="flex gap-2 mb-3">
+                <button id="btnExpandAll" class="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600">Expandir todas</button>
+                <button id="btnCollapseAll" class="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600">Recolher todas</button>
+            </div>
+            <div id="itemList" class="space-y-3"></div>`;
+        $('#sortOrder').value = state.sortOrder || 'desc';
         renderItemList();
         $('#filterBox').addEventListener('input', renderItemList);
+        $('#sortOrder').addEventListener('change', (e) => { state.sortOrder = e.target.value; renderItemList(); });
+        $('#btnExpandAll').addEventListener('click', () => $$('#itemList details').forEach(d => d.open = true));
+        $('#btnCollapseAll').addEventListener('click', () => $$('#itemList details').forEach(d => d.open = false));
     }
 
     /* =====================================================================
@@ -362,25 +380,19 @@
         return b.join(' ');
     }
 
-    function renderItemList() {
-        const list = $('#itemList');
-        if (!list) return; // aba Catálogo não está montada
-        const q = ($('#filterBox') && $('#filterBox').value || '').toLowerCase();
-        $('#itemCount').textContent = `(${state.items.length})`;
+    function itemYear(i) {
+        const y = (i.fields && (i.fields.ano || i.fields.anoFim || i.fields.anoInicio)) || '';
+        const n = parseInt(String(y).replace(/\D/g, '').slice(0, 4), 10);
+        return isNaN(n) ? null : n;
+    }
 
-        let items = state.items.slice().sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || ''));
-        if (q) items = items.filter(i => (LattesTypes.itemTitle(i) + ' ' + LattesTypes.label(i.typeKey) + ' ' + LattesTypes.categoryLabel(i.categoryKey)).toLowerCase().includes(q));
-
-        if (!items.length) {
-            list.innerHTML = `<p class="text-sm text-gray-500 italic py-6 text-center">Nenhum item ainda. Adicione pelo formulário ou importe o XML do Lattes.</p>`;
-            return;
-        }
-        list.innerHTML = items.map(i => `
+    function itemCardHtml(i) {
+        return `
             <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded p-3">
                 <div class="flex items-start justify-between gap-2">
                     <div class="min-w-0">
                         <p class="font-semibold text-sm truncate">${esc(LattesTypes.itemTitle(i))}</p>
-                        <p class="text-xs text-gray-500">${esc(LattesTypes.categoryNumLabel(i.categoryKey))} › ${esc(LattesTypes.label(i.typeKey))} ${i.fields.ano ? '· ' + esc(i.fields.ano) : ''}</p>
+                        <p class="text-xs text-gray-500">${esc(LattesTypes.label(i.typeKey))} ${i.fields.ano ? '· ' + esc(i.fields.ano) : ''}</p>
                         <div class="mt-1.5 flex flex-wrap gap-1">${statusBadges(i)}</div>
                     </div>
                     <div class="flex gap-1 shrink-0">
@@ -389,7 +401,52 @@
                         <button data-act="del" data-id="${i.id}" title="Excluir" class="w-8 h-8 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-red-600"><i class="fa-solid fa-trash"></i></button>
                     </div>
                 </div>
-            </div>`).join('');
+            </div>`;
+    }
+
+    function renderItemList() {
+        const list = $('#itemList');
+        if (!list) return; // aba Catálogo não está montada
+        const q = ($('#filterBox') && $('#filterBox').value || '').toLowerCase();
+        const asc = (state.sortOrder || 'desc') === 'asc';
+        $('#itemCount').textContent = `(${state.items.length})`;
+
+        let items = state.items.slice();
+        if (q) items = items.filter(i => (LattesTypes.itemTitle(i) + ' ' + LattesTypes.label(i.typeKey) + ' ' + LattesTypes.categoryLabel(i.categoryKey)).toLowerCase().includes(q));
+
+        if (!items.length) {
+            list.innerHTML = `<p class="text-sm text-gray-500 italic py-6 text-center">${state.items.length ? 'Nenhum item corresponde ao filtro.' : 'Nenhum item ainda. Adicione pelo formulário ou importe o XML do Lattes.'}</p>`;
+            return;
+        }
+
+        // Ordenação por ano (com/sem ano); desempate por data de atualização
+        items.sort((a, b) => {
+            const ya = itemYear(a), yb = itemYear(b);
+            if (ya !== yb) {
+                if (ya == null) return 1;              // sem ano vai para o fim
+                if (yb == null) return -1;
+                return asc ? ya - yb : yb - ya;
+            }
+            return (b.updatedAt || '').localeCompare(a.updatedAt || '');
+        });
+
+        // Agrupa por categoria, na ordem oficial (01..11) + Não-Lattes
+        const order = LattesTypes.categories.map(c => c.key).concat('NAO_LATTES');
+        const groups = {};
+        items.forEach(i => { (groups[i.categoryKey] = groups[i.categoryKey] || []).push(i); });
+
+        list.innerHTML = order.filter(k => groups[k] && groups[k].length).map(k => {
+            const g = groups[k];
+            return `
+            <details open class="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                <summary class="cursor-pointer select-none px-3 py-2 bg-gray-100 dark:bg-gray-800 font-semibold text-sm flex items-center gap-2">
+                    <i aria-hidden="true" class="fa-solid ${esc((LattesTypes.categoryByKey(k) || {}).icon || 'fa-folder')} text-govbr-600 dark:text-unifesp-400"></i>
+                    ${esc(LattesTypes.categoryNumLabel(k))}
+                    <span class="text-xs font-normal text-gray-500">(${g.length})</span>
+                </summary>
+                <div class="p-2 space-y-2">${g.map(itemCardHtml).join('')}</div>
+            </details>`;
+        }).join('');
 
         $$('#itemList [data-act]').forEach(btn => btn.addEventListener('click', onItemAction));
     }
