@@ -32,3 +32,19 @@ html.high-contrast button {
 
 /* ---- Rolagem suave em listas longas ---- */
 .scroll-area { scrollbar-width: thin; }
+
+/* ==========================================================================
+   Fallback mínimo (caso o Tailwind da CDN demore ou falhe a carregar).
+   São seletores de ELEMENTO (baixa especificidade): quando o Tailwind carrega,
+   suas classes utilitárias têm precedência e assumem o controle do visual.
+   Garante que a aplicação continue LEGÍVEL e UTILIZÁVEL mesmo sem CDN.
+   ========================================================================== */
+body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; margin: 0; }
+button { cursor: pointer; }
+header { background: #1351B4; color: #ffffff; }
+header a, header h1, header span { color: #ffffff; }
+nav { background: #ffffff; }
+footer { background: #071D41; color: #dbeafe; }
+footer a, footer button { color: #dbeafe; background: none; border: 0; }
+main { padding: 16px; }
+.tab-btn { padding: 10px 14px; }

@@ -5,29 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>lattesZen</title>
 
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Font Awesome (ícones) -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Fonte oficial gov.br (Rawline) -->
-    <link rel="stylesheet" href="https://cdngovbr-ds.estaleiro.serpro.gov.br/design-system/fonts/rawline/css/rawline.css">
-    <!-- Estilos da aplicação -->
+    <!-- Estilos da aplicação (local — carrega sempre, mesmo offline) -->
     <link rel="stylesheet" href="css/styles.css">
-
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    fontFamily: { sans: ['Rawline', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif'] },
-                    colors: {
-                        unifesp: { 50: '#f0fdf4', 100: '#dcfce7', 400: '#4ade80', 600: '#16a34a', 700: '#15803d', 800: '#166534', 900: '#1E5A3A' },
-                        govbr:   { 50: '#D4E5FF', 100: '#ADCDFF', 400: '#1351B4', 600: '#1351B4', 700: '#0C326F', 800: '#071D41', 900: '#050F24' },
-                    }
-                }
-            }
-        }
-    </script>
 
     <!-- Tema claro/escuro e alto contraste: aplicar cedo para evitar "flash" -->
     <script>
@@ -37,6 +16,40 @@
             const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
             if (saved ? saved === 'dark' : prefersDark) htmlEl.classList.add('dark');
             if (localStorage.getItem('altoContraste') === '1') htmlEl.classList.add('high-contrast');
+        })();
+    </script>
+
+    <!-- Recursos externos (Tailwind, Font Awesome, Rawline) carregados de forma
+         ASSÍNCRONA e tolerante a falha: se a CDN estiver lenta/bloqueada, a
+         aplicação continua funcionando (o app.js nunca fica travado por eles). -->
+    <script>
+        (function () {
+            var TW_CONFIG = {
+                darkMode: 'class',
+                theme: {
+                    extend: {
+                        fontFamily: { sans: ['Rawline', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif'] },
+                        colors: {
+                            unifesp: { 50: '#f0fdf4', 100: '#dcfce7', 400: '#4ade80', 600: '#16a34a', 700: '#15803d', 800: '#166534', 900: '#1E5A3A' },
+                            govbr:   { 50: '#D4E5FF', 100: '#ADCDFF', 400: '#1351B4', 600: '#1351B4', 700: '#0C326F', 800: '#071D41', 900: '#050F24' },
+                        }
+                    }
+                }
+            };
+            var tw = document.createElement('script');
+            tw.src = 'https://cdn.tailwindcss.com';
+            tw.async = true;
+            tw.onload = function () { try { window.tailwind.config = TW_CONFIG; } catch (e) {} };
+            tw.onerror = function () { document.documentElement.classList.add('no-tailwind'); };
+            document.head.appendChild(tw);
+
+            function loadCss(href) {
+                var l = document.createElement('link');
+                l.rel = 'stylesheet'; l.href = href; l.media = 'all';
+                document.head.appendChild(l);
+            }
+            loadCss('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css');
+            loadCss('https://cdngovbr-ds.estaleiro.serpro.gov.br/design-system/fonts/rawline/css/rawline.css');
         })();
     </script>
 </head>
