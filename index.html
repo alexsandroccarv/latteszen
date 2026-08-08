@@ -1480,6 +1480,19 @@ window.LattesXML = (function () {
         else clearPdf();
     }
 
+    // Opções de ano para os seletores (decrescente). Inclui uma folga futura
+    // (conclusões previstas) e garante que o valor já salvo apareça, mesmo
+    // fora da faixa padrão.
+    function yearOptions(val) {
+        const atual = new Date().getFullYear();
+        const inicio = atual + 5, fim = 1940;
+        const anos = [];
+        for (let y = inicio; y >= fim; y--) anos.push(y);
+        const v = String(val || '').trim();
+        if (v && !anos.includes(Number(v)) && /^\d{3,4}$/.test(v)) anos.unshift(Number(v));
+        return anos.map(y => `<option value="${y}" ${String(y) === v ? 'selected' : ''}>${y}</option>`).join('');
+    }
+
     function fieldHtml(f, val) {
         val = val == null ? '' : val;
         const req = f.required ? 'required' : '';
@@ -1493,10 +1506,15 @@ window.LattesXML = (function () {
                 <option value="">—</option>
                 ${f.options.map(o => `<option value="${esc(o)}" ${o === val ? 'selected' : ''}>${esc(o)}</option>`).join('')}
             </select>`;
+        } else if (f.type === 'year') {
+            // Campo de ano "fechado": seletor de anos, evita digitação incorreta
+            input = `<select name="${f.key}" ${req} class="${base}">
+                <option value="">—</option>
+                ${yearOptions(val)}
+            </select>`;
         } else {
-            const t = f.type === 'year' ? 'text' : (f.type === 'url' ? 'url' : (f.type === 'number' ? 'number' : (f.type === 'date' ? 'date' : 'text')));
-            const extra = f.type === 'year' ? 'inputmode="numeric" maxlength="4" pattern="[0-9]{4}"' : '';
-            input = `<input type="${t}" name="${f.key}" value="${esc(val)}" ${req} ${extra} placeholder="${esc(f.placeholder || '')}" class="${base}">`;
+            const t = (f.type === 'url' ? 'url' : (f.type === 'number' ? 'number' : (f.type === 'date' ? 'date' : 'text')));
+            input = `<input type="${t}" name="${f.key}" value="${esc(val)}" ${req} placeholder="${esc(f.placeholder || '')}" class="${base}">`;
         }
         return `<div>
             <label class="block text-xs font-semibold mb-1">${esc(f.label)}${reqMark}</label>
