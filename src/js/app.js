@@ -81,15 +81,15 @@
     function renderCatalogar() {
         const panel = $('#tab-catalogar');
         panel.innerHTML = `
-            <div class="grid lg:grid-cols-2 gap-6 items-start">
-                <section class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+            <div class="grid lg:grid-cols-5 gap-6 items-start">
+                <section class="lg:col-span-2 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
                     <h2 class="text-lg font-bold mb-3 flex items-center gap-2">
                         <i aria-hidden="true" class="fa-solid fa-file-circle-plus text-govbr-600 dark:text-unifesp-400"></i>
                         <span id="formTitulo">Novo item</span>
                     </h2>
                     <form id="itemForm" class="space-y-3"></form>
                 </section>
-                <section class="lg:sticky lg:top-4">
+                <section class="lg:col-span-3 lg:sticky lg:top-4">
                     <div class="flex items-center justify-between mb-3">
                         <h2 class="text-lg font-bold flex items-center gap-2">
                             <i aria-hidden="true" class="fa-solid fa-file-pdf text-red-600"></i>
@@ -100,7 +100,7 @@
                             <button type="button" id="pdfClose" title="Fechar" class="w-8 h-8 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 hidden"><i class="fa-solid fa-xmark"></i></button>
                         </div>
                     </div>
-                    <div class="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-900" style="height: 78vh">
+                    <div class="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-900" style="height: 85vh; min-height: 560px">
                         <div id="pdfEmpty" class="h-full flex flex-col items-center justify-center text-center text-gray-400 dark:text-gray-500 p-6">
                             <i class="fa-regular fa-file-pdf text-5xl mb-3"></i>
                             <p class="text-sm">O PDF aparece aqui ao anexar um arquivo no formulário<br>ou ao abrir um item com evidência (aba <strong>Catálogo</strong>).</p>
@@ -187,6 +187,13 @@
         const currentCat = item ? (item.categoryKey || LattesTypes.primaryCategory(currentType)) : '';
 
         form.innerHTML = `
+            <div class="bg-govbr-50 dark:bg-gray-900 border border-govbr-100 dark:border-gray-700 rounded px-3 py-2">
+                <label class="block text-xs font-semibold mb-1"><i aria-hidden="true" class="fa-solid fa-file-arrow-up text-govbr-600 dark:text-unifesp-400 mr-1"></i> Evidência (PDF)</label>
+                <input type="file" id="pdfInput" accept="application/pdf"
+                       class="w-full text-sm text-gray-600 dark:text-gray-300 file:mr-2 file:px-3 file:py-1.5 file:rounded file:border-0 file:bg-govbr-600 dark:file:bg-unifesp-700 file:text-white">
+                <p id="pdfStatus" class="text-xs text-gray-500 mt-1"></p>
+            </div>
+
             <label class="flex items-center gap-2 text-sm bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded px-3 py-2">
                 <input type="checkbox" id="chkNaoLattes" ${isNaoLattes ? 'checked' : ''}>
                 <span><i aria-hidden="true" class="fa-solid fa-heart text-amber-600"></i> Item <strong>não-Lattes</strong> (hobby, atividade pessoal, etc.)</span>
@@ -209,13 +216,6 @@
                 <input type="checkbox" id="chkInLattes" ${item ? (item.inLattes ? 'checked' : '') : ''}>
                 <span>Este item <strong>já consta no Currículo Lattes</strong></span>
             </label>
-
-            <div>
-                <label class="block text-xs font-semibold mb-1">Evidência (PDF)</label>
-                <input type="file" id="pdfInput" accept="application/pdf"
-                       class="w-full text-sm text-gray-600 dark:text-gray-300 file:mr-2 file:px-3 file:py-1.5 file:rounded file:border-0 file:bg-govbr-600 dark:file:bg-unifesp-700 file:text-white">
-                <p id="pdfStatus" class="text-xs text-gray-500 mt-1"></p>
-            </div>
 
             <div class="flex gap-2 pt-2">
                 <button type="submit" class="px-4 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm font-semibold hover:opacity-90">
