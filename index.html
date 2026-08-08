@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- ARQUIVO GERADO por build.mjs a partir de src/. NÃO edite aqui; edite em src/ e rode: node build.mjs -->
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
@@ -6,7 +7,59 @@
     <title>lattesZen</title>
 
     <!-- Estilos da aplicação (local — carrega sempre, mesmo offline) -->
-    <link rel="stylesheet" href="css/styles.css">
+    <style>
+/* ==========================================================================
+   lattesZen — estilos de apoio (complementam o Tailwind via CDN)
+   ========================================================================== */
+
+/* ---- Alto contraste ---- */
+html.high-contrast body * {
+    background-color: #000000 !important;
+    color: #ffffff !important;
+    border-color: #ffeb3b !important;
+}
+html.high-contrast a,
+html.high-contrast button {
+    color: #ffeb3b !important;
+    text-decoration: underline;
+}
+
+/* ---- Abas ---- */
+.tab-btn { position: relative; }
+.tab-btn[aria-selected="true"] {
+    color: #1351B4;
+    border-bottom-color: #1351B4;
+}
+.dark .tab-btn[aria-selected="true"] {
+    color: #4ade80;
+    border-bottom-color: #4ade80;
+}
+.tab-panel[hidden] { display: none; }
+
+/* ---- Badges de status ---- */
+.badge { display: inline-flex; align-items: center; gap: .25rem; font-size: .68rem;
+         padding: .1rem .45rem; border-radius: 9999px; font-weight: 600; white-space: nowrap; }
+
+/* ---- Rolagem suave em listas longas ---- */
+.scroll-area { scrollbar-width: thin; }
+
+/* ==========================================================================
+   Fallback mínimo (caso o Tailwind da CDN demore ou falhe a carregar).
+   São seletores de ELEMENTO (baixa especificidade): quando o Tailwind carrega,
+   suas classes utilitárias têm precedência e assumem o controle do visual.
+   Garante que a aplicação continue LEGÍVEL e UTILIZÁVEL mesmo sem CDN.
+   ========================================================================== */
+body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; margin: 0; }
+button { cursor: pointer; }
+header { background: #1351B4; color: #ffffff; }
+header a, header h1, header span { color: #ffffff; }
+nav { background: #ffffff; }
+footer { background: #071D41; color: #dbeafe; }
+footer a, footer button { color: #dbeafe; background: none; border: 0; }
+main { padding: 16px; }
+.tab-btn { padding: 10px 14px; }
+
+</style>
 
     <!-- Tema claro/escuro e alto contraste: aplicar cedo para evitar "flash" -->
     <script>
@@ -136,10 +189,1521 @@
     </footer>
 
     <!-- ============================ SCRIPTS ============================ -->
-    <script src="js/config.js"></script>
-    <script src="js/lattes-types.js"></script>
-    <script src="js/storage.js"></script>
-    <script src="js/lattes-xml.js"></script>
-    <script src="js/app.js"></script>
-</body>
+    <script>
+/* ===== js/config.js ===== */
+/* ==========================================================================
+   lattesZen — Configuração global da aplicação
+   ========================================================================== */
+window.APP_CONFIG = {
+    name: 'lattesZen',
+    version: 'v0.0.1',
+    lastModified: '07/08/2026',
+    institution: {
+        sigla: 'UNIFESP',
+    },
+    author: {
+        nome: 'Alexsandro Cardoso Carvalho',
+        github: 'https://github.com/alexsandroccarv',
+    },
+    repo: 'https://github.com/alexsandroccarv/lattesZen',
+    license: {
+        nome: 'AGPLv3',
+        url: 'https://www.gnu.org/licenses/agpl-3.0.html',
+    },
+    // Chaves de armazenamento local
+    storageKeys: {
+        catalog: 'lz_catalog',       // índice de itens (backup em localStorage)
+        settings: 'lz_settings',     // preferências gerais
+        theme: 'tema',
+        highContrast: 'altoContraste',
+    },
+};
+
+</script>
+<script>
+/* ===== js/lattes-types.js ===== */
+/* ==========================================================================
+   lattesZen — Definições dos tipos de item do Currículo Lattes
+   --------------------------------------------------------------------------
+   Cada tipo espelha um item do Lattes e declara os campos (metadados) que
+   deverão ser preenchidos ao catalogar. Estrutura extensível: para adicionar
+   um novo tipo, basta incluí-lo em LATTES_CATEGORIES.
+
+   Campo: { key, label, type, required?, options?, placeholder?, help? }
+   type: 'text' | 'textarea' | 'number' | 'year' | 'date' | 'url' | 'select'
+   ========================================================================== */
+
+// Campos comuns a praticamente todo item
+const F_TITULO = { key: 'titulo', label: 'Título', type: 'text', required: true };
+const F_ANO    = { key: 'ano', label: 'Ano', type: 'year', required: true, placeholder: 'AAAA' };
+const F_DOI    = { key: 'doi', label: 'DOI', type: 'text', placeholder: '10.xxxx/xxxxx' };
+const F_URL    = { key: 'url', label: 'URL / Link', type: 'url' };
+const F_AUTORES = { key: 'autores', label: 'Autores', type: 'textarea', placeholder: 'Separe os autores por ponto e vírgula (;)' };
+const F_NATUREZA = (options) => ({ key: 'natureza', label: 'Natureza', type: 'select', options });
+
+window.LATTES_CATEGORIES = [
+    {
+        key: 'PRODUCAO_BIBLIOGRAFICA',
+        label: 'Produção Bibliográfica',
+        icon: 'fa-book',
+        types: [
+            {
+                key: 'ARTIGO_PERIODICO', label: 'Artigo publicado em periódico',
+                fields: [
+                    F_TITULO, F_ANO, F_AUTORES,
+                    { key: 'periodico', label: 'Periódico / Revista', type: 'text', required: true },
+                    { key: 'issn', label: 'ISSN', type: 'text' },
+                    { key: 'volume', label: 'Volume', type: 'text' },
+                    { key: 'fasciculo', label: 'Fascículo / Número', type: 'text' },
+                    { key: 'paginas', label: 'Páginas (ini-fim)', type: 'text', placeholder: 'ex.: 120-135' },
+                    F_DOI, F_URL,
+                ],
+            },
+            {
+                key: 'LIVRO', label: 'Livro publicado ou organizado',
+                fields: [
+                    F_TITULO, F_ANO, F_AUTORES,
+                    F_NATUREZA(['Livro publicado', 'Livro organizado']),
+                    { key: 'editora', label: 'Editora', type: 'text', required: true },
+                    { key: 'cidade', label: 'Cidade da editora', type: 'text' },
+                    { key: 'isbn', label: 'ISBN', type: 'text' },
+                    { key: 'edicao', label: 'Edição', type: 'text' },
+                    { key: 'paginas', label: 'Nº de páginas', type: 'text' },
+                    F_URL,
+                ],
+            },
+            {
+                key: 'CAPITULO_LIVRO', label: 'Capítulo de livro publicado',
+                fields: [
+                    F_TITULO, F_ANO, F_AUTORES,
+                    { key: 'tituloLivro', label: 'Título do livro', type: 'text', required: true },
+                    { key: 'organizadores', label: 'Organizadores do livro', type: 'text' },
+                    { key: 'editora', label: 'Editora', type: 'text' },
+                    { key: 'isbn', label: 'ISBN', type: 'text' },
+                    { key: 'paginas', label: 'Páginas do capítulo', type: 'text', placeholder: 'ex.: 45-60' },
+                    F_URL,
+                ],
+            },
+            {
+                key: 'TRABALHO_EVENTO', label: 'Trabalho completo/resumo em evento',
+                fields: [
+                    F_TITULO, F_ANO, F_AUTORES,
+                    F_NATUREZA(['Completo', 'Resumo expandido', 'Resumo']),
+                    { key: 'evento', label: 'Nome do evento', type: 'text', required: true },
+                    { key: 'anais', label: 'Título dos anais / proceedings', type: 'text' },
+                    { key: 'cidade', label: 'Cidade do evento', type: 'text' },
+                    { key: 'paginas', label: 'Páginas', type: 'text' },
+                    F_DOI, F_URL,
+                ],
+            },
+            {
+                key: 'TEXTO_JORNAL', label: 'Texto em jornal ou revista (magazine)',
+                fields: [
+                    F_TITULO, F_ANO, F_AUTORES,
+                    { key: 'veiculo', label: 'Jornal / Revista', type: 'text', required: true },
+                    { key: 'data', label: 'Data de publicação', type: 'date' },
+                    { key: 'paginas', label: 'Páginas', type: 'text' },
+                    F_URL,
+                ],
+            },
+        ],
+    },
+    {
+        key: 'PRODUCAO_TECNICA',
+        label: 'Produção Técnica',
+        icon: 'fa-screwdriver-wrench',
+        types: [
+            {
+                key: 'SOFTWARE', label: 'Software / Programa de computador',
+                fields: [
+                    F_TITULO, F_ANO, F_AUTORES,
+                    { key: 'plataforma', label: 'Plataforma / Ambiente', type: 'text' },
+                    { key: 'finalidade', label: 'Finalidade', type: 'textarea' },
+                    { key: 'registro', label: 'Registro / Patente (se houver)', type: 'text' },
+                    F_URL,
+                ],
+            },
+            {
+                key: 'TRABALHO_TECNICO', label: 'Trabalho técnico / Consultoria / Parecer',
+                fields: [
+                    F_TITULO, F_ANO,
+                    F_NATUREZA(['Assessoria', 'Consultoria', 'Parecer', 'Elaboração de projeto', 'Relatório técnico', 'Outra']),
+                    { key: 'instituicao', label: 'Instituição/Empresa financiadora ou solicitante', type: 'text' },
+                    { key: 'finalidade', label: 'Finalidade / Descrição', type: 'textarea' },
+                    F_URL,
+                ],
+            },
+            {
+                key: 'APRESENTACAO', label: 'Apresentação de trabalho / Palestra',
+                fields: [
+                    F_TITULO, F_ANO,
+                    F_NATUREZA(['Congresso', 'Seminário', 'Simpósio', 'Conferência ou palestra', 'Comunicação', 'Outra']),
+                    { key: 'evento', label: 'Nome do evento', type: 'text' },
+                    { key: 'instituicao', label: 'Instituição promotora', type: 'text' },
+                    { key: 'cidade', label: 'Cidade', type: 'text' },
+                    F_URL,
+                ],
+            },
+            {
+                key: 'PATENTE', label: 'Patente / Registro',
+                fields: [
+                    F_TITULO, F_ANO, F_AUTORES,
+                    { key: 'categoria', label: 'Categoria / Tipo', type: 'text' },
+                    { key: 'finalidade', label: 'Finalidade / Descrição', type: 'textarea' },
+                    { key: 'registro', label: 'Nº do registro / depósito', type: 'text' },
+                    { key: 'instituicao', label: 'Instituição financiadora', type: 'text' },
+                    F_URL,
+                ],
+            },
+            {
+                key: 'CURSO_MINISTRADO', label: 'Curso de curta duração ministrado',
+                fields: [
+                    F_TITULO, F_ANO,
+                    { key: 'instituicao', label: 'Instituição promotora', type: 'text' },
+                    { key: 'cargaHoraria', label: 'Carga horária (h)', type: 'number' },
+                    { key: 'nivel', label: 'Nível', type: 'select', options: ['Aperfeiçoamento', 'Extensão', 'Especialização', 'Outro'] },
+                    F_URL,
+                ],
+            },
+            {
+                key: 'MATERIAL_DIDATICO', label: 'Material didático ou instrucional',
+                fields: [
+                    F_TITULO, F_ANO, F_AUTORES,
+                    { key: 'finalidade', label: 'Finalidade / Descrição', type: 'textarea' },
+                    F_URL,
+                ],
+            },
+            {
+                key: 'PRODUTO_TECNOLOGICO', label: 'Produto tecnológico',
+                fields: [
+                    F_TITULO, F_ANO, F_AUTORES,
+                    { key: 'finalidade', label: 'Finalidade / Descrição', type: 'textarea' },
+                    { key: 'registro', label: 'Registro / Patente (se houver)', type: 'text' },
+                    F_URL,
+                ],
+            },
+        ],
+    },
+    {
+        key: 'FORMACAO',
+        label: 'Formação',
+        icon: 'fa-user-graduate',
+        types: [
+            {
+                key: 'FORMACAO_ACADEMICA', label: 'Formação acadêmica / titulação',
+                fields: [
+                    { key: 'nivel', label: 'Nível', type: 'select', required: true,
+                      options: ['Graduação', 'Aperfeiçoamento', 'Especialização', 'Mestrado', 'Doutorado', 'Pós-Doutorado', 'Livre-docência', 'Residência médica'] },
+                    { key: 'curso', label: 'Curso / Área', type: 'text', required: true },
+                    { key: 'instituicao', label: 'Instituição', type: 'text', required: true },
+                    { key: 'anoInicio', label: 'Ano de início', type: 'year' },
+                    { key: 'anoFim', label: 'Ano de conclusão', type: 'year' },
+                    { key: 'titulo', label: 'Título do trabalho (TCC/dissertação/tese)', type: 'text' },
+                    { key: 'orientador', label: 'Orientador(a)', type: 'text' },
+                ],
+            },
+            {
+                key: 'FORMACAO_COMPLEMENTAR', label: 'Formação complementar / curso',
+                fields: [
+                    F_TITULO, F_ANO,
+                    { key: 'instituicao', label: 'Instituição', type: 'text' },
+                    { key: 'cargaHoraria', label: 'Carga horária (h)', type: 'number' },
+                    F_URL,
+                ],
+            },
+        ],
+    },
+    {
+        key: 'ATUACAO',
+        label: 'Atuação Profissional e Projetos',
+        icon: 'fa-briefcase',
+        types: [
+            {
+                key: 'VINCULO_PROFISSIONAL', label: 'Vínculo / atuação profissional',
+                fields: [
+                    { key: 'instituicao', label: 'Instituição / Empresa', type: 'text', required: true },
+                    { key: 'vinculo', label: 'Tipo de vínculo', type: 'text' },
+                    { key: 'cargo', label: 'Cargo / Função', type: 'text' },
+                    { key: 'anoInicio', label: 'Ano de início', type: 'year', required: true },
+                    { key: 'anoFim', label: 'Ano de fim (vazio = atual)', type: 'year' },
+                    { key: 'titulo', label: 'Descrição das atividades', type: 'textarea' },
+                ],
+            },
+            {
+                key: 'PROJETO_PESQUISA', label: 'Projeto de pesquisa / extensão',
+                fields: [
+                    F_TITULO,
+                    { key: 'anoInicio', label: 'Ano de início', type: 'year', required: true },
+                    { key: 'anoFim', label: 'Ano de fim (vazio = em andamento)', type: 'year' },
+                    { key: 'situacao', label: 'Situação', type: 'select', options: ['Em andamento', 'Concluído', 'Desativado'] },
+                    { key: 'natureza', label: 'Natureza', type: 'select', options: ['Pesquisa', 'Extensão', 'Desenvolvimento', 'Ensino', 'Outra'] },
+                    { key: 'financiador', label: 'Financiador / Agência', type: 'text' },
+                    { key: 'descricao', label: 'Descrição', type: 'textarea' },
+                ],
+            },
+        ],
+    },
+    {
+        key: 'ORIENTACOES',
+        label: 'Orientações',
+        icon: 'fa-chalkboard-user',
+        types: [
+            {
+                key: 'ORIENTACAO', label: 'Orientação / Supervisão',
+                fields: [
+                    { key: 'orientando', label: 'Nome do orientando(a)', type: 'text', required: true },
+                    { key: 'tipo', label: 'Tipo', type: 'select', required: true,
+                      options: ['Iniciação científica', 'TCC / Graduação', 'Especialização / Monografia', 'Mestrado', 'Doutorado', 'Pós-Doutorado', 'Outra'] },
+                    { key: 'situacao', label: 'Situação', type: 'select', options: ['Em andamento', 'Concluída'] },
+                    { key: 'titulo', label: 'Título do trabalho', type: 'text' },
+                    { key: 'instituicao', label: 'Instituição', type: 'text' },
+                    F_ANO,
+                ],
+            },
+        ],
+    },
+    {
+        key: 'BANCAS_EVENTOS',
+        label: 'Bancas, Eventos e Prêmios',
+        icon: 'fa-award',
+        types: [
+            {
+                key: 'BANCA', label: 'Participação em banca',
+                fields: [
+                    { key: 'tipo', label: 'Tipo de banca', type: 'select', required: true,
+                      options: ['Mestrado', 'Doutorado', 'Qualificação', 'Especialização / Aperfeiçoamento', 'TCC / Graduação', 'Concurso público', 'Professor titular', 'Livre-docência', 'Avaliação de cursos', 'Outra'] },
+                    { key: 'candidato', label: 'Candidato(a) / Trabalho', type: 'text' },
+                    { key: 'titulo', label: 'Título do trabalho avaliado', type: 'text' },
+                    { key: 'instituicao', label: 'Instituição', type: 'text' },
+                    F_ANO,
+                ],
+            },
+            {
+                key: 'PARTICIPACAO_EVENTO', label: 'Participação / organização de evento',
+                fields: [
+                    F_TITULO, F_ANO,
+                    F_NATUREZA(['Participação', 'Organização']),
+                    { key: 'tipoEvento', label: 'Tipo', type: 'select', options: ['Congresso', 'Feira', 'Simpósio', 'Seminário', 'Encontro', 'Oficina', 'Exposição', 'Olimpíada', 'Outro'] },
+                    { key: 'cidade', label: 'Cidade', type: 'text' },
+                    F_URL,
+                ],
+            },
+            {
+                key: 'PREMIO', label: 'Prêmio ou título',
+                fields: [
+                    F_TITULO, F_ANO,
+                    { key: 'entidade', label: 'Entidade promotora', type: 'text', required: true },
+                    { key: 'descricao', label: 'Descrição', type: 'textarea' },
+                ],
+            },
+        ],
+    },
+];
+
+/* --------------------------------------------------------------------------
+   Categoria especial: itens NÃO LATTES (hobbies, atividades pessoais, etc.)
+   -------------------------------------------------------------------------- */
+window.NAO_LATTES_TYPE = {
+    key: 'NAO_LATTES',
+    label: 'Item não-Lattes (pessoal)',
+    fields: [
+        F_TITULO,
+        { key: 'categoria', label: 'Categoria', type: 'select',
+          options: ['Hobby', 'Atividade pessoal', 'Voluntariado', 'Certificado avulso', 'Curso livre', 'Outro'] },
+        F_ANO,
+        { key: 'descricao', label: 'Descrição', type: 'textarea' },
+        F_URL,
+    ],
+};
+
+/* --------------------------------------------------------------------------
+   Índices auxiliares para busca rápida por chave de tipo
+   -------------------------------------------------------------------------- */
+window.LattesTypes = (function () {
+    const byKey = {};
+    LATTES_CATEGORIES.forEach(cat => {
+        cat.types.forEach(t => {
+            byKey[t.key] = { ...t, categoryKey: cat.key, categoryLabel: cat.label, categoryIcon: cat.icon };
+        });
+    });
+    byKey[NAO_LATTES_TYPE.key] = { ...NAO_LATTES_TYPE, categoryKey: 'NAO_LATTES', categoryLabel: 'Não-Lattes', categoryIcon: 'fa-heart' };
+
+    return {
+        categories: LATTES_CATEGORIES,
+        naoLattes: NAO_LATTES_TYPE,
+        get(typeKey) { return byKey[typeKey] || null; },
+        label(typeKey) { return byKey[typeKey] ? byKey[typeKey].label : typeKey; },
+        // Rótulo curto e legível para um item (usado em listas/relatórios)
+        itemTitle(item) {
+            const f = item.fields || {};
+            return f.titulo || f.curso || f.orientando || f.candidato || f.instituicao || '(sem título)';
+        },
+    };
+})();
+
+</script>
+<script>
+/* ===== js/storage.js ===== */
+/* ==========================================================================
+   lattesZen — Camada de armazenamento
+   --------------------------------------------------------------------------
+   - Índice do catálogo: localStorage (chave lz_catalog) — funciona sempre.
+   - Arquivos (ID.pdf / ID.json): File System Access API, num diretório
+     escolhido pelo usuário e persistido no IndexedDB (o handle é
+     estruturável-clonável e sobrevive entre sessões, mediante permissão).
+   ========================================================================== */
+window.Storage = (function () {
+    const K = APP_CONFIG.storageKeys;
+    const IDB_NAME = 'lattesZen';
+    const IDB_STORE = 'handles';
+    const IDB_KEY = 'dirHandle';
+
+    /* ---------------- IndexedDB (guarda o handle do diretório) ------------- */
+    function idb() {
+        return new Promise((resolve, reject) => {
+            const req = indexedDB.open(IDB_NAME, 1);
+            req.onupgradeneeded = () => req.result.createObjectStore(IDB_STORE);
+            req.onsuccess = () => resolve(req.result);
+            req.onerror = () => reject(req.error);
+        });
+    }
+    async function idbSet(key, val) {
+        const db = await idb();
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction(IDB_STORE, 'readwrite');
+            tx.objectStore(IDB_STORE).put(val, key);
+            tx.oncomplete = () => resolve();
+            tx.onerror = () => reject(tx.error);
+        });
+    }
+    async function idbGet(key) {
+        const db = await idb();
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction(IDB_STORE, 'readonly');
+            const r = tx.objectStore(IDB_STORE).get(key);
+            r.onsuccess = () => resolve(r.result);
+            r.onerror = () => reject(r.error);
+        });
+    }
+    async function idbDel(key) {
+        const db = await idb();
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction(IDB_STORE, 'readwrite');
+            tx.objectStore(IDB_STORE).delete(key);
+            tx.oncomplete = () => resolve();
+            tx.onerror = () => reject(tx.error);
+        });
+    }
+
+    /* -------------------------- Diretório (FS Access) --------------------- */
+    let dirHandle = null;
+
+    const supportsFS = 'showDirectoryPicker' in window;
+
+    async function verifyPermission(handle, readWrite = true) {
+        const opts = { mode: readWrite ? 'readwrite' : 'read' };
+        if ((await handle.queryPermission(opts)) === 'granted') return true;
+        if ((await handle.requestPermission(opts)) === 'granted') return true;
+        return false;
+    }
+
+    async function chooseDirectory() {
+        if (!supportsFS) throw new Error('Navegador sem suporte à File System Access API (use Chrome ou Edge).');
+        const handle = await window.showDirectoryPicker({ mode: 'readwrite' });
+        dirHandle = handle;
+        await idbSet(IDB_KEY, handle);
+        return handle;
+    }
+
+    // Restaura o handle salvo (sem pedir permissão automaticamente)
+    async function restoreDirectory() {
+        if (!supportsFS) return null;
+        const handle = await idbGet(IDB_KEY);
+        if (handle) dirHandle = handle;
+        return handle || null;
+    }
+
+    async function ensureDirReady() {
+        if (!dirHandle) throw new Error('Nenhum diretório configurado. Vá em Configurações e escolha uma pasta.');
+        const ok = await verifyPermission(dirHandle, true);
+        if (!ok) throw new Error('Permissão de escrita negada para o diretório.');
+        return dirHandle;
+    }
+
+    function hasDirectory() { return !!dirHandle; }
+    async function directoryName() { return dirHandle ? dirHandle.name : null; }
+
+    async function forgetDirectory() {
+        dirHandle = null;
+        await idbDel(IDB_KEY);
+    }
+
+    /* -------------------------- Escrita de arquivos ---------------------- */
+    async function writeFile(filename, data) {
+        const dir = await ensureDirReady();
+        const fh = await dir.getFileHandle(filename, { create: true });
+        const w = await fh.createWritable();
+        await w.write(data);
+        await w.close();
+    }
+
+    async function writeJson(id, obj) {
+        await writeFile(`${id}.json`, JSON.stringify(obj, null, 2));
+    }
+
+    async function writePdf(id, fileOrBlob) {
+        await writeFile(`${id}.pdf`, fileOrBlob);
+    }
+
+    async function deleteFiles(id) {
+        if (!dirHandle) return;
+        for (const ext of ['pdf', 'json']) {
+            try { await dirHandle.removeEntry(`${id}.${ext}`); } catch (_) { /* pode não existir */ }
+        }
+    }
+
+    async function readPdfUrl(id) {
+        const dir = await ensureDirReady();
+        try {
+            const fh = await dir.getFileHandle(`${id}.pdf`);
+            const file = await fh.getFile();
+            return URL.createObjectURL(file);
+        } catch (_) { return null; }
+    }
+
+    // Reconstrói o catálogo a partir dos *.json existentes no diretório
+    async function scanDirectory() {
+        const dir = await ensureDirReady();
+        const items = [];
+        for await (const [name, handle] of dir.entries()) {
+            if (handle.kind === 'file' && name.toLowerCase().endsWith('.json') && name !== 'catalogo.json') {
+                try {
+                    const file = await handle.getFile();
+                    const obj = JSON.parse(await file.text());
+                    if (obj && obj.id) items.push(obj);
+                } catch (_) { /* ignora arquivos inválidos */ }
+            }
+        }
+        return items;
+    }
+
+    /* ----------------------- Catálogo (localStorage) --------------------- */
+    function loadCatalog() {
+        try { return JSON.parse(localStorage.getItem(K.catalog)) || []; }
+        catch (_) { return []; }
+    }
+    function saveCatalog(items) {
+        localStorage.setItem(K.catalog, JSON.stringify(items));
+    }
+
+    /* ----------------------- Configurações gerais ------------------------ */
+    function loadSettings() {
+        try { return JSON.parse(localStorage.getItem(K.settings)) || {}; }
+        catch (_) { return {}; }
+    }
+    function saveSettings(s) {
+        localStorage.setItem(K.settings, JSON.stringify(s));
+    }
+
+    return {
+        supportsFS,
+        // diretório
+        chooseDirectory, restoreDirectory, ensureDirReady, hasDirectory,
+        directoryName, forgetDirectory, verifyPermission,
+        // arquivos
+        writeJson, writePdf, deleteFiles, readPdfUrl, scanDirectory,
+        // catálogo + settings
+        loadCatalog, saveCatalog, loadSettings, saveSettings,
+    };
+})();
+
+</script>
+<script>
+/* ===== js/lattes-xml.js ===== */
+/* ==========================================================================
+   lattesZen — Importador do XML do Currículo Lattes
+   --------------------------------------------------------------------------
+   Faz o parse do XML exportado pela Plataforma Lattes (CNPq) e mapeia as
+   seções para os tipos internos (lattes-types.js). Nomes de tags e atributos
+   seguem o schema oficial CurriculoLattes (ver CurriculoLattes.xsd).
+
+   Estratégia: cada tipo-folha tem exatamente um grupo "DADOS-BASICOS-*" e um
+   "DETALHAMENTO-*"; localizamos esses grupos por PREFIXO, o que evita
+   enumerar dezenas de nomes de grupo. Título/ano/DOI variam de nome por
+   seção, então usamos listas de candidatos.
+   ========================================================================== */
+window.LattesXML = (function () {
+
+    /* ------------------------------ helpers ------------------------------ */
+    function attrs(el) {
+        const o = {};
+        if (!el) return o;
+        for (const a of el.attributes) o[a.name] = a.value;
+        return o;
+    }
+    function firstTag(el, tag) { return el ? (el.getElementsByTagName(tag)[0] || null) : null; }
+    // Atributos do primeiro filho DIRETO cujo nome começa com `prefix`
+    function groupByPrefix(el, prefix) {
+        if (!el) return {};
+        for (const c of el.children) {
+            if (c.tagName && c.tagName.indexOf(prefix) === 0) return attrs(c);
+        }
+        return {};
+    }
+    function pick(obj, ...keys) {
+        for (const k of keys) if (obj[k] != null && obj[k] !== '') return obj[k];
+        return '';
+    }
+    function paginas(d) {
+        return [d['PAGINA-INICIAL'], d['PAGINA-FINAL']].filter(Boolean).join('-');
+    }
+    function humanize(v) {
+        return v ? v.replace(/_/g, ' ').toLowerCase().replace(/(^|\s)\S/g, c => c.toUpperCase()) : '';
+    }
+
+    const TITLE_KEYS = ['TITULO-DO-ARTIGO', 'TITULO-DO-LIVRO', 'TITULO-DO-CAPITULO-DO-LIVRO',
+        'TITULO-DO-TRABALHO-TECNICO', 'TITULO-DO-TRABALHO', 'TITULO-DO-TEXTO', 'TITULO-DO-SOFTWARE',
+        'TITULO-DO-PRODUTO', 'TITULO-DO-PROCESSO', 'TITULO'];
+    const YEAR_KEYS = ['ANO-DO-ARTIGO', 'ANO-DO-TRABALHO', 'ANO-DO-TEXTO', 'ANO', 'ANO-DESENVOLVIMENTO',
+        'ANO-DA-PREMIACAO', 'ANO-DE-OBTENCAO-DO-TITULO', 'ANO-DE-CONCLUSAO'];
+
+    function titleOf(b) { return pick(b, ...TITLE_KEYS); }
+    function yearOf(b) { return pick(b, ...YEAR_KEYS); }
+
+    // Coleta autores (grupo repetível AUTORES)
+    function autoresOf(el) {
+        const nomes = [];
+        for (const a of el.getElementsByTagName('AUTORES')) {
+            const at = attrs(a);
+            const n = at['NOME-COMPLETO-DO-AUTOR'] || at['NOME-PARA-CITACAO'];
+            if (n) nomes.push(n);
+        }
+        return nomes.join('; ');
+    }
+
+    /* ---------------------- mapas de enumeração --------------------------- */
+    const NAT_TRABALHO = { COMPLETO: 'Completo', RESUMO: 'Resumo', RESUMO_EXPANDIDO: 'Resumo expandido' };
+    const NAT_LIVRO = { LIVRO_PUBLICADO: 'Livro publicado', LIVRO_ORGANIZADO_OU_EDICAO: 'Livro organizado' };
+
+    const ORIENT_MAP = {
+        'ORIENTACOES-CONCLUIDAS-PARA-MESTRADO':          { tipo: 'Mestrado', situacao: 'Concluída' },
+        'ORIENTACOES-CONCLUIDAS-PARA-DOUTORADO':         { tipo: 'Doutorado', situacao: 'Concluída' },
+        'ORIENTACOES-CONCLUIDAS-PARA-POS-DOUTORADO':     { tipo: 'Pós-Doutorado', situacao: 'Concluída' },
+        'OUTRAS-ORIENTACOES-CONCLUIDAS':                 { tipo: 'Outra', situacao: 'Concluída' },
+        'ORIENTACAO-EM-ANDAMENTO-DE-MESTRADO':           { tipo: 'Mestrado', situacao: 'Em andamento' },
+        'ORIENTACAO-EM-ANDAMENTO-DE-DOUTORADO':          { tipo: 'Doutorado', situacao: 'Em andamento' },
+        'ORIENTACAO-EM-ANDAMENTO-DE-POS-DOUTORADO':      { tipo: 'Pós-Doutorado', situacao: 'Em andamento' },
+        'ORIENTACAO-EM-ANDAMENTO-DE-APERFEICOAMENTO-ESPECIALIZACAO': { tipo: 'Especialização / Monografia', situacao: 'Em andamento' },
+        'ORIENTACAO-EM-ANDAMENTO-DE-GRADUACAO':          { tipo: 'TCC / Graduação', situacao: 'Em andamento' },
+        'ORIENTACAO-EM-ANDAMENTO-DE-INICIACAO-CIENTIFICA': { tipo: 'Iniciação científica', situacao: 'Em andamento' },
+        'OUTRAS-ORIENTACOES-EM-ANDAMENTO':               { tipo: 'Outra', situacao: 'Em andamento' },
+    };
+
+    const PARTIC_MAP = {
+        'PARTICIPACAO-EM-CONGRESSO': 'Congresso', 'PARTICIPACAO-EM-FEIRA': 'Feira',
+        'PARTICIPACAO-EM-SEMINARIO': 'Seminário', 'PARTICIPACAO-EM-SIMPOSIO': 'Simpósio',
+        'PARTICIPACAO-EM-OFICINA': 'Oficina', 'PARTICIPACAO-EM-ENCONTRO': 'Encontro',
+        'PARTICIPACAO-EM-EXPOSICAO': 'Exposição', 'PARTICIPACAO-EM-OLIMPIADA': 'Olimpíada',
+        'OUTRAS-PARTICIPACOES-EM-EVENTOS-CONGRESSOS': 'Outro',
+    };
+
+    const BANCA_MAP = {
+        'PARTICIPACAO-EM-BANCA-DE-MESTRADO': 'Mestrado',
+        'PARTICIPACAO-EM-BANCA-DE-DOUTORADO': 'Doutorado',
+        'PARTICIPACAO-EM-BANCA-DE-EXAME-QUALIFICACAO': 'Qualificação',
+        'PARTICIPACAO-EM-BANCA-DE-APERFEICOAMENTO-ESPECIALIZACAO': 'Especialização / Aperfeiçoamento',
+        'PARTICIPACAO-EM-BANCA-DE-GRADUACAO': 'TCC / Graduação',
+        'OUTRAS-PARTICIPACOES-EM-BANCA': 'Outra',
+        'BANCA-JULGADORA-PARA-PROFESSOR-TITULAR': 'Professor titular',
+        'BANCA-JULGADORA-PARA-CONCURSO-PUBLICO': 'Concurso público',
+        'BANCA-JULGADORA-PARA-LIVRE-DOCENCIA': 'Livre-docência',
+        'BANCA-JULGADORA-PARA-AVALIACAO-CURSOS': 'Avaliação de cursos',
+        'OUTRAS-BANCAS-JULGADORAS': 'Outra',
+    };
+
+    const FORMACAO_MAP = {
+        'GRADUACAO': 'Graduação', 'ESPECIALIZACAO': 'Especialização', 'APERFEICOAMENTO': 'Aperfeiçoamento',
+        'MESTRADO': 'Mestrado', 'MESTRADO-PROFISSIONALIZANTE': 'Mestrado',
+        'DOUTORADO': 'Doutorado', 'POS-DOUTORADO': 'Pós-Doutorado',
+        'LIVRE-DOCENCIA': 'Livre-docência', 'RESIDENCIA-MEDICA': 'Residência médica',
+    };
+
+    /* -------------------- handlers por tag (produção) -------------------- */
+    // Cada handler: { tags:[...], typeKey, map(el,b,d) -> fields }
+    const HANDLERS = [
+        { tags: ['ARTIGO-PUBLICADO', 'ARTIGO-ACEITO-PARA-PUBLICACAO'], typeKey: 'ARTIGO_PERIODICO',
+          map: (el, b, d) => ({
+              titulo: titleOf(b), ano: yearOf(b), doi: b['DOI'] || '', autores: autoresOf(el),
+              periodico: d['TITULO-DO-PERIODICO-OU-REVISTA'] || '', issn: d['ISSN'] || '',
+              volume: d['VOLUME'] || '', fasciculo: d['FASCICULO'] || '', paginas: paginas(d),
+          }) },
+        { tags: ['LIVRO-PUBLICADO-OU-ORGANIZADO'], typeKey: 'LIVRO',
+          map: (el, b, d) => ({
+              titulo: titleOf(b), ano: yearOf(b), autores: autoresOf(el),
+              natureza: NAT_LIVRO[b['TIPO']] || humanize(b['TIPO']),
+              editora: d['NOME-DA-EDITORA'] || '', cidade: d['CIDADE-DA-EDITORA'] || '',
+              isbn: d['ISBN'] || '', edicao: d['NUMERO-DA-EDICAO-REVISAO'] || '', paginas: d['NUMERO-DE-PAGINAS'] || '',
+          }) },
+        { tags: ['CAPITULO-DE-LIVRO-PUBLICADO'], typeKey: 'CAPITULO_LIVRO',
+          map: (el, b, d) => ({
+              titulo: titleOf(b), ano: yearOf(b), autores: autoresOf(el),
+              tituloLivro: d['TITULO-DO-LIVRO'] || '', organizadores: d['ORGANIZADORES'] || '',
+              editora: d['NOME-DA-EDITORA'] || '', isbn: d['ISBN'] || '', paginas: paginas(d),
+          }) },
+        { tags: ['TRABALHO-EM-EVENTOS'], typeKey: 'TRABALHO_EVENTO',
+          map: (el, b, d) => ({
+              titulo: titleOf(b), ano: yearOf(b), doi: b['DOI'] || '', autores: autoresOf(el),
+              natureza: NAT_TRABALHO[b['NATUREZA']] || humanize(b['NATUREZA']),
+              evento: d['NOME-DO-EVENTO'] || '', anais: d['TITULO-DOS-ANAIS-OU-PROCEEDINGS'] || '',
+              cidade: d['CIDADE-DO-EVENTO'] || '', paginas: paginas(d),
+          }) },
+        { tags: ['TEXTO-EM-JORNAL-OU-REVISTA'], typeKey: 'TEXTO_JORNAL',
+          map: (el, b, d) => ({
+              titulo: titleOf(b), ano: yearOf(b), autores: autoresOf(el),
+              veiculo: d['TITULO-DO-JORNAL-OU-REVISTA'] || '', data: d['DATA-DE-PUBLICACAO'] || '', paginas: paginas(d),
+          }) },
+
+        // ---- Produção técnica ----
+        { tags: ['SOFTWARE'], typeKey: 'SOFTWARE',
+          map: (el, b, d) => ({
+              titulo: titleOf(b), ano: yearOf(b), autores: autoresOf(el),
+              plataforma: d['PLATAFORMA'] || d['AMBIENTE'] || '', finalidade: d['FINALIDADE'] || b['FINALIDADE'] || '',
+          }) },
+        { tags: ['PATENTE'], typeKey: 'PATENTE',
+          map: (el, b, d) => {
+              const reg = attrs(firstTag(el, 'REGISTRO-OU-PATENTE'));
+              return {
+                  titulo: titleOf(b), ano: yearOf(b), autores: autoresOf(el),
+                  categoria: d['CATEGORIA'] || '', finalidade: d['FINALIDADE'] || '',
+                  registro: reg['CODIGO-DO-REGISTRO-OU-PATENTE'] || '', instituicao: d['INSTITUICAO-FINANCIADORA'] || '',
+              };
+          } },
+        { tags: ['PRODUTO-TECNOLOGICO'], typeKey: 'PRODUTO_TECNOLOGICO',
+          map: (el, b, d) => ({
+              titulo: titleOf(b), ano: yearOf(b), autores: autoresOf(el),
+              finalidade: d['FINALIDADE'] || '',
+          }) },
+        { tags: ['TRABALHO-TECNICO'], typeKey: 'TRABALHO_TECNICO',
+          map: (el, b, d) => ({
+              titulo: titleOf(b), ano: yearOf(b), natureza: humanize(b['NATUREZA']),
+              instituicao: d['INSTITUICAO-FINANCIADORA'] || '', finalidade: d['FINALIDADE'] || '',
+          }) },
+        { tags: ['APRESENTACAO-DE-TRABALHO'], typeKey: 'APRESENTACAO',
+          map: (el, b, d) => ({
+              titulo: titleOf(b), ano: yearOf(b), natureza: humanize(b['NATUREZA']),
+              evento: d['NOME-DO-EVENTO'] || '', instituicao: d['INSTITUICAO-PROMOTORA'] || '',
+              cidade: d['CIDADE-DA-APRESENTACAO'] || '',
+          }) },
+        { tags: ['CURSO-DE-CURTA-DURACAO-MINISTRADO'], typeKey: 'CURSO_MINISTRADO',
+          map: (el, b, d) => ({
+              titulo: titleOf(b), ano: yearOf(b),
+              instituicao: d['INSTITUICAO-PROMOTORA-DO-CURSO'] || '', cargaHoraria: d['DURACAO'] || '',
+          }) },
+        { tags: ['DESENVOLVIMENTO-DE-MATERIAL-DIDATICO-OU-INSTRUCIONAL'], typeKey: 'MATERIAL_DIDATICO',
+          map: (el, b, d) => ({ titulo: titleOf(b), ano: yearOf(b), autores: autoresOf(el), finalidade: d['FINALIDADE'] || '' }) },
+        { tags: ['ORGANIZACAO-DE-EVENTO'], typeKey: 'PARTICIPACAO_EVENTO',
+          map: (el, b, d) => ({
+              titulo: titleOf(b), ano: yearOf(b), natureza: 'Organização',
+              tipoEvento: humanize(b['TIPO']), cidade: d['CIDADE'] || '',
+          }) },
+
+        // ---- Prêmio ----
+        { tags: ['PREMIO-TITULO'], typeKey: 'PREMIO',
+          map: (el, b) => {
+              const a = attrs(el);
+              return { titulo: a['NOME-DO-PREMIO-OU-TITULO'] || '', ano: a['ANO-DA-PREMIACAO'] || '',
+                       entidade: a['NOME-DA-ENTIDADE-PROMOTORA'] || '' };
+          }, flat: true },
+    ];
+
+    /* --------------------------- parse principal ------------------------- */
+    function parse(xmlText) {
+        const errors = [];
+        const doc = new DOMParser().parseFromString(xmlText, 'application/xml');
+        if (doc.querySelector('parsererror')) {
+            return { items: [], summary: {}, errors: ['XML inválido ou corrompido.'] };
+        }
+
+        const items = [];
+        const summary = {};
+        const seenRefs = new Set();
+
+        function add(typeKey, fields, el) {
+            const canon = (fields.titulo || fields.curso || fields.orientando || fields.candidato || fields.instituicao || '')
+                .toLowerCase().replace(/\s+/g, ' ').trim();
+            const ref = `${typeKey}|${canon}|${fields.ano || fields.anoFim || ''}`;
+            if (!canon) return;                 // ignora itens sem título
+            if (seenRefs.has(ref)) return;      // dedup dentro do próprio XML
+            seenRefs.add(ref);
+            items.push({ typeKey, fields, lattesRef: ref });
+            summary[typeKey] = (summary[typeKey] || 0) + 1;
+        }
+
+        // 1) Handlers baseados em DADOS-BASICOS/DETALHAMENTO
+        HANDLERS.forEach(h => {
+            h.tags.forEach(tag => {
+                for (const el of doc.getElementsByTagName(tag)) {
+                    try {
+                        const b = h.flat ? attrs(el) : groupByPrefix(el, 'DADOS-BASICOS');
+                        const d = h.flat ? {} : groupByPrefix(el, 'DETALHAMENTO');
+                        add(h.typeKey, h.map(el, b, d), el);
+                    } catch (e) { errors.push(`${tag}: ${e.message}`); }
+                }
+            });
+        });
+
+        // 2) Orientações (concluídas + em andamento)
+        Object.keys(ORIENT_MAP).forEach(tag => {
+            const ctx = ORIENT_MAP[tag];
+            for (const el of doc.getElementsByTagName(tag)) {
+                const b = groupByPrefix(el, 'DADOS-BASICOS');
+                const d = groupByPrefix(el, 'DETALHAMENTO');
+                add('ORIENTACAO', {
+                    orientando: d['NOME-DO-ORIENTADO'] || d['NOME-DO-ORIENTANDO'] || '',
+                    tipo: ctx.tipo, situacao: ctx.situacao,
+                    titulo: pick(b, 'TITULO-DO-TRABALHO', 'TITULO'),
+                    instituicao: d['NOME-DA-INSTITUICAO'] || d['NOME-INSTITUICAO'] || '',
+                    ano: yearOf(b),
+                }, el);
+            }
+        });
+
+        // 3) Participação em eventos/congressos
+        Object.keys(PARTIC_MAP).forEach(tag => {
+            for (const el of doc.getElementsByTagName(tag)) {
+                const b = groupByPrefix(el, 'DADOS-BASICOS');
+                const d = groupByPrefix(el, 'DETALHAMENTO');
+                add('PARTICIPACAO_EVENTO', {
+                    titulo: pick(b, 'TITULO', ...TITLE_KEYS) || d['NOME-DO-EVENTO'] || '',
+                    ano: yearOf(b), natureza: 'Participação', tipoEvento: PARTIC_MAP[tag],
+                    cidade: d['CIDADE-DO-EVENTO'] || '',
+                }, el);
+            }
+        });
+
+        // 4) Bancas (trabalhos de conclusão + julgadoras)
+        Object.keys(BANCA_MAP).forEach(tag => {
+            for (const el of doc.getElementsByTagName(tag)) {
+                const b = groupByPrefix(el, 'DADOS-BASICOS');
+                const d = groupByPrefix(el, 'DETALHAMENTO');
+                add('BANCA', {
+                    tipo: BANCA_MAP[tag],
+                    candidato: d['NOME-DO-CANDIDATO'] || '',
+                    titulo: pick(b, 'TITULO', ...TITLE_KEYS),
+                    instituicao: d['NOME-INSTITUICAO'] || '',
+                    ano: yearOf(b),
+                }, el);
+            }
+        });
+
+        // 5) Formação acadêmica / titulação (atributos no próprio elemento do nível)
+        const formCont = doc.getElementsByTagName('FORMACAO-ACADEMICA-TITULACAO')[0];
+        if (formCont) {
+            for (const el of formCont.children) {
+                const nivel = FORMACAO_MAP[el.tagName];
+                if (!nivel) continue;
+                const a = attrs(el);
+                add('FORMACAO_ACADEMICA', {
+                    nivel,
+                    curso: a['NOME-CURSO'] || a['NOME-DO-CURSO'] || '',
+                    instituicao: a['NOME-INSTITUICAO'] || '',
+                    anoInicio: a['ANO-DE-INICIO'] || '',
+                    anoFim: a['ANO-DE-CONCLUSAO'] || a['ANO-DE-OBTENCAO-DO-TITULO'] || '',
+                    titulo: pick(a, 'TITULO-DO-TRABALHO-DE-CONCLUSAO-DE-CURSO', 'TITULO-DA-MONOGRAFIA',
+                        'TITULO-DA-DISSERTACAO-TESE', 'TITULO-DA-RESIDENCIA-MEDICA', 'TITULO-DO-TRABALHO'),
+                    orientador: pick(a, 'NOME-DO-ORIENTADOR', 'NOME-COMPLETO-DO-ORIENTADOR', 'NOME-ORIENTADOR-GRAD'),
+                }, el);
+            }
+        }
+
+        // 6) Atuação profissional → vínculos
+        for (const atu of doc.getElementsByTagName('ATUACAO-PROFISSIONAL')) {
+            const nomeInst = attrs(atu)['NOME-INSTITUICAO'] || '';
+            for (const v of atu.children) {
+                if (v.tagName !== 'VINCULOS') continue;
+                const a = attrs(v);
+                add('VINCULO_PROFISSIONAL', {
+                    instituicao: nomeInst,
+                    vinculo: a['TIPO-DE-VINCULO'] ? humanize(a['TIPO-DE-VINCULO']) : (a['OUTRO-VINCULO-INFORMADO'] || ''),
+                    cargo: a['ENQUADRAMENTO-FUNCIONAL'] ? humanize(a['ENQUADRAMENTO-FUNCIONAL']) : (a['OUTRO-ENQUADRAMENTO-FUNCIONAL-INFORMADO'] || ''),
+                    anoInicio: a['ANO-INICIO'] || '',
+                    anoFim: a['ANO-FIM'] || '',
+                    titulo: a['OUTRAS-INFORMACOES'] || '',
+                }, v);
+            }
+        }
+
+        // Titular
+        const dg = doc.getElementsByTagName('DADOS-GERAIS')[0];
+        const titular = dg ? (attrs(dg)['NOME-COMPLETO'] || '') : '';
+
+        return { items, summary, errors, titular };
+    }
+
+    return { parse };
+})();
+
+</script>
+<script>
+/* ===== js/app.js ===== */
+/* ==========================================================================
+   lattesZen — Orquestrador principal (SPA)
+   ========================================================================== */
+(function () {
+    'use strict';
+
+    /* ----------------------------- Estado ------------------------------- */
+    const state = {
+        items: [],          // catálogo
+        editingId: null,    // item em edição
+        pendingPdf: null,   // File aguardando gravação
+        lattesParsed: null, // resultado do parse do XML
+    };
+
+    /* --------------------------- Utilidades ----------------------------- */
+    const $ = (sel, ctx = document) => ctx.querySelector(sel);
+    const $$ = (sel, ctx = document) => Array.from(ctx.querySelectorAll(sel));
+    const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => (
+        { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+    function uid() {
+        if (crypto && crypto.randomUUID) return 'lz-' + crypto.randomUUID().slice(0, 8);
+        return 'lz-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+    }
+    function nowISO() { return new Date().toISOString(); }
+
+    function toast(msg, type = 'info') {
+        const colors = {
+            info: 'bg-govbr-600 dark:bg-unifesp-700',
+            ok: 'bg-green-600', erro: 'bg-red-600', aviso: 'bg-amber-600',
+        };
+        const el = document.createElement('div');
+        el.className = `${colors[type] || colors.info} text-white text-sm px-4 py-2 rounded shadow-lg max-w-xs`;
+        el.textContent = msg;
+        $('#toasts').appendChild(el);
+        setTimeout(() => { el.style.opacity = '0'; el.style.transition = 'opacity .4s'; }, 3200);
+        setTimeout(() => el.remove(), 3700);
+    }
+
+    /* --------------------------- Persistência --------------------------- */
+    function saveCatalog() { Storage.saveCatalog(state.items); }
+
+    async function persistItem(item, pdfFile) {
+        // grava em memória + localStorage
+        const idx = state.items.findIndex(i => i.id === item.id);
+        if (idx >= 0) state.items[idx] = item; else state.items.push(item);
+        saveCatalog();
+
+        // grava arquivos no diretório, se configurado
+        if (Storage.hasDirectory()) {
+            try {
+                await Storage.writeJson(item.id, item);
+                if (pdfFile) {
+                    await Storage.writePdf(item.id, pdfFile);
+                    item.hasPdf = true;
+                    item.pdfName = pdfFile.name;
+                    saveCatalog();
+                    await Storage.writeJson(item.id, item); // regrava com hasPdf
+                }
+            } catch (e) {
+                toast('Item salvo no índice, mas falhou ao gravar arquivos: ' + e.message, 'aviso');
+                return;
+            }
+        } else if (pdfFile) {
+            toast('PDF não gravado: configure um diretório em Configurações.', 'aviso');
+        }
+    }
+
+    async function deleteItem(id) {
+        state.items = state.items.filter(i => i.id !== id);
+        saveCatalog();
+        try { await Storage.deleteFiles(id); } catch (_) {}
+    }
+
+    /* =====================================================================
+       ABA: CATALOGAR
+       ===================================================================== */
+    function renderCatalogar() {
+        const panel = $('#tab-catalogar');
+        panel.innerHTML = `
+            <div class="grid lg:grid-cols-2 gap-6">
+                <section class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+                    <h2 class="text-lg font-bold mb-3 flex items-center gap-2">
+                        <i aria-hidden="true" class="fa-solid fa-file-circle-plus text-govbr-600 dark:text-unifesp-400"></i>
+                        <span id="formTitulo">Novo item</span>
+                    </h2>
+                    <form id="itemForm" class="space-y-3"></form>
+                </section>
+                <section>
+                    <div class="flex items-center justify-between mb-3">
+                        <h2 class="text-lg font-bold flex items-center gap-2">
+                            <i aria-hidden="true" class="fa-solid fa-list text-govbr-600 dark:text-unifesp-400"></i>
+                            Itens catalogados <span id="itemCount" class="text-sm font-normal text-gray-500"></span>
+                        </h2>
+                        <input id="filterBox" type="search" placeholder="Filtrar..."
+                               class="text-sm px-2 py-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900">
+                    </div>
+                    <div id="itemList" class="space-y-2 scroll-area max-h-[70vh] overflow-y-auto pr-1"></div>
+                </section>
+            </div>`;
+
+        buildForm();
+        renderItemList();
+        $('#filterBox').addEventListener('input', renderItemList);
+    }
+
+    function buildForm(item) {
+        const form = $('#itemForm');
+        const editing = !!item;
+        $('#formTitulo').textContent = editing ? 'Editar item' : 'Novo item';
+
+        const isNaoLattes = item ? !item.lattesItem : false;
+        const currentType = item ? item.typeKey : '';
+        const currentCat = item ? (LattesTypes.get(item.typeKey) || {}).categoryKey : '';
+
+        form.innerHTML = `
+            <label class="flex items-center gap-2 text-sm bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded px-3 py-2">
+                <input type="checkbox" id="chkNaoLattes" ${isNaoLattes ? 'checked' : ''}>
+                <span><i aria-hidden="true" class="fa-solid fa-heart text-amber-600"></i> Item <strong>não-Lattes</strong> (hobby, atividade pessoal, etc.)</span>
+            </label>
+
+            <div id="lattesSelectors" class="${isNaoLattes ? 'hidden' : ''} grid grid-cols-2 gap-2">
+                <div>
+                    <label class="block text-xs font-semibold mb-1">Categoria</label>
+                    <select id="selCategoria" class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900"></select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold mb-1">Tipo do item (Lattes)</label>
+                    <select id="selTipo" class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900"></select>
+                </div>
+            </div>
+
+            <div id="dynFields" class="space-y-3"></div>
+
+            <label class="flex items-center gap-2 text-sm">
+                <input type="checkbox" id="chkInLattes" ${item ? (item.inLattes ? 'checked' : '') : ''}>
+                <span>Este item <strong>já consta no Currículo Lattes</strong></span>
+            </label>
+
+            <div>
+                <label class="block text-xs font-semibold mb-1">Evidência (PDF)</label>
+                <input type="file" id="pdfInput" accept="application/pdf"
+                       class="w-full text-sm text-gray-600 dark:text-gray-300 file:mr-2 file:px-3 file:py-1.5 file:rounded file:border-0 file:bg-govbr-600 dark:file:bg-unifesp-700 file:text-white">
+                <p id="pdfStatus" class="text-xs text-gray-500 mt-1"></p>
+            </div>
+
+            <div class="flex gap-2 pt-2">
+                <button type="submit" class="px-4 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm font-semibold hover:opacity-90">
+                    <i aria-hidden="true" class="fa-solid fa-floppy-disk mr-1"></i> ${editing ? 'Salvar alterações' : 'Adicionar item'}
+                </button>
+                <button type="button" id="btnCancelar" class="px-4 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm ${editing ? '' : 'hidden'}">Cancelar</button>
+            </div>`;
+
+        // Preencher selects de categoria/tipo
+        const selCat = $('#selCategoria');
+        selCat.innerHTML = LattesTypes.categories.map(c => `<option value="${c.key}">${esc(c.label)}</option>`).join('');
+        if (currentCat) selCat.value = currentCat;
+
+        function fillTipos() {
+            const cat = LattesTypes.categories.find(c => c.key === selCat.value);
+            $('#selTipo').innerHTML = cat.types.map(t => `<option value="${t.key}">${esc(t.label)}</option>`).join('');
+            if (currentType && cat.types.some(t => t.key === currentType)) $('#selTipo').value = currentType;
+            renderDynFields();
+        }
+        function renderDynFields() {
+            const naoLattes = $('#chkNaoLattes').checked;
+            const typeKey = naoLattes ? NAO_LATTES_TYPE.key : $('#selTipo').value;
+            const def = LattesTypes.get(typeKey);
+            const vals = item ? (item.fields || {}) : {};
+            $('#dynFields').innerHTML = def.fields.map(f => fieldHtml(f, vals[f.key])).join('');
+        }
+
+        selCat.addEventListener('change', fillTipos);
+        $('#selTipo') && $('#selTipo').addEventListener('change', renderDynFields);
+        fillTipos();
+
+        // Alternar não-Lattes
+        $('#chkNaoLattes').addEventListener('change', (e) => {
+            $('#lattesSelectors').classList.toggle('hidden', e.target.checked);
+            $('#chkInLattes').closest('label').style.display = e.target.checked ? 'none' : '';
+            renderDynFields();
+        });
+        if (isNaoLattes) $('#chkInLattes').closest('label').style.display = 'none';
+
+        // PDF
+        const pdfStatus = $('#pdfStatus');
+        if (item && item.hasPdf) pdfStatus.textContent = `PDF atual: ${item.pdfName || item.id + '.pdf'}`;
+        $('#pdfInput').addEventListener('change', (e) => {
+            state.pendingPdf = e.target.files[0] || null;
+            pdfStatus.textContent = state.pendingPdf ? `Selecionado: ${state.pendingPdf.name}` : '';
+        });
+
+        // Submit
+        form.addEventListener('submit', onSubmitForm);
+        $('#btnCancelar').addEventListener('click', () => { state.editingId = null; state.pendingPdf = null; buildForm(); });
+
+        state.editingId = editing ? item.id : null;
+    }
+
+    function fieldHtml(f, val) {
+        val = val == null ? '' : val;
+        const req = f.required ? 'required' : '';
+        const reqMark = f.required ? ' <span class="text-red-500">*</span>' : '';
+        const base = 'w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900';
+        let input;
+        if (f.type === 'textarea') {
+            input = `<textarea name="${f.key}" ${req} rows="2" placeholder="${esc(f.placeholder || '')}" class="${base}">${esc(val)}</textarea>`;
+        } else if (f.type === 'select') {
+            input = `<select name="${f.key}" ${req} class="${base}">
+                <option value="">—</option>
+                ${f.options.map(o => `<option value="${esc(o)}" ${o === val ? 'selected' : ''}>${esc(o)}</option>`).join('')}
+            </select>`;
+        } else {
+            const t = f.type === 'year' ? 'text' : (f.type === 'url' ? 'url' : (f.type === 'number' ? 'number' : (f.type === 'date' ? 'date' : 'text')));
+            const extra = f.type === 'year' ? 'inputmode="numeric" maxlength="4" pattern="[0-9]{4}"' : '';
+            input = `<input type="${t}" name="${f.key}" value="${esc(val)}" ${req} ${extra} placeholder="${esc(f.placeholder || '')}" class="${base}">`;
+        }
+        return `<div>
+            <label class="block text-xs font-semibold mb-1">${esc(f.label)}${reqMark}</label>
+            ${input}
+            ${f.help ? `<p class="text-xs text-gray-500 mt-0.5">${esc(f.help)}</p>` : ''}
+        </div>`;
+    }
+
+    async function onSubmitForm(e) {
+        e.preventDefault();
+        const form = e.target;
+        const naoLattes = $('#chkNaoLattes').checked;
+        const typeKey = naoLattes ? NAO_LATTES_TYPE.key : $('#selTipo').value;
+        const def = LattesTypes.get(typeKey);
+
+        const fields = {};
+        def.fields.forEach(f => {
+            const el = form.elements[f.key];
+            if (el) fields[f.key] = el.value.trim();
+        });
+
+        // validação simples
+        const faltando = def.fields.filter(f => f.required && !fields[f.key]);
+        if (faltando.length) { toast('Preencha: ' + faltando.map(f => f.label).join(', '), 'aviso'); return; }
+
+        const editing = state.editingId ? state.items.find(i => i.id === state.editingId) : null;
+        const item = editing || {
+            id: uid(), createdAt: nowISO(),
+            source: 'local', hasPdf: false, pdfName: null, lattesRef: null,
+        };
+        item.lattesItem = !naoLattes;
+        item.typeKey = typeKey;
+        item.fields = fields;
+        item.inLattes = naoLattes ? false : $('#chkInLattes').checked;
+        item.updatedAt = nowISO();
+
+        await persistItem(item, state.pendingPdf);
+        toast(editing ? 'Item atualizado.' : 'Item adicionado.', 'ok');
+
+        state.editingId = null; state.pendingPdf = null;
+        buildForm();
+        renderItemList();
+    }
+
+    function statusBadges(item) {
+        const b = [];
+        if (item.lattesItem) {
+            b.push(item.inLattes
+                ? '<span class="badge bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300"><i class="fa-solid fa-check"></i> No Lattes</span>'
+                : '<span class="badge bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300"><i class="fa-solid fa-triangle-exclamation"></i> Falta no Lattes</span>');
+        } else {
+            b.push('<span class="badge bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300"><i class="fa-solid fa-heart"></i> Não-Lattes</span>');
+        }
+        b.push(item.hasPdf
+            ? '<span class="badge bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300"><i class="fa-solid fa-file-pdf"></i> Comprovado</span>'
+            : '<span class="badge bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-300"><i class="fa-solid fa-file-circle-xmark"></i> Sem PDF</span>');
+        return b.join(' ');
+    }
+
+    function renderItemList() {
+        const list = $('#itemList');
+        const q = ($('#filterBox') && $('#filterBox').value || '').toLowerCase();
+        $('#itemCount').textContent = `(${state.items.length})`;
+
+        let items = state.items.slice().sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || ''));
+        if (q) items = items.filter(i => (LattesTypes.itemTitle(i) + ' ' + LattesTypes.label(i.typeKey)).toLowerCase().includes(q));
+
+        if (!items.length) {
+            list.innerHTML = `<p class="text-sm text-gray-500 italic py-6 text-center">Nenhum item ainda. Adicione pelo formulário ou importe o XML do Lattes.</p>`;
+            return;
+        }
+        list.innerHTML = items.map(i => `
+            <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded p-3">
+                <div class="flex items-start justify-between gap-2">
+                    <div class="min-w-0">
+                        <p class="font-semibold text-sm truncate">${esc(LattesTypes.itemTitle(i))}</p>
+                        <p class="text-xs text-gray-500">${esc(LattesTypes.label(i.typeKey))} ${i.fields.ano ? '· ' + esc(i.fields.ano) : ''}</p>
+                        <div class="mt-1.5 flex flex-wrap gap-1">${statusBadges(i)}</div>
+                    </div>
+                    <div class="flex gap-1 shrink-0">
+                        ${i.hasPdf ? `<button data-act="pdf" data-id="${i.id}" title="Abrir PDF" class="w-8 h-8 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-red-600"><i class="fa-solid fa-file-pdf"></i></button>` : ''}
+                        <button data-act="edit" data-id="${i.id}" title="Editar" class="w-8 h-8 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-govbr-600 dark:text-unifesp-400"><i class="fa-solid fa-pen"></i></button>
+                        <button data-act="del" data-id="${i.id}" title="Excluir" class="w-8 h-8 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-red-600"><i class="fa-solid fa-trash"></i></button>
+                    </div>
+                </div>
+            </div>`).join('');
+
+        $$('#itemList [data-act]').forEach(btn => btn.addEventListener('click', onItemAction));
+    }
+
+    async function onItemAction(e) {
+        const btn = e.currentTarget;
+        const id = btn.dataset.id;
+        const item = state.items.find(i => i.id === id);
+        if (!item) return;
+        if (btn.dataset.act === 'edit') {
+            state.pendingPdf = null;
+            buildForm(item);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        } else if (btn.dataset.act === 'del') {
+            if (!confirm(`Excluir "${LattesTypes.itemTitle(item)}"? Os arquivos ${id}.pdf/.json também serão removidos.`)) return;
+            await deleteItem(id);
+            toast('Item excluído.', 'ok');
+            renderItemList();
+        } else if (btn.dataset.act === 'pdf') {
+            try {
+                const url = await Storage.readPdfUrl(id);
+                if (url) window.open(url, '_blank');
+                else toast('PDF não encontrado no diretório.', 'aviso');
+            } catch (err) { toast(err.message, 'erro'); }
+        }
+    }
+
+    /* =====================================================================
+       ABA: IMPORTAR LATTES (XML)
+       ===================================================================== */
+    function renderLattes() {
+        const panel = $('#tab-lattes');
+        panel.innerHTML = `
+            <section class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 mb-4">
+                <h2 class="text-lg font-bold mb-2 flex items-center gap-2">
+                    <i aria-hidden="true" class="fa-solid fa-file-import text-govbr-600 dark:text-unifesp-400"></i> Importar Currículo Lattes (XML)
+                </h2>
+                <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                    Exporte seu currículo em XML na Plataforma Lattes (Menu <em>&rarr; Exportar &rarr; XML</em>) e selecione o arquivo abaixo.
+                    Os itens serão listados para você escolher quais importar; cada um poderá receber um PDF depois.
+                </p>
+                <input type="file" id="xmlInput" accept=".xml,application/xml,text/xml"
+                       class="text-sm file:mr-2 file:px-3 file:py-1.5 file:rounded file:border-0 file:bg-govbr-600 dark:file:bg-unifesp-700 file:text-white">
+            </section>
+            <div id="xmlResult"></div>`;
+        $('#xmlInput').addEventListener('change', onXmlSelected);
+    }
+
+    async function onXmlSelected(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        const text = await file.text();
+        const res = LattesXML.parse(text);
+        state.lattesParsed = res;
+
+        if (res.errors && res.errors.length) { toast(res.errors[0], 'erro'); }
+        renderXmlResult(res);
+    }
+
+    function renderXmlResult(res) {
+        const box = $('#xmlResult');
+        if (!res.items.length) {
+            box.innerHTML = `<p class="text-sm text-gray-500 italic">Nenhum item reconhecido no XML.</p>`;
+            return;
+        }
+        const existingRefs = new Set(state.items.map(i => i.lattesRef).filter(Boolean));
+        const resumo = Object.entries(res.summary)
+            .map(([k, n]) => `<span class="badge bg-govbr-50 text-govbr-700 dark:bg-gray-700 dark:text-gray-200">${esc(LattesTypes.label(k))}: ${n}</span>`).join(' ');
+
+        box.innerHTML = `
+            <div class="mb-3">
+                ${res.titular ? `<p class="text-sm mb-1">Titular: <strong>${esc(res.titular)}</strong></p>` : ''}
+                <div class="flex flex-wrap gap-1">${resumo}</div>
+            </div>
+            <div class="flex items-center gap-2 mb-2">
+                <button id="btnSelAll" class="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600">Selecionar todos</button>
+                <button id="btnSelNone" class="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600">Nenhum</button>
+                <button id="btnImport" class="ml-auto px-4 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm font-semibold">
+                    <i class="fa-solid fa-download mr-1"></i> Importar selecionados
+                </button>
+            </div>
+            <div class="space-y-1 scroll-area max-h-[60vh] overflow-y-auto pr-1">
+                ${res.items.map((it, idx) => {
+                    const dup = existingRefs.has(it.lattesRef);
+                    return `<label class="flex items-start gap-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded p-2 text-sm ${dup ? 'opacity-60' : ''}">
+                        <input type="checkbox" class="xmlchk mt-1" data-idx="${idx}" ${dup ? '' : 'checked'}>
+                        <span class="min-w-0">
+                            <span class="font-medium">${esc(it.fields.titulo || it.fields.curso || '(sem título)')}</span>
+                            <span class="block text-xs text-gray-500">${esc(LattesTypes.label(it.typeKey))} ${it.fields.ano ? '· ' + esc(it.fields.ano) : ''} ${dup ? '· <em>já catalogado</em>' : ''}</span>
+                        </span>
+                    </label>`;
+                }).join('')}
+            </div>`;
+
+        $('#btnSelAll').addEventListener('click', () => $$('.xmlchk').forEach(c => c.checked = true));
+        $('#btnSelNone').addEventListener('click', () => $$('.xmlchk').forEach(c => c.checked = false));
+        $('#btnImport').addEventListener('click', importSelected);
+    }
+
+    async function importSelected() {
+        const chosen = $$('.xmlchk').filter(c => c.checked).map(c => parseInt(c.dataset.idx, 10));
+        if (!chosen.length) { toast('Nenhum item selecionado.', 'aviso'); return; }
+        const existingRefs = new Set(state.items.map(i => i.lattesRef).filter(Boolean));
+        let n = 0;
+        for (const idx of chosen) {
+            const src = state.lattesParsed.items[idx];
+            if (existingRefs.has(src.lattesRef)) continue;
+            const item = {
+                id: uid(), createdAt: nowISO(), updatedAt: nowISO(),
+                lattesItem: true, typeKey: src.typeKey, fields: src.fields,
+                source: 'lattes', inLattes: true, lattesRef: src.lattesRef,
+                hasPdf: false, pdfName: null,
+            };
+            await persistItem(item, null);
+            existingRefs.add(src.lattesRef);
+            n++;
+        }
+        toast(`${n} item(ns) importado(s) do Lattes.`, 'ok');
+        renderXmlResult(state.lattesParsed);
+        renderItemList();
+    }
+
+    /* =====================================================================
+       ABA: RELATÓRIO / CONFORMIDADE
+       ===================================================================== */
+    function renderRelatorio() {
+        const panel = $('#tab-relatorio');
+        const lattesSemPdf = state.items.filter(i => i.lattesItem && i.inLattes && !i.hasPdf);
+        const localForaLattes = state.items.filter(i => i.lattesItem && !i.inLattes);
+        const comprovados = state.items.filter(i => i.lattesItem && i.inLattes && i.hasPdf);
+        const naoLattes = state.items.filter(i => !i.lattesItem);
+
+        const total = state.items.filter(i => i.lattesItem && i.inLattes).length;
+        const pct = total ? Math.round(comprovados.length / total * 100) : 0;
+
+        const card = (cor, icone, titulo, valor, desc) => `
+            <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                <div class="flex items-center gap-2 text-${cor}-600 dark:text-${cor}-400">
+                    <i class="fa-solid ${icone} text-xl"></i><span class="text-2xl font-bold">${valor}</span>
+                </div>
+                <p class="text-sm font-semibold mt-1">${titulo}</p>
+                <p class="text-xs text-gray-500">${desc}</p>
+            </div>`;
+
+        const lista = (arr, vazio) => arr.length ? `
+            <div class="space-y-1">${arr.map(i => `
+                <div class="flex items-center justify-between gap-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded px-3 py-2 text-sm">
+                    <span class="min-w-0"><span class="font-medium">${esc(LattesTypes.itemTitle(i))}</span>
+                        <span class="block text-xs text-gray-500">${esc(LattesTypes.label(i.typeKey))} ${i.fields.ano ? '· ' + esc(i.fields.ano) : ''}</span></span>
+                    <button data-goto="${i.id}" class="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600 shrink-0">Abrir</button>
+                </div>`).join('')}</div>`
+            : `<p class="text-sm text-gray-500 italic">${vazio}</p>`;
+
+        panel.innerHTML = `
+            <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+                ${card('green', 'fa-circle-check', 'Comprovados', comprovados.length, 'No Lattes e com PDF')}
+                ${card('amber', 'fa-triangle-exclamation', 'Sem comprovação', lattesSemPdf.length, 'No Lattes, sem PDF')}
+                ${card('blue', 'fa-clock', 'Fora do Lattes', localForaLattes.length, 'Cadastrados, ainda não no Lattes')}
+                ${card('purple', 'fa-heart', 'Não-Lattes', naoLattes.length, 'Itens pessoais')}
+            </div>
+
+            <div class="mb-6">
+                <div class="flex justify-between text-sm mb-1"><span class="font-semibold">Conformidade documental</span><span>${pct}%</span></div>
+                <div class="w-full h-3 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                    <div class="h-full bg-green-500" style="width:${pct}%"></div>
+                </div>
+            </div>
+
+            <div class="grid lg:grid-cols-2 gap-6">
+                <section>
+                    <h3 class="font-bold mb-2 flex items-center gap-2 text-amber-600"><i class="fa-solid fa-triangle-exclamation"></i> Itens do Lattes SEM evidência (PDF)</h3>
+                    ${lista(lattesSemPdf, 'Tudo comprovado! 🎉')}
+                </section>
+                <section>
+                    <h3 class="font-bold mb-2 flex items-center gap-2 text-blue-600"><i class="fa-solid fa-clock"></i> Cadastrados que ainda NÃO estão no Lattes</h3>
+                    ${lista(localForaLattes, 'Nenhum item pendente de inclusão no Lattes.')}
+                </section>
+            </div>
+
+            <div class="mt-6 flex gap-2">
+                <button id="btnImprimir" class="px-4 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-print mr-1"></i> Imprimir / PDF</button>
+            </div>`;
+
+        $$('#tab-relatorio [data-goto]').forEach(b => b.addEventListener('click', () => {
+            const item = state.items.find(i => i.id === b.dataset.goto);
+            switchTab('catalogar');
+            buildForm(item);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }));
+        $('#btnImprimir').addEventListener('click', () => window.print());
+    }
+
+    /* =====================================================================
+       ABA: CONFIGURAÇÕES
+       ===================================================================== */
+    async function renderConfig() {
+        const panel = $('#tab-config');
+        const dirName = Storage.hasDirectory() ? await Storage.directoryName() : null;
+
+        panel.innerHTML = `
+            <div class="space-y-6 max-w-2xl">
+                <section class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+                    <h2 class="text-lg font-bold mb-2 flex items-center gap-2"><i class="fa-solid fa-folder-open text-govbr-600 dark:text-unifesp-400"></i> Diretório de arquivos</h2>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                        Cada item catalogado é salvo aqui como <code class="text-xs bg-gray-200 dark:bg-gray-700 px-1 rounded">ID.pdf</code> +
+                        <code class="text-xs bg-gray-200 dark:bg-gray-700 px-1 rounded">ID.json</code>.
+                        ${Storage.supportsFS ? '' : '<span class="text-red-600 font-semibold">Seu navegador não suporta esta função — use Chrome ou Edge.</span>'}
+                    </p>
+                    <p class="text-sm mb-3">Pasta atual: <strong id="dirNameLbl">${dirName ? esc(dirName) : '<em>nenhuma</em>'}</strong></p>
+                    <div class="flex flex-wrap gap-2">
+                        <button id="btnChooseDir" class="px-3 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm" ${Storage.supportsFS ? '' : 'disabled'}><i class="fa-solid fa-folder mr-1"></i> Escolher pasta</button>
+                        <button id="btnSync" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-rotate mr-1"></i> Sincronizar do diretório</button>
+                        <button id="btnForget" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-link-slash mr-1"></i> Esquecer pasta</button>
+                    </div>
+                </section>
+
+                <section class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+                    <h2 class="text-lg font-bold mb-2 flex items-center gap-2"><i class="fa-solid fa-file-export text-govbr-600 dark:text-unifesp-400"></i> Backup (JSON)</h2>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">Exporte ou importe todo o catálogo (metadados) num único arquivo JSON.</p>
+                    <div class="flex flex-wrap gap-2">
+                        <button id="btnExport" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-download mr-1"></i> Exportar catálogo</button>
+                        <label class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm cursor-pointer"><i class="fa-solid fa-upload mr-1"></i> Importar catálogo
+                            <input type="file" id="importJson" accept="application/json" class="hidden">
+                        </label>
+                    </div>
+                </section>
+
+                <section class="bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800 p-4">
+                    <h2 class="text-lg font-bold mb-2 flex items-center gap-2 text-red-700 dark:text-red-400"><i class="fa-solid fa-triangle-exclamation"></i> Zona de risco</h2>
+                    <button id="btnClear" class="px-3 py-2 rounded bg-red-600 text-white text-sm"><i class="fa-solid fa-trash mr-1"></i> Limpar catálogo (índice local)</button>
+                </section>
+            </div>`;
+
+        $('#btnChooseDir').addEventListener('click', async () => {
+            try { await Storage.chooseDirectory(); toast('Diretório configurado.', 'ok'); renderConfig(); }
+            catch (e) { if (e.name !== 'AbortError') toast(e.message, 'erro'); }
+        });
+        $('#btnSync').addEventListener('click', async () => {
+            try {
+                const found = await Storage.scanDirectory();
+                const byId = new Map(state.items.map(i => [i.id, i]));
+                found.forEach(f => byId.set(f.id, f));
+                state.items = Array.from(byId.values());
+                saveCatalog();
+                toast(`${found.length} arquivo(s) .json lido(s) do diretório.`, 'ok');
+                renderItemList();
+            } catch (e) { toast(e.message, 'erro'); }
+        });
+        $('#btnForget').addEventListener('click', async () => { await Storage.forgetDirectory(); toast('Pasta esquecida.', 'ok'); renderConfig(); });
+
+        $('#btnExport').addEventListener('click', exportCatalog);
+        $('#importJson').addEventListener('change', importCatalog);
+        $('#btnClear').addEventListener('click', () => {
+            if (!confirm('Isto apaga o índice local (localStorage). Os arquivos no diretório NÃO são removidos. Continuar?')) return;
+            state.items = []; saveCatalog(); toast('Índice local limpo.', 'ok'); renderItemList();
+        });
+    }
+
+    function exportCatalog() {
+        const data = {
+            app: 'lattesZen', version: APP_CONFIG.version, exportedAt: nowISO(),
+            items: state.items,
+        };
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `latteszen-catalogo-${new Date().toISOString().slice(0, 10)}.json`;
+        a.click();
+        URL.revokeObjectURL(a.href);
+    }
+
+    async function importCatalog(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        try {
+            const data = JSON.parse(await file.text());
+            const items = Array.isArray(data) ? data : data.items;
+            if (!Array.isArray(items)) throw new Error('Formato inválido.');
+            const byId = new Map(state.items.map(i => [i.id, i]));
+            items.forEach(i => { if (i && i.id) byId.set(i.id, i); });
+            state.items = Array.from(byId.values());
+            saveCatalog();
+            toast(`${items.length} item(ns) importado(s) do JSON.`, 'ok');
+            renderItemList();
+        } catch (err) { toast('Falha ao importar: ' + err.message, 'erro'); }
+        e.target.value = '';
+    }
+
+    /* =====================================================================
+       Navegação por abas
+       ===================================================================== */
+    const RENDERERS = {
+        catalogar: renderCatalogar, lattes: renderLattes,
+        relatorio: renderRelatorio, config: renderConfig,
+    };
+    function switchTab(name) {
+        $$('.tab-btn').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === name ? 'true' : 'false'));
+        $$('.tab-panel').forEach(p => p.hidden = (p.id !== 'tab-' + name));
+        RENDERERS[name] && RENDERERS[name]();
+    }
+
+    /* =====================================================================
+       Rodapé: tema e alto contraste
+       ===================================================================== */
+    function wireFooterToggles() {
+        const htmlEl = document.documentElement;
+        const tt = $('#themeToggle');
+        const syncTheme = () => {
+            const dark = htmlEl.classList.contains('dark');
+            tt.setAttribute('aria-pressed', dark ? 'true' : 'false');
+            tt.querySelector('i').className = dark ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
+            $('#themeToggleLabel').textContent = dark ? 'Tema claro' : 'Tema escuro';
+        };
+        syncTheme();
+        tt.addEventListener('click', () => {
+            htmlEl.classList.toggle('dark');
+            localStorage.setItem(APP_CONFIG.storageKeys.theme, htmlEl.classList.contains('dark') ? 'dark' : 'light');
+            syncTheme();
+        });
+
+        const hc = $('#highContrastToggle');
+        const syncHC = () => hc.setAttribute('aria-pressed', htmlEl.classList.contains('high-contrast') ? 'true' : 'false');
+        syncHC();
+        hc.addEventListener('click', () => {
+            htmlEl.classList.toggle('high-contrast');
+            localStorage.setItem(APP_CONFIG.storageKeys.highContrast, htmlEl.classList.contains('high-contrast') ? '1' : '0');
+            syncHC();
+        });
+    }
+
+    /* =====================================================================
+       Inicialização
+       ===================================================================== */
+    async function init() {
+        // Cabeçalho / rodapé dinâmicos
+        const sigla = APP_CONFIG.institution.sigla || '';
+        $('#headerSigla').textContent = sigla;
+        document.title = `${APP_CONFIG.name} - ${sigla}`;
+        $('#appVersion').textContent = APP_CONFIG.version;
+        $('#lastModDate').textContent = APP_CONFIG.lastModified;
+
+        wireFooterToggles();
+
+        // Carrega catálogo e restaura diretório
+        state.items = Storage.loadCatalog();
+        try { await Storage.restoreDirectory(); } catch (_) {}
+
+        // Abas
+        $$('.tab-btn').forEach(b => b.addEventListener('click', () => switchTab(b.dataset.tab)));
+        switchTab('catalogar');
+    }
+
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+    else init();
+})();
+
+</script>
+    </body>
 </html>

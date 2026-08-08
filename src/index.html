@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>lattesZen</title>
+
+    <!-- Estilos da aplicação (local — carrega sempre, mesmo offline) -->
+    <link rel="stylesheet" href="css/styles.css">
+
+    <!-- Tema claro/escuro e alto contraste: aplicar cedo para evitar "flash" -->
+    <script>
+        (function () {
+            const htmlEl = document.documentElement;
+            const saved = localStorage.getItem('tema');
+            const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+            if (saved ? saved === 'dark' : prefersDark) htmlEl.classList.add('dark');
+            if (localStorage.getItem('altoContraste') === '1') htmlEl.classList.add('high-contrast');
+        })();
+    </script>
+
+    <!-- Recursos externos (Tailwind, Font Awesome, Rawline) carregados de forma
+         ASSÍNCRONA e tolerante a falha: se a CDN estiver lenta/bloqueada, a
+         aplicação continua funcionando (o app.js nunca fica travado por eles). -->
+    <script>
+        (function () {
+            var TW_CONFIG = {
+                darkMode: 'class',
+                theme: {
+                    extend: {
+                        fontFamily: { sans: ['Rawline', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif'] },
+                        colors: {
+                            unifesp: { 50: '#f0fdf4', 100: '#dcfce7', 400: '#4ade80', 600: '#16a34a', 700: '#15803d', 800: '#166534', 900: '#1E5A3A' },
+                            govbr:   { 50: '#D4E5FF', 100: '#ADCDFF', 400: '#1351B4', 600: '#1351B4', 700: '#0C326F', 800: '#071D41', 900: '#050F24' },
+                        }
+                    }
+                }
+            };
+            var tw = document.createElement('script');
+            tw.src = 'https://cdn.tailwindcss.com';
+            tw.async = true;
+            tw.onload = function () { try { window.tailwind.config = TW_CONFIG; } catch (e) {} };
+            tw.onerror = function () { document.documentElement.classList.add('no-tailwind'); };
+            document.head.appendChild(tw);
+
+            function loadCss(href) {
+                var l = document.createElement('link');
+                l.rel = 'stylesheet'; l.href = href; l.media = 'all';
+                document.head.appendChild(l);
+            }
+            loadCss('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css');
+            loadCss('https://cdngovbr-ds.estaleiro.serpro.gov.br/design-system/fonts/rawline/css/rawline.css');
+        })();
+    </script>
+</head>
+<body class="font-sans bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-100 min-h-screen flex flex-col transition-colors duration-300">
+
+    <!-- ============================ CABEÇALHO ============================ -->
+    <header class="bg-govbr-600 dark:bg-gray-900 border-b border-govbr-700 dark:border-gray-700 flex flex-col shadow-sm dark:shadow-lg z-20 shrink-0 transition-colors duration-300">
+        <div class="flex items-center justify-between px-4 py-3 bg-govbr-600 dark:bg-gray-900 transition-colors duration-300">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded bg-white dark:bg-gradient-to-br dark:from-unifesp-600 dark:to-unifesp-900 flex items-center justify-center text-govbr-600 dark:text-white font-bold transition-colors duration-300">
+                    <i aria-hidden="true" class="fa-solid fa-graduation-cap"></i>
+                </div>
+                <div class="flex items-center gap-2 overflow-hidden">
+                    <h1 class="font-bold text-white leading-none whitespace-nowrap">lattesZen</h1>
+                    <span class="text-xl text-white/30 dark:text-gray-700 font-light">|</span>
+                    <span id="headerSigla" class="font-bold text-white/90 dark:text-unifesp-400 leading-none whitespace-nowrap">UNIFESP</span>
+                </div>
+            </div>
+            <div id="govBrLogo" class="bg-white rounded px-2 py-1.5 flex items-center shrink-0 dark:hidden">
+                <img src="images/geral/gov_br.svg" alt="Governo Federal" class="h-5 w-auto" onerror="this.parentElement.style.display='none'">
+            </div>
+        </div>
+
+        <!-- Abas de navegação -->
+        <nav class="bg-white dark:bg-gray-800 border-t border-govbr-700/20 dark:border-gray-700 px-2" role="tablist" aria-label="Seções">
+            <div class="max-w-5xl mx-auto flex gap-1 overflow-x-auto">
+                <button class="tab-btn px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-gray-600 dark:text-gray-300 hover:text-govbr-600 dark:hover:text-unifesp-400 whitespace-nowrap" role="tab" aria-selected="true" data-tab="catalogar">
+                    <i aria-hidden="true" class="fa-solid fa-file-circle-plus mr-1"></i> Catalogar
+                </button>
+                <button class="tab-btn px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-gray-600 dark:text-gray-300 hover:text-govbr-600 dark:hover:text-unifesp-400 whitespace-nowrap" role="tab" aria-selected="false" data-tab="lattes">
+                    <i aria-hidden="true" class="fa-solid fa-file-import mr-1"></i> Importar Lattes (XML)
+                </button>
+                <button class="tab-btn px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-gray-600 dark:text-gray-300 hover:text-govbr-600 dark:hover:text-unifesp-400 whitespace-nowrap" role="tab" aria-selected="false" data-tab="relatorio">
+                    <i aria-hidden="true" class="fa-solid fa-clipboard-check mr-1"></i> Relatório / Conformidade
+                </button>
+                <button class="tab-btn px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-gray-600 dark:text-gray-300 hover:text-govbr-600 dark:hover:text-unifesp-400 whitespace-nowrap" role="tab" aria-selected="false" data-tab="config">
+                    <i aria-hidden="true" class="fa-solid fa-gear mr-1"></i> Configurações
+                </button>
+            </div>
+        </nav>
+    </header>
+
+    <!-- ============================ CONTEÚDO ============================ -->
+    <main class="flex-1 w-full max-w-5xl mx-auto px-4 py-6">
+        <div id="tab-catalogar" class="tab-panel" role="tabpanel"></div>
+        <div id="tab-lattes"    class="tab-panel" role="tabpanel" hidden></div>
+        <div id="tab-relatorio" class="tab-panel" role="tabpanel" hidden></div>
+        <div id="tab-config"    class="tab-panel" role="tabpanel" hidden></div>
+    </main>
+
+    <!-- Área de notificações (toasts) -->
+    <div id="toasts" class="fixed bottom-16 right-4 z-50 flex flex-col gap-2" aria-live="polite"></div>
+
+    <!-- ============================ RODAPÉ ============================ -->
+    <footer class="bg-govbr-800 dark:bg-gray-950 border-t border-govbr-700 dark:border-gray-700 py-3 px-6 text-xs text-blue-100 dark:text-gray-400 flex flex-col sm:flex-row justify-between items-center shrink-0 gap-4 transition-colors duration-300">
+        <div class="flex items-center gap-4 flex-wrap justify-center">
+            <span><span class="font-mono" id="appVersion"></span> | Modificado: <span id="lastModDate"></span></span>
+            <span class="text-white/25 dark:text-gray-700">|</span>
+            <a href="termodeuso.html" class="hover:text-white transition-colors">Termo de uso</a>
+            <span class="text-white/25 dark:text-gray-700">|</span>
+            <a href="politicadeprivacidade.html" class="hover:text-white transition-colors">Política de privacidade</a>
+            <span class="text-white/25 dark:text-gray-700">|</span>
+            <a href="ajuda.html" class="hover:text-white transition-colors">Como usar (ajuda)</a>
+            <span class="text-white/25 dark:text-gray-700">|</span>
+            <button type="button" id="themeToggle" class="hover:text-white transition-colors flex items-center gap-1" aria-pressed="false">
+                <i aria-hidden="true" class="fa-solid fa-moon"></i> <span id="themeToggleLabel">Tema escuro</span>
+            </button>
+            <span class="text-white/25 dark:text-gray-700">|</span>
+            <button type="button" id="highContrastToggle" class="hover:text-white transition-colors flex items-center gap-1" aria-pressed="false">
+                <i aria-hidden="true" class="fa-solid fa-circle-half-stroke"></i> Alto contraste
+            </button>
+        </div>
+        <div class="flex gap-3 items-center flex-wrap justify-center">
+            <a href="https://github.com/alexsandroccarv" target="_blank" rel="noopener" class="hover:text-white hover:underline transition-colors flex items-center gap-1">
+                <i aria-hidden="true" class="fa-brands fa-github text-white/90 dark:text-unifesp-400"></i> Alexsandro Cardoso Carvalho
+            </a>
+            <span class="text-white/40 dark:text-gray-600">|</span>
+            <a href="https://github.com/alexsandroccarv/lattesZen" target="_blank" rel="noopener" class="hover:text-white hover:underline transition-colors">UNIFESP</a>
+            <span class="text-white/40 dark:text-gray-600">|</span>
+            <a href="https://www.gnu.org/licenses/agpl-3.0.html" target="_blank" rel="noopener" class="hover:text-white transition-colors flex items-center gap-1" title="Licença AGPLv3 (Free Software Foundation)">
+                <i aria-hidden="true" class="fa-solid fa-scale-balanced text-white/90 dark:text-unifesp-400"></i> AGPLv3
+            </a>
+        </div>
+    </footer>
+
+    <!-- ============================ SCRIPTS ============================ -->
+    <script src="js/config.js"></script>
+    <script src="js/lattes-types.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/lattes-xml.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
