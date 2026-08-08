@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>lattesZen</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Font Awesome (ícones) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Fonte oficial gov.br (Rawline) -->
+    <link rel="stylesheet" href="https://cdngovbr-ds.estaleiro.serpro.gov.br/design-system/fonts/rawline/css/rawline.css">
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Rawline', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif'],
+                    },
+                    colors: {
+                        // ---- TEMA ESCURO (verde UNIFESP) ----
+                        unifesp: {
+                            50: '#f0fdf4', 100: '#dcfce7', 400: '#4ade80',
+                            600: '#16a34a', 700: '#15803d', 800: '#166534', 900: '#1E5A3A',
+                        },
+                        // ---- TEMA CLARO (azul gov.br, tokens oficiais) ----
+                        govbr: {
+                            50: '#D4E5FF', 100: '#ADCDFF', 400: '#1351B4',
+                            600: '#1351B4', 700: '#0C326F', 800: '#071D41', 900: '#050F24',
+                        },
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* ============ ALTO CONTRASTE ============ */
+        /* Se houver uma área que NÃO deve mudar de cor, adicione a classe
+           .preserve-colors nela e ajuste os :not(...) abaixo. */
+        html.high-contrast body * {
+            background-color: #000000 !important;
+            color: #ffffff !important;
+            border-color: #ffeb3b !important;
+        }
+        html.high-contrast a,
+        html.high-contrast button {
+            color: #ffeb3b !important;
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body class="font-sans bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-100 min-h-screen flex flex-col transition-colors duration-300">
+
+    <!-- ============================ CABEÇALHO ============================ -->
+    <header class="bg-govbr-600 dark:bg-gray-900 border-b border-govbr-700 dark:border-gray-700 flex flex-col shadow-sm dark:shadow-lg z-20 shrink-0 transition-colors duration-300">
+        <div class="flex items-center justify-between px-4 py-3 bg-govbr-600 dark:bg-gray-900 transition-colors duration-300">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded bg-white dark:bg-gradient-to-br dark:from-unifesp-600 dark:to-unifesp-900 flex items-center justify-center text-govbr-600 dark:text-white font-bold transition-colors duration-300">
+                    <i aria-hidden="true" class="fa-solid fa-graduation-cap"></i>
+                </div>
+                <div class="flex items-center gap-2 overflow-hidden">
+                    <h1 class="font-bold text-white leading-none whitespace-nowrap">lattesZen</h1>
+                    <span class="text-xl text-white/30 dark:text-gray-700 font-light">|</span>
+                    <span id="headerSigla" class="font-bold text-white/90 dark:text-unifesp-400 leading-none whitespace-nowrap">UNIFESP</span>
+                </div>
+            </div>
+            <!-- Logotipo do Governo Federal (apenas no tema claro gov.br) -->
+            <div id="govBrLogo" class="bg-white rounded px-2 py-1.5 flex items-center shrink-0 dark:hidden">
+                <img src="images/geral/gov_br.svg" alt="Governo Federal" class="h-5 w-auto"
+                     onerror="this.parentElement.style.display='none'">
+            </div>
+        </div>
+    </header>
+
+    <!-- ============================ CONTEÚDO ============================ -->
+    <main class="flex-1 px-6 py-10 max-w-4xl mx-auto w-full">
+        <div class="text-center py-16">
+            <i aria-hidden="true" class="fa-solid fa-graduation-cap text-5xl text-govbr-600 dark:text-unifesp-400 mb-4"></i>
+            <h2 class="text-2xl font-bold mb-2">lattesZen</h2>
+            <p class="text-gray-500 dark:text-gray-400">Aplicação em construção — cabeçalho e rodapé padrão aplicados.</p>
+        </div>
+    </main>
+
+    <!-- ============================ RODAPÉ ============================ -->
+    <footer class="bg-govbr-800 dark:bg-gray-950 border-t border-govbr-700 dark:border-gray-700 py-3 px-6 text-xs text-blue-100 dark:text-gray-400 flex flex-col sm:flex-row justify-between items-center shrink-0 gap-4 transition-colors duration-300">
+        <div class="flex items-center gap-4 flex-wrap justify-center">
+            <span><span class="font-mono" id="appVersion"></span> | Modificado: <span id="lastModDate"></span></span>
+            <span class="text-white/25 dark:text-gray-700">|</span>
+            <a href="termodeuso.html" class="hover:text-white transition-colors">Termo de uso</a>
+            <span class="text-white/25 dark:text-gray-700">|</span>
+            <a href="politicadeprivacidade.html" class="hover:text-white transition-colors">Política de privacidade</a>
+            <span class="text-white/25 dark:text-gray-700">|</span>
+            <a href="ajuda.html" class="hover:text-white transition-colors">Como usar (ajuda)</a>
+            <span class="text-white/25 dark:text-gray-700">|</span>
+            <button type="button" id="themeToggle" class="hover:text-white transition-colors flex items-center gap-1" aria-pressed="false">
+                <i aria-hidden="true" class="fa-solid fa-moon"></i> <span id="themeToggleLabel">Tema escuro</span>
+            </button>
+            <span class="text-white/25 dark:text-gray-700">|</span>
+            <button type="button" id="highContrastToggle" class="hover:text-white transition-colors flex items-center gap-1" aria-pressed="false">
+                <i aria-hidden="true" class="fa-solid fa-circle-half-stroke"></i> Alto contraste
+            </button>
+        </div>
+
+        <div class="flex gap-3 items-center flex-wrap justify-center">
+            <a href="https://github.com/alexsandroccarv" target="_blank" rel="noopener" class="hover:text-white hover:underline transition-colors flex items-center gap-1">
+                <i aria-hidden="true" class="fa-brands fa-github text-white/90 dark:text-unifesp-400"></i> Alexsandro Cardoso Carvalho
+            </a>
+            <span class="text-white/40 dark:text-gray-600">|</span>
+            <a href="https://github.com/alexsandroccarv/lattesZen" target="_blank" rel="noopener" class="hover:text-white hover:underline transition-colors">UNIFESP</a>
+            <span class="text-white/40 dark:text-gray-600">|</span>
+            <a href="https://www.gnu.org/licenses/agpl-3.0.html" target="_blank" rel="noopener" class="hover:text-white transition-colors flex items-center gap-1" title="Licença AGPLv3 (Free Software Foundation)">
+                <i aria-hidden="true" class="fa-solid fa-scale-balanced text-white/90 dark:text-unifesp-400"></i> AGPLv3
+            </a>
+        </div>
+    </footer>
+
+    <!-- ============================ CONFIGURAÇÃO ============================ -->
+    <script>
+        const APP_CONFIG = {
+            name: 'lattesZen',
+            version: 'v1.0.0',
+            lastModified: '2026-08-08',
+            institution: {
+                sigla: 'UNIFESP',
+            },
+        };
+    </script>
+
+    <!-- ============ TEMA CLARO/ESCURO (executar cedo p/ evitar "flash") ============ -->
+    <script>
+        (function initTheme() {
+            const STORAGE_KEY = 'tema';
+            const htmlEl = document.documentElement;
+            // 1) preferência salva; 2) preferência do sistema; 3) claro (padrão)
+            const saved = localStorage.getItem(STORAGE_KEY);
+            const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+            const useDark = saved ? saved === 'dark' : prefersDark;
+            if (useDark) htmlEl.classList.add('dark');
+
+            document.addEventListener('DOMContentLoaded', () => {
+                const toggle = document.getElementById('themeToggle');
+                if (!toggle) return;
+                const icon = toggle.querySelector('i');
+                const label = document.getElementById('themeToggleLabel');
+                const syncState = () => {
+                    const dark = htmlEl.classList.contains('dark');
+                    toggle.setAttribute('aria-pressed', dark ? 'true' : 'false');
+                    if (icon) icon.className = dark ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
+                    if (label) label.innerText = dark ? 'Tema claro' : 'Tema escuro';
+                };
+                syncState();
+                toggle.addEventListener('click', () => {
+                    htmlEl.classList.toggle('dark');
+                    localStorage.setItem(STORAGE_KEY, htmlEl.classList.contains('dark') ? 'dark' : 'light');
+                    syncState();
+                });
+            });
+        })();
+    </script>
+
+    <!-- ============ ALTO CONTRASTE ============ -->
+    <script>
+        (function initHighContrast() {
+            const STORAGE_KEY = 'altoContraste';
+            const htmlEl = document.documentElement;
+            if (localStorage.getItem(STORAGE_KEY) === '1') {
+                htmlEl.classList.add('high-contrast');
+            }
+            document.addEventListener('DOMContentLoaded', () => {
+                const toggle = document.getElementById('highContrastToggle');
+                if (!toggle) return;
+                const syncState = () => {
+                    const active = htmlEl.classList.contains('high-contrast');
+                    toggle.setAttribute('aria-pressed', active ? 'true' : 'false');
+                };
+                syncState();
+                toggle.addEventListener('click', () => {
+                    htmlEl.classList.toggle('high-contrast');
+                    const active = htmlEl.classList.contains('high-contrast');
+                    localStorage.setItem(STORAGE_KEY, active ? '1' : '0');
+                    syncState();
+                });
+            });
+        })();
+    </script>
+
+    <!-- ============ PREENCHIMENTO DINÂMICO (sigla, versão, data) ============ -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const sigla = APP_CONFIG.institution.sigla || '';
+            document.getElementById('headerSigla').innerText = sigla;
+            document.title = `${APP_CONFIG.name} - ${sigla}`;
+            document.getElementById('appVersion').innerText = APP_CONFIG.version;
+            document.getElementById('lastModDate').innerText = APP_CONFIG.lastModified;
+        });
+    </script>
+</body>
+</html>
