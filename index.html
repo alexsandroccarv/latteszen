@@ -379,7 +379,7 @@ const TYPES = {
     IDENTIFICACAO: { label: 'Identificação', fields: [{ key: 'titulo', label: 'Nome completo', type: 'text', required: true }, { key: 'citacoes', label: 'Nome em citações bibliográficas', type: 'text' }, { key: 'orcid', label: 'ORCID', type: 'text' }, F_URL] },
     ENDERECO: { label: 'Endereço', fields: [{ key: 'titulo', label: 'Endereço', type: 'text', required: true }, { key: 'tipo', label: 'Tipo', type: 'select', options: ['Profissional', 'Residencial'] }, F_CIDADE, { key: 'uf', label: 'UF', type: 'text' }, { key: 'cep', label: 'CEP', type: 'text' }] },
     LICENCA: { label: 'Licença Maternidade, Paternidade e Adoção', fields: [{ key: 'titulo', label: 'Descrição', type: 'text', required: true }, { key: 'tipo', label: 'Tipo', type: 'select', options: ['Maternidade', 'Paternidade', 'Adoção'] }, F_AINI, F_AFIM] },
-    IDIOMAS: { label: 'Idiomas', fields: [{ key: 'titulo', label: 'Idioma', type: 'text', required: true }, { key: 'habilidades', label: 'Proficiência', type: 'checkboxes', options: ['Leitura', 'Fala', 'Escrita', 'Compreensão'] }] },
+    IDIOMAS: { label: 'Idiomas', fields: [{ key: 'titulo', label: 'Idioma', type: 'text', required: true }, { key: 'habilidades', label: 'Proficiência (nível por habilidade)', type: 'skilllevels', options: ['Leitura', 'Fala', 'Escrita', 'Compreensão'], levels: ['Bom', 'Razoável', 'Pouco'] }] },
     PREMIO: { label: 'Prêmios e títulos', fields: [F_TITULO, F_ANO, { key: 'entidade', label: 'Entidade promotora', type: 'text', required: true }, { key: 'descricao', label: 'Descrição', type: 'textarea' }] },
     RESUMO_CV: { label: 'Texto inicial do Currículo Lattes', fields: [{ key: 'titulo', label: 'Identificação', type: 'text' }, { key: 'descricao', label: 'Texto', type: 'textarea', required: true }] },
     OUTRAS_INFO: { label: 'Outras informações relevantes', fields: [{ key: 'titulo', label: 'Título', type: 'text', required: true }, { key: 'descricao', label: 'Descrição', type: 'textarea' }] },
@@ -1519,6 +1519,22 @@ window.LattesXML = (function () {
                     <input type="checkbox" data-cbgroup="${f.key}" value="${esc(o)}" ${selected.includes(o) ? 'checked' : ''}> ${esc(o)}
                 </label>`).join('')}
             </div>`;
+        } else if (f.type === 'skilllevels') {
+            const levels = f.levels || ['Bom', 'Razoável', 'Pouco'];
+            const map = {};
+            String(val || '').split(';').forEach(pair => {
+                const idx = pair.indexOf(':');
+                if (idx > -1) { const s = pair.slice(0, idx).trim(), l = pair.slice(idx + 1).trim(); if (s && l) map[s] = l; }
+            });
+            input = `<div class="space-y-1 pt-1">
+                ${f.options.map(sk => `<div class="flex items-center gap-2 text-sm">
+                    <span class="w-32 shrink-0">${esc(sk)}</span>
+                    <select data-slgroup="${f.key}" data-skill="${esc(sk)}" class="${base}">
+                        <option value="">—</option>
+                        ${levels.map(l => `<option value="${esc(l)}" ${map[sk] === l ? 'selected' : ''}>${esc(l)}</option>`).join('')}
+                    </select>
+                </div>`).join('')}
+            </div>`;
         } else {
             const t = (f.type === 'url' ? 'url' : (f.type === 'number' ? 'number' : (f.type === 'date' ? 'date' : 'text')));
             input = `<input type="${t}" name="${f.key}" value="${esc(val)}" ${req} placeholder="${esc(f.placeholder || '')}" class="${base}">`;
@@ -1542,6 +1558,8 @@ window.LattesXML = (function () {
         def.fields.forEach(f => {
             if (f.type === 'checkboxes') {
                 fields[f.key] = $$(`[data-cbgroup="${f.key}"]`, form).filter(c => c.checked).map(c => c.value).join('; ');
+            } else if (f.type === 'skilllevels') {
+                fields[f.key] = $$(`[data-slgroup="${f.key}"]`, form).filter(s => s.value).map(s => `${s.dataset.skill}: ${s.value}`).join('; ');
             } else {
                 const el = form.elements[f.key];
                 if (el) fields[f.key] = el.value.trim();

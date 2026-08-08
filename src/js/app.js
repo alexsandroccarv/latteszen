@@ -341,6 +341,22 @@
                     <input type="checkbox" data-cbgroup="${f.key}" value="${esc(o)}" ${selected.includes(o) ? 'checked' : ''}> ${esc(o)}
                 </label>`).join('')}
             </div>`;
+        } else if (f.type === 'skilllevels') {
+            const levels = f.levels || ['Bom', 'Razoável', 'Pouco'];
+            const map = {};
+            String(val || '').split(';').forEach(pair => {
+                const idx = pair.indexOf(':');
+                if (idx > -1) { const s = pair.slice(0, idx).trim(), l = pair.slice(idx + 1).trim(); if (s && l) map[s] = l; }
+            });
+            input = `<div class="space-y-1 pt-1">
+                ${f.options.map(sk => `<div class="flex items-center gap-2 text-sm">
+                    <span class="w-32 shrink-0">${esc(sk)}</span>
+                    <select data-slgroup="${f.key}" data-skill="${esc(sk)}" class="${base}">
+                        <option value="">—</option>
+                        ${levels.map(l => `<option value="${esc(l)}" ${map[sk] === l ? 'selected' : ''}>${esc(l)}</option>`).join('')}
+                    </select>
+                </div>`).join('')}
+            </div>`;
         } else {
             const t = (f.type === 'url' ? 'url' : (f.type === 'number' ? 'number' : (f.type === 'date' ? 'date' : 'text')));
             input = `<input type="${t}" name="${f.key}" value="${esc(val)}" ${req} placeholder="${esc(f.placeholder || '')}" class="${base}">`;
@@ -364,6 +380,8 @@
         def.fields.forEach(f => {
             if (f.type === 'checkboxes') {
                 fields[f.key] = $$(`[data-cbgroup="${f.key}"]`, form).filter(c => c.checked).map(c => c.value).join('; ');
+            } else if (f.type === 'skilllevels') {
+                fields[f.key] = $$(`[data-slgroup="${f.key}"]`, form).filter(s => s.value).map(s => `${s.dataset.skill}: ${s.value}`).join('; ');
             } else {
                 const el = form.elements[f.key];
                 if (el) fields[f.key] = el.value.trim();
