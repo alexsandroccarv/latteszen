@@ -10,6 +10,7 @@
         editingId: null,    // item em edição
         pendingPdf: null,   // File aguardando gravação
         lattesParsed: null, // resultado do parse do XML
+        currentPdfUrl: null,// URL (blob) do PDF exibido no painel lateral
     };
 
     /* --------------------------- Utilidades ----------------------------- */
@@ -80,7 +81,7 @@
     function renderCatalogar() {
         const panel = $('#tab-catalogar');
         panel.innerHTML = `
-            <div class="grid lg:grid-cols-2 gap-6">
+            <div class="grid lg:grid-cols-2 gap-6 items-start">
                 <section class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
                     <h2 class="text-lg font-bold mb-3 flex items-center gap-2">
                         <i aria-hidden="true" class="fa-solid fa-file-circle-plus text-govbr-600 dark:text-unifesp-400"></i>
@@ -88,22 +89,92 @@
                     </h2>
                     <form id="itemForm" class="space-y-3"></form>
                 </section>
-                <section>
+                <section class="lg:sticky lg:top-4">
                     <div class="flex items-center justify-between mb-3">
                         <h2 class="text-lg font-bold flex items-center gap-2">
-                            <i aria-hidden="true" class="fa-solid fa-list text-govbr-600 dark:text-unifesp-400"></i>
-                            Itens catalogados <span id="itemCount" class="text-sm font-normal text-gray-500"></span>
+                            <i aria-hidden="true" class="fa-solid fa-file-pdf text-red-600"></i>
+                            Visualização do PDF
                         </h2>
-                        <input id="filterBox" type="search" placeholder="Filtrar..."
-                               class="text-sm px-2 py-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900">
+                        <div class="flex gap-1">
+                            <button type="button" id="pdfNewTab" title="Abrir em nova aba" class="w-8 h-8 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 hidden"><i class="fa-solid fa-up-right-from-square"></i></button>
+                            <button type="button" id="pdfClose" title="Fechar" class="w-8 h-8 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 hidden"><i class="fa-solid fa-xmark"></i></button>
+                        </div>
                     </div>
-                    <div id="itemList" class="space-y-2 scroll-area max-h-[70vh] overflow-y-auto pr-1"></div>
+                    <div class="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-900" style="height: 78vh">
+                        <div id="pdfEmpty" class="h-full flex flex-col items-center justify-center text-center text-gray-400 dark:text-gray-500 p-6">
+                            <i class="fa-regular fa-file-pdf text-5xl mb-3"></i>
+                            <p class="text-sm">O PDF aparece aqui ao anexar um arquivo no formulário<br>ou ao abrir um item com evidência (aba <strong>Catálogo</strong>).</p>
+                        </div>
+                        <iframe id="pdfFrame" class="w-full h-full hidden" title="Pré-visualização do PDF"></iframe>
+                    </div>
+                    <p id="pdfPanelName" class="text-xs text-gray-500 mt-1 truncate"></p>
                 </section>
             </div>`;
 
         buildForm();
+        $('#pdfClose').addEventListener('click', clearPdf);
+        $('#pdfNewTab').addEventListener('click', () => { if (state.currentPdfUrl) window.open(state.currentPdfUrl, '_blank'); });
+    }
+
+    /* =====================================================================
+       ABA: CATÁLOGO (lista de itens)
+       ===================================================================== */
+    function renderCatalogo() {
+        const panel = $('#tab-catalogo');
+        panel.innerHTML = `
+            <div class="flex items-center justify-between mb-3 gap-2 flex-wrap">
+                <h2 class="text-lg font-bold flex items-center gap-2">
+                    <i aria-hidden="true" class="fa-solid fa-list text-govbr-600 dark:text-unifesp-400"></i>
+                    Itens catalogados <span id="itemCount" class="text-sm font-normal text-gray-500"></span>
+                </h2>
+                <input id="filterBox" type="search" placeholder="Filtrar por título, tipo ou categoria..."
+                       class="text-sm px-3 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 w-full sm:w-80">
+            </div>
+            <div id="itemList" class="space-y-2"></div>`;
         renderItemList();
         $('#filterBox').addEventListener('input', renderItemList);
+    }
+
+    /* =====================================================================
+       Painel de visualização do PDF (dentro de "Catalogar")
+       ===================================================================== */
+    function setPdf(url, name) {
+        const frame = $('#pdfFrame');
+        if (!frame) return; // painel não montado (outra aba ativa)
+        if (state.currentPdfUrl && state.currentPdfUrl !== url) {
+            try { URL.revokeObjectURL(state.currentPdfUrl); } catch (_) {}
+        }
+        state.currentPdfUrl = url;
+        frame.src = url;
+        frame.classList.remove('hidden');
+        $('#pdfEmpty').classList.add('hidden');
+        $('#pdfClose').classList.remove('hidden');
+        $('#pdfNewTab').classList.remove('hidden');
+        $('#pdfPanelName').textContent = name || '';
+    }
+    function clearPdf() {
+        const frame = $('#pdfFrame');
+        if (state.currentPdfUrl) { try { URL.revokeObjectURL(state.currentPdfUrl); } catch (_) {} state.currentPdfUrl = null; }
+        if (!frame) return;
+        frame.src = 'about:blank';
+        frame.classList.add('hidden');
+        $('#pdfEmpty').classList.remove('hidden');
+        $('#pdfClose').classList.add('hidden');
+        $('#pdfNewTab').classList.add('hidden');
+        $('#pdfPanelName').textContent = '';
+    }
+    function previewPdfFile(file) {
+        if (!file) return;
+        setPdf(URL.createObjectURL(file), file.name);
+    }
+    async function showPdfForItem(item) {
+        if (!$('#pdfFrame')) return;
+        if (!item.hasPdf) { clearPdf(); return; }
+        try {
+            const url = await Storage.readPdfUrl(item.id, LattesTypes.categoryFolder(item.categoryKey));
+            if (url) setPdf(url, item.pdfName || item.id + '.pdf');
+            else { clearPdf(); toast('PDF não encontrado no diretório (sincronize a pasta).', 'aviso'); }
+        } catch (e) { clearPdf(); }
     }
 
     function buildForm(item) {
@@ -199,6 +270,7 @@
         $('#pdfInput').addEventListener('change', (e) => {
             state.pendingPdf = e.target.files[0] || null;
             pdfStatus.textContent = state.pendingPdf ? `Selecionado: ${state.pendingPdf.name}` : '';
+            if (state.pendingPdf) previewPdfFile(state.pendingPdf); // exibe no painel lateral
         });
 
         // Submit
@@ -206,6 +278,10 @@
         $('#btnCancelar').addEventListener('click', () => { state.editingId = null; state.pendingPdf = null; buildForm(); });
 
         state.editingId = editing ? item.id : null;
+
+        // Painel lateral do PDF: mostra evidência do item em edição, ou limpa
+        if (editing && item.hasPdf) showPdfForItem(item);
+        else clearPdf();
     }
 
     function fieldHtml(f, val) {
@@ -288,11 +364,12 @@
 
     function renderItemList() {
         const list = $('#itemList');
+        if (!list) return; // aba Catálogo não está montada
         const q = ($('#filterBox') && $('#filterBox').value || '').toLowerCase();
         $('#itemCount').textContent = `(${state.items.length})`;
 
         let items = state.items.slice().sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || ''));
-        if (q) items = items.filter(i => (LattesTypes.itemTitle(i) + ' ' + LattesTypes.label(i.typeKey)).toLowerCase().includes(q));
+        if (q) items = items.filter(i => (LattesTypes.itemTitle(i) + ' ' + LattesTypes.label(i.typeKey) + ' ' + LattesTypes.categoryLabel(i.categoryKey)).toLowerCase().includes(q));
 
         if (!items.length) {
             list.innerHTML = `<p class="text-sm text-gray-500 italic py-6 text-center">Nenhum item ainda. Adicione pelo formulário ou importe o XML do Lattes.</p>`;
@@ -307,8 +384,8 @@
                         <div class="mt-1.5 flex flex-wrap gap-1">${statusBadges(i)}</div>
                     </div>
                     <div class="flex gap-1 shrink-0">
-                        ${i.hasPdf ? `<button data-act="pdf" data-id="${i.id}" title="Abrir PDF" class="w-8 h-8 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-red-600"><i class="fa-solid fa-file-pdf"></i></button>` : ''}
-                        <button data-act="edit" data-id="${i.id}" title="Editar" class="w-8 h-8 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-govbr-600 dark:text-unifesp-400"><i class="fa-solid fa-pen"></i></button>
+                        ${i.hasPdf ? `<button data-act="pdf" data-id="${i.id}" title="Ver PDF no painel (Catalogar)" class="w-8 h-8 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-red-600"><i class="fa-solid fa-file-pdf"></i></button>` : ''}
+                        <button data-act="edit" data-id="${i.id}" title="Abrir / Editar" class="w-8 h-8 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-govbr-600 dark:text-unifesp-400"><i class="fa-solid fa-pen"></i></button>
                         <button data-act="del" data-id="${i.id}" title="Excluir" class="w-8 h-8 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-red-600"><i class="fa-solid fa-trash"></i></button>
                     </div>
                 </div>
@@ -322,8 +399,10 @@
         const id = btn.dataset.id;
         const item = state.items.find(i => i.id === id);
         if (!item) return;
-        if (btn.dataset.act === 'edit') {
+        if (btn.dataset.act === 'edit' || btn.dataset.act === 'pdf') {
+            // Abre o item na aba Catalogar; o PDF (se houver) aparece no painel lateral
             state.pendingPdf = null;
+            switchTab('catalogar');
             buildForm(item);
             window.scrollTo({ top: 0, behavior: 'smooth' });
         } else if (btn.dataset.act === 'del') {
@@ -331,12 +410,6 @@
             await deleteItem(id);
             toast('Item excluído.', 'ok');
             renderItemList();
-        } else if (btn.dataset.act === 'pdf') {
-            try {
-                const url = await Storage.readPdfUrl(id, LattesTypes.categoryFolder(item.categoryKey));
-                if (url) window.open(url, '_blank');
-                else toast('PDF não encontrado no diretório.', 'aviso');
-            } catch (err) { toast(err.message, 'erro'); }
         }
     }
 
@@ -622,7 +695,7 @@
        Navegação por abas
        ===================================================================== */
     const RENDERERS = {
-        catalogar: renderCatalogar, lattes: renderLattes,
+        catalogar: renderCatalogar, catalogo: renderCatalogo, lattes: renderLattes,
         relatorio: renderRelatorio, config: renderConfig,
     };
     function switchTab(name) {
