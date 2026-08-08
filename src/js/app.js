@@ -348,10 +348,21 @@
         $('#xmlInput').addEventListener('change', onXmlSelected);
     }
 
+    // Lê o arquivo respeitando o encoding declarado no XML (Lattes = ISO-8859-1).
+    // O file.text() do navegador assume UTF-8 e corrompe acentos (ç, ã, ~).
+    async function readXmlText(file) {
+        const buf = await file.arrayBuffer();
+        const head = new TextDecoder('ascii').decode(new Uint8Array(buf.slice(0, 200)));
+        const m = head.match(/encoding=["']([^"']+)["']/i);
+        const enc = (m ? m[1] : 'utf-8').toLowerCase();
+        try { return new TextDecoder(enc).decode(buf); }
+        catch (_) { return new TextDecoder('iso-8859-1').decode(buf); }
+    }
+
     async function onXmlSelected(e) {
         const file = e.target.files[0];
         if (!file) return;
-        const text = await file.text();
+        const text = await readXmlText(file);
         const res = LattesXML.parse(text);
         state.lattesParsed = res;
 

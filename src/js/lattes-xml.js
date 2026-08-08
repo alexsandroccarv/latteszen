@@ -179,10 +179,15 @@ window.LattesXML = (function () {
           }) },
         { tags: ['DESENVOLVIMENTO-DE-MATERIAL-DIDATICO-OU-INSTRUCIONAL'], typeKey: 'MATERIAL_DIDATICO',
           map: (el, b, d) => ({ titulo: titleOf(b), ano: yearOf(b), autores: autoresOf(el), finalidade: d['FINALIDADE'] || '' }) },
-        { tags: ['ORGANIZACAO-DE-EVENTO'], typeKey: 'PARTICIPACAO_EVENTO',
+        { tags: ['ORGANIZACAO-DE-EVENTO'], typeKey: 'ORGANIZACAO_EVENTO',
           map: (el, b, d) => ({
-              titulo: titleOf(b), ano: yearOf(b), natureza: 'Organização',
-              tipoEvento: humanize(b['TIPO']), cidade: d['CIDADE'] || '',
+              titulo: titleOf(b), ano: yearOf(b), tipoEvento: humanize(b['TIPO']),
+              instituicao: d['INSTITUICAO-PROMOTORA'] || '', cidade: d['CIDADE'] || '',
+          }) },
+        { tags: ['EDITORACAO'], typeKey: 'EDITORACAO',
+          map: (el, b, d) => ({
+              titulo: titleOf(b), ano: yearOf(b), natureza: humanize(b['NATUREZA']),
+              editora: d['EDITORA'] || '', cidade: d['CIDADE'] || '', paginas: d['NUMERO-DE-PAGINAS'] || '',
           }) },
 
         // ---- Prêmio ----
@@ -290,6 +295,21 @@ window.LattesXML = (function () {
                     titulo: pick(a, 'TITULO-DO-TRABALHO-DE-CONCLUSAO-DE-CURSO', 'TITULO-DA-MONOGRAFIA',
                         'TITULO-DA-DISSERTACAO-TESE', 'TITULO-DA-RESIDENCIA-MEDICA', 'TITULO-DO-TRABALHO'),
                     orientador: pick(a, 'NOME-DO-ORIENTADOR', 'NOME-COMPLETO-DO-ORIENTADOR', 'NOME-ORIENTADOR-GRAD'),
+                }, el);
+            }
+        }
+
+        // 5b) Formação complementar (cursos de curta duração, extensão, etc.)
+        const formCompl = doc.getElementsByTagName('FORMACAO-COMPLEMENTAR')[0];
+        if (formCompl) {
+            for (const el of formCompl.children) {
+                if (!el.tagName || el.tagName.indexOf('FORMACAO-COMPLEMENTAR-') !== 0) continue;
+                const a = attrs(el);
+                add('FORMACAO_COMPLEMENTAR', {
+                    titulo: a['NOME-CURSO'] || a['NOME-DO-CURSO'] || '',
+                    ano: a['ANO-DE-CONCLUSAO'] || a['ANO-DE-INICIO'] || '',
+                    instituicao: a['NOME-INSTITUICAO'] || '',
+                    cargaHoraria: a['CARGA-HORARIA'] || '',
                 }, el);
             }
         }
