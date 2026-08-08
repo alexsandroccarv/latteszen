@@ -115,7 +115,19 @@ window.LATTES_CATEGORIES = [
                     F_TITULO, F_ANO,
                     F_NATUREZA(['Congresso', 'Seminário', 'Simpósio', 'Conferência ou palestra', 'Comunicação', 'Outra']),
                     { key: 'evento', label: 'Nome do evento', type: 'text' },
+                    { key: 'instituicao', label: 'Instituição promotora', type: 'text' },
                     { key: 'cidade', label: 'Cidade', type: 'text' },
+                    F_URL,
+                ],
+            },
+            {
+                key: 'PATENTE', label: 'Patente / Registro',
+                fields: [
+                    F_TITULO, F_ANO, F_AUTORES,
+                    { key: 'categoria', label: 'Categoria / Tipo', type: 'text' },
+                    { key: 'finalidade', label: 'Finalidade / Descrição', type: 'textarea' },
+                    { key: 'registro', label: 'Nº do registro / depósito', type: 'text' },
+                    { key: 'instituicao', label: 'Instituição financiadora', type: 'text' },
                     F_URL,
                 ],
             },
@@ -157,7 +169,7 @@ window.LATTES_CATEGORIES = [
                 key: 'FORMACAO_ACADEMICA', label: 'Formação acadêmica / titulação',
                 fields: [
                     { key: 'nivel', label: 'Nível', type: 'select', required: true,
-                      options: ['Graduação', 'Especialização', 'Mestrado', 'Doutorado', 'Pós-Doutorado', 'Livre-docência'] },
+                      options: ['Graduação', 'Aperfeiçoamento', 'Especialização', 'Mestrado', 'Doutorado', 'Pós-Doutorado', 'Livre-docência', 'Residência médica'] },
                     { key: 'curso', label: 'Curso / Área', type: 'text', required: true },
                     { key: 'instituicao', label: 'Instituição', type: 'text', required: true },
                     { key: 'anoInicio', label: 'Ano de início', type: 'year' },
@@ -235,7 +247,7 @@ window.LATTES_CATEGORIES = [
                 key: 'BANCA', label: 'Participação em banca',
                 fields: [
                     { key: 'tipo', label: 'Tipo de banca', type: 'select', required: true,
-                      options: ['Mestrado', 'Doutorado', 'Qualificação', 'TCC / Graduação', 'Concurso público', 'Comissão julgadora', 'Outra'] },
+                      options: ['Mestrado', 'Doutorado', 'Qualificação', 'Especialização / Aperfeiçoamento', 'TCC / Graduação', 'Concurso público', 'Professor titular', 'Livre-docência', 'Avaliação de cursos', 'Outra'] },
                     { key: 'candidato', label: 'Candidato(a) / Trabalho', type: 'text' },
                     { key: 'titulo', label: 'Título do trabalho avaliado', type: 'text' },
                     { key: 'instituicao', label: 'Instituição', type: 'text' },
@@ -247,7 +259,7 @@ window.LATTES_CATEGORIES = [
                 fields: [
                     F_TITULO, F_ANO,
                     F_NATUREZA(['Participação', 'Organização']),
-                    { key: 'tipoEvento', label: 'Tipo', type: 'select', options: ['Congresso', 'Simpósio', 'Seminário', 'Encontro', 'Oficina', 'Outro'] },
+                    { key: 'tipoEvento', label: 'Tipo', type: 'select', options: ['Congresso', 'Feira', 'Simpósio', 'Seminário', 'Encontro', 'Oficina', 'Exposição', 'Olimpíada', 'Outro'] },
                     { key: 'cidade', label: 'Cidade', type: 'text' },
                     F_URL,
                 ],
