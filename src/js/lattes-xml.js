@@ -41,9 +41,9 @@ window.LattesXML = (function () {
 
     const TITLE_KEYS = ['TITULO-DO-ARTIGO', 'TITULO-DO-LIVRO', 'TITULO-DO-CAPITULO-DO-LIVRO',
         'TITULO-DO-TRABALHO-TECNICO', 'TITULO-DO-TRABALHO', 'TITULO-DO-TEXTO', 'TITULO-DO-SOFTWARE',
-        'TITULO-DO-PRODUTO', 'TITULO-DO-PROCESSO', 'TITULO'];
+        'TITULO-DO-PRODUTO', 'TITULO-DO-PROCESSO', 'DENOMINACAO', 'TITULO'];
     const YEAR_KEYS = ['ANO-DO-ARTIGO', 'ANO-DO-TRABALHO', 'ANO-DO-TEXTO', 'ANO', 'ANO-DESENVOLVIMENTO',
-        'ANO-DA-PREMIACAO', 'ANO-DE-OBTENCAO-DO-TITULO', 'ANO-DE-CONCLUSAO'];
+        'ANO-SOLICITACAO', 'ANO-DA-PREMIACAO', 'ANO-DE-OBTENCAO-DO-TITULO', 'ANO-DE-CONCLUSAO'];
 
     function titleOf(b) { return pick(b, ...TITLE_KEYS); }
     function yearOf(b) { return pick(b, ...YEAR_KEYS); }
@@ -156,10 +156,41 @@ window.LattesXML = (function () {
                   registro: reg['CODIGO-DO-REGISTRO-OU-PATENTE'] || '', instituicao: d['INSTITUICAO-FINANCIADORA'] || '',
               };
           } },
+        { tags: ['DESENHO-INDUSTRIAL'], typeKey: 'DESENHO_INDUSTRIAL',
+          map: (el, b, d) => ({
+              titulo: titleOf(b), ano: yearOf(b), autores: autoresOf(el),
+              finalidade: d['FINALIDADE'] || '', instituicao: d['INSTITUICAO-FINANCIADORA'] || '',
+          }) },
+        { tags: ['MARCA'], typeKey: 'MARCA',
+          map: (el, b, d) => ({
+              titulo: titleOf(b), ano: yearOf(b), autores: autoresOf(el),
+              natureza: humanize(d['NATUREZA']), finalidade: d['FINALIDADE'] || '',
+          }) },
+        { tags: ['CULTIVAR-REGISTRADA'], typeKey: 'CULTIVAR_REGISTRADA',
+          map: (el, b, d) => ({
+              titulo: b['DENOMINACAO'] || titleOf(b), ano: yearOf(b), autores: autoresOf(el),
+              finalidade: d['FINALIDADE'] || '', instituicao: d['INSTITUICAO-FINANCIADORA'] || '',
+          }) },
+        { tags: ['CULTIVAR-PROTEGIDA'], typeKey: 'CULTIVAR_PROTEGIDA',
+          map: (el, b, d) => ({
+              titulo: b['DENOMINACAO'] || titleOf(b), ano: yearOf(b), autores: autoresOf(el),
+              finalidade: d['FINALIDADE'] || '', instituicao: d['INSTITUICAO-FINANCIADORA'] || '',
+          }) },
+        { tags: ['TOPOGRAFIA-DE-CIRCUITO-INTEGRADO'], typeKey: 'TOPOGRAFIA_CI',
+          map: (el, b, d) => ({
+              titulo: titleOf(b), ano: yearOf(b), autores: autoresOf(el),
+              finalidade: d['FINALIDADE'] || '', instituicao: d['INSTITUICAO-FINANCIADORA'] || '',
+          }) },
         { tags: ['PRODUTO-TECNOLOGICO'], typeKey: 'PRODUTO_TECNOLOGICO',
           map: (el, b, d) => ({
               titulo: titleOf(b), ano: yearOf(b), autores: autoresOf(el),
               finalidade: d['FINALIDADE'] || '',
+          }) },
+        { tags: ['PROCESSOS-OU-TECNICAS'], typeKey: 'PROCESSO_TECNICA',
+          map: (el, b, d) => ({
+              titulo: titleOf(b), ano: yearOf(b), autores: autoresOf(el),
+              natureza: humanize(b['NATUREZA']), finalidade: d['FINALIDADE'] || '',
+              instituicao: d['INSTITUICAO-FINANCIADORA'] || '', cidade: d['CIDADE-DO-PROCESSO'] || '',
           }) },
         { tags: ['TRABALHO-TECNICO'], typeKey: 'TRABALHO_TECNICO',
           map: (el, b, d) => ({

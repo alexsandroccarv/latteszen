@@ -371,17 +371,60 @@ const T = {
             { key: 'instituicao', label: 'Instituição financiadora', type: 'text' }, F_URL],
     },
     SOFTWARE: {
-        key: 'SOFTWARE', label: 'Software / Programa de computador',
+        key: 'SOFTWARE', label: 'Programa de computador / Software',
         fields: [F_TITULO, F_ANO, F_AUTORES,
             { key: 'plataforma', label: 'Plataforma / Ambiente', type: 'text' },
             { key: 'finalidade', label: 'Finalidade', type: 'textarea' },
-            { key: 'registro', label: 'Registro / Patente (se houver)', type: 'text' }, F_URL],
+            { key: 'registro', label: 'Registro (se houver)', type: 'text' }, F_URL],
+    },
+    DESENHO_INDUSTRIAL: {
+        key: 'DESENHO_INDUSTRIAL', label: 'Desenho industrial',
+        fields: [F_TITULO, F_ANO, F_AUTORES,
+            { key: 'finalidade', label: 'Finalidade / Descrição', type: 'textarea' },
+            { key: 'registro', label: 'Nº do registro / depósito', type: 'text' },
+            { key: 'instituicao', label: 'Instituição financiadora', type: 'text' }, F_URL],
+    },
+    MARCA: {
+        key: 'MARCA', label: 'Marca registrada',
+        fields: [F_TITULO, F_ANO, F_AUTORES,
+            F_NATUREZA(['Produto', 'Serviço', 'Coletiva', 'Certificação', 'Outra']),
+            { key: 'finalidade', label: 'Finalidade / Descrição', type: 'textarea' },
+            { key: 'registro', label: 'Nº do registro / depósito', type: 'text' }, F_URL],
+    },
+    CULTIVAR_REGISTRADA: {
+        key: 'CULTIVAR_REGISTRADA', label: 'Cultivar registrada',
+        fields: [{ key: 'titulo', label: 'Denominação', type: 'text', required: true }, F_ANO, F_AUTORES,
+            { key: 'finalidade', label: 'Finalidade / Descrição', type: 'textarea' },
+            { key: 'instituicao', label: 'Instituição financiadora', type: 'text' },
+            { key: 'registro', label: 'Nº do registro / solicitação', type: 'text' }, F_URL],
+    },
+    CULTIVAR_PROTEGIDA: {
+        key: 'CULTIVAR_PROTEGIDA', label: 'Cultivar protegida',
+        fields: [{ key: 'titulo', label: 'Denominação', type: 'text', required: true }, F_ANO, F_AUTORES,
+            { key: 'finalidade', label: 'Finalidade / Descrição', type: 'textarea' },
+            { key: 'instituicao', label: 'Instituição financiadora', type: 'text' },
+            { key: 'registro', label: 'Nº do registro / solicitação', type: 'text' }, F_URL],
+    },
+    TOPOGRAFIA_CI: {
+        key: 'TOPOGRAFIA_CI', label: 'Topografia de circuito integrado',
+        fields: [F_TITULO, F_ANO, F_AUTORES,
+            { key: 'finalidade', label: 'Finalidade / Descrição', type: 'textarea' },
+            { key: 'registro', label: 'Nº do registro / depósito', type: 'text' },
+            { key: 'instituicao', label: 'Instituição financiadora', type: 'text' }, F_URL],
     },
     PRODUTO_TECNOLOGICO: {
         key: 'PRODUTO_TECNOLOGICO', label: 'Produto tecnológico',
         fields: [F_TITULO, F_ANO, F_AUTORES,
             { key: 'finalidade', label: 'Finalidade / Descrição', type: 'textarea' },
             { key: 'registro', label: 'Registro / Patente (se houver)', type: 'text' }, F_URL],
+    },
+    PROCESSO_TECNICA: {
+        key: 'PROCESSO_TECNICA', label: 'Processo ou técnica',
+        fields: [F_TITULO, F_ANO, F_AUTORES,
+            F_NATUREZA(['Analítico', 'Instrumental', 'Pedagógico', 'De produção', 'Outra']),
+            { key: 'finalidade', label: 'Finalidade / Descrição', type: 'textarea' },
+            { key: 'instituicao', label: 'Instituição financiadora', type: 'text' },
+            { key: 'cidade', label: 'Cidade', type: 'text' }, F_URL],
     },
     CURSO_MINISTRADO: {
         key: 'CURSO_MINISTRADO', label: 'Curso de curta duração ministrado',
@@ -432,8 +475,9 @@ window.LATTES_CATEGORIES = [
     { key: 'PROJETOS', label: 'Projetos', icon: 'fa-diagram-project', types: [T.PROJETO_PESQUISA] },
     { key: 'PRODUCOES', label: 'Produções', icon: 'fa-book',
       types: [T.ARTIGO_PERIODICO, T.LIVRO, T.CAPITULO_LIVRO, T.TRABALHO_EVENTO, T.TEXTO_JORNAL, T.TRABALHO_TECNICO, T.APRESENTACAO, T.MATERIAL_DIDATICO, T.EDITORACAO] },
-    { key: 'PATENTES_REGISTROS', label: 'Patentes e Registros', icon: 'fa-certificate', types: [T.PATENTE] },
-    { key: 'INOVACAO', label: 'Inovação', icon: 'fa-lightbulb', types: [T.SOFTWARE, T.PRODUTO_TECNOLOGICO] },
+    { key: 'PATENTES_REGISTROS', label: 'Patentes e Registros', icon: 'fa-certificate',
+      types: [T.PATENTE, T.SOFTWARE, T.DESENHO_INDUSTRIAL, T.MARCA, T.CULTIVAR_REGISTRADA, T.CULTIVAR_PROTEGIDA, T.TOPOGRAFIA_CI] },
+    { key: 'INOVACAO', label: 'Inovação', icon: 'fa-lightbulb', types: [T.PRODUTO_TECNOLOGICO, T.PROCESSO_TECNICA] },
     { key: 'EDUCACAO_CT', label: 'Educação e Popularização de C&T', icon: 'fa-chalkboard-user', types: [T.CURSO_MINISTRADO] },
     { key: 'EVENTOS', label: 'Eventos', icon: 'fa-calendar-days', types: [T.PARTICIPACAO_EVENTO, T.ORGANIZACAO_EVENTO] },
     { key: 'ORIENTACOES', label: 'Orientações', icon: 'fa-user-group', types: [T.ORIENTACAO] },
@@ -703,9 +747,9 @@ window.LattesXML = (function () {
 
     const TITLE_KEYS = ['TITULO-DO-ARTIGO', 'TITULO-DO-LIVRO', 'TITULO-DO-CAPITULO-DO-LIVRO',
         'TITULO-DO-TRABALHO-TECNICO', 'TITULO-DO-TRABALHO', 'TITULO-DO-TEXTO', 'TITULO-DO-SOFTWARE',
-        'TITULO-DO-PRODUTO', 'TITULO-DO-PROCESSO', 'TITULO'];
+        'TITULO-DO-PRODUTO', 'TITULO-DO-PROCESSO', 'DENOMINACAO', 'TITULO'];
     const YEAR_KEYS = ['ANO-DO-ARTIGO', 'ANO-DO-TRABALHO', 'ANO-DO-TEXTO', 'ANO', 'ANO-DESENVOLVIMENTO',
-        'ANO-DA-PREMIACAO', 'ANO-DE-OBTENCAO-DO-TITULO', 'ANO-DE-CONCLUSAO'];
+        'ANO-SOLICITACAO', 'ANO-DA-PREMIACAO', 'ANO-DE-OBTENCAO-DO-TITULO', 'ANO-DE-CONCLUSAO'];
 
     function titleOf(b) { return pick(b, ...TITLE_KEYS); }
     function yearOf(b) { return pick(b, ...YEAR_KEYS); }
@@ -818,10 +862,41 @@ window.LattesXML = (function () {
                   registro: reg['CODIGO-DO-REGISTRO-OU-PATENTE'] || '', instituicao: d['INSTITUICAO-FINANCIADORA'] || '',
               };
           } },
+        { tags: ['DESENHO-INDUSTRIAL'], typeKey: 'DESENHO_INDUSTRIAL',
+          map: (el, b, d) => ({
+              titulo: titleOf(b), ano: yearOf(b), autores: autoresOf(el),
+              finalidade: d['FINALIDADE'] || '', instituicao: d['INSTITUICAO-FINANCIADORA'] || '',
+          }) },
+        { tags: ['MARCA'], typeKey: 'MARCA',
+          map: (el, b, d) => ({
+              titulo: titleOf(b), ano: yearOf(b), autores: autoresOf(el),
+              natureza: humanize(d['NATUREZA']), finalidade: d['FINALIDADE'] || '',
+          }) },
+        { tags: ['CULTIVAR-REGISTRADA'], typeKey: 'CULTIVAR_REGISTRADA',
+          map: (el, b, d) => ({
+              titulo: b['DENOMINACAO'] || titleOf(b), ano: yearOf(b), autores: autoresOf(el),
+              finalidade: d['FINALIDADE'] || '', instituicao: d['INSTITUICAO-FINANCIADORA'] || '',
+          }) },
+        { tags: ['CULTIVAR-PROTEGIDA'], typeKey: 'CULTIVAR_PROTEGIDA',
+          map: (el, b, d) => ({
+              titulo: b['DENOMINACAO'] || titleOf(b), ano: yearOf(b), autores: autoresOf(el),
+              finalidade: d['FINALIDADE'] || '', instituicao: d['INSTITUICAO-FINANCIADORA'] || '',
+          }) },
+        { tags: ['TOPOGRAFIA-DE-CIRCUITO-INTEGRADO'], typeKey: 'TOPOGRAFIA_CI',
+          map: (el, b, d) => ({
+              titulo: titleOf(b), ano: yearOf(b), autores: autoresOf(el),
+              finalidade: d['FINALIDADE'] || '', instituicao: d['INSTITUICAO-FINANCIADORA'] || '',
+          }) },
         { tags: ['PRODUTO-TECNOLOGICO'], typeKey: 'PRODUTO_TECNOLOGICO',
           map: (el, b, d) => ({
               titulo: titleOf(b), ano: yearOf(b), autores: autoresOf(el),
               finalidade: d['FINALIDADE'] || '',
+          }) },
+        { tags: ['PROCESSOS-OU-TECNICAS'], typeKey: 'PROCESSO_TECNICA',
+          map: (el, b, d) => ({
+              titulo: titleOf(b), ano: yearOf(b), autores: autoresOf(el),
+              natureza: humanize(b['NATUREZA']), finalidade: d['FINALIDADE'] || '',
+              instituicao: d['INSTITUICAO-FINANCIADORA'] || '', cidade: d['CIDADE-DO-PROCESSO'] || '',
           }) },
         { tags: ['TRABALHO-TECNICO'], typeKey: 'TRABALHO_TECNICO',
           map: (el, b, d) => ({
