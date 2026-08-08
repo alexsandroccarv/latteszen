@@ -334,6 +334,13 @@
                 <option value="">—</option>
                 ${yearOptions(val)}
             </select>`;
+        } else if (f.type === 'checkboxes') {
+            const selected = String(val || '').split(/[;,]/).map(s => s.trim()).filter(Boolean);
+            input = `<div class="flex flex-wrap gap-x-4 gap-y-1 pt-1">
+                ${f.options.map(o => `<label class="flex items-center gap-1.5 text-sm">
+                    <input type="checkbox" data-cbgroup="${f.key}" value="${esc(o)}" ${selected.includes(o) ? 'checked' : ''}> ${esc(o)}
+                </label>`).join('')}
+            </div>`;
         } else {
             const t = (f.type === 'url' ? 'url' : (f.type === 'number' ? 'number' : (f.type === 'date' ? 'date' : 'text')));
             input = `<input type="${t}" name="${f.key}" value="${esc(val)}" ${req} placeholder="${esc(f.placeholder || '')}" class="${base}">`;
@@ -355,8 +362,12 @@
 
         const fields = {};
         def.fields.forEach(f => {
-            const el = form.elements[f.key];
-            if (el) fields[f.key] = el.value.trim();
+            if (f.type === 'checkboxes') {
+                fields[f.key] = $$(`[data-cbgroup="${f.key}"]`, form).filter(c => c.checked).map(c => c.value).join('; ');
+            } else {
+                const el = form.elements[f.key];
+                if (el) fields[f.key] = el.value.trim();
+            }
         });
 
         // validação simples
