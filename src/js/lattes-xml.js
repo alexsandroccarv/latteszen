@@ -109,21 +109,27 @@ window.LattesXML = (function () {
     /* -------------------- handlers por tag (produção) -------------------- */
     // Cada handler: { tags:[...], typeKey, map(el,b,d) -> fields }
     const HANDLERS = [
-        { tags: ['ARTIGO-PUBLICADO', 'ARTIGO-ACEITO-PARA-PUBLICACAO'], typeKey: 'ARTIGO_PERIODICO',
+        { tags: ['ARTIGO-PUBLICADO'], typeKey: 'ARTIGO_PERIODICO',
           map: (el, b, d) => ({
               titulo: titleOf(b), ano: yearOf(b), doi: b['DOI'] || '', autores: autoresOf(el),
               periodico: d['TITULO-DO-PERIODICO-OU-REVISTA'] || '', issn: d['ISSN'] || '',
               volume: d['VOLUME'] || '', fasciculo: d['FASCICULO'] || '', paginas: paginas(d),
           }) },
-        { tags: ['LIVRO-PUBLICADO-OU-ORGANIZADO'], typeKey: 'LIVRO',
+        { tags: ['ARTIGO-ACEITO-PARA-PUBLICACAO'], typeKey: 'ARTIGO_ACEITO',
           map: (el, b, d) => ({
+              titulo: titleOf(b), ano: yearOf(b), doi: b['DOI'] || '', autores: autoresOf(el),
+              periodico: d['TITULO-DO-PERIODICO-OU-REVISTA'] || '', issn: d['ISSN'] || '',
+          }) },
+        { tags: ['LIVRO-PUBLICADO-OU-ORGANIZADO'], typeKey: 'LIVRO_CAPITULO',
+          map: (el, b, d) => ({
+              tipoObra: NAT_LIVRO[b['TIPO']] || 'Livro publicado',
               titulo: titleOf(b), ano: yearOf(b), autores: autoresOf(el),
-              natureza: NAT_LIVRO[b['TIPO']] || humanize(b['TIPO']),
               editora: d['NOME-DA-EDITORA'] || '', cidade: d['CIDADE-DA-EDITORA'] || '',
               isbn: d['ISBN'] || '', edicao: d['NUMERO-DA-EDICAO-REVISAO'] || '', paginas: d['NUMERO-DE-PAGINAS'] || '',
           }) },
-        { tags: ['CAPITULO-DE-LIVRO-PUBLICADO'], typeKey: 'CAPITULO_LIVRO',
+        { tags: ['CAPITULO-DE-LIVRO-PUBLICADO'], typeKey: 'LIVRO_CAPITULO',
           map: (el, b, d) => ({
+              tipoObra: 'Capítulo de livro',
               titulo: titleOf(b), ano: yearOf(b), autores: autoresOf(el),
               tituloLivro: d['TITULO-DO-LIVRO'] || '', organizadores: d['ORGANIZADORES'] || '',
               editora: d['NOME-DA-EDITORA'] || '', isbn: d['ISBN'] || '', paginas: paginas(d),
@@ -142,7 +148,7 @@ window.LattesXML = (function () {
           }) },
 
         // ---- Produção técnica ----
-        { tags: ['SOFTWARE'], typeKey: 'SOFTWARE',
+        { tags: ['SOFTWARE'], typeKey: 'SOFTWARE_SEM_REGISTRO',
           map: (el, b, d) => ({
               titulo: titleOf(b), ano: yearOf(b), autores: autoresOf(el),
               plataforma: d['PLATAFORMA'] || d['AMBIENTE'] || '', finalidade: d['FINALIDADE'] || b['FINALIDADE'] || '',
@@ -242,6 +248,8 @@ window.LattesXML = (function () {
         const summary = {};
         const seenRefs = new Set();
 
+        const primaryCat = (window.LattesTypes && window.LattesTypes.primaryCategory) || (() => 'PRODUCOES');
+
         function add(typeKey, fields, el) {
             const canon = (fields.titulo || fields.curso || fields.orientando || fields.candidato || fields.instituicao || '')
                 .toLowerCase().replace(/\s+/g, ' ').trim();
@@ -249,7 +257,7 @@ window.LattesXML = (function () {
             if (!canon) return;                 // ignora itens sem título
             if (seenRefs.has(ref)) return;      // dedup dentro do próprio XML
             seenRefs.add(ref);
-            items.push({ typeKey, fields, lattesRef: ref });
+            items.push({ typeKey, categoryKey: primaryCat(typeKey), fields, lattesRef: ref });
             summary[typeKey] = (summary[typeKey] || 0) + 1;
         }
 
@@ -272,9 +280,10 @@ window.LattesXML = (function () {
             for (const el of doc.getElementsByTagName(tag)) {
                 const b = groupByPrefix(el, 'DADOS-BASICOS');
                 const d = groupByPrefix(el, 'DETALHAMENTO');
-                add('ORIENTACAO', {
+                const tkey = ctx.situacao === 'Concluída' ? 'ORIENTACAO_CONCLUIDA' : 'ORIENTACAO_ANDAMENTO';
+                add(tkey, {
                     orientando: d['NOME-DO-ORIENTADO'] || d['NOME-DO-ORIENTANDO'] || '',
-                    tipo: ctx.tipo, situacao: ctx.situacao,
+                    tipo: ctx.tipo,
                     titulo: pick(b, 'TITULO-DO-TRABALHO', 'TITULO'),
                     instituicao: d['NOME-DA-INSTITUICAO'] || d['NOME-INSTITUICAO'] || '',
                     ano: yearOf(b),
@@ -300,7 +309,8 @@ window.LattesXML = (function () {
             for (const el of doc.getElementsByTagName(tag)) {
                 const b = groupByPrefix(el, 'DADOS-BASICOS');
                 const d = groupByPrefix(el, 'DETALHAMENTO');
-                add('BANCA', {
+                const julgadora = tag.indexOf('BANCA-JULGADORA') === 0 || tag === 'OUTRAS-BANCAS-JULGADORAS';
+                add(julgadora ? 'BANCA_JULGADORA' : 'BANCA_CONCLUSAO', {
                     tipo: BANCA_MAP[tag],
                     candidato: d['NOME-DO-CANDIDATO'] || '',
                     titulo: pick(b, 'TITULO', ...TITLE_KEYS),
@@ -317,16 +327,19 @@ window.LattesXML = (function () {
                 const nivel = FORMACAO_MAP[el.tagName];
                 if (!nivel) continue;
                 const a = attrs(el);
-                add('FORMACAO_ACADEMICA', {
-                    nivel,
-                    curso: a['NOME-CURSO'] || a['NOME-DO-CURSO'] || '',
-                    instituicao: a['NOME-INSTITUICAO'] || '',
-                    anoInicio: a['ANO-DE-INICIO'] || '',
-                    anoFim: a['ANO-DE-CONCLUSAO'] || a['ANO-DE-OBTENCAO-DO-TITULO'] || '',
-                    titulo: pick(a, 'TITULO-DO-TRABALHO-DE-CONCLUSAO-DE-CURSO', 'TITULO-DA-MONOGRAFIA',
-                        'TITULO-DA-DISSERTACAO-TESE', 'TITULO-DA-RESIDENCIA-MEDICA', 'TITULO-DO-TRABALHO'),
-                    orientador: pick(a, 'NOME-DO-ORIENTADOR', 'NOME-COMPLETO-DO-ORIENTADOR', 'NOME-ORIENTADOR-GRAD'),
-                }, el);
+                const tituloTrab = pick(a, 'TITULO-DO-TRABALHO-DE-CONCLUSAO-DE-CURSO', 'TITULO-DA-MONOGRAFIA',
+                    'TITULO-DA-DISSERTACAO-TESE', 'TITULO-DA-RESIDENCIA-MEDICA', 'TITULO-DO-TRABALHO');
+                const orientador = pick(a, 'NOME-DO-ORIENTADOR', 'NOME-COMPLETO-DO-ORIENTADOR', 'NOME-ORIENTADOR-GRAD');
+                const anoInicio = a['ANO-DE-INICIO'] || '';
+                const anoFim = a['ANO-DE-CONCLUSAO'] || a['ANO-DE-OBTENCAO-DO-TITULO'] || '';
+                if (nivel === 'Pós-Doutorado' || nivel === 'Livre-docência') {
+                    add('POS_DOUTORADO', { tipo: nivel, instituicao: a['NOME-INSTITUICAO'] || '', anoInicio, anoFim, titulo: tituloTrab, orientador }, el);
+                } else {
+                    add('FORMACAO_ACADEMICA', {
+                        nivel, curso: a['NOME-CURSO'] || a['NOME-DO-CURSO'] || '',
+                        instituicao: a['NOME-INSTITUICAO'] || '', anoInicio, anoFim, titulo: tituloTrab, orientador,
+                    }, el);
+                }
             }
         }
 

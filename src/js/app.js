@@ -46,16 +46,17 @@
         if (idx >= 0) state.items[idx] = item; else state.items.push(item);
         saveCatalog();
 
-        // grava arquivos no diretório, se configurado
+        // grava arquivos no subdiretório da categoria, se um diretório está configurado
         if (Storage.hasDirectory()) {
+            const subdir = LattesTypes.categoryFolder(item.categoryKey);
             try {
-                await Storage.writeJson(item.id, item);
+                await Storage.writeJson(item.id, item, subdir);
                 if (pdfFile) {
-                    await Storage.writePdf(item.id, pdfFile);
+                    await Storage.writePdf(item.id, pdfFile, subdir);
                     item.hasPdf = true;
                     item.pdfName = pdfFile.name;
                     saveCatalog();
-                    await Storage.writeJson(item.id, item); // regrava com hasPdf
+                    await Storage.writeJson(item.id, item, subdir); // regrava com hasPdf
                 }
             } catch (e) {
                 toast('Item salvo no índice, mas falhou ao gravar arquivos: ' + e.message, 'aviso');
@@ -67,9 +68,10 @@
     }
 
     async function deleteItem(id) {
+        const item = state.items.find(i => i.id === id);
         state.items = state.items.filter(i => i.id !== id);
         saveCatalog();
-        try { await Storage.deleteFiles(id); } catch (_) {}
+        try { await Storage.deleteFiles(id, item ? LattesTypes.categoryFolder(item.categoryKey) : null); } catch (_) {}
     }
 
     /* =====================================================================
@@ -110,8 +112,8 @@
         $('#formTitulo').textContent = editing ? 'Editar item' : 'Novo item';
 
         const isNaoLattes = item ? !item.lattesItem : false;
-        const currentType = item ? item.typeKey : '';
-        const currentCat = item ? (LattesTypes.get(item.typeKey) || {}).categoryKey : '';
+        const currentType = item ? LattesTypes.normalizeType(item.typeKey) : '';
+        const currentCat = item ? (item.categoryKey || LattesTypes.primaryCategory(currentType)) : '';
 
         form.innerHTML = `
             <label class="flex items-center gap-2 text-sm bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded px-3 py-2">
@@ -153,13 +155,22 @@
 
         // Preencher selects de categoria/tipo
         const selCat = $('#selCategoria');
-        selCat.innerHTML = LattesTypes.categories.map(c => `<option value="${c.key}">${esc(c.label)}</option>`).join('');
+        selCat.innerHTML = LattesTypes.categories.map(c => `<option value="${c.key}">${esc(c.num + '. ' + c.label)}</option>`).join('');
         if (currentCat) selCat.value = currentCat;
 
+        const optFor = (tk) => `<option value="${tk}">${esc(LattesTypes.label(tk))}</option>`;
         function fillTipos() {
             const cat = LattesTypes.categories.find(c => c.key === selCat.value);
-            $('#selTipo').innerHTML = cat.types.map(t => `<option value="${t.key}">${esc(t.label)}</option>`).join('');
-            if (currentType && cat.types.some(t => t.key === currentType)) $('#selTipo').value = currentType;
+            let html;
+            if (cat.groups) {
+                html = cat.groups.map(g =>
+                    `<optgroup label="${esc(g.label)}">${g.types.map(optFor).join('')}</optgroup>`).join('');
+            } else {
+                html = cat.types.map(optFor).join('');
+            }
+            $('#selTipo').innerHTML = html;
+            const allTypes = cat.groups ? cat.groups.flatMap(g => g.types) : cat.types;
+            if (currentType && allTypes.includes(currentType)) $('#selTipo').value = currentType;
             renderDynFields();
         }
         function renderDynFields() {
@@ -227,6 +238,7 @@
         const form = e.target;
         const naoLattes = $('#chkNaoLattes').checked;
         const typeKey = naoLattes ? NAO_LATTES_TYPE.key : $('#selTipo').value;
+        const categoryKey = naoLattes ? 'NAO_LATTES' : $('#selCategoria').value;
         const def = LattesTypes.get(typeKey);
 
         const fields = {};
@@ -246,6 +258,7 @@
         };
         item.lattesItem = !naoLattes;
         item.typeKey = typeKey;
+        item.categoryKey = categoryKey;
         item.fields = fields;
         item.inLattes = naoLattes ? false : $('#chkInLattes').checked;
         item.updatedAt = nowISO();
@@ -290,7 +303,7 @@
                 <div class="flex items-start justify-between gap-2">
                     <div class="min-w-0">
                         <p class="font-semibold text-sm truncate">${esc(LattesTypes.itemTitle(i))}</p>
-                        <p class="text-xs text-gray-500">${esc(LattesTypes.label(i.typeKey))} ${i.fields.ano ? '· ' + esc(i.fields.ano) : ''}</p>
+                        <p class="text-xs text-gray-500">${esc(LattesTypes.categoryNumLabel(i.categoryKey))} › ${esc(LattesTypes.label(i.typeKey))} ${i.fields.ano ? '· ' + esc(i.fields.ano) : ''}</p>
                         <div class="mt-1.5 flex flex-wrap gap-1">${statusBadges(i)}</div>
                     </div>
                     <div class="flex gap-1 shrink-0">
@@ -320,7 +333,7 @@
             renderItemList();
         } else if (btn.dataset.act === 'pdf') {
             try {
-                const url = await Storage.readPdfUrl(id);
+                const url = await Storage.readPdfUrl(id, LattesTypes.categoryFolder(item.categoryKey));
                 if (url) window.open(url, '_blank');
                 else toast('PDF não encontrado no diretório.', 'aviso');
             } catch (err) { toast(err.message, 'erro'); }
@@ -420,7 +433,9 @@
             if (existingRefs.has(src.lattesRef)) continue;
             const item = {
                 id: uid(), createdAt: nowISO(), updatedAt: nowISO(),
-                lattesItem: true, typeKey: src.typeKey, fields: src.fields,
+                lattesItem: true, typeKey: src.typeKey,
+                categoryKey: src.categoryKey || LattesTypes.primaryCategory(src.typeKey),
+                fields: src.fields,
                 source: 'lattes', inLattes: true, lattesRef: src.lattesRef,
                 hasPdf: false, pdfName: null,
             };
@@ -545,8 +560,12 @@
             </div>`;
 
         $('#btnChooseDir').addEventListener('click', async () => {
-            try { await Storage.chooseDirectory(); toast('Diretório configurado.', 'ok'); renderConfig(); }
-            catch (e) { if (e.name !== 'AbortError') toast(e.message, 'erro'); }
+            try {
+                await Storage.chooseDirectory();
+                await Storage.ensureSubdirs(LattesTypes.allFolders()); // cria as 11 subpastas
+                toast('Diretório configurado (subpastas por categoria criadas).', 'ok');
+                renderConfig();
+            } catch (e) { if (e.name !== 'AbortError') toast(e.message, 'erro'); }
         });
         $('#btnSync').addEventListener('click', async () => {
             try {
@@ -644,6 +663,20 @@
     /* =====================================================================
        Inicialização
        ===================================================================== */
+    // Compatibiliza itens salvos antes da reestruturação de categorias
+    function migrarItens() {
+        let changed = false;
+        state.items.forEach(i => {
+            if (i.lattesItem === false && !i.categoryKey) { i.categoryKey = 'NAO_LATTES'; changed = true; }
+            if (i.typeKey) {
+                const norm = LattesTypes.normalizeType(i.typeKey);
+                if (norm !== i.typeKey) { i.typeKey = norm; changed = true; }
+            }
+            if (!i.categoryKey && i.typeKey) { i.categoryKey = LattesTypes.primaryCategory(i.typeKey); changed = true; }
+        });
+        if (changed) saveCatalog();
+    }
+
     async function init() {
         // Cabeçalho / rodapé dinâmicos
         const sigla = APP_CONFIG.institution.sigla || '';
@@ -656,6 +689,7 @@
 
         // Carrega catálogo e restaura diretório
         state.items = Storage.loadCatalog();
+        migrarItens();
         try { await Storage.restoreDirectory(); } catch (_) {}
 
         // Abas

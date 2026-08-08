@@ -93,51 +93,75 @@ window.Storage = (function () {
     }
 
     /* -------------------------- Escrita de arquivos ---------------------- */
-    async function writeFile(filename, data) {
+    // Cria os subdiretórios (um por categoria) dentro da pasta escolhida
+    async function ensureSubdirs(names) {
         const dir = await ensureDirReady();
+        for (const name of names) {
+            try { await dir.getDirectoryHandle(name, { create: true }); } catch (_) {}
+        }
+    }
+
+    // Resolve o diretório-alvo: a raiz ou um subdiretório (criado se necessário)
+    async function targetDir(subdir) {
+        const dir = await ensureDirReady();
+        if (!subdir) return dir;
+        return dir.getDirectoryHandle(subdir, { create: true });
+    }
+
+    async function writeFile(filename, data, subdir) {
+        const dir = await targetDir(subdir);
         const fh = await dir.getFileHandle(filename, { create: true });
         const w = await fh.createWritable();
         await w.write(data);
         await w.close();
     }
 
-    async function writeJson(id, obj) {
-        await writeFile(`${id}.json`, JSON.stringify(obj, null, 2));
+    async function writeJson(id, obj, subdir) {
+        await writeFile(`${id}.json`, JSON.stringify(obj, null, 2), subdir);
     }
 
-    async function writePdf(id, fileOrBlob) {
-        await writeFile(`${id}.pdf`, fileOrBlob);
+    async function writePdf(id, fileOrBlob, subdir) {
+        await writeFile(`${id}.pdf`, fileOrBlob, subdir);
     }
 
-    async function deleteFiles(id) {
+    async function deleteFiles(id, subdir) {
         if (!dirHandle) return;
+        let dir = dirHandle;
+        if (subdir) { try { dir = await dirHandle.getDirectoryHandle(subdir); } catch (_) { return; } }
         for (const ext of ['pdf', 'json']) {
-            try { await dirHandle.removeEntry(`${id}.${ext}`); } catch (_) { /* pode não existir */ }
+            try { await dir.removeEntry(`${id}.${ext}`); } catch (_) { /* pode não existir */ }
         }
     }
 
-    async function readPdfUrl(id) {
+    async function readPdfUrl(id, subdir) {
         const dir = await ensureDirReady();
+        let target = dir;
+        if (subdir) { try { target = await dir.getDirectoryHandle(subdir); } catch (_) { return null; } }
         try {
-            const fh = await dir.getFileHandle(`${id}.pdf`);
+            const fh = await target.getFileHandle(`${id}.pdf`);
             const file = await fh.getFile();
             return URL.createObjectURL(file);
         } catch (_) { return null; }
     }
 
-    // Reconstrói o catálogo a partir dos *.json existentes no diretório
+    // Reconstrói o catálogo a partir dos *.json (raiz e subdiretórios de categoria)
     async function scanDirectory() {
         const dir = await ensureDirReady();
         const items = [];
-        for await (const [name, handle] of dir.entries()) {
-            if (handle.kind === 'file' && name.toLowerCase().endsWith('.json') && name !== 'catalogo.json') {
-                try {
-                    const file = await handle.getFile();
-                    const obj = JSON.parse(await file.text());
-                    if (obj && obj.id) items.push(obj);
-                } catch (_) { /* ignora arquivos inválidos */ }
+        async function scanOne(handle) {
+            for await (const [name, h] of handle.entries()) {
+                if (h.kind === 'file' && name.toLowerCase().endsWith('.json') && name !== 'catalogo.json') {
+                    try {
+                        const file = await h.getFile();
+                        const obj = JSON.parse(await file.text());
+                        if (obj && obj.id) items.push(obj);
+                    } catch (_) { /* ignora inválidos */ }
+                } else if (h.kind === 'directory') {
+                    try { await scanOne(h); } catch (_) {}
+                }
             }
         }
+        await scanOne(dir);
         return items;
     }
 
@@ -165,7 +189,7 @@ window.Storage = (function () {
         chooseDirectory, restoreDirectory, ensureDirReady, hasDirectory,
         directoryName, forgetDirectory, verifyPermission,
         // arquivos
-        writeJson, writePdf, deleteFiles, readPdfUrl, scanDirectory,
+        writeJson, writePdf, deleteFiles, readPdfUrl, scanDirectory, ensureSubdirs,
         // catálogo + settings
         loadCatalog, saveCatalog, loadSettings, saveSettings,
     };
