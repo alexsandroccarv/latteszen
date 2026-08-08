@@ -926,11 +926,14 @@ window.LattesXML = (function () {
         function add(typeKey, fields, el) {
             const canon = (fields.titulo || fields.curso || fields.orientando || fields.candidato || fields.instituicao || '')
                 .toLowerCase().replace(/\s+/g, ' ').trim();
-            const ref = `${typeKey}|${canon}|${fields.ano || fields.anoFim || ''}`;
+            const categoryKey = primaryCat(typeKey);
+            // A referência inclui a CATEGORIA: o mesmo item em categorias
+            // diferentes é tratado como registros distintos (atrelados à origem).
+            const ref = `${categoryKey}|${typeKey}|${canon}|${fields.ano || fields.anoFim || ''}`;
             if (!canon) return;                 // ignora itens sem título
-            if (seenRefs.has(ref)) return;      // dedup dentro do próprio XML
+            if (seenRefs.has(ref)) return;      // dedup dentro do próprio XML (mesma categoria)
             seenRefs.add(ref);
-            items.push({ typeKey, categoryKey: primaryCat(typeKey), fields, lattesRef: ref });
+            items.push({ typeKey, categoryKey, fields, lattesRef: ref });
             summary[typeKey] = (summary[typeKey] || 0) + 1;
         }
 
