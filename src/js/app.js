@@ -491,21 +491,11 @@
         $('#xmlInput').addEventListener('change', onXmlSelected);
     }
 
-    // Lê o arquivo respeitando o encoding declarado no XML (Lattes = ISO-8859-1).
-    // O file.text() do navegador assume UTF-8 e corrompe acentos (ç, ã, ~).
-    async function readXmlText(file) {
-        const buf = await file.arrayBuffer();
-        const head = new TextDecoder('ascii').decode(new Uint8Array(buf.slice(0, 200)));
-        const m = head.match(/encoding=["']([^"']+)["']/i);
-        const enc = (m ? m[1] : 'utf-8').toLowerCase();
-        try { return new TextDecoder(enc).decode(buf); }
-        catch (_) { return new TextDecoder('iso-8859-1').decode(buf); }
-    }
-
     async function onXmlSelected(e) {
         const file = e.target.files[0];
         if (!file) return;
-        const text = await readXmlText(file);
+        // Conversor de ENTRADA: decodifica respeitando o encoding do XML (Lattes = ISO-8859-1)
+        const text = await LzEncoding.decodeXmlFile(file);
         const res = LattesXML.parse(text);
         state.lattesParsed = res;
 
@@ -683,6 +673,20 @@
                     </div>
                 </section>
 
+                <section class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+                    <h2 class="text-lg font-bold mb-2 flex items-center gap-2"><i class="fa-solid fa-language text-govbr-600 dark:text-unifesp-400"></i> Compatibilidade com o Lattes (ISO-8859-1)</h2>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                        O Currículo Lattes usa a codificação <code class="text-xs bg-gray-200 dark:bg-gray-700 px-1 rounded">ISO-8859-1</code>.
+                        A verificação abaixo aponta caracteres fora dessa tabela (ex.: aspas “curvas”, travessão —, emoji) que,
+                        na futura exportação, virariam entidades numéricas. Você pode normalizá-los automaticamente.
+                    </p>
+                    <div class="flex flex-wrap gap-2">
+                        <button id="btnCheckEnc" class="px-3 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm"><i class="fa-solid fa-spell-check mr-1"></i> Verificar codificação</button>
+                        <button id="btnNormalize" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-wand-magic-sparkles mr-1"></i> Normalizar pontuação</button>
+                    </div>
+                    <div id="encResult" class="text-sm mt-3"></div>
+                </section>
+
                 <section class="bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800 p-4">
                     <h2 class="text-lg font-bold mb-2 flex items-center gap-2 text-red-700 dark:text-red-400"><i class="fa-solid fa-triangle-exclamation"></i> Zona de risco</h2>
                     <button id="btnClear" class="px-3 py-2 rounded bg-red-600 text-white text-sm"><i class="fa-solid fa-trash mr-1"></i> Limpar catálogo (índice local)</button>
@@ -716,6 +720,65 @@
             if (!confirm('Isto apaga o índice local (localStorage). Os arquivos no diretório NÃO são removidos. Continuar?')) return;
             state.items = []; saveCatalog(); toast('Índice local limpo.', 'ok'); renderItemList();
         });
+        $('#btnCheckEnc').addEventListener('click', () => verificarCodificacao());
+        $('#btnNormalize').addEventListener('click', () => normalizarPontuacao());
+    }
+
+    // Varre o catálogo procurando caracteres fora do ISO-8859-1
+    function scanEncoding() {
+        const problemas = [];
+        state.items.forEach(i => {
+            const chars = new Set();
+            Object.values(i.fields || {}).forEach(v => {
+                LzEncoding.findNonLatin1(v).forEach(x => chars.add(x.ch));
+            });
+            if (chars.size) problemas.push({ item: i, chars: Array.from(chars) });
+        });
+        return problemas;
+    }
+
+    function verificarCodificacao() {
+        const box = $('#encResult');
+        const probs = scanEncoding();
+        if (!probs.length) {
+            box.innerHTML = `<p class="text-green-700 dark:text-green-400"><i class="fa-solid fa-circle-check"></i> Todos os ${state.items.length} itens são 100% compatíveis com ISO-8859-1. Prontos para exportar ao Lattes.</p>`;
+            return;
+        }
+        box.innerHTML = `
+            <p class="text-amber-700 dark:text-amber-400 mb-2"><i class="fa-solid fa-triangle-exclamation"></i> ${probs.length} item(ns) com caracteres fora do ISO-8859-1:</p>
+            <div class="space-y-1 max-h-60 overflow-y-auto">
+                ${probs.map(p => `<div class="text-xs bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded px-2 py-1">
+                    <span class="font-medium">${esc(LattesTypes.itemTitle(p.item))}</span>
+                    <span class="text-gray-500">— caracteres: ${p.chars.map(c => `<code>${esc(c)}</code>(U+${c.codePointAt(0).toString(16).toUpperCase().padStart(4,'0')})`).join(' ')}</span>
+                </div>`).join('')}
+            </div>
+            <p class="text-xs text-gray-500 mt-2">Use “Normalizar pontuação” para converter os casos comuns. Os que restarem serão exportados como entidades numéricas XML (válidas no Lattes).</p>`;
+    }
+
+    async function normalizarPontuacao() {
+        let alterados = 0;
+        state.items.forEach(i => {
+            let changed = false;
+            Object.keys(i.fields || {}).forEach(k => {
+                const orig = i.fields[k];
+                if (typeof orig === 'string') {
+                    const norm = LzEncoding.normalizePunctuation(orig);
+                    if (norm !== orig) { i.fields[k] = norm; changed = true; }
+                }
+            });
+            if (changed) { i.updatedAt = nowISO(); alterados++; }
+        });
+        if (!alterados) { toast('Nada a normalizar — pontuação já compatível.', 'ok'); verificarCodificacao(); return; }
+        saveCatalog();
+        // regrava os JSON no diretório, se configurado
+        if (Storage.hasDirectory()) {
+            for (const i of state.items) {
+                try { await Storage.writeJson(i.id, i, LattesTypes.categoryFolder(i.categoryKey)); } catch (_) {}
+            }
+        }
+        toast(`Pontuação normalizada em ${alterados} item(ns).`, 'ok');
+        renderItemList();
+        verificarCodificacao();
     }
 
     function exportCatalog() {
