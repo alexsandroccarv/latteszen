@@ -1,0 +1,114 @@
+name: CI/CD lattesZen
+
+# Estratégia de promoção em 3 estágios:
+#   push na branch atual / develop  -> DEV
+#   push na main                    -> HOMOLOGAÇÃO
+#   tag v*                          -> PRODUÇÃO
+on:
+  push:
+    branches: [main, develop, 'claude/latteszen-project-emre8x']
+    tags: ['v*']
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # CI: valida os módulos JS e gera o index.html autossuficiente (sempre roda,
+  # inclusive em pull requests). É o "portão de qualidade" antes de qualquer deploy.
+  # ---------------------------------------------------------------------------
+  ci:
+    name: Validar e construir
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Verificar sintaxe dos módulos JS
+        run: for f in src/js/*.js; do node --check "$f"; done
+      - name: Build (gera index.html)
+        run: node build.mjs
+      - name: Conferir que o index.html é autossuficiente
+        run: |
+          if grep -q 'src="js/\|href="css/' index.html; then
+            echo "ERRO: index.html ainda referencia arquivos locais (build incompleto)."; exit 1
+          fi
+      - name: Publicar artefato de build
+        uses: actions/upload-artifact@v4
+        with:
+          name: site
+          path: index.html
+
+  # ---------------------------------------------------------------------------
+  # Jobs de deploy — cada um vinculado a um GitHub Environment (secrets próprios).
+  # Só rodam em push/tag (nunca em pull_request).
+  # ---------------------------------------------------------------------------
+  deploy-dev:
+    name: Deploy DEV
+    needs: ci
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/claude/latteszen-project-emre8x')
+    runs-on: ubuntu-latest
+    environment: dev
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20' }
+      - run: node build.mjs
+      - name: Preparar dist/
+        run: bash .github/scripts/make-dist.sh
+      - name: Deploy via rsync/SSH
+        run: bash .github/scripts/deploy.sh
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_KEY: ${{ secrets.SSH_KEY }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+
+  deploy-homolog:
+    name: Deploy HOMOLOGAÇÃO
+    needs: ci
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: homolog
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20' }
+      - run: node build.mjs
+      - name: Preparar dist/
+        run: bash .github/scripts/make-dist.sh
+      - name: Deploy via rsync/SSH
+        run: bash .github/scripts/deploy.sh
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_KEY: ${{ secrets.SSH_KEY }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+
+  deploy-producao:
+    name: Deploy PRODUÇÃO
+    needs: ci
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    environment: producao
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20' }
+      - run: node build.mjs
+      - name: Preparar dist/
+        run: bash .github/scripts/make-dist.sh
+      - name: Deploy via rsync/SSH
+        run: bash .github/scripts/deploy.sh
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_KEY: ${{ secrets.SSH_KEY }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
