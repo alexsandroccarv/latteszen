@@ -465,23 +465,8 @@
             </div>`;
     }
 
-    function renderItemList() {
-        const list = $('#itemList');
-        if (!list) return; // aba Catálogo não está montada
-        const q = ($('#filterBox') && $('#filterBox').value || '').toLowerCase();
-        const asc = (state.sortOrder || 'desc') === 'asc';
-        $('#itemCount').textContent = `(${state.items.length})`;
-
-        let items = state.items.slice();
-        if (q) items = items.filter(i => (LattesTypes.itemTitle(i) + ' ' + LattesTypes.label(i.typeKey) + ' ' + LattesTypes.categoryLabel(i.categoryKey)).toLowerCase().includes(q));
-
-        if (!items.length) {
-            list.innerHTML = `<p class="text-sm text-gray-500 italic py-6 text-center">${state.items.length ? 'Nenhum item corresponde ao filtro.' : 'Nenhum item ainda. Adicione pelo formulário ou importe o XML do Lattes.'}</p>`;
-            return;
-        }
-
-        // Ordenação por ano (com/sem ano); desempate por data de atualização
-        items.sort((a, b) => {
+    function sortByYear(items, asc) {
+        return items.slice().sort((a, b) => {
             const ya = itemYear(a), yb = itemYear(b);
             if (ya !== yb) {
                 if (ya == null) return 1;              // sem ano vai para o fim
@@ -490,22 +475,21 @@
             }
             return (b.updatedAt || '').localeCompare(a.updatedAt || '');
         });
+    }
 
-        // Agrupa por categoria (ordem oficial) e, dentro dela, por tipo de item
+    // Monta o HTML segmentado em 2 níveis: categoria (01..11, 99) → tipo de item.
+    // Só categorias/tipos com itens são exibidos. Reutilizado em Catálogo e Relatório.
+    function buildGroupedHtml(items) {
         const order = LattesTypes.categories.map(c => c.key).concat('NAO_LATTES');
         const groups = {};
         items.forEach(i => { (groups[i.categoryKey] = groups[i.categoryKey] || []).push(i); });
-
-        // Ordem dos tipos dentro de cada categoria (segue a ordem declarada)
         const typeOrderOf = (catKey) => {
             const c = LattesTypes.categoryByKey(catKey);
             if (!c) return [];
             return c.groups ? c.groups.flatMap(g => g.types) : (c.types || []);
         };
-
-        list.innerHTML = order.filter(k => groups[k] && groups[k].length).map(k => {
+        return order.filter(k => groups[k] && groups[k].length).map(k => {
             const g = groups[k];
-            // subagrupa por tipo
             const byType = {};
             g.forEach(i => { (byType[i.typeKey] = byType[i.typeKey] || []).push(i); });
             const seq = typeOrderOf(k);
@@ -532,8 +516,27 @@
                 <div class="p-2 space-y-2">${typesHtml}</div>
             </details>`;
         }).join('');
+    }
+    function bindItemActions(container) {
+        $$('[data-act]', container).forEach(btn => btn.addEventListener('click', onItemAction));
+    }
 
-        $$('#itemList [data-act]').forEach(btn => btn.addEventListener('click', onItemAction));
+    function renderItemList() {
+        const list = $('#itemList');
+        if (!list) return; // aba Catálogo não está montada
+        const q = ($('#filterBox') && $('#filterBox').value || '').toLowerCase();
+        const asc = (state.sortOrder || 'desc') === 'asc';
+        $('#itemCount').textContent = `(${state.items.length})`;
+
+        let items = state.items.slice();
+        if (q) items = items.filter(i => (LattesTypes.itemTitle(i) + ' ' + LattesTypes.label(i.typeKey) + ' ' + LattesTypes.categoryLabel(i.categoryKey)).toLowerCase().includes(q));
+
+        if (!items.length) {
+            list.innerHTML = `<p class="text-sm text-gray-500 italic py-6 text-center">${state.items.length ? 'Nenhum item corresponde ao filtro.' : 'Nenhum item ainda. Adicione pelo formulário ou importe o XML do Lattes.'}</p>`;
+            return;
+        }
+        list.innerHTML = buildGroupedHtml(sortByYear(items, asc));
+        bindItemActions(list);
     }
 
     async function onItemAction(e) {
@@ -675,13 +678,8 @@
                 <p class="text-xs text-gray-500">${desc}</p>
             </div>`;
 
-        const lista = (arr, vazio) => arr.length ? `
-            <div class="space-y-1">${arr.map(i => `
-                <div class="flex items-center justify-between gap-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded px-3 py-2 text-sm">
-                    <span class="min-w-0"><span class="font-medium">${esc(LattesTypes.itemTitle(i))}</span>
-                        <span class="block text-xs text-gray-500">${esc(LattesTypes.label(i.typeKey))} ${i.fields.ano ? '· ' + esc(i.fields.ano) : ''}</span></span>
-                    <button data-goto="${i.id}" class="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600 shrink-0">Abrir</button>
-                </div>`).join('')}</div>`
+        const secao = (arr, vazio) => arr.length
+            ? buildGroupedHtml(sortByYear(arr, false))
             : `<p class="text-sm text-gray-500 italic">${vazio}</p>`;
 
         panel.innerHTML = `
@@ -699,14 +697,14 @@
                 </div>
             </div>
 
-            <div class="grid lg:grid-cols-2 gap-6">
+            <div class="space-y-6">
                 <section>
-                    <h3 class="font-bold mb-2 flex items-center gap-2 text-amber-600"><i class="fa-solid fa-triangle-exclamation"></i> Itens do Lattes SEM evidência (PDF)</h3>
-                    ${lista(lattesSemPdf, 'Tudo comprovado! 🎉')}
+                    <h3 class="font-bold mb-2 flex items-center gap-2 text-amber-600"><i class="fa-solid fa-triangle-exclamation"></i> Itens do Lattes SEM evidência (PDF) <span class="text-sm font-normal text-gray-500">(${lattesSemPdf.length})</span></h3>
+                    <div class="space-y-3">${secao(lattesSemPdf, 'Tudo comprovado! 🎉')}</div>
                 </section>
                 <section>
-                    <h3 class="font-bold mb-2 flex items-center gap-2 text-blue-600"><i class="fa-solid fa-clock"></i> Cadastrados que ainda NÃO estão no Lattes</h3>
-                    ${lista(localForaLattes, 'Nenhum item pendente de inclusão no Lattes.')}
+                    <h3 class="font-bold mb-2 flex items-center gap-2 text-blue-600"><i class="fa-solid fa-clock"></i> Cadastrados que ainda NÃO estão no Lattes <span class="text-sm font-normal text-gray-500">(${localForaLattes.length})</span></h3>
+                    <div class="space-y-3">${secao(localForaLattes, 'Nenhum item pendente de inclusão no Lattes.')}</div>
                 </section>
             </div>
 
@@ -714,12 +712,7 @@
                 <button id="btnImprimir" class="px-4 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-print mr-1"></i> Imprimir / PDF</button>
             </div>`;
 
-        $$('#tab-relatorio [data-goto]').forEach(b => b.addEventListener('click', () => {
-            const item = state.items.find(i => i.id === b.dataset.goto);
-            switchTab('catalogar');
-            buildForm(item);
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }));
+        bindItemActions(panel);
         $('#btnImprimir').addEventListener('click', () => window.print());
     }
 
