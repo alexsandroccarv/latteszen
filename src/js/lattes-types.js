@@ -266,6 +266,8 @@ window.LattesTypes = (function () {
     LATTES_CATEGORIES.forEach(c => { catByKey[c.key] = c; });
     catByKey['NAO_LATTES'] = { num: '00', key: 'NAO_LATTES', label: 'Não-Lattes', icon: 'fa-heart' };
 
+    const BACKUP_FOLDER = '00 - Backup';
+
     function slugFolder(cat) {
         // Nome de pasta seguro para o sistema de arquivos, legível e ordenável
         const safe = (cat.label || cat.key).replace(/[\\/:*?"<>|]/g, '').trim();
@@ -275,6 +277,7 @@ window.LattesTypes = (function () {
     return {
         categories: LATTES_CATEGORIES,
         naoLattes: NAO_LATTES_TYPE,
+        backupFolder() { return BACKUP_FOLDER; },
         getType(typeKey) { return TYPES[typeKey] || (typeKey === 'NAO_LATTES' ? NAO_LATTES_TYPE : null); },
         // compat: get() devolve o tipo (independe de categoria)
         get(typeKey) { return this.getType(typeKey); },
@@ -282,11 +285,16 @@ window.LattesTypes = (function () {
         categoryByKey(catKey) { return catByKey[catKey] || null; },
         categoryLabel(catKey) { const c = catByKey[catKey]; return c ? c.label : (catKey || ''); },
         categoryNumLabel(catKey) { const c = catByKey[catKey]; return c ? `${c.num ? c.num + '. ' : ''}${c.label}` : (catKey || ''); },
-        categoryFolder(catKey) { const c = catByKey[catKey]; return c ? slugFolder(c) : '99 - Outros'; },
+        // Itens legados 'NAO_LATTES' vão para a pasta de Atividades livres (99)
+        categoryFolder(catKey) {
+            if (catKey === 'NAO_LATTES') return slugFolder(catByKey['ATIVIDADES_LIVRES']);
+            const c = catByKey[catKey]; return c ? slugFolder(c) : '99 - Outros';
+        },
         primaryCategory(typeKey) { return PRIMARY_CATEGORY[typeKey] || 'PRODUCOES'; },
         normalizeType(typeKey) { return LEGACY_TYPE[typeKey] || typeKey; },
         isNaoLattesCategory(catKey) { return catKey === 'NAO_LATTES' || !!(catByKey[catKey] && catByKey[catKey].naoLattes); },
-        allFolders() { return LATTES_CATEGORIES.map(slugFolder).concat(slugFolder(catByKey['NAO_LATTES'])); },
+        // Pastas criadas no diretório: as 12 categorias + a pasta de Backup
+        allFolders() { return LATTES_CATEGORIES.map(slugFolder).concat(BACKUP_FOLDER); },
         itemTitle(item) {
             const f = item.fields || {};
             return f.titulo || f.curso || f.orientando || f.candidato || f.instituicao || f.nome || '(sem título)';

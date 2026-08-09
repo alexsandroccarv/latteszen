@@ -602,6 +602,8 @@ window.LattesTypes = (function () {
     LATTES_CATEGORIES.forEach(c => { catByKey[c.key] = c; });
     catByKey['NAO_LATTES'] = { num: '00', key: 'NAO_LATTES', label: 'Não-Lattes', icon: 'fa-heart' };
 
+    const BACKUP_FOLDER = '00 - Backup';
+
     function slugFolder(cat) {
         // Nome de pasta seguro para o sistema de arquivos, legível e ordenável
         const safe = (cat.label || cat.key).replace(/[\\/:*?"<>|]/g, '').trim();
@@ -611,6 +613,7 @@ window.LattesTypes = (function () {
     return {
         categories: LATTES_CATEGORIES,
         naoLattes: NAO_LATTES_TYPE,
+        backupFolder() { return BACKUP_FOLDER; },
         getType(typeKey) { return TYPES[typeKey] || (typeKey === 'NAO_LATTES' ? NAO_LATTES_TYPE : null); },
         // compat: get() devolve o tipo (independe de categoria)
         get(typeKey) { return this.getType(typeKey); },
@@ -618,11 +621,16 @@ window.LattesTypes = (function () {
         categoryByKey(catKey) { return catByKey[catKey] || null; },
         categoryLabel(catKey) { const c = catByKey[catKey]; return c ? c.label : (catKey || ''); },
         categoryNumLabel(catKey) { const c = catByKey[catKey]; return c ? `${c.num ? c.num + '. ' : ''}${c.label}` : (catKey || ''); },
-        categoryFolder(catKey) { const c = catByKey[catKey]; return c ? slugFolder(c) : '99 - Outros'; },
+        // Itens legados 'NAO_LATTES' vão para a pasta de Atividades livres (99)
+        categoryFolder(catKey) {
+            if (catKey === 'NAO_LATTES') return slugFolder(catByKey['ATIVIDADES_LIVRES']);
+            const c = catByKey[catKey]; return c ? slugFolder(c) : '99 - Outros';
+        },
         primaryCategory(typeKey) { return PRIMARY_CATEGORY[typeKey] || 'PRODUCOES'; },
         normalizeType(typeKey) { return LEGACY_TYPE[typeKey] || typeKey; },
         isNaoLattesCategory(catKey) { return catKey === 'NAO_LATTES' || !!(catByKey[catKey] && catByKey[catKey].naoLattes); },
-        allFolders() { return LATTES_CATEGORIES.map(slugFolder).concat(slugFolder(catByKey['NAO_LATTES'])); },
+        // Pastas criadas no diretório: as 12 categorias + a pasta de Backup
+        allFolders() { return LATTES_CATEGORIES.map(slugFolder).concat(BACKUP_FOLDER); },
         itemTitle(item) {
             const f = item.fields || {};
             return f.titulo || f.curso || f.orientando || f.candidato || f.instituicao || f.nome || '(sem título)';
@@ -785,7 +793,7 @@ window.Storage = (function () {
         const items = [];
         async function scanOne(handle) {
             for await (const [name, h] of handle.entries()) {
-                if (h.kind === 'file' && name.toLowerCase().endsWith('.json') && name !== 'catalogo.json') {
+                if (h.kind === 'file' && name.toLowerCase().endsWith('.json') && name !== 'catalogo.json' && name !== 'latteszen-catalogo.json') {
                     try {
                         const file = await h.getFile();
                         const obj = JSON.parse(await file.text());
@@ -2018,7 +2026,7 @@ window.LattesXML = (function () {
 
                 <section class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
                     <h2 class="text-lg font-bold mb-2 flex items-center gap-2"><i class="fa-solid fa-file-export text-govbr-600 dark:text-unifesp-400"></i> Backup (JSON)</h2>
-                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">Exporte ou importe todo o catálogo (metadados) num único arquivo JSON.</p>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">Exporte ou importe todo o catálogo (metadados) num único arquivo JSON. Com um diretório configurado, o backup é salvo automaticamente na subpasta <code class="text-xs bg-gray-200 dark:bg-gray-700 px-1 rounded">00 - Backup</code>.</p>
                     <div class="flex flex-wrap gap-2">
                         <button id="btnExport" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-download mr-1"></i> Exportar catálogo</button>
                         <label class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm cursor-pointer"><i class="fa-solid fa-upload mr-1"></i> Importar catálogo
@@ -2135,11 +2143,22 @@ window.LattesXML = (function () {
         verificarCodificacao();
     }
 
-    function exportCatalog() {
+    async function exportCatalog() {
         const data = {
             app: 'lattesZen', version: APP_CONFIG.version, exportedAt: nowISO(),
             items: state.items,
         };
+        // Local padrão: subpasta "00 - Backup" dentro do diretório configurado
+        if (Storage.hasDirectory()) {
+            try {
+                await Storage.writeJson('latteszen-catalogo', data, LattesTypes.backupFolder());
+                toast(`Backup salvo em "${LattesTypes.backupFolder()}/latteszen-catalogo.json".`, 'ok');
+                return;
+            } catch (e) {
+                toast('Falha ao salvar no diretório: ' + e.message + ' — baixando arquivo.', 'aviso');
+            }
+        }
+        // Sem diretório (ou falha): baixa o arquivo
         const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
@@ -2214,7 +2233,8 @@ window.LattesXML = (function () {
     function migrarItens() {
         let changed = false;
         state.items.forEach(i => {
-            if (i.lattesItem === false && !i.categoryKey) { i.categoryKey = 'NAO_LATTES'; changed = true; }
+            if (i.categoryKey === 'NAO_LATTES') { i.categoryKey = 'ATIVIDADES_LIVRES'; changed = true; }
+            if (i.lattesItem === false && !i.categoryKey) { i.categoryKey = 'ATIVIDADES_LIVRES'; changed = true; }
             if (i.typeKey) {
                 const norm = LattesTypes.normalizeType(i.typeKey);
                 if (norm !== i.typeKey) { i.typeKey = norm; changed = true; }

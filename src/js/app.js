@@ -699,7 +699,7 @@
 
                 <section class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
                     <h2 class="text-lg font-bold mb-2 flex items-center gap-2"><i class="fa-solid fa-file-export text-govbr-600 dark:text-unifesp-400"></i> Backup (JSON)</h2>
-                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">Exporte ou importe todo o catálogo (metadados) num único arquivo JSON.</p>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">Exporte ou importe todo o catálogo (metadados) num único arquivo JSON. Com um diretório configurado, o backup é salvo automaticamente na subpasta <code class="text-xs bg-gray-200 dark:bg-gray-700 px-1 rounded">00 - Backup</code>.</p>
                     <div class="flex flex-wrap gap-2">
                         <button id="btnExport" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-download mr-1"></i> Exportar catálogo</button>
                         <label class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm cursor-pointer"><i class="fa-solid fa-upload mr-1"></i> Importar catálogo
@@ -816,11 +816,22 @@
         verificarCodificacao();
     }
 
-    function exportCatalog() {
+    async function exportCatalog() {
         const data = {
             app: 'lattesZen', version: APP_CONFIG.version, exportedAt: nowISO(),
             items: state.items,
         };
+        // Local padrão: subpasta "00 - Backup" dentro do diretório configurado
+        if (Storage.hasDirectory()) {
+            try {
+                await Storage.writeJson('latteszen-catalogo', data, LattesTypes.backupFolder());
+                toast(`Backup salvo em "${LattesTypes.backupFolder()}/latteszen-catalogo.json".`, 'ok');
+                return;
+            } catch (e) {
+                toast('Falha ao salvar no diretório: ' + e.message + ' — baixando arquivo.', 'aviso');
+            }
+        }
+        // Sem diretório (ou falha): baixa o arquivo
         const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
@@ -895,7 +906,8 @@
     function migrarItens() {
         let changed = false;
         state.items.forEach(i => {
-            if (i.lattesItem === false && !i.categoryKey) { i.categoryKey = 'NAO_LATTES'; changed = true; }
+            if (i.categoryKey === 'NAO_LATTES') { i.categoryKey = 'ATIVIDADES_LIVRES'; changed = true; }
+            if (i.lattesItem === false && !i.categoryKey) { i.categoryKey = 'ATIVIDADES_LIVRES'; changed = true; }
             if (i.typeKey) {
                 const norm = LattesTypes.normalizeType(i.typeKey);
                 if (norm !== i.typeKey) { i.typeKey = norm; changed = true; }
