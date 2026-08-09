@@ -416,6 +416,13 @@ const TYPES = {
     REVISOR_PERIODICO: { label: 'Revisor de periódico', fields: [{ key: 'titulo', label: 'Periódico', type: 'text', required: true }, { key: 'issn', label: 'ISSN', type: 'text' }, F_AINI, F_AFIM] },
     REVISOR_FOMENTO: { label: 'Revisor de projeto de agência de fomento', fields: [{ key: 'titulo', label: 'Agência de fomento', type: 'text', required: true }, F_AINI, F_AFIM] },
     AREA_ATUACAO: { label: 'Áreas de atuação', fields: [{ key: 'titulo', label: 'Área', type: 'text', required: true }, { key: 'grandeArea', label: 'Grande área', type: 'text' }, { key: 'subarea', label: 'Subárea', type: 'text' }, { key: 'especialidade', label: 'Especialidade', type: 'text' }] },
+    // Atividades da atuação profissional
+    ATIV_ENSINO: { label: 'Ensino / Disciplinas ministradas', fields: [{ key: 'titulo', label: 'Curso / Nível', type: 'text', required: true }, F_INST, F_AINI, F_AFIM, { key: 'disciplinas', label: 'Disciplinas', type: 'textarea' }] },
+    ATIV_DIRECAO: { label: 'Direção e administração', fields: [{ key: 'titulo', label: 'Cargo / Função', type: 'text', required: true }, { key: 'orgao', label: 'Órgão', type: 'text' }, F_INST, F_AINI, F_AFIM] },
+    ATIV_CONSELHO: { label: 'Conselho, comissão e consultoria', fields: [{ key: 'titulo', label: 'Órgão / Comissão', type: 'text', required: true }, { key: 'papel', label: 'Atuação', type: 'text' }, F_INST, F_AINI, F_AFIM] },
+    ATIV_EXTENSAO: { label: 'Atividade de extensão universitária', fields: [{ key: 'titulo', label: 'Atividade realizada', type: 'text', required: true }, { key: 'orgao', label: 'Órgão', type: 'text' }, F_INST, F_AINI, F_AFIM] },
+    ATIV_SERVICO: { label: 'Serviço técnico especializado', fields: [{ key: 'titulo', label: 'Serviço realizado', type: 'text', required: true }, { key: 'orgao', label: 'Órgão', type: 'text' }, F_INST, F_AINI, F_AFIM] },
+    ATIV_OUTRA: { label: 'Outra atividade técnico-científica', fields: [{ key: 'titulo', label: 'Atividade realizada', type: 'text', required: true }, { key: 'orgao', label: 'Órgão', type: 'text' }, F_INST, F_AINI, F_AFIM] },
 
     // 04 Projetos
     PROJETO_PESQUISA: { label: 'Projetos de pesquisa', fields: PROJETO_FIELDS },
@@ -535,7 +542,7 @@ window.LATTES_CATEGORIES = [
     { num: '02', key: 'FORMACAO', label: 'Formação', icon: 'fa-user-graduate',
       types: ['FORMACAO_ACADEMICA', 'POS_DOUTORADO', 'FORMACAO_COMPLEMENTAR'] },
     { num: '03', key: 'ATUACAO', label: 'Atuação', icon: 'fa-briefcase',
-      types: ['VINCULO_PROFISSIONAL', 'LINHA_PESQUISA', 'CORPO_EDITORIAL', 'COMITE_ASSESSORAMENTO', 'REVISOR_PERIODICO', 'REVISOR_FOMENTO', 'AREA_ATUACAO'] },
+      types: ['VINCULO_PROFISSIONAL', 'ATIV_ENSINO', 'ATIV_DIRECAO', 'ATIV_CONSELHO', 'ATIV_EXTENSAO', 'ATIV_SERVICO', 'ATIV_OUTRA', 'LINHA_PESQUISA', 'CORPO_EDITORIAL', 'COMITE_ASSESSORAMENTO', 'REVISOR_PERIODICO', 'REVISOR_FOMENTO', 'AREA_ATUACAO'] },
     { num: '04', key: 'PROJETOS', label: 'Projetos', icon: 'fa-diagram-project',
       types: ['PROJETO_PESQUISA', 'PROJETO_DESENVOLVIMENTO', 'PROJETO_EXTENSAO', 'PROJETO_ENSINO', 'PROJETO_OUTRO'] },
     { num: '05', key: 'PRODUCOES', label: 'Produções', icon: 'fa-book',
@@ -568,6 +575,7 @@ const PRIMARY_CATEGORY = {
     PREMIO: 'DADOS_GERAIS', RESUMO_CV: 'DADOS_GERAIS', OUTRAS_INFO: 'DADOS_GERAIS',
     FORMACAO_ACADEMICA: 'FORMACAO', POS_DOUTORADO: 'FORMACAO', FORMACAO_COMPLEMENTAR: 'FORMACAO',
     VINCULO_PROFISSIONAL: 'ATUACAO', LINHA_PESQUISA: 'ATUACAO', CORPO_EDITORIAL: 'ATUACAO', COMITE_ASSESSORAMENTO: 'ATUACAO', REVISOR_PERIODICO: 'ATUACAO', REVISOR_FOMENTO: 'ATUACAO', AREA_ATUACAO: 'ATUACAO',
+    ATIV_ENSINO: 'ATUACAO', ATIV_DIRECAO: 'ATUACAO', ATIV_CONSELHO: 'ATUACAO', ATIV_EXTENSAO: 'ATUACAO', ATIV_SERVICO: 'ATUACAO', ATIV_OUTRA: 'ATUACAO',
     PROJETO_PESQUISA: 'PROJETOS', PROJETO_DESENVOLVIMENTO: 'PROJETOS', PROJETO_EXTENSAO: 'PROJETOS', PROJETO_ENSINO: 'PROJETOS', PROJETO_OUTRO: 'PROJETOS',
     ARTIGO_PERIODICO: 'PRODUCOES', ARTIGO_ACEITO: 'PRODUCOES', LIVRO_CAPITULO: 'PRODUCOES', TEXTO_JORNAL: 'PRODUCOES', TRABALHO_EVENTO: 'PRODUCOES', APRESENTACAO: 'PRODUCOES', PARTITURA: 'PRODUCOES', TRADUCAO: 'PRODUCOES', PREFACIO: 'PRODUCOES', OUTRA_BIBLIOGRAFICA: 'PRODUCOES',
     ASSESSORIA_CONSULTORIA: 'PRODUCOES', EXTENSAO_TECNOLOGICA: 'PRODUCOES', SOFTWARE_SEM_REGISTRO: 'PRODUCOES', PRODUTO_TECNOLOGICO: 'PRODUCOES', PROCESSO_TECNICA: 'PRODUCOES', TRABALHO_TECNICO: 'PRODUCOES', CARTA_MAPA: 'PRODUCOES', CURSO_MINISTRADO: 'PRODUCOES', MATERIAL_DIDATICO: 'PRODUCOES', EDITORACAO: 'PRODUCOES', MANUTENCAO_OBRA: 'PRODUCOES', MAQUETE: 'PRODUCOES', MIDIA: 'PRODUCOES', RELATORIO_PESQUISA: 'PRODUCOES', MIDIA_SOCIAL: 'PRODUCOES', OUTRA_TECNICA: 'PRODUCOES',
@@ -1211,6 +1219,40 @@ window.LattesXML = (function () {
                     titulo: a['OUTRAS-INFORMACOES'] || '',
                 }, v);
             }
+        }
+
+        // 6b) Atuação profissional → atividades (ensino, direção, conselho, extensão, serviço, outras)
+        const ATIV = [
+            { tag: 'ENSINO', typeKey: 'ATIV_ENSINO', map: (a, el) => ({
+                titulo: a['NOME-CURSO'] || humanize(a['TIPO-ENSINO']) || 'Ensino',
+                anoInicio: a['ANO-INICIO'] || '', anoFim: a['ANO-FIM'] || '',
+                disciplinas: Array.from(el.getElementsByTagName('DISCIPLINA')).map(d => (d.textContent || '').trim()).filter(Boolean).join('; '),
+            }) },
+            { tag: 'DIRECAO-E-ADMINISTRACAO', typeKey: 'ATIV_DIRECAO', map: (a) => ({
+                titulo: a['CARGO-OU-FUNCAO'] || 'Direção/administração', orgao: a['NOME-ORGAO'] || '',
+                anoInicio: a['ANO-INICIO'] || '', anoFim: a['ANO-FIM'] || '' }) },
+            { tag: 'CONSELHO-COMISSAO-E-CONSULTORIA', typeKey: 'ATIV_CONSELHO', map: (a) => ({
+                titulo: a['NOME-ORGAO'] || 'Conselho/comissão', papel: a['ESPECIFICACAO'] || '',
+                anoInicio: a['ANO-INICIO'] || '', anoFim: a['ANO-FIM'] || '' }) },
+            { tag: 'EXTENSAO-UNIVERSITARIA', typeKey: 'ATIV_EXTENSAO', map: (a) => ({
+                titulo: a['ATIVIDADE-DE-EXTENSAO-REALIZADA'] || 'Extensão universitária', orgao: a['NOME-ORGAO'] || '',
+                anoInicio: a['ANO-INICIO'] || '', anoFim: a['ANO-FIM'] || '' }) },
+            { tag: 'SERVICO-TECNICO-ESPECIALIZADO', typeKey: 'ATIV_SERVICO', map: (a) => ({
+                titulo: a['SERVICO-REALIZADO'] || 'Serviço técnico', orgao: a['NOME-ORGAO'] || '',
+                anoInicio: a['ANO-INICIO'] || '', anoFim: a['ANO-FIM'] || '' }) },
+            { tag: 'OUTRA-ATIVIDADE-TECNICO-CIENTIFICA', typeKey: 'ATIV_OUTRA', map: (a) => ({
+                titulo: a['ATIVIDADE-REALIZADA'] || 'Atividade técnico-científica', orgao: a['NOME-ORGAO'] || '',
+                anoInicio: a['ANO-INICIO'] || '', anoFim: a['ANO-FIM'] || '' }) },
+        ];
+        for (const atu of doc.getElementsByTagName('ATUACAO-PROFISSIONAL')) {
+            const nomeInst = attrs(atu)['NOME-INSTITUICAO'] || '';
+            ATIV.forEach(h => {
+                for (const el of atu.getElementsByTagName(h.tag)) {
+                    const f = h.map(attrs(el), el);
+                    f.instituicao = nomeInst;
+                    add(h.typeKey, f, el);
+                }
+            });
         }
 
         // 7) Dados gerais: identificação, endereço, idiomas, áreas de atuação,

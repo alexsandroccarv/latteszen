@@ -386,6 +386,40 @@ window.LattesXML = (function () {
             }
         }
 
+        // 6b) Atuação profissional → atividades (ensino, direção, conselho, extensão, serviço, outras)
+        const ATIV = [
+            { tag: 'ENSINO', typeKey: 'ATIV_ENSINO', map: (a, el) => ({
+                titulo: a['NOME-CURSO'] || humanize(a['TIPO-ENSINO']) || 'Ensino',
+                anoInicio: a['ANO-INICIO'] || '', anoFim: a['ANO-FIM'] || '',
+                disciplinas: Array.from(el.getElementsByTagName('DISCIPLINA')).map(d => (d.textContent || '').trim()).filter(Boolean).join('; '),
+            }) },
+            { tag: 'DIRECAO-E-ADMINISTRACAO', typeKey: 'ATIV_DIRECAO', map: (a) => ({
+                titulo: a['CARGO-OU-FUNCAO'] || 'Direção/administração', orgao: a['NOME-ORGAO'] || '',
+                anoInicio: a['ANO-INICIO'] || '', anoFim: a['ANO-FIM'] || '' }) },
+            { tag: 'CONSELHO-COMISSAO-E-CONSULTORIA', typeKey: 'ATIV_CONSELHO', map: (a) => ({
+                titulo: a['NOME-ORGAO'] || 'Conselho/comissão', papel: a['ESPECIFICACAO'] || '',
+                anoInicio: a['ANO-INICIO'] || '', anoFim: a['ANO-FIM'] || '' }) },
+            { tag: 'EXTENSAO-UNIVERSITARIA', typeKey: 'ATIV_EXTENSAO', map: (a) => ({
+                titulo: a['ATIVIDADE-DE-EXTENSAO-REALIZADA'] || 'Extensão universitária', orgao: a['NOME-ORGAO'] || '',
+                anoInicio: a['ANO-INICIO'] || '', anoFim: a['ANO-FIM'] || '' }) },
+            { tag: 'SERVICO-TECNICO-ESPECIALIZADO', typeKey: 'ATIV_SERVICO', map: (a) => ({
+                titulo: a['SERVICO-REALIZADO'] || 'Serviço técnico', orgao: a['NOME-ORGAO'] || '',
+                anoInicio: a['ANO-INICIO'] || '', anoFim: a['ANO-FIM'] || '' }) },
+            { tag: 'OUTRA-ATIVIDADE-TECNICO-CIENTIFICA', typeKey: 'ATIV_OUTRA', map: (a) => ({
+                titulo: a['ATIVIDADE-REALIZADA'] || 'Atividade técnico-científica', orgao: a['NOME-ORGAO'] || '',
+                anoInicio: a['ANO-INICIO'] || '', anoFim: a['ANO-FIM'] || '' }) },
+        ];
+        for (const atu of doc.getElementsByTagName('ATUACAO-PROFISSIONAL')) {
+            const nomeInst = attrs(atu)['NOME-INSTITUICAO'] || '';
+            ATIV.forEach(h => {
+                for (const el of atu.getElementsByTagName(h.tag)) {
+                    const f = h.map(attrs(el), el);
+                    f.instituicao = nomeInst;
+                    add(h.typeKey, f, el);
+                }
+            });
+        }
+
         // 7) Dados gerais: identificação, endereço, idiomas, áreas de atuação,
         //    resumo do CV e outras informações relevantes.
         const clean = (s) => String(s || '').replace(/&#1[03];/g, m => m === '&#10;' ? '\n' : '').trim();
