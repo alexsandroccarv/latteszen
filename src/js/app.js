@@ -491,13 +491,37 @@
             return (b.updatedAt || '').localeCompare(a.updatedAt || '');
         });
 
-        // Agrupa por categoria, na ordem oficial (01..11) + Não-Lattes
+        // Agrupa por categoria (ordem oficial) e, dentro dela, por tipo de item
         const order = LattesTypes.categories.map(c => c.key).concat('NAO_LATTES');
         const groups = {};
         items.forEach(i => { (groups[i.categoryKey] = groups[i.categoryKey] || []).push(i); });
 
+        // Ordem dos tipos dentro de cada categoria (segue a ordem declarada)
+        const typeOrderOf = (catKey) => {
+            const c = LattesTypes.categoryByKey(catKey);
+            if (!c) return [];
+            return c.groups ? c.groups.flatMap(g => g.types) : (c.types || []);
+        };
+
         list.innerHTML = order.filter(k => groups[k] && groups[k].length).map(k => {
             const g = groups[k];
+            // subagrupa por tipo
+            const byType = {};
+            g.forEach(i => { (byType[i.typeKey] = byType[i.typeKey] || []).push(i); });
+            const seq = typeOrderOf(k);
+            const typeKeys = Object.keys(byType).sort((a, b) => {
+                const ia = seq.indexOf(a), ib = seq.indexOf(b);
+                return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib);
+            });
+            const typesHtml = typeKeys.map(tk => `
+                <details open class="border border-gray-100 dark:border-gray-700/60 rounded">
+                    <summary class="cursor-pointer select-none px-2 py-1.5 bg-gray-50 dark:bg-gray-800/60 text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                        <i aria-hidden="true" class="fa-solid fa-angle-right text-xs text-gray-400"></i>
+                        ${esc(LattesTypes.label(tk))}
+                        <span class="text-xs font-normal text-gray-500">(${byType[tk].length})</span>
+                    </summary>
+                    <div class="p-2 space-y-2">${byType[tk].map(itemCardHtml).join('')}</div>
+                </details>`).join('');
             return `
             <details open class="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
                 <summary class="cursor-pointer select-none px-3 py-2 bg-gray-100 dark:bg-gray-800 font-semibold text-sm flex items-center gap-2">
@@ -505,7 +529,7 @@
                     ${esc(LattesTypes.categoryNumLabel(k))}
                     <span class="text-xs font-normal text-gray-500">(${g.length})</span>
                 </summary>
-                <div class="p-2 space-y-2">${g.map(itemCardHtml).join('')}</div>
+                <div class="p-2 space-y-2">${typesHtml}</div>
             </details>`;
         }).join('');
 
