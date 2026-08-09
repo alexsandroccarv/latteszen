@@ -3,11 +3,14 @@
 Integração e entrega contínuas via **GitHub Actions**, publicando por **rsync/SSH**
 em três ambientes (promoção em 3 estágios):
 
-| Gatilho (push/tag)                         | Ambiente        | GitHub Environment |
-|--------------------------------------------|-----------------|--------------------|
-| push em `develop` ou `claude/latteszen-project-emre8x` | **Dev**         | `dev`              |
-| push em `main`                             | **Homologação** | `homolog`          |
-| criação de tag `v*` (ex.: `v0.1.0`)        | **Produção**    | `producao`         |
+| Gatilho (push/tag)                         | Ambiente        | GitHub Environment | URL |
+|--------------------------------------------|-----------------|--------------------|-----|
+| push em `develop` ou `claude/latteszen-project-emre8x` | **Dev**         | `dev`              | https://ccarvalho.net/labs/dev/latteszen |
+| push em `main`                             | **Homologação** | `homolog`          | https://ccarvalho.net/labs/latteszen |
+| criação de tag `v*` (ex.: `v0.1.0`)        | **Produção**    | `producao`         | *(a definir)* |
+
+> A aplicação é um **arquivo único autossuficiente** (`index.html`), então
+> funciona servida em subpasta (`/labs/latteszen`) sem qualquer ajuste de base.
 
 Toda execução roda antes o job **CI** (valida a sintaxe dos módulos e gera o
 `index.html`). Pull requests rodam só o CI (não fazem deploy).
@@ -35,22 +38,32 @@ chmod 600 ~/.ssh/authorized_keys
 
 > Boa prática: use um usuário com permissão **apenas** nos diretórios de publicação.
 
-## 2. Preparar os diretórios no servidor
+## 2. Preparar os diretórios no servidor (ccarvalho.net)
+
+As URLs são subpastas do site `ccarvalho.net`:
+
+- Homologação → `https://ccarvalho.net/labs/latteszen`
+- Dev         → `https://ccarvalho.net/labs/dev/latteszen`
+
+Descubra o **document root** do `ccarvalho.net` (ex.: `~/public_html`,
+`/var/www/ccarvalho.net` ou similar — depende da sua hospedagem) e crie:
 
 ```bash
-sudo mkdir -p /var/www/latteszen-dev /var/www/latteszen-homolog /var/www/latteszen
-sudo chown -R deploy:deploy /var/www/latteszen-dev /var/www/latteszen-homolog /var/www/latteszen
+# Substitua DOCROOT pelo document root real de ccarvalho.net
+DOCROOT=~/public_html
+mkdir -p "$DOCROOT/labs/latteszen" "$DOCROOT/labs/dev/latteszen"
 ```
 
-Aponte o servidor web (Nginx/Apache) para cada pasta. Exemplo Nginx:
+Os valores de `DEPLOY_PATH` (secrets) serão, por exemplo:
 
-```nginx
-server {
-    server_name latteszen-dev.suainstituicao.br;
-    root /var/www/latteszen-dev;
-    index index.html;
-}
-```
+| Ambiente    | `DEPLOY_PATH` (ajuste o DOCROOT) |
+|-------------|----------------------------------|
+| `dev`       | `DOCROOT/labs/dev/latteszen`     |
+| `homolog`   | `DOCROOT/labs/latteszen`         |
+| `producao`  | *(definir quando o ambiente existir)* |
+
+> Se a hospedagem só oferece **FTP/SFTP** (sem SSH), me avise que troco o
+> workflow para deploy via SFTP.
 
 ## 3. Criar os Environments e Secrets no GitHub
 
