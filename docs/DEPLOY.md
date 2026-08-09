@@ -62,8 +62,10 @@ Os valores de `DEPLOY_PATH` (secrets) serão, por exemplo:
 | `homolog`   | `DOCROOT/labs/latteszen`         |
 | `producao`  | *(definir quando o ambiente existir)* |
 
-> Se a hospedagem só oferece **FTP/SFTP** (sem SSH), me avise que troco o
-> workflow para deploy via SFTP.
+> **Hospedagem compartilhada + SSH:** o `deploy.sh` cria o diretório remoto
+> automaticamente (`mkdir -p`) e, se o servidor não tiver `rsync`, usa um
+> **fallback via `tar` por SSH** (que também limpa o destino, emulando o
+> `--delete`). Se o SSH usar porta diferente de 22, defina o secret `SSH_PORT`.
 
 ## 3. Criar os Environments e Secrets no GitHub
 
