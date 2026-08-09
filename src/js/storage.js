@@ -120,28 +120,40 @@ window.Storage = (function () {
         await writeFile(`${id}.json`, JSON.stringify(obj, null, 2), subdir);
     }
 
-    async function writePdf(id, fileOrBlob, subdir) {
-        await writeFile(`${id}.pdf`, fileOrBlob, subdir);
+    const ATTACH_EXTS = ['pdf', 'jpg', 'jpeg', 'png'];
+
+    // Grava o anexo (PDF ou imagem) com a extensão informada; remove versões
+    // anteriores com outra extensão para não duplicar (ex.: trocar PDF por PNG).
+    async function writeAttachment(id, fileOrBlob, subdir, ext) {
+        ext = (ext || 'pdf').toLowerCase();
+        for (const e of ATTACH_EXTS) if (e !== ext) {
+            try { const d = await targetDir(subdir); await d.removeEntry(`${id}.${e}`); } catch (_) {}
+        }
+        await writeFile(`${id}.${ext}`, fileOrBlob, subdir);
     }
 
     async function deleteFiles(id, subdir) {
         if (!dirHandle) return;
         let dir = dirHandle;
         if (subdir) { try { dir = await dirHandle.getDirectoryHandle(subdir); } catch (_) { return; } }
-        for (const ext of ['pdf', 'json']) {
+        for (const ext of ATTACH_EXTS.concat('json')) {
             try { await dir.removeEntry(`${id}.${ext}`); } catch (_) { /* pode não existir */ }
         }
     }
 
-    async function readPdfUrl(id, subdir) {
+    async function readAttachmentUrl(id, subdir, ext) {
         const dir = await ensureDirReady();
         let target = dir;
         if (subdir) { try { target = await dir.getDirectoryHandle(subdir); } catch (_) { return null; } }
-        try {
-            const fh = await target.getFileHandle(`${id}.pdf`);
-            const file = await fh.getFile();
-            return URL.createObjectURL(file);
-        } catch (_) { return null; }
+        const tryExts = ext ? [ext.toLowerCase()] : ATTACH_EXTS;
+        for (const e of tryExts) {
+            try {
+                const fh = await target.getFileHandle(`${id}.${e}`);
+                const file = await fh.getFile();
+                return URL.createObjectURL(file);
+            } catch (_) { /* tenta próxima */ }
+        }
+        return null;
     }
 
     // Reconstrói o catálogo a partir dos *.json (raiz e subdiretórios de categoria)
@@ -189,7 +201,7 @@ window.Storage = (function () {
         chooseDirectory, restoreDirectory, ensureDirReady, hasDirectory,
         directoryName, forgetDirectory, verifyPermission,
         // arquivos
-        writeJson, writePdf, deleteFiles, readPdfUrl, scanDirectory, ensureSubdirs,
+        writeJson, writeAttachment, deleteFiles, readAttachmentUrl, scanDirectory, ensureSubdirs,
         // catálogo + settings
         loadCatalog, saveCatalog, loadSettings, saveSettings,
     };

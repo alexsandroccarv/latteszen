@@ -50,6 +50,13 @@ const alNome = (label) => ({ key: 'titulo', label, type: 'text', required: true 
 const TYPES = {
     // 01 Dados gerais
     IDENTIFICACAO: { label: 'Identificação', fields: [{ key: 'titulo', label: 'Nome completo', type: 'text', required: true }, { key: 'citacoes', label: 'Nome em citações bibliográficas', type: 'text' }, { key: 'orcid', label: 'ORCID', type: 'text' }, F_URL] },
+    FOTO_PERFIL: { label: 'Foto de perfil', noExport: true, accept: 'image/jpeg,image/png', fields: [{ key: 'titulo', label: 'Descrição', type: 'text', placeholder: 'ex.: Foto oficial 2025' }, { key: 'ano', label: 'Ano', type: 'year' }] },
+    DOCUMENTO_PESSOAL: { label: 'Documentos pessoais', noExport: true, accept: 'application/pdf,image/jpeg,image/png', fields: [
+        { key: 'tipoDoc', label: 'Tipo de documento', type: 'select', required: true, options: ['RG', 'CPF', 'Título de eleitor', 'Certidão de nascimento', 'Certidão de casamento', 'Conselho de classe', 'Diploma / Certificado', 'Carteira profissional', 'CNH', 'Passaporte', 'Comprovante de residência', 'Reservista', 'PIS/PASEP', 'Outro'] },
+        { key: 'titulo', label: 'Descrição / Nº do documento', type: 'text', required: true },
+        { key: 'orgao', label: 'Órgão emissor', type: 'text' },
+        { key: 'data', label: 'Data de emissão / validade', type: 'date' },
+        { key: 'observacoes', label: 'Observações', type: 'textarea' }] },
     ENDERECO: { label: 'Endereço', fields: [{ key: 'titulo', label: 'Endereço', type: 'text', required: true }, { key: 'tipo', label: 'Tipo', type: 'select', options: ['Profissional', 'Residencial'] }, F_CIDADE, { key: 'uf', label: 'UF', type: 'text' }, { key: 'cep', label: 'CEP', type: 'text' }] },
     LICENCA: { label: 'Licença Maternidade, Paternidade e Adoção', fields: [{ key: 'titulo', label: 'Descrição', type: 'text', required: true }, { key: 'tipo', label: 'Tipo', type: 'select', options: ['Maternidade', 'Paternidade', 'Adoção'] }, F_AINI, F_AFIM] },
     IDIOMAS: { label: 'Idiomas', fields: [{ key: 'titulo', label: 'Idioma', type: 'text', required: true }, { key: 'habilidades', label: 'Proficiência (nível por habilidade)', type: 'skilllevels', options: ['Leitura', 'Fala', 'Escrita', 'Compreensão'], levels: ['Bom', 'Razoável', 'Pouco'] }] },
@@ -202,7 +209,7 @@ const PI_TYPES = ['PATENTE', 'SOFTWARE_REGISTRADO', 'CULTIVAR_PROTEGIDA', 'CULTI
 
 window.LATTES_CATEGORIES = [
     { num: '01', key: 'DADOS_GERAIS', label: 'Dados gerais', icon: 'fa-id-card',
-      types: ['IDENTIFICACAO', 'ENDERECO', 'LICENCA', 'IDIOMAS', 'PREMIO', 'RESUMO_CV', 'OUTRAS_INFO'] },
+      types: ['IDENTIFICACAO', 'FOTO_PERFIL', 'DOCUMENTO_PESSOAL', 'ENDERECO', 'LICENCA', 'IDIOMAS', 'PREMIO', 'RESUMO_CV', 'OUTRAS_INFO'] },
     { num: '02', key: 'FORMACAO', label: 'Formação', icon: 'fa-user-graduate',
       types: ['FORMACAO_ACADEMICA', 'POS_DOUTORADO', 'FORMACAO_COMPLEMENTAR'] },
     { num: '03', key: 'ATUACAO', label: 'Atuação', icon: 'fa-briefcase',
@@ -235,7 +242,7 @@ const AL_KEYS = ['AL_CURSO_LIVRE', 'AL_IDIOMAS', 'AL_TREINAMENTO', 'AL_PROJETO_P
 
 // Categoria "primária" de cada tipo (usada pelo importador do XML)
 const PRIMARY_CATEGORY = {
-    IDENTIFICACAO: 'DADOS_GERAIS', ENDERECO: 'DADOS_GERAIS', LICENCA: 'DADOS_GERAIS', IDIOMAS: 'DADOS_GERAIS',
+    IDENTIFICACAO: 'DADOS_GERAIS', FOTO_PERFIL: 'DADOS_GERAIS', DOCUMENTO_PESSOAL: 'DADOS_GERAIS', ENDERECO: 'DADOS_GERAIS', LICENCA: 'DADOS_GERAIS', IDIOMAS: 'DADOS_GERAIS',
     PREMIO: 'DADOS_GERAIS', RESUMO_CV: 'DADOS_GERAIS', OUTRAS_INFO: 'DADOS_GERAIS',
     FORMACAO_ACADEMICA: 'FORMACAO', POS_DOUTORADO: 'FORMACAO', FORMACAO_COMPLEMENTAR: 'FORMACAO',
     VINCULO_PROFISSIONAL: 'ATUACAO', LINHA_PESQUISA: 'ATUACAO', CORPO_EDITORIAL: 'ATUACAO', COMITE_ASSESSORAMENTO: 'ATUACAO', REVISOR_PERIODICO: 'ATUACAO', REVISOR_FOMENTO: 'ATUACAO', AREA_ATUACAO: 'ATUACAO',

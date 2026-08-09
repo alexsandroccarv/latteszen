@@ -26,6 +26,17 @@
     }
     function nowISO() { return new Date().toISOString(); }
 
+    // Extensão do anexo a partir do tipo MIME / nome do arquivo
+    function fileExt(file) {
+        const t = (file.type || '').toLowerCase();
+        if (t === 'application/pdf') return 'pdf';
+        if (t === 'image/png') return 'png';
+        if (t === 'image/jpeg') return 'jpg';
+        const m = (file.name || '').match(/\.(\w+)$/);
+        return m ? m[1].toLowerCase() : 'pdf';
+    }
+    function isImageExt(ext) { return /^(jpe?g|png|gif|webp)$/i.test(ext || ''); }
+
     function toast(msg, type = 'info') {
         const colors = {
             info: 'bg-govbr-600 dark:bg-unifesp-700',
@@ -54,18 +65,20 @@
             try {
                 await Storage.writeJson(item.id, item, subdir);
                 if (pdfFile) {
-                    await Storage.writePdf(item.id, pdfFile, subdir);
+                    const ext = fileExt(pdfFile);
+                    await Storage.writeAttachment(item.id, pdfFile, subdir, ext);
                     item.hasPdf = true;
                     item.pdfName = pdfFile.name;
+                    item.fileExt = ext;
                     saveCatalog();
-                    await Storage.writeJson(item.id, item, subdir); // regrava com hasPdf
+                    await Storage.writeJson(item.id, item, subdir); // regrava com hasPdf/fileExt
                 }
             } catch (e) {
                 toast('Item salvo no índice, mas falhou ao gravar arquivos: ' + e.message, 'aviso');
                 return;
             }
         } else if (pdfFile) {
-            toast('PDF não gravado: configure um diretório em Configurações.', 'aviso');
+            toast('Arquivo não gravado: configure um diretório em Configurações.', 'aviso');
         }
     }
 
@@ -93,20 +106,21 @@
                 <section class="lg:col-span-3 lg:sticky lg:top-4">
                     <div class="flex items-center justify-between mb-3">
                         <h2 class="text-lg font-bold flex items-center gap-2">
-                            <i aria-hidden="true" class="fa-solid fa-file-pdf text-red-600"></i>
-                            Visualização do PDF
+                            <i aria-hidden="true" class="fa-solid fa-file-lines text-red-600"></i>
+                            Visualização do arquivo
                         </h2>
                         <div class="flex gap-1">
                             <button type="button" id="pdfNewTab" title="Abrir em nova aba" class="w-8 h-8 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 hidden"><i class="fa-solid fa-up-right-from-square"></i></button>
                             <button type="button" id="pdfClose" title="Fechar" class="w-8 h-8 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 hidden"><i class="fa-solid fa-xmark"></i></button>
                         </div>
                     </div>
-                    <div class="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-900" style="height: 85vh; min-height: 560px">
+                    <div class="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-900 flex items-center justify-center" style="height: 85vh; min-height: 560px">
                         <div id="pdfEmpty" class="h-full flex flex-col items-center justify-center text-center text-gray-400 dark:text-gray-500 p-6">
-                            <i class="fa-regular fa-file-pdf text-5xl mb-3"></i>
-                            <p class="text-sm">O PDF aparece aqui ao anexar um arquivo no formulário<br>ou ao abrir um item com evidência (aba <strong>Catálogo</strong>).</p>
+                            <i class="fa-regular fa-file-lines text-5xl mb-3"></i>
+                            <p class="text-sm">O arquivo (PDF ou imagem) aparece aqui ao anexá-lo no formulário<br>ou ao abrir um item com evidência (aba <strong>Catálogo</strong>).</p>
                         </div>
-                        <iframe id="pdfFrame" class="w-full h-full hidden" title="Pré-visualização do PDF"></iframe>
+                        <iframe id="pdfFrame" class="w-full h-full hidden" title="Pré-visualização do arquivo"></iframe>
+                        <img id="pdfImg" class="max-w-full max-h-full object-contain hidden" alt="Pré-visualização da imagem">
                     </div>
                     <p id="pdfPanelName" class="text-xs text-gray-500 mt-1 truncate"></p>
                 </section>
@@ -156,26 +170,31 @@
     /* =====================================================================
        Painel de visualização do PDF (dentro de "Catalogar")
        ===================================================================== */
-    function setPdf(url, name) {
-        const frame = $('#pdfFrame');
+    function setPdf(url, name, ext) {
+        const frame = $('#pdfFrame'), img = $('#pdfImg');
         if (!frame) return; // painel não montado (outra aba ativa)
         if (state.currentPdfUrl && state.currentPdfUrl !== url) {
             try { URL.revokeObjectURL(state.currentPdfUrl); } catch (_) {}
         }
         state.currentPdfUrl = url;
-        frame.src = url;
-        frame.classList.remove('hidden');
+        if (isImageExt(ext)) {
+            img.src = url; img.classList.remove('hidden');
+            frame.src = 'about:blank'; frame.classList.add('hidden');
+        } else {
+            frame.src = url; frame.classList.remove('hidden');
+            img.removeAttribute('src'); img.classList.add('hidden');
+        }
         $('#pdfEmpty').classList.add('hidden');
         $('#pdfClose').classList.remove('hidden');
         $('#pdfNewTab').classList.remove('hidden');
         $('#pdfPanelName').textContent = name || '';
     }
     function clearPdf() {
-        const frame = $('#pdfFrame');
+        const frame = $('#pdfFrame'), img = $('#pdfImg');
         if (state.currentPdfUrl) { try { URL.revokeObjectURL(state.currentPdfUrl); } catch (_) {} state.currentPdfUrl = null; }
         if (!frame) return;
-        frame.src = 'about:blank';
-        frame.classList.add('hidden');
+        frame.src = 'about:blank'; frame.classList.add('hidden');
+        if (img) { img.removeAttribute('src'); img.classList.add('hidden'); }
         $('#pdfEmpty').classList.remove('hidden');
         $('#pdfClose').classList.add('hidden');
         $('#pdfNewTab').classList.add('hidden');
@@ -183,15 +202,16 @@
     }
     function previewPdfFile(file) {
         if (!file) return;
-        setPdf(URL.createObjectURL(file), file.name);
+        setPdf(URL.createObjectURL(file), file.name, fileExt(file));
     }
     async function showPdfForItem(item) {
         if (!$('#pdfFrame')) return;
         if (!item.hasPdf) { clearPdf(); return; }
         try {
-            const url = await Storage.readPdfUrl(item.id, LattesTypes.categoryFolder(item.categoryKey));
-            if (url) setPdf(url, item.pdfName || item.id + '.pdf');
-            else { clearPdf(); toast('PDF não encontrado no diretório (sincronize a pasta).', 'aviso'); }
+            const ext = item.fileExt || 'pdf';
+            const url = await Storage.readAttachmentUrl(item.id, LattesTypes.categoryFolder(item.categoryKey), ext);
+            if (url) setPdf(url, item.pdfName || `${item.id}.${ext}`, ext);
+            else { clearPdf(); toast('Arquivo não encontrado no diretório (sincronize a pasta).', 'aviso'); }
         } catch (e) { clearPdf(); }
     }
 
@@ -206,8 +226,8 @@
 
         form.innerHTML = `
             <div class="bg-govbr-50 dark:bg-gray-900 border border-govbr-100 dark:border-gray-700 rounded px-3 py-2">
-                <label class="block text-xs font-semibold mb-1"><i aria-hidden="true" class="fa-solid fa-file-arrow-up text-govbr-600 dark:text-unifesp-400 mr-1"></i> Evidência (PDF)</label>
-                <input type="file" id="pdfInput" accept="application/pdf"
+                <label class="block text-xs font-semibold mb-1"><i aria-hidden="true" class="fa-solid fa-file-arrow-up text-govbr-600 dark:text-unifesp-400 mr-1"></i> <span id="pdfInputLabel">Evidência (PDF ou imagem)</span></label>
+                <input type="file" id="pdfInput" accept="application/pdf,image/jpeg,image/png"
                        class="w-full text-sm text-gray-600 dark:text-gray-300 file:mr-2 file:px-3 file:py-1.5 file:rounded file:border-0 file:bg-govbr-600 dark:file:bg-unifesp-700 file:text-white">
                 <p id="pdfStatus" class="text-xs text-gray-500 mt-1"></p>
             </div>
@@ -263,6 +283,12 @@
             const def = LattesTypes.get($('#selTipo').value);
             const vals = item ? (item.fields || {}) : {};
             $('#dynFields').innerHTML = (def ? def.fields : []).map(f => fieldHtml(f, vals[f.key])).join('');
+            // Tipos de arquivo aceitos e rótulo conforme o tipo do item
+            const accept = (def && def.accept) || 'application/pdf,image/jpeg,image/png';
+            const inp = $('#pdfInput'); if (inp) inp.accept = accept;
+            const lbl = $('#pdfInputLabel');
+            if (lbl) lbl.textContent = accept === 'image/jpeg,image/png' ? 'Foto (JPEG ou PNG)'
+                : (def && def.key === 'DOCUMENTO_PESSOAL' ? 'Documento (PDF ou imagem)' : 'Evidência (PDF ou imagem)');
         }
 
         selCat.addEventListener('change', () => { currentType = ''; fillTipos(); });
@@ -431,7 +457,7 @@
                         <div class="mt-1.5 flex flex-wrap gap-1">${statusBadges(i)}</div>
                     </div>
                     <div class="flex gap-1 shrink-0">
-                        ${i.hasPdf ? `<button data-act="pdf" data-id="${i.id}" title="Ver PDF no painel (Catalogar)" class="w-8 h-8 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-red-600"><i class="fa-solid fa-file-pdf"></i></button>` : ''}
+                        ${i.hasPdf ? `<button data-act="pdf" data-id="${i.id}" title="Ver arquivo no painel (Catalogar)" class="w-8 h-8 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-red-600"><i class="fa-solid ${isImageExt(i.fileExt) ? 'fa-image' : 'fa-file-pdf'}"></i></button>` : ''}
                         <button data-act="edit" data-id="${i.id}" title="Abrir / Editar" class="w-8 h-8 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-govbr-600 dark:text-unifesp-400"><i class="fa-solid fa-pen"></i></button>
                         <button data-act="del" data-id="${i.id}" title="Excluir" class="w-8 h-8 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-red-600"><i class="fa-solid fa-trash"></i></button>
                     </div>
