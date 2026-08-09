@@ -197,6 +197,20 @@ const TYPES = {
     AL_COLECIONISMO: { label: 'Colecionismo', fields: [alNome('Coleção / Tema'), { key: 'descricao', label: 'Descrição / Acervo', type: 'textarea' }, F_AINI, { key: 'frequencia', label: 'Nº de itens / Frequência', type: 'text' }, F_URL] },
     AL_CULTURAL: { label: 'Experiências culturais', fields: [alNome('Experiência'), AL_LOCAL, AL_ANO, AL_IMP] },
     AL_GASTRONOMIA: { label: 'Gastronomia e culinária', fields: [alNome('Atividade / Especialidade'), AL_PAPEL, { key: 'frequencia', label: 'Frequência', type: 'text' }, AL_IMP, F_URL] },
+
+    // 98 Conexões (somente link; sem comprovação; não-Lattes)
+    CONEXAO_SOCIAL: { label: 'Rede social', noExport: true, noEvidence: true, fields: [
+        { key: 'titulo', label: 'Rede / Plataforma', type: 'text', required: true, placeholder: 'ex.: Instagram, Facebook, X, YouTube, TikTok' },
+        { key: 'url', label: 'Link (URL)', type: 'text', required: true, placeholder: 'https://...' },
+        { key: 'usuario', label: 'Usuário / @', type: 'text' }] },
+    CONEXAO_ACADEMICA: { label: 'Perfil acadêmico', noExport: true, noEvidence: true, fields: [
+        { key: 'titulo', label: 'Plataforma', type: 'text', required: true, placeholder: 'ex.: ORCID, Lattes, Zotero, ResearchGate, Google Scholar' },
+        { key: 'url', label: 'Link (URL)', type: 'text', required: true, placeholder: 'https://...' },
+        { key: 'usuario', label: 'Identificador / ID', type: 'text' }] },
+    CONEXAO_PROFISSIONAL: { label: 'Rede / contato profissional', noExport: true, noEvidence: true, fields: [
+        { key: 'titulo', label: 'Plataforma / Tipo', type: 'text', required: true, placeholder: 'ex.: LinkedIn, E-mail profissional, Site pessoal' },
+        { key: 'url', label: 'Link / URL (ou e-mail)', type: 'text', required: true, placeholder: 'https://...  ou  nome@dominio' },
+        { key: 'usuario', label: 'Usuário / contato', type: 'text' }] },
 };
 // Garante que cada tipo conheça a própria chave
 Object.keys(TYPES).forEach(k => TYPES[k].key = k);
@@ -230,6 +244,12 @@ window.LATTES_CATEGORIES = [
     { num: '09', key: 'EVENTOS', label: 'Eventos', icon: 'fa-calendar-days', types: ['PARTICIPACAO_EVENTO', 'ORGANIZACAO_EVENTO'] },
     { num: '10', key: 'ORIENTACOES', label: 'Orientações', icon: 'fa-user-group', types: ['ORIENTACAO_CONCLUIDA', 'ORIENTACAO_ANDAMENTO'] },
     { num: '11', key: 'BANCAS', label: 'Bancas', icon: 'fa-gavel', types: ['BANCA_CONCLUSAO', 'BANCA_JULGADORA'] },
+    { num: '98', key: 'CONEXOES', label: 'Conexões', icon: 'fa-share-nodes', naoLattes: true,
+      groups: [
+          { label: 'Sociais', types: ['CONEXAO_SOCIAL'] },
+          { label: 'Acadêmicas', types: ['CONEXAO_ACADEMICA'] },
+          { label: 'Profissionais', types: ['CONEXAO_PROFISSIONAL'] },
+      ] },
     { num: '99', key: 'ATIVIDADES_LIVRES', label: 'Atividades livres', icon: 'fa-person-hiking', naoLattes: true,
       groups: [
           { label: 'Desenvolvimento Pessoal e Habilidades', types: ['AL_CURSO_LIVRE', 'AL_IDIOMAS', 'AL_TREINAMENTO', 'AL_PROJETO_PESSOAL'] },
@@ -259,6 +279,7 @@ const PRIMARY_CATEGORY = {
     LIVRO: 'PRODUCOES', CAPITULO_LIVRO: 'PRODUCOES', SOFTWARE: 'PRODUCOES', ORIENTACAO: 'ORIENTACOES', BANCA: 'BANCAS', PROJETO: 'PROJETOS',
 };
 AL_KEYS.forEach(k => { PRIMARY_CATEGORY[k] = 'ATIVIDADES_LIVRES'; });
+['CONEXAO_SOCIAL', 'CONEXAO_ACADEMICA', 'CONEXAO_PROFISSIONAL'].forEach(k => { PRIMARY_CATEGORY[k] = 'CONEXOES'; });
 const LEGACY_TYPE = { LIVRO: 'LIVRO_CAPITULO', CAPITULO_LIVRO: 'LIVRO_CAPITULO', SOFTWARE: 'SOFTWARE_SEM_REGISTRO', ORIENTACAO: 'ORIENTACAO_ANDAMENTO', BANCA: 'BANCA_CONCLUSAO' };
 
 /* ---- Categoria/tipo especial: itens NÃO LATTES ---- */

@@ -225,7 +225,7 @@
         if (currentCat === 'NAO_LATTES') currentCat = 'ATIVIDADES_LIVRES'; // legado
 
         form.innerHTML = `
-            <div class="bg-govbr-50 dark:bg-gray-900 border border-govbr-100 dark:border-gray-700 rounded px-3 py-2">
+            <div id="evidenceBlock" class="bg-govbr-50 dark:bg-gray-900 border border-govbr-100 dark:border-gray-700 rounded px-3 py-2">
                 <label class="block text-xs font-semibold mb-1"><i aria-hidden="true" class="fa-solid fa-file-arrow-up text-govbr-600 dark:text-unifesp-400 mr-1"></i> <span id="pdfInputLabel">Evidência (PDF ou imagem)</span></label>
                 <input type="file" id="pdfInput" accept="application/pdf,image/jpeg,image/png"
                        class="w-full text-sm text-gray-600 dark:text-gray-300 file:mr-2 file:px-3 file:py-1.5 file:rounded file:border-0 file:bg-govbr-600 dark:file:bg-unifesp-700 file:text-white">
@@ -283,6 +283,10 @@
             const def = LattesTypes.get($('#selTipo').value);
             const vals = item ? (item.fields || {}) : {};
             $('#dynFields').innerHTML = (def ? def.fields : []).map(f => fieldHtml(f, vals[f.key])).join('');
+            // Alguns tipos não têm comprovação (ex.: Conexões — apenas o link)
+            const semEvidencia = !!(def && def.noEvidence);
+            $('#evidenceBlock').style.display = semEvidencia ? 'none' : '';
+            if (semEvidencia) { state.pendingPdf = null; clearPdf(); }
             // Tipos de arquivo aceitos e rótulo conforme o tipo do item
             const accept = (def && def.accept) || 'application/pdf,image/jpeg,image/png';
             const inp = $('#pdfInput'); if (inp) inp.accept = accept;
