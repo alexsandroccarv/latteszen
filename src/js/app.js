@@ -200,9 +200,9 @@
         const editing = !!item;
         $('#formTitulo').textContent = editing ? 'Editar item' : 'Novo item';
 
-        const isNaoLattes = item ? !item.lattesItem : false;
-        const currentType = item ? LattesTypes.normalizeType(item.typeKey) : '';
-        const currentCat = item ? (item.categoryKey || LattesTypes.primaryCategory(currentType)) : '';
+        let currentType = item ? LattesTypes.normalizeType(item.typeKey) : '';
+        let currentCat = item ? (item.categoryKey || LattesTypes.primaryCategory(currentType)) : '';
+        if (currentCat === 'NAO_LATTES') currentCat = 'ATIVIDADES_LIVRES'; // legado
 
         form.innerHTML = `
             <div class="bg-govbr-50 dark:bg-gray-900 border border-govbr-100 dark:border-gray-700 rounded px-3 py-2">
@@ -212,25 +212,20 @@
                 <p id="pdfStatus" class="text-xs text-gray-500 mt-1"></p>
             </div>
 
-            <label class="flex items-center gap-2 text-sm bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded px-3 py-2">
-                <input type="checkbox" id="chkNaoLattes" ${isNaoLattes ? 'checked' : ''}>
-                <span><i aria-hidden="true" class="fa-solid fa-heart text-amber-600"></i> Item <strong>não-Lattes</strong> (hobby, atividade pessoal, etc.)</span>
-            </label>
-
-            <div id="lattesSelectors" class="${isNaoLattes ? 'hidden' : ''} grid grid-cols-2 gap-2">
+            <div class="grid grid-cols-2 gap-2">
                 <div>
                     <label class="block text-xs font-semibold mb-1">Categoria</label>
                     <select id="selCategoria" class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900"></select>
                 </div>
                 <div>
-                    <label class="block text-xs font-semibold mb-1">Tipo do item (Lattes)</label>
+                    <label class="block text-xs font-semibold mb-1">Tipo do item</label>
                     <select id="selTipo" class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900"></select>
                 </div>
             </div>
 
             <div id="dynFields" class="space-y-3"></div>
 
-            <label class="flex items-center gap-2 text-sm">
+            <label id="inLattesWrap" class="flex items-center gap-2 text-sm">
                 <input type="checkbox" id="chkInLattes" ${item ? (item.inLattes ? 'checked' : '') : ''}>
                 <span>Este item <strong>já consta no Currículo Lattes</strong></span>
             </label>
@@ -260,27 +255,19 @@
             $('#selTipo').innerHTML = html;
             const allTypes = cat.groups ? cat.groups.flatMap(g => g.types) : cat.types;
             if (currentType && allTypes.includes(currentType)) $('#selTipo').value = currentType;
+            // "Já consta no Lattes" não se aplica a Atividades livres (categoria 99)
+            $('#inLattesWrap').style.display = LattesTypes.isNaoLattesCategory(selCat.value) ? 'none' : '';
             renderDynFields();
         }
         function renderDynFields() {
-            const naoLattes = $('#chkNaoLattes').checked;
-            const typeKey = naoLattes ? NAO_LATTES_TYPE.key : $('#selTipo').value;
-            const def = LattesTypes.get(typeKey);
+            const def = LattesTypes.get($('#selTipo').value);
             const vals = item ? (item.fields || {}) : {};
-            $('#dynFields').innerHTML = def.fields.map(f => fieldHtml(f, vals[f.key])).join('');
+            $('#dynFields').innerHTML = (def ? def.fields : []).map(f => fieldHtml(f, vals[f.key])).join('');
         }
 
-        selCat.addEventListener('change', fillTipos);
-        $('#selTipo') && $('#selTipo').addEventListener('change', renderDynFields);
+        selCat.addEventListener('change', () => { currentType = ''; fillTipos(); });
+        $('#selTipo').addEventListener('change', renderDynFields);
         fillTipos();
-
-        // Alternar não-Lattes
-        $('#chkNaoLattes').addEventListener('change', (e) => {
-            $('#lattesSelectors').classList.toggle('hidden', e.target.checked);
-            $('#chkInLattes').closest('label').style.display = e.target.checked ? 'none' : '';
-            renderDynFields();
-        });
-        if (isNaoLattes) $('#chkInLattes').closest('label').style.display = 'none';
 
         // PDF
         const pdfStatus = $('#pdfStatus');
@@ -371,9 +358,9 @@
     async function onSubmitForm(e) {
         e.preventDefault();
         const form = e.target;
-        const naoLattes = $('#chkNaoLattes').checked;
-        const typeKey = naoLattes ? NAO_LATTES_TYPE.key : $('#selTipo').value;
-        const categoryKey = naoLattes ? 'NAO_LATTES' : $('#selCategoria').value;
+        const categoryKey = $('#selCategoria').value;
+        const typeKey = $('#selTipo').value;
+        const naoLattes = LattesTypes.isNaoLattesCategory(categoryKey);
         const def = LattesTypes.get(typeKey);
 
         const fields = {};
@@ -401,7 +388,8 @@
         item.typeKey = typeKey;
         item.categoryKey = categoryKey;
         item.fields = fields;
-        item.inLattes = naoLattes ? false : $('#chkInLattes').checked;
+        const inLattesEl = $('#chkInLattes');
+        item.inLattes = naoLattes ? false : (inLattesEl ? inLattesEl.checked : false);
         item.updatedAt = nowISO();
 
         await persistItem(item, state.pendingPdf);

@@ -37,6 +37,15 @@ const CULTIVAR_FIELDS = [{ key: 'titulo', label: 'Denominação', type: 'text', 
     F_FINAL, { key: 'instituicao', label: 'Instituição financiadora', type: 'text' },
     { key: 'registro', label: 'Nº do registro / solicitação', type: 'text' }, F_URL];
 
+// Átomos para a categoria 99 (Atividades livres)
+const AL_ENT   = { key: 'entidade', label: 'Entidade', type: 'text' };
+const AL_PAPEL = { key: 'papel', label: 'Papel / Atuação', type: 'text' };
+const AL_FREQ  = { key: 'frequencia', label: 'Carga horária / Frequência', type: 'text' };
+const AL_IMP   = { key: 'descricao', label: 'Conquistas / Impacto', type: 'textarea' };
+const AL_LOCAL = { key: 'local', label: 'Local / Cidade', type: 'text' };
+const AL_ANO   = { key: 'ano', label: 'Ano', type: 'year' };
+const alNome = (label) => ({ key: 'titulo', label, type: 'text', required: true });
+
 /* ---- Definição global dos TIPOS (por chave) ---- */
 const TYPES = {
     // 01 Dados gerais
@@ -151,6 +160,29 @@ const TYPES = {
     // 11 Bancas
     BANCA_CONCLUSAO: { label: 'Participação em bancas de trabalhos de conclusão', fields: [{ key: 'tipo', label: 'Tipo', type: 'select', required: true, options: ['Mestrado', 'Doutorado', 'Qualificação', 'Especialização / Aperfeiçoamento', 'TCC / Graduação'] }, { key: 'candidato', label: 'Candidato(a)', type: 'text' }, { key: 'titulo', label: 'Título do trabalho', type: 'text' }, F_INST, F_ANO] },
     BANCA_JULGADORA: { label: 'Participação em bancas de comissões julgadoras', fields: [{ key: 'tipo', label: 'Tipo', type: 'select', required: true, options: ['Concurso público', 'Professor titular', 'Livre-docência', 'Avaliação de cursos', 'Outra'] }, { key: 'titulo', label: 'Título / Cargo', type: 'text' }, F_INST, F_ANO] },
+
+    // 99 Atividades livres — Desenvolvimento Pessoal e Habilidades
+    AL_CURSO_LIVRE: { label: 'Cursos livres', fields: [alNome('Nome do curso'), { key: 'entidade', label: 'Instituição', type: 'text' }, { key: 'frequencia', label: 'Carga horária', type: 'text' }, F_AINI, F_AFIM, AL_IMP, F_URL] },
+    AL_IDIOMAS: { label: 'Idiomas e proficiências', fields: [alNome('Idioma'), { key: 'habilidades', label: 'Proficiência (nível por habilidade)', type: 'skilllevels', options: ['Leitura', 'Fala', 'Escrita', 'Compreensão'], levels: ['Bom', 'Razoável', 'Pouco'] }, { key: 'entidade', label: 'Onde estudou', type: 'text' }, F_AINI, F_AFIM, AL_IMP] },
+    AL_TREINAMENTO: { label: 'Treinamentos e workshops', fields: [alNome('Nome'), AL_ENT, AL_PAPEL, AL_FREQ, F_AINI, F_AFIM, AL_IMP, F_URL] },
+    AL_PROJETO_PESSOAL: { label: 'Projetos pessoais e autodidatismo', fields: [alNome('Nome do projeto'), AL_PAPEL, F_AINI, F_AFIM, { key: 'frequencia', label: 'Frequência / Dedicação', type: 'text' }, AL_IMP, F_URL] },
+
+    // 99 — Engajamento Comunitário e Cidadania
+    AL_VOLUNTARIADO: { label: 'Voluntariado e trabalho social', fields: [alNome('Nome da atividade'), { key: 'entidade', label: 'Organização', type: 'text' }, AL_PAPEL, F_AINI, F_AFIM, { key: 'frequencia', label: 'Carga horária / Frequência', type: 'text' }, AL_IMP] },
+    AL_LIDERANCA: { label: 'Liderança e atuação associativa', fields: [alNome('Nome / Cargo'), { key: 'entidade', label: 'Entidade / Associação', type: 'text' }, AL_PAPEL, F_AINI, F_AFIM, AL_IMP] },
+    AL_ORG_EVENTO_COM: { label: 'Organização de eventos comunitários', fields: [alNome('Nome do evento'), { key: 'entidade', label: 'Entidade promotora', type: 'text' }, AL_PAPEL, AL_ANO, AL_LOCAL, AL_IMP] },
+
+    // 99 — Saúde, Esporte e Bem-Estar
+    AL_ESPORTE: { label: 'Experiências esportivas', fields: [alNome('Modalidade / Atividade'), { key: 'entidade', label: 'Clube / Local', type: 'text' }, AL_PAPEL, F_AINI, F_AFIM, { key: 'frequencia', label: 'Frequência', type: 'text' }, AL_IMP] },
+    AL_COMPETICAO: { label: 'Competições e torneios amadores', fields: [alNome('Competição'), { key: 'entidade', label: 'Organizador', type: 'text' }, { key: 'papel', label: 'Categoria / Colocação', type: 'text' }, AL_ANO, AL_LOCAL, { key: 'descricao', label: 'Resultado / Impacto', type: 'textarea' }] },
+    AL_EXPEDICAO: { label: 'Expedições, Trilhas e roteiros', fields: [alNome('Expedição / Trilha'), AL_LOCAL, AL_ANO, { key: 'frequencia', label: 'Distância / Duração', type: 'text' }, AL_PAPEL, AL_IMP] },
+    AL_BEMESTAR: { label: 'Práticas integrativas e bem-estar', fields: [alNome('Prática'), AL_ENT, { key: 'frequencia', label: 'Frequência', type: 'text' }, F_AINI, F_AFIM, AL_IMP] },
+
+    // 99 — Interesses, Cultura e Lazer
+    AL_HOBBY: { label: 'Hobbies e expressão artística', fields: [alNome('Hobby / Atividade'), AL_PAPEL, { key: 'frequencia', label: 'Frequência', type: 'text' }, F_AINI, F_AFIM, AL_IMP, F_URL] },
+    AL_COLECIONISMO: { label: 'Colecionismo', fields: [alNome('Coleção / Tema'), { key: 'descricao', label: 'Descrição / Acervo', type: 'textarea' }, F_AINI, { key: 'frequencia', label: 'Nº de itens / Frequência', type: 'text' }, F_URL] },
+    AL_CULTURAL: { label: 'Experiências culturais', fields: [alNome('Experiência'), AL_LOCAL, AL_ANO, AL_IMP] },
+    AL_GASTRONOMIA: { label: 'Gastronomia e culinária', fields: [alNome('Atividade / Especialidade'), AL_PAPEL, { key: 'frequencia', label: 'Frequência', type: 'text' }, AL_IMP, F_URL] },
 };
 // Garante que cada tipo conheça a própria chave
 Object.keys(TYPES).forEach(k => TYPES[k].key = k);
@@ -184,7 +216,15 @@ window.LATTES_CATEGORIES = [
     { num: '09', key: 'EVENTOS', label: 'Eventos', icon: 'fa-calendar-days', types: ['PARTICIPACAO_EVENTO', 'ORGANIZACAO_EVENTO'] },
     { num: '10', key: 'ORIENTACOES', label: 'Orientações', icon: 'fa-user-group', types: ['ORIENTACAO_CONCLUIDA', 'ORIENTACAO_ANDAMENTO'] },
     { num: '11', key: 'BANCAS', label: 'Bancas', icon: 'fa-gavel', types: ['BANCA_CONCLUSAO', 'BANCA_JULGADORA'] },
+    { num: '99', key: 'ATIVIDADES_LIVRES', label: 'Atividades livres', icon: 'fa-person-hiking', naoLattes: true,
+      groups: [
+          { label: 'Desenvolvimento Pessoal e Habilidades', types: ['AL_CURSO_LIVRE', 'AL_IDIOMAS', 'AL_TREINAMENTO', 'AL_PROJETO_PESSOAL'] },
+          { label: 'Engajamento Comunitário e Cidadania', types: ['AL_VOLUNTARIADO', 'AL_LIDERANCA', 'AL_ORG_EVENTO_COM'] },
+          { label: 'Saúde, Esporte e Bem-Estar', types: ['AL_ESPORTE', 'AL_COMPETICAO', 'AL_EXPEDICAO', 'AL_BEMESTAR'] },
+          { label: 'Interesses, Cultura e Lazer', types: ['AL_HOBBY', 'AL_COLECIONISMO', 'AL_CULTURAL', 'AL_GASTRONOMIA'] },
+      ] },
 ];
+const AL_KEYS = ['AL_CURSO_LIVRE', 'AL_IDIOMAS', 'AL_TREINAMENTO', 'AL_PROJETO_PESSOAL', 'AL_VOLUNTARIADO', 'AL_LIDERANCA', 'AL_ORG_EVENTO_COM', 'AL_ESPORTE', 'AL_COMPETICAO', 'AL_EXPEDICAO', 'AL_BEMESTAR', 'AL_HOBBY', 'AL_COLECIONISMO', 'AL_CULTURAL', 'AL_GASTRONOMIA'];
 
 // Categoria "primária" de cada tipo (usada pelo importador do XML)
 const PRIMARY_CATEGORY = {
@@ -203,6 +243,7 @@ const PRIMARY_CATEGORY = {
     // chaves legadas (compatibilidade com dados antigos)
     LIVRO: 'PRODUCOES', CAPITULO_LIVRO: 'PRODUCOES', SOFTWARE: 'PRODUCOES', ORIENTACAO: 'ORIENTACOES', BANCA: 'BANCAS', PROJETO: 'PROJETOS',
 };
+AL_KEYS.forEach(k => { PRIMARY_CATEGORY[k] = 'ATIVIDADES_LIVRES'; });
 const LEGACY_TYPE = { LIVRO: 'LIVRO_CAPITULO', CAPITULO_LIVRO: 'LIVRO_CAPITULO', SOFTWARE: 'SOFTWARE_SEM_REGISTRO', ORIENTACAO: 'ORIENTACAO_ANDAMENTO', BANCA: 'BANCA_CONCLUSAO' };
 
 /* ---- Categoria/tipo especial: itens NÃO LATTES ---- */
@@ -236,6 +277,7 @@ window.LattesTypes = (function () {
         categoryFolder(catKey) { const c = catByKey[catKey]; return c ? slugFolder(c) : '99 - Outros'; },
         primaryCategory(typeKey) { return PRIMARY_CATEGORY[typeKey] || 'PRODUCOES'; },
         normalizeType(typeKey) { return LEGACY_TYPE[typeKey] || typeKey; },
+        isNaoLattesCategory(catKey) { return catKey === 'NAO_LATTES' || !!(catByKey[catKey] && catByKey[catKey].naoLattes); },
         allFolders() { return LATTES_CATEGORIES.map(slugFolder).concat(slugFolder(catByKey['NAO_LATTES'])); },
         itemTitle(item) {
             const f = item.fields || {};
