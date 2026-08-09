@@ -105,6 +105,8 @@ window.LattesXML = (function () {
         'MESTRADO': 'Mestrado', 'MESTRADO-PROFISSIONALIZANTE': 'Mestrado',
         'DOUTORADO': 'Doutorado', 'POS-DOUTORADO': 'Pós-Doutorado',
         'LIVRE-DOCENCIA': 'Livre-docência', 'RESIDENCIA-MEDICA': 'Residência médica',
+        'CURSO-TECNICO-PROFISSIONALIZANTE': 'Curso técnico',
+        'ENSINO-FUNDAMENTAL-PRIMEIRO-GRAU': 'Ensino fundamental', 'ENSINO-MEDIO-SEGUNDO-GRAU': 'Ensino médio',
     };
 
     /* -------------------- handlers por tag (produção) -------------------- */
@@ -350,11 +352,13 @@ window.LattesXML = (function () {
         // 5b) Formação complementar (cursos de curta duração, extensão, etc.)
         const formCompl = doc.getElementsByTagName('FORMACAO-COMPLEMENTAR')[0];
         if (formCompl) {
+            // Aceita qualquer filho com nome de curso (FORMACAO-COMPLEMENTAR-* e também OUTROS)
             for (const el of formCompl.children) {
-                if (!el.tagName || el.tagName.indexOf('FORMACAO-COMPLEMENTAR-') !== 0) continue;
                 const a = attrs(el);
+                const nome = a['NOME-CURSO'] || a['NOME-DO-CURSO'];
+                if (!nome) continue;
                 add('FORMACAO_COMPLEMENTAR', {
-                    titulo: a['NOME-CURSO'] || a['NOME-DO-CURSO'] || '',
+                    titulo: nome,
                     ano: a['ANO-DE-CONCLUSAO'] || a['ANO-DE-INICIO'] || '',
                     instituicao: a['NOME-INSTITUICAO'] || '',
                     cargaHoraria: a['CARGA-HORARIA'] || '',

@@ -59,7 +59,7 @@ const TYPES = {
 
     // 02 Formação
     FORMACAO_ACADEMICA: { label: 'Formação acadêmica/titulação', fields: [
-        { key: 'nivel', label: 'Nível', type: 'select', required: true, options: ['Graduação', 'Aperfeiçoamento', 'Especialização', 'Mestrado', 'Doutorado', 'Residência médica', 'Curso técnico'] },
+        { key: 'nivel', label: 'Nível', type: 'select', required: true, options: ['Ensino fundamental', 'Ensino médio', 'Curso técnico', 'Graduação', 'Aperfeiçoamento', 'Especialização', 'Mestrado', 'Doutorado', 'Residência médica'] },
         { key: 'curso', label: 'Curso / Área', type: 'text', required: true }, { key: 'instituicao', label: 'Instituição', type: 'text', required: true },
         F_AINI, { key: 'anoFim', label: 'Ano de conclusão', type: 'year' },
         { key: 'titulo', label: 'Título do trabalho (TCC/dissertação/tese)', type: 'text' }, { key: 'orientador', label: 'Orientador(a)', type: 'text' }] },
