@@ -887,6 +887,7 @@ window.LattesXML = (function () {
     }
 
     /* ---------------------- mapas de enumeração --------------------------- */
+    const PROF_MAP = { BEM: 'Bom', RAZOAVELMENTE: 'Razoável', POUCO: 'Pouco' };
     const NAT_TRABALHO = { COMPLETO: 'Completo', RESUMO: 'Resumo', RESUMO_EXPANDIDO: 'Resumo expandido' };
     const NAT_LIVRO = { LIVRO_PUBLICADO: 'Livro publicado', LIVRO_ORGANIZADO_OU_EDICAO: 'Livro organizado' };
 
@@ -1083,7 +1084,7 @@ window.LattesXML = (function () {
             const categoryKey = primaryCat(typeKey);
             // A referência inclui a CATEGORIA: o mesmo item em categorias
             // diferentes é tratado como registros distintos (atrelados à origem).
-            const ref = `${categoryKey}|${typeKey}|${canon}|${fields.ano || fields.anoFim || ''}`;
+            const ref = `${categoryKey}|${typeKey}|${canon}|${fields.ano || ''}|${fields.anoInicio || ''}|${fields.anoFim || ''}`;
             if (!canon) return;                 // ignora itens sem título
             if (seenRefs.has(ref)) return;      // dedup dentro do próprio XML (mesma categoria)
             seenRefs.add(ref);
@@ -1194,15 +1195,67 @@ window.LattesXML = (function () {
             for (const v of atu.children) {
                 if (v.tagName !== 'VINCULOS') continue;
                 const a = attrs(v);
+                // Quando TIPO/ENQUADRAMENTO é "LIVRE" (ou vazio), o valor real do
+                // vínculo/cargo está nos campos OUTRO-*-INFORMADO.
+                const enumOuVazio = (val) => (val && val !== 'LIVRE') ? humanize(val) : '';
                 add('VINCULO_PROFISSIONAL', {
                     instituicao: nomeInst,
-                    vinculo: a['TIPO-DE-VINCULO'] ? humanize(a['TIPO-DE-VINCULO']) : (a['OUTRO-VINCULO-INFORMADO'] || ''),
-                    cargo: a['ENQUADRAMENTO-FUNCIONAL'] ? humanize(a['ENQUADRAMENTO-FUNCIONAL']) : (a['OUTRO-ENQUADRAMENTO-FUNCIONAL-INFORMADO'] || ''),
+                    vinculo: a['OUTRO-VINCULO-INFORMADO'] || enumOuVazio(a['TIPO-DE-VINCULO']),
+                    cargo: a['OUTRO-ENQUADRAMENTO-FUNCIONAL-INFORMADO'] || enumOuVazio(a['ENQUADRAMENTO-FUNCIONAL']),
                     anoInicio: a['ANO-INICIO'] || '',
                     anoFim: a['ANO-FIM'] || '',
                     titulo: a['OUTRAS-INFORMACOES'] || '',
                 }, v);
             }
+        }
+
+        // 7) Dados gerais: identificação, endereço, idiomas, áreas de atuação,
+        //    resumo do CV e outras informações relevantes.
+        const clean = (s) => String(s || '').replace(/&#1[03];/g, m => m === '&#10;' ? '\n' : '').trim();
+        const dgEl = doc.getElementsByTagName('DADOS-GERAIS')[0];
+        if (dgEl) {
+            const g = attrs(dgEl);
+            if (g['NOME-COMPLETO']) {
+                add('IDENTIFICACAO', {
+                    titulo: g['NOME-COMPLETO'], citacoes: g['NOME-EM-CITACOES-BIBLIOGRAFICAS'] || '',
+                    orcid: g['ORCID-ID'] || '',
+                }, dgEl);
+            }
+            const resumo = firstTag(dgEl, 'RESUMO-CV');
+            if (resumo) {
+                const t = attrs(resumo)['TEXTO-RESUMO-CV-RH'] || '';
+                if (t) add('RESUMO_CV', { titulo: 'Texto inicial do Currículo Lattes', descricao: clean(t) }, resumo);
+            }
+            const outras = firstTag(dgEl, 'OUTRAS-INFORMACOES-RELEVANTES');
+            if (outras) {
+                const t = attrs(outras)['OUTRAS-INFORMACOES-RELEVANTES'] || '';
+                if (t) add('OUTRAS_INFO', { titulo: 'Outras informações relevantes', descricao: clean(t) }, outras);
+            }
+            const endProf = firstTag(dgEl, 'ENDERECO-PROFISSIONAL');
+            if (endProf) {
+                const e = attrs(endProf);
+                const log = e['LOGRADOURO-COMPLEMENTO'] || e['NOME-INSTITUICAO-EMPRESA'] || '';
+                if (log) add('ENDERECO', { titulo: log, tipo: 'Profissional', cidade: e['CIDADE'] || '', uf: e['UF'] || '', cep: e['CEP'] || '' }, endProf);
+            }
+        }
+        // Idiomas
+        for (const el of doc.getElementsByTagName('IDIOMA')) {
+            const a = attrs(el);
+            const hab = [
+                ['Leitura', a['PROFICIENCIA-DE-LEITURA']], ['Fala', a['PROFICIENCIA-DE-FALA']],
+                ['Escrita', a['PROFICIENCIA-DE-ESCRITA']], ['Compreensão', a['PROFICIENCIA-DE-COMPREENSAO']],
+            ].filter(([, v]) => v && PROF_MAP[v]).map(([k, v]) => `${k}: ${PROF_MAP[v]}`).join('; ');
+            add('IDIOMAS', { titulo: a['DESCRICAO-DO-IDIOMA'] || a['IDIOMA'] || '', habilidades: hab }, el);
+        }
+        // Áreas de atuação (categoria 03)
+        for (const el of doc.getElementsByTagName('AREA-DE-ATUACAO')) {
+            const a = attrs(el);
+            const titulo = a['NOME-DA-ESPECIALIDADE'] || a['NOME-DA-SUB-AREA-DO-CONHECIMENTO'] || a['NOME-DA-AREA-DO-CONHECIMENTO'] || humanize(a['NOME-GRANDE-AREA-DO-CONHECIMENTO']);
+            if (!titulo) continue;
+            add('AREA_ATUACAO', {
+                titulo, grandeArea: humanize(a['NOME-GRANDE-AREA-DO-CONHECIMENTO']),
+                subarea: a['NOME-DA-SUB-AREA-DO-CONHECIMENTO'] || '', especialidade: a['NOME-DA-ESPECIALIDADE'] || '',
+            }, el);
         }
 
         // Titular
