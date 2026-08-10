@@ -302,8 +302,17 @@
                 : (def && def.key === 'DOCUMENTO_PESSOAL' ? 'Documento (PDF ou imagem)' : 'Evidência (PDF ou imagem)');
         }
 
-        selCat.addEventListener('change', () => { currentType = ''; fillTipos(); });
-        $('#selTipo').addEventListener('change', renderDynFields);
+        // Se o usuário escolher um tipo ÚNICO (singleton) que já existe, abre-o
+        // para edição em vez de permitir criar um segundo.
+        function maybeLoadSingleton() {
+            if (state.editingId) return;                 // já está editando algo
+            const tk = $('#selTipo').value;
+            if (!LattesTypes.isSingleton(tk)) return;
+            const ex = state.items.find(i => i.typeKey === tk);
+            if (ex) { toast(`"${LattesTypes.label(tk)}" já existe — abrindo para edição.`, 'info'); buildForm(ex); }
+        }
+        selCat.addEventListener('change', () => { currentType = ''; fillTipos(); maybeLoadSingleton(); });
+        $('#selTipo').addEventListener('change', () => { renderDynFields(); maybeLoadSingleton(); });
         fillTipos();
 
         // PDF
@@ -436,7 +445,13 @@
         const faltando = def.fields.filter(f => f.required && !fields[f.key]);
         if (faltando.length) { toast('Preencha: ' + faltando.map(f => f.label).join(', '), 'aviso'); return; }
 
-        const editing = state.editingId ? state.items.find(i => i.id === state.editingId) : null;
+        let editing = state.editingId ? state.items.find(i => i.id === state.editingId) : null;
+        // Tipo único (singleton): se já existir outro item desse tipo, atualiza-o
+        // em vez de criar/duplicar.
+        if (LattesTypes.isSingleton(typeKey)) {
+            const ex = state.items.find(i => i.typeKey === typeKey && (!editing || i.id !== editing.id));
+            if (ex) editing = ex;
+        }
         const item = editing || {
             id: uid(), createdAt: nowISO(),
             source: 'local', hasPdf: false, pdfName: null, lattesRef: null,
@@ -671,9 +686,20 @@
         const chosen = $$('.xmlchk').filter(c => c.checked).map(c => parseInt(c.dataset.idx, 10));
         if (!chosen.length) { toast('Nenhum item selecionado.', 'aviso'); return; }
         const existingRefs = new Set(state.items.map(i => i.lattesRef).filter(Boolean));
-        let n = 0;
+        let n = 0, atualizados = 0;
         for (const idx of chosen) {
             const src = state.lattesParsed.items[idx];
+            // Tipos únicos (Identificação, Endereço, Resumo, Outras info): se já
+            // existir um item desse tipo, ATUALIZA em vez de criar um novo.
+            if (LattesTypes.isSingleton(src.typeKey)) {
+                const ex = state.items.find(i => i.typeKey === src.typeKey);
+                if (ex) {
+                    ex.fields = src.fields; ex.categoryKey = src.categoryKey || ex.categoryKey;
+                    ex.inLattes = true; ex.lattesRef = src.lattesRef; ex.updatedAt = nowISO();
+                    await persistItem(ex, null);
+                    atualizados++; continue;
+                }
+            }
             if (existingRefs.has(src.lattesRef)) continue;
             const item = {
                 id: uid(), createdAt: nowISO(), updatedAt: nowISO(),
@@ -687,7 +713,7 @@
             existingRefs.add(src.lattesRef);
             n++;
         }
-        toast(`${n} item(ns) importado(s) do Lattes.`, 'ok');
+        toast(`${n} item(ns) importado(s)${atualizados ? `, ${atualizados} atualizado(s)` : ''}.`, 'ok');
         renderXmlResult(state.lattesParsed);
         renderItemList();
     }

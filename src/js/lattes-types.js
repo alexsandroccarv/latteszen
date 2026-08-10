@@ -49,7 +49,7 @@ const alNome = (label) => ({ key: 'titulo', label, type: 'text', required: true 
 /* ---- Definição global dos TIPOS (por chave) ---- */
 const TYPES = {
     // 01 Dados gerais
-    IDENTIFICACAO: { label: 'Identificação', noEvidence: true, fields: [{ key: 'titulo', label: 'Nome completo', type: 'text', required: true }, { key: 'citacoes', label: 'Nome em citações bibliográficas', type: 'text' }, { key: 'orcid', label: 'ORCID', type: 'text' }, F_URL] },
+    IDENTIFICACAO: { label: 'Identificação', noEvidence: true, singleton: true, fields: [{ key: 'titulo', label: 'Nome completo', type: 'text', required: true }, { key: 'citacoes', label: 'Nome em citações bibliográficas', type: 'text' }, { key: 'orcid', label: 'ORCID', type: 'text' }, F_URL] },
     FOTO_PERFIL: { label: 'Foto de perfil', noExport: true, accept: 'image/jpeg,image/png', fields: [{ key: 'titulo', label: 'Descrição', type: 'text', placeholder: 'ex.: Foto oficial 2025' }, { key: 'ano', label: 'Ano', type: 'year' }] },
     DOCUMENTO_PESSOAL: { label: 'Documentos pessoais', noExport: true, accept: 'application/pdf,image/jpeg,image/png', fields: [
         { key: 'tipoDoc', label: 'Tipo de documento', type: 'select', required: true, options: ['RG', 'CPF', 'Título de eleitor', 'Certidão de nascimento', 'Certidão de casamento', 'Conselho de classe', 'Diploma / Certificado', 'Carteira profissional', 'CNH', 'Passaporte', 'Comprovante de residência', 'Reservista', 'PIS/PASEP', 'Outro'] },
@@ -57,12 +57,12 @@ const TYPES = {
         { key: 'orgao', label: 'Órgão emissor', type: 'text' },
         { key: 'data', label: 'Data de emissão / validade', type: 'date' },
         { key: 'observacoes', label: 'Observações', type: 'textarea' }] },
-    ENDERECO: { label: 'Endereço', fields: [{ key: 'titulo', label: 'Endereço', type: 'text', required: true }, { key: 'tipo', label: 'Tipo', type: 'select', options: ['Profissional', 'Residencial'] }, F_CIDADE, { key: 'uf', label: 'UF', type: 'text' }, { key: 'cep', label: 'CEP', type: 'text' }] },
+    ENDERECO: { label: 'Endereço', singleton: true, fields: [{ key: 'titulo', label: 'Endereço', type: 'text', required: true }, { key: 'tipo', label: 'Tipo', type: 'select', options: ['Profissional', 'Residencial'] }, F_CIDADE, { key: 'uf', label: 'UF', type: 'text' }, { key: 'cep', label: 'CEP', type: 'text' }] },
     LICENCA: { label: 'Licença Maternidade, Paternidade e Adoção', fields: [{ key: 'titulo', label: 'Descrição', type: 'text', required: true }, { key: 'tipo', label: 'Tipo', type: 'select', options: ['Maternidade', 'Paternidade', 'Adoção'] }, F_AINI, F_AFIM] },
     IDIOMAS: { label: 'Idiomas', fields: [{ key: 'titulo', label: 'Idioma', type: 'text', required: true }, { key: 'habilidades', label: 'Proficiência (nível por habilidade)', type: 'skilllevels', options: ['Leitura', 'Fala', 'Escrita', 'Compreensão'], levels: ['Bom', 'Razoável', 'Pouco'] }] },
     PREMIO: { label: 'Prêmios e títulos', fields: [F_TITULO, F_ANO, { key: 'entidade', label: 'Entidade promotora', type: 'text', required: true }, { key: 'descricao', label: 'Descrição', type: 'textarea' }] },
-    RESUMO_CV: { label: 'Texto inicial do Currículo Lattes', fields: [{ key: 'titulo', label: 'Identificação', type: 'text' }, { key: 'descricao', label: 'Texto', type: 'textarea', required: true }] },
-    OUTRAS_INFO: { label: 'Outras informações relevantes', fields: [{ key: 'titulo', label: 'Título', type: 'text', required: true }, { key: 'descricao', label: 'Descrição', type: 'textarea' }] },
+    RESUMO_CV: { label: 'Texto inicial do Currículo Lattes', singleton: true, fields: [{ key: 'titulo', label: 'Identificação', type: 'text' }, { key: 'descricao', label: 'Texto', type: 'textarea', required: true }] },
+    OUTRAS_INFO: { label: 'Outras informações relevantes', singleton: true, fields: [{ key: 'titulo', label: 'Título', type: 'text', required: true }, { key: 'descricao', label: 'Descrição', type: 'textarea' }] },
 
     // 02 Formação
     FORMACAO_ACADEMICA: { label: 'Formação acadêmica/titulação', fields: [
@@ -321,6 +321,7 @@ window.LattesTypes = (function () {
         primaryCategory(typeKey) { return PRIMARY_CATEGORY[typeKey] || 'PRODUCOES'; },
         normalizeType(typeKey) { return LEGACY_TYPE[typeKey] || typeKey; },
         isNaoLattesCategory(catKey) { return catKey === 'NAO_LATTES' || !!(catByKey[catKey] && catByKey[catKey].naoLattes); },
+        isSingleton(typeKey) { const t = this.getType(typeKey); return !!(t && t.singleton); },
         // Pastas criadas no diretório: as 12 categorias + a pasta de Backup
         allFolders() { return LATTES_CATEGORIES.map(slugFolder).concat(BACKUP_FOLDER); },
         itemTitle(item) {

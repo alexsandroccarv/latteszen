@@ -381,7 +381,7 @@ const alNome = (label) => ({ key: 'titulo', label, type: 'text', required: true 
 /* ---- Definição global dos TIPOS (por chave) ---- */
 const TYPES = {
     // 01 Dados gerais
-    IDENTIFICACAO: { label: 'Identificação', noEvidence: true, fields: [{ key: 'titulo', label: 'Nome completo', type: 'text', required: true }, { key: 'citacoes', label: 'Nome em citações bibliográficas', type: 'text' }, { key: 'orcid', label: 'ORCID', type: 'text' }, F_URL] },
+    IDENTIFICACAO: { label: 'Identificação', noEvidence: true, singleton: true, fields: [{ key: 'titulo', label: 'Nome completo', type: 'text', required: true }, { key: 'citacoes', label: 'Nome em citações bibliográficas', type: 'text' }, { key: 'orcid', label: 'ORCID', type: 'text' }, F_URL] },
     FOTO_PERFIL: { label: 'Foto de perfil', noExport: true, accept: 'image/jpeg,image/png', fields: [{ key: 'titulo', label: 'Descrição', type: 'text', placeholder: 'ex.: Foto oficial 2025' }, { key: 'ano', label: 'Ano', type: 'year' }] },
     DOCUMENTO_PESSOAL: { label: 'Documentos pessoais', noExport: true, accept: 'application/pdf,image/jpeg,image/png', fields: [
         { key: 'tipoDoc', label: 'Tipo de documento', type: 'select', required: true, options: ['RG', 'CPF', 'Título de eleitor', 'Certidão de nascimento', 'Certidão de casamento', 'Conselho de classe', 'Diploma / Certificado', 'Carteira profissional', 'CNH', 'Passaporte', 'Comprovante de residência', 'Reservista', 'PIS/PASEP', 'Outro'] },
@@ -389,12 +389,12 @@ const TYPES = {
         { key: 'orgao', label: 'Órgão emissor', type: 'text' },
         { key: 'data', label: 'Data de emissão / validade', type: 'date' },
         { key: 'observacoes', label: 'Observações', type: 'textarea' }] },
-    ENDERECO: { label: 'Endereço', fields: [{ key: 'titulo', label: 'Endereço', type: 'text', required: true }, { key: 'tipo', label: 'Tipo', type: 'select', options: ['Profissional', 'Residencial'] }, F_CIDADE, { key: 'uf', label: 'UF', type: 'text' }, { key: 'cep', label: 'CEP', type: 'text' }] },
+    ENDERECO: { label: 'Endereço', singleton: true, fields: [{ key: 'titulo', label: 'Endereço', type: 'text', required: true }, { key: 'tipo', label: 'Tipo', type: 'select', options: ['Profissional', 'Residencial'] }, F_CIDADE, { key: 'uf', label: 'UF', type: 'text' }, { key: 'cep', label: 'CEP', type: 'text' }] },
     LICENCA: { label: 'Licença Maternidade, Paternidade e Adoção', fields: [{ key: 'titulo', label: 'Descrição', type: 'text', required: true }, { key: 'tipo', label: 'Tipo', type: 'select', options: ['Maternidade', 'Paternidade', 'Adoção'] }, F_AINI, F_AFIM] },
     IDIOMAS: { label: 'Idiomas', fields: [{ key: 'titulo', label: 'Idioma', type: 'text', required: true }, { key: 'habilidades', label: 'Proficiência (nível por habilidade)', type: 'skilllevels', options: ['Leitura', 'Fala', 'Escrita', 'Compreensão'], levels: ['Bom', 'Razoável', 'Pouco'] }] },
     PREMIO: { label: 'Prêmios e títulos', fields: [F_TITULO, F_ANO, { key: 'entidade', label: 'Entidade promotora', type: 'text', required: true }, { key: 'descricao', label: 'Descrição', type: 'textarea' }] },
-    RESUMO_CV: { label: 'Texto inicial do Currículo Lattes', fields: [{ key: 'titulo', label: 'Identificação', type: 'text' }, { key: 'descricao', label: 'Texto', type: 'textarea', required: true }] },
-    OUTRAS_INFO: { label: 'Outras informações relevantes', fields: [{ key: 'titulo', label: 'Título', type: 'text', required: true }, { key: 'descricao', label: 'Descrição', type: 'textarea' }] },
+    RESUMO_CV: { label: 'Texto inicial do Currículo Lattes', singleton: true, fields: [{ key: 'titulo', label: 'Identificação', type: 'text' }, { key: 'descricao', label: 'Texto', type: 'textarea', required: true }] },
+    OUTRAS_INFO: { label: 'Outras informações relevantes', singleton: true, fields: [{ key: 'titulo', label: 'Título', type: 'text', required: true }, { key: 'descricao', label: 'Descrição', type: 'textarea' }] },
 
     // 02 Formação
     FORMACAO_ACADEMICA: { label: 'Formação acadêmica/titulação', fields: [
@@ -653,6 +653,7 @@ window.LattesTypes = (function () {
         primaryCategory(typeKey) { return PRIMARY_CATEGORY[typeKey] || 'PRODUCOES'; },
         normalizeType(typeKey) { return LEGACY_TYPE[typeKey] || typeKey; },
         isNaoLattesCategory(catKey) { return catKey === 'NAO_LATTES' || !!(catByKey[catKey] && catByKey[catKey].naoLattes); },
+        isSingleton(typeKey) { const t = this.getType(typeKey); return !!(t && t.singleton); },
         // Pastas criadas no diretório: as 12 categorias + a pasta de Backup
         allFolders() { return LATTES_CATEGORIES.map(slugFolder).concat(BACKUP_FOLDER); },
         itemTitle(item) {
@@ -1669,8 +1670,17 @@ window.LattesXML = (function () {
                 : (def && def.key === 'DOCUMENTO_PESSOAL' ? 'Documento (PDF ou imagem)' : 'Evidência (PDF ou imagem)');
         }
 
-        selCat.addEventListener('change', () => { currentType = ''; fillTipos(); });
-        $('#selTipo').addEventListener('change', renderDynFields);
+        // Se o usuário escolher um tipo ÚNICO (singleton) que já existe, abre-o
+        // para edição em vez de permitir criar um segundo.
+        function maybeLoadSingleton() {
+            if (state.editingId) return;                 // já está editando algo
+            const tk = $('#selTipo').value;
+            if (!LattesTypes.isSingleton(tk)) return;
+            const ex = state.items.find(i => i.typeKey === tk);
+            if (ex) { toast(`"${LattesTypes.label(tk)}" já existe — abrindo para edição.`, 'info'); buildForm(ex); }
+        }
+        selCat.addEventListener('change', () => { currentType = ''; fillTipos(); maybeLoadSingleton(); });
+        $('#selTipo').addEventListener('change', () => { renderDynFields(); maybeLoadSingleton(); });
         fillTipos();
 
         // PDF
@@ -1803,7 +1813,13 @@ window.LattesXML = (function () {
         const faltando = def.fields.filter(f => f.required && !fields[f.key]);
         if (faltando.length) { toast('Preencha: ' + faltando.map(f => f.label).join(', '), 'aviso'); return; }
 
-        const editing = state.editingId ? state.items.find(i => i.id === state.editingId) : null;
+        let editing = state.editingId ? state.items.find(i => i.id === state.editingId) : null;
+        // Tipo único (singleton): se já existir outro item desse tipo, atualiza-o
+        // em vez de criar/duplicar.
+        if (LattesTypes.isSingleton(typeKey)) {
+            const ex = state.items.find(i => i.typeKey === typeKey && (!editing || i.id !== editing.id));
+            if (ex) editing = ex;
+        }
         const item = editing || {
             id: uid(), createdAt: nowISO(),
             source: 'local', hasPdf: false, pdfName: null, lattesRef: null,
@@ -2038,9 +2054,20 @@ window.LattesXML = (function () {
         const chosen = $$('.xmlchk').filter(c => c.checked).map(c => parseInt(c.dataset.idx, 10));
         if (!chosen.length) { toast('Nenhum item selecionado.', 'aviso'); return; }
         const existingRefs = new Set(state.items.map(i => i.lattesRef).filter(Boolean));
-        let n = 0;
+        let n = 0, atualizados = 0;
         for (const idx of chosen) {
             const src = state.lattesParsed.items[idx];
+            // Tipos únicos (Identificação, Endereço, Resumo, Outras info): se já
+            // existir um item desse tipo, ATUALIZA em vez de criar um novo.
+            if (LattesTypes.isSingleton(src.typeKey)) {
+                const ex = state.items.find(i => i.typeKey === src.typeKey);
+                if (ex) {
+                    ex.fields = src.fields; ex.categoryKey = src.categoryKey || ex.categoryKey;
+                    ex.inLattes = true; ex.lattesRef = src.lattesRef; ex.updatedAt = nowISO();
+                    await persistItem(ex, null);
+                    atualizados++; continue;
+                }
+            }
             if (existingRefs.has(src.lattesRef)) continue;
             const item = {
                 id: uid(), createdAt: nowISO(), updatedAt: nowISO(),
@@ -2054,7 +2081,7 @@ window.LattesXML = (function () {
             existingRefs.add(src.lattesRef);
             n++;
         }
-        toast(`${n} item(ns) importado(s) do Lattes.`, 'ok');
+        toast(`${n} item(ns) importado(s)${atualizados ? `, ${atualizados} atualizado(s)` : ''}.`, 'ok');
         renderXmlResult(state.lattesParsed);
         renderItemList();
     }
