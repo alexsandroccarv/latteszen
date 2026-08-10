@@ -255,7 +255,8 @@
                     <i aria-hidden="true" class="fa-solid fa-floppy-disk mr-1"></i> ${editing ? 'Salvar alterações' : 'Adicionar item'}
                 </button>
                 <button type="button" id="btnCancelar" class="px-4 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm ${editing ? '' : 'hidden'}">Cancelar</button>
-            </div>`;
+            </div>
+            ${datalistsHtml()}`;
 
         // Preencher selects de categoria/tipo
         const selCat = $('#selCategoria');
@@ -332,6 +333,20 @@
         return anos.map(y => `<option value="${y}" ${String(y) === v ? 'selected' : ''}>${y}</option>`).join('');
     }
 
+    // Campos que ganham autocomplete (combobox): escolha da lista OU digitação
+    // de um valor novo. As sugestões vêm dos valores já usados no catálogo.
+    const AUTOCOMPLETE_KEYS = ['instituicao', 'entidade', 'orgao', 'editora', 'periodico', 'evento'];
+    function collectSuggestions(key) {
+        const set = new Set();
+        state.items.forEach(i => { const v = i.fields && i.fields[key]; if (v && String(v).trim()) set.add(String(v).trim()); });
+        return Array.from(set).sort((a, b) => a.localeCompare(b, 'pt-BR'));
+    }
+    function datalistsHtml() {
+        return AUTOCOMPLETE_KEYS.map(k =>
+            `<datalist id="dl-${k}">${collectSuggestions(k).map(v => `<option value="${esc(v)}"></option>`).join('')}</datalist>`
+        ).join('');
+    }
+
     function fieldHtml(f, val) {
         val = val == null ? '' : val;
         const req = f.required ? 'required' : '';
@@ -376,7 +391,8 @@
             </div>`;
         } else {
             const t = (f.type === 'url' ? 'url' : (f.type === 'number' ? 'number' : (f.type === 'date' ? 'date' : 'text')));
-            input = `<input type="${t}" name="${f.key}" value="${esc(val)}" ${req} placeholder="${esc(f.placeholder || '')}" class="${base}">`;
+            const listAttr = (t === 'text' && AUTOCOMPLETE_KEYS.includes(f.key)) ? `list="dl-${f.key}"` : '';
+            input = `<input type="${t}" name="${f.key}" value="${esc(val)}" ${req} ${listAttr} placeholder="${esc(f.placeholder || '')}" class="${base}">`;
         }
         return `<div>
             <label class="block text-xs font-semibold mb-1">${esc(f.label)}${reqMark}</label>
