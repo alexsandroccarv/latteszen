@@ -716,18 +716,19 @@
     }
 
     function itemCardHtml(i) {
+        const ano = (i.fields && i.fields.ano) ? esc(i.fields.ano) : '—';
+        const titulo = esc(LattesTypes.itemTitle(i));
+        const tipo = esc(LattesTypes.label(i.typeKey));
         return `
-            <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded p-3">
-                <div class="flex items-start justify-between gap-2">
-                    <div class="min-w-0">
-                        <p class="font-semibold text-sm truncate">${esc(LattesTypes.itemTitle(i))}</p>
-                        <p class="text-xs text-gray-500">${esc(LattesTypes.label(i.typeKey))} ${i.fields.ano ? '· ' + esc(i.fields.ano) : ''}</p>
-                        <div class="mt-1.5 flex flex-wrap gap-1">${statusBadges(i)}</div>
-                    </div>
-                    <div class="flex gap-1 shrink-0">
-                        ${i.hasPdf ? `<button data-act="pdf" data-id="${i.id}" title="Ver arquivo no painel (Catalogar)" class="w-8 h-8 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-red-600"><i class="fa-solid ${isImageExt(i.fileExt) ? 'fa-image' : 'fa-file-pdf'}"></i></button>` : ''}
-                        <button data-act="edit" data-id="${i.id}" title="Abrir / Editar" class="w-8 h-8 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-govbr-600 dark:text-unifesp-400"><i class="fa-solid fa-pen"></i></button>
-                        <button data-act="del" data-id="${i.id}" title="Excluir" class="w-8 h-8 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-red-600"><i class="fa-solid fa-trash"></i></button>
+            <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded px-2.5 py-1.5">
+                <div class="flex items-center gap-x-2 gap-y-1 flex-wrap">
+                    <span class="text-xs font-mono text-gray-500 shrink-0 w-9 text-right tabular-nums">${ano}</span>
+                    <span class="text-sm font-medium truncate flex-1 min-w-[8rem]" title="${tipo} · ${titulo}">${titulo}</span>
+                    <div class="flex flex-wrap gap-1 items-center">${statusBadges(i)}</div>
+                    <div class="flex gap-0.5 shrink-0 ml-auto">
+                        ${i.hasPdf ? `<button data-act="pdf" data-id="${i.id}" title="Ver arquivo no painel (Catalogar)" class="w-7 h-7 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-red-600"><i class="fa-solid ${isImageExt(i.fileExt) ? 'fa-image' : 'fa-file-pdf'}"></i></button>` : ''}
+                        <button data-act="edit" data-id="${i.id}" title="Abrir / Editar" class="w-7 h-7 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-govbr-600 dark:text-unifesp-400"><i class="fa-solid fa-pen"></i></button>
+                        <button data-act="del" data-id="${i.id}" title="Excluir" class="w-7 h-7 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-red-600"><i class="fa-solid fa-trash"></i></button>
                     </div>
                 </div>
             </div>`;
@@ -772,7 +773,7 @@
                         ${esc(LattesTypes.label(tk))}
                         <span class="text-xs font-normal text-gray-500">(${byType[tk].length})</span>
                     </summary>
-                    <div class="p-2 space-y-2">${byType[tk].map(itemCardHtml).join('')}</div>
+                    <div class="p-1.5 space-y-1">${byType[tk].map(itemCardHtml).join('')}</div>
                 </details>`).join('');
             return `
             <details open class="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
