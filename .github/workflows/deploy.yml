@@ -17,8 +17,8 @@ permissions:
 
 jobs:
   # ---------------------------------------------------------------------------
-  # CI: valida os módulos JS e gera o index.html autossuficiente (sempre roda,
-  # inclusive em pull requests). É o "portão de qualidade" antes de qualquer deploy.
+  # CI: valida os módulos JS e monta a pasta dist/ (site multi-arquivo). Sempre
+  # roda, inclusive em pull requests. É o "portão de qualidade" antes do deploy.
   # ---------------------------------------------------------------------------
   ci:
     name: Validar e construir
@@ -30,18 +30,20 @@ jobs:
           node-version: '20'
       - name: Verificar sintaxe dos módulos JS
         run: for f in src/js/*.js; do node --check "$f"; done
-      - name: Build (gera index.html)
+      - name: Build (monta dist/)
         run: node build.mjs
-      - name: Conferir que o index.html é autossuficiente
+      - name: Conferir estrutura multi-arquivo do dist/
         run: |
-          if grep -q 'src="js/\|href="css/' index.html; then
-            echo "ERRO: index.html ainda referencia arquivos locais (build incompleto)."; exit 1
-          fi
+          test -f dist/index.html || { echo "ERRO: dist/index.html ausente."; exit 1; }
+          test -f dist/js/app.js || { echo "ERRO: dist/js/ ausente."; exit 1; }
+          test -f dist/css/styles.css || { echo "ERRO: dist/css/ ausente."; exit 1; }
+          grep -q 'src="js/' dist/index.html || { echo "ERRO: index.html não referencia js/ (build incorreto)."; exit 1; }
+          grep -q 'href="css/' dist/index.html || { echo "ERRO: index.html não referencia css/ (build incorreto)."; exit 1; }
       - name: Publicar artefato de build
         uses: actions/upload-artifact@v4
         with:
           name: site
-          path: index.html
+          path: dist/
 
   # ---------------------------------------------------------------------------
   # Jobs de deploy — cada um vinculado a um GitHub Environment (secrets próprios).
@@ -57,9 +59,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: '20' }
-      - run: node build.mjs
-      - name: Preparar dist/
-        run: bash .github/scripts/make-dist.sh
+      - name: Build (monta dist/)
+        run: node build.mjs
       - name: Deploy via rsync/SSH
         run: bash .github/scripts/deploy.sh
         env:
@@ -79,9 +80,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: '20' }
-      - run: node build.mjs
-      - name: Preparar dist/
-        run: bash .github/scripts/make-dist.sh
+      - name: Build (monta dist/)
+        run: node build.mjs
       - name: Deploy via rsync/SSH
         run: bash .github/scripts/deploy.sh
         env:
@@ -101,9 +101,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: '20' }
-      - run: node build.mjs
-      - name: Preparar dist/
-        run: bash .github/scripts/make-dist.sh
+      - name: Build (monta dist/)
+        run: node build.mjs
       - name: Deploy via rsync/SSH
         run: bash .github/scripts/deploy.sh
         env:

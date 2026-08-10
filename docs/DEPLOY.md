@@ -9,11 +9,13 @@ em três ambientes (promoção em 3 estágios):
 | push em `main`                             | **Homologação** | `homolog`          | https://ccarvalho.net/labs/latteszen |
 | criação de tag `v*` (ex.: `v0.1.0`)        | **Produção**    | `producao`         | *(a definir)* |
 
-> A aplicação é um **arquivo único autossuficiente** (`index.html`), então
-> funciona servida em subpasta (`/labs/latteszen`) sem qualquer ajuste de base.
+> A aplicação é um **site multi-arquivo** (`index.html` + `css/` + `js/` +
+> imagens). Ela **não funciona** abrindo só o `index.html` solto — é preciso o
+> diretório inteiro (todos os arquivos juntos). Funciona servida em subpasta
+> (`/labs/latteszen`) sem ajuste de base, pois todas as referências são relativas.
 
-Toda execução roda antes o job **CI** (valida a sintaxe dos módulos e gera o
-`index.html`). Pull requests rodam só o CI (não fazem deploy).
+Toda execução roda antes o job **CI** (valida a sintaxe dos módulos e monta a
+pasta `dist/` com o site multi-arquivo). Pull requests rodam só o CI (não fazem deploy).
 
 ---
 
@@ -110,8 +112,8 @@ git tag v0.1.0 && git push origin v0.1.0                          # -> PRODUÇÃ
 ## Arquivos
 
 - `.github/workflows/deploy.yml` — pipeline (CI + 3 deploys)
-- `.github/scripts/make-dist.sh` — monta a pasta `dist/` publicável
-- `.github/scripts/deploy.sh` — rsync/SSH para o servidor
+- `build.mjs` — monta a pasta `dist/` (site multi-arquivo) copiando `src/`
+- `.github/scripts/deploy.sh` — rsync/SSH da pasta `dist/` para o servidor
 
 ## Segurança
 

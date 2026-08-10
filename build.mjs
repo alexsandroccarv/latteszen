@@ -1,51 +1,37 @@
 /* ==========================================================================
-   lattesZen — build simples (sem dependências)
+   lattesZen — build (site multi-arquivo)
    --------------------------------------------------------------------------
-   Gera um index.html AUTOSSUFICIENTE na raiz, embutindo o CSS local e todos
-   os módulos JS a partir de src/. Assim o usuário pode baixar UM único
-   arquivo e abri-lo direto no navegador (as CDNs de Tailwind/Font Awesome
-   continuam sendo carregadas de forma assíncrona e tolerante a falha).
+   A aplicação deixou de ser um único index.html autossuficiente. Agora ela é
+   composta por vários arquivos (index.html + css/ + js/ + imagens), para
+   reduzir a complexidade/tamanho de cada arquivo. Por isso, NÃO funciona mais
+   abrindo só o index.html "solto": é preciso o diretório inteiro.
+
+   Este build apenas MONTA a pasta dist/ (o que vai para o servidor) copiando
+   fielmente os arquivos de src/ — sem embutir/inlinar nada — mais eventuais
+   assets e páginas de apoio da raiz do repositório.
 
    Uso:  node build.mjs
    ========================================================================== */
-import { readFileSync, writeFileSync } from 'node:fs';
+import { cpSync, rmSync, mkdirSync, existsSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
 const root = dirname(fileURLToPath(import.meta.url));
 const src = join(root, 'src');
+const dist = join(root, 'dist');
 
-// Ordem de carga dos módulos (a mesma dos <script> no template)
-const JS_FILES = ['js/config.js', 'js/encoding.js', 'js/areas-conhecimento.js', 'js/lattes-types.js', 'js/storage.js', 'js/lattes-xml.js', 'js/app.js'];
+// 1) Recria dist/ do zero
+rmSync(dist, { recursive: true, force: true });
+mkdirSync(dist, { recursive: true });
 
-let html = readFileSync(join(src, 'index.html'), 'utf8');
+// 2) Copia TODO o conteúdo de src/ (index.html, css/, js/, images/…) para dist/
+cpSync(src, dist, { recursive: true });
 
-// 1) Inlinar o CSS local
-const css = readFileSync(join(src, 'css/styles.css'), 'utf8');
-html = html.replace(
-    /<link rel="stylesheet" href="css\/styles\.css">/,
-    `<style>\n${css}\n</style>`
-);
+// 3) Copia assets e páginas de apoio opcionais que vivam na raiz do repositório
+for (const name of ['images', 'termodeuso.html', 'politicadeprivacidade.html', 'ajuda.html', 'favicon.ico']) {
+    const p = join(root, name);
+    if (existsSync(p)) cpSync(p, join(dist, name), { recursive: true });
+}
 
-// 2) Inlinar os módulos JS (substitui o bloco de <script src="js/..."> por scripts embutidos)
-const inlineScripts = JS_FILES.map(f => {
-    const code = readFileSync(join(src, f), 'utf8');
-    return `<script>\n/* ===== ${f} ===== */\n${code}\n</script>`;
-}).join('\n');
-
-// Remove as tags <script src="js/..."> individuais e injeta o bloco embutido no lugar da primeira
-const scriptTagRe = /<script src="js\/[^"]+"><\/script>\s*/g;
-let firstReplaced = false;
-html = html.replace(scriptTagRe, () => {
-    if (!firstReplaced) { firstReplaced = true; return inlineScripts + '\n    '; }
-    return '';
-});
-
-// 3) Marca como arquivo gerado (comentário no topo)
-html = html.replace(
-    /<!DOCTYPE html>/i,
-    '<!DOCTYPE html>\n<!-- ARQUIVO GERADO por build.mjs a partir de src/. NÃO edite aqui; edite em src/ e rode: node build.mjs -->'
-);
-
-writeFileSync(join(root, 'index.html'), html, 'utf8');
-console.log('OK: index.html autossuficiente gerado na raiz (' + html.length + ' bytes).');
+console.log('OK: dist/ montado (site multi-arquivo).');
+console.log('Conteúdo de dist/: ' + readdirSync(dist).join('  '));

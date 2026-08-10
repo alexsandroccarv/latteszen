@@ -1,4 +1,4 @@
-# Artefato de build (gerado pelo CI/make-dist.sh)
+# Artefato de build (pasta publicável gerada por build.mjs)
 dist/
 
 # Node
