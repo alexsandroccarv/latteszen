@@ -590,12 +590,11 @@
     }
 
     /* =====================================================================
-       ABA: IMPORTAR LATTES (XML)
+       IMPORTAR LATTES (XML) — seção dentro de Configurações
        ===================================================================== */
-    function renderLattes() {
-        const panel = $('#tab-lattes');
-        panel.innerHTML = `
-            <section class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 mb-4">
+    function importLattesSectionHtml() {
+        return `
+            <section class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
                 <h2 class="text-lg font-bold mb-2 flex items-center gap-2">
                     <i aria-hidden="true" class="fa-solid fa-file-import text-govbr-600 dark:text-unifesp-400"></i> Importar Currículo Lattes (XML)
                 </h2>
@@ -605,9 +604,8 @@
                 </p>
                 <input type="file" id="xmlInput" accept=".xml,application/xml,text/xml"
                        class="text-sm file:mr-2 file:px-3 file:py-1.5 file:rounded file:border-0 file:bg-govbr-600 dark:file:bg-unifesp-700 file:text-white">
-            </section>
-            <div id="xmlResult"></div>`;
-        $('#xmlInput').addEventListener('change', onXmlSelected);
+                <div id="xmlResult" class="mt-3"></div>
+            </section>`;
     }
 
     async function onXmlSelected(e) {
@@ -763,6 +761,7 @@
 
         panel.innerHTML = `
             <div class="space-y-6 max-w-2xl">
+                ${importLattesSectionHtml()}
                 <section class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
                     <h2 class="text-lg font-bold mb-2 flex items-center gap-2"><i class="fa-solid fa-folder-open text-govbr-600 dark:text-unifesp-400"></i> Diretório de arquivos</h2>
                     <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
@@ -833,6 +832,7 @@
                 </section>
             </div>`;
 
+        $('#xmlInput').addEventListener('change', onXmlSelected);
         $('#btnChooseDir').addEventListener('click', async () => {
             try {
                 await Storage.chooseDirectory();
@@ -992,7 +992,7 @@
        Navegação por abas
        ===================================================================== */
     const RENDERERS = {
-        catalogar: renderCatalogar, catalogo: renderCatalogo, lattes: renderLattes,
+        catalogar: renderCatalogar, catalogo: renderCatalogo,
         relatorio: renderRelatorio, config: renderConfig,
     };
     function switchTab(name) {
