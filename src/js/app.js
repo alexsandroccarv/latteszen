@@ -164,17 +164,19 @@
        ===================================================================== */
     // Recortes da lista (cartões de conformidade + filtro da lista)
     const VIEW_META = {
-        comprovados: { cor: 'green', icone: 'fa-circle-check', titulo: 'Comprovados', desc: 'No Lattes e com evidência' },
-        semPdf:      { cor: 'amber', icone: 'fa-triangle-exclamation', titulo: 'Sem comprovação', desc: 'No Lattes, sem evidência' },
-        foraLattes:  { cor: 'blue',  icone: 'fa-clock', titulo: 'Fora do Lattes', desc: 'Cadastrados, ainda não no Lattes' },
-        naoLattes:   { cor: 'purple', icone: 'fa-heart', titulo: 'Não-Lattes', desc: 'Itens pessoais' },
+        comprovados:  { cor: 'green', icone: 'fa-circle-check', titulo: 'Comprovados', desc: 'No Lattes e com evidência' },
+        semPdf:       { cor: 'red',   icone: 'fa-file-circle-xmark', titulo: 'Sem evidência', desc: 'No Lattes, sem evidência' },
+        foraLattes:   { cor: 'blue',  icone: 'fa-clock', titulo: 'Fora do Lattes', desc: 'Cadastrados, ainda não no Lattes' },
+        naoLattes:    { cor: 'purple', icone: 'fa-heart', titulo: 'Não-Lattes', desc: 'Itens pessoais' },
+        descIncompleta: { cor: 'red', icone: 'fa-align-left', titulo: 'Descrição incompleta', desc: 'Campos parcialmente preenchidos' },
     };
     const VIEW_PREDICATE = {
-        todos:       () => true,
-        comprovados: i => i.lattesItem && i.inLattes && i.hasPdf,
-        semPdf:      i => i.lattesItem && i.inLattes && !i.hasPdf,
-        foraLattes:  i => i.lattesItem && !i.inLattes,
-        naoLattes:   i => !i.lattesItem,
+        todos:          () => true,
+        comprovados:    i => i.lattesItem && i.inLattes && i.hasPdf,
+        semPdf:         i => i.lattesItem && i.inLattes && !i.hasPdf,
+        foraLattes:     i => i.lattesItem && !i.inLattes,
+        naoLattes:      i => !i.lattesItem,
+        descIncompleta: i => !fieldsComplete(i),
     };
 
     // Aba única (antigos "Catálogo" + "Relatório/Conformidade"): painel de
@@ -185,6 +187,10 @@
         const comprovados = count('comprovados');
         const total = state.items.filter(i => i.lattesItem && i.inLattes).length;
         const pct = total ? Math.round(comprovados / total * 100) : 0;
+        // Descrição: itens com todos os campos preenchidos / total de itens
+        const descOk = state.items.filter(fieldsComplete).length;
+        const totalDesc = state.items.length;
+        const pctDesc = totalDesc ? Math.round(descOk / totalDesc * 100) : 0;
 
         const card = (key) => {
             const m = VIEW_META[key];
@@ -200,14 +206,22 @@
         };
 
         panel.innerHTML = `
-            <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
-                ${card('comprovados')}${card('semPdf')}${card('foraLattes')}${card('naoLattes')}
+            <div class="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-5">
+                ${card('comprovados')}${card('semPdf')}${card('foraLattes')}${card('naoLattes')}${card('descIncompleta')}
             </div>
 
-            <div class="mb-5">
-                <div class="flex justify-between text-sm mb-1"><span class="font-semibold">Conformidade documental</span><span>${pct}% (${comprovados}/${total})</span></div>
-                <div class="w-full h-3 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                    <div class="h-full bg-green-500" style="width:${pct}%"></div>
+            <div class="grid sm:grid-cols-2 gap-x-6 gap-y-3 mb-5">
+                <div>
+                    <div class="flex justify-between text-sm mb-1"><span class="font-semibold"><i class="fa-solid fa-file-pdf text-gray-400 mr-1"></i>Conformidade documental (evidência)</span><span>${pct}% (${comprovados}/${total})</span></div>
+                    <div class="w-full h-3 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                        <div class="h-full ${pct === 100 ? 'bg-green-500' : 'bg-red-500'}" style="width:${pct}%"></div>
+                    </div>
+                </div>
+                <div>
+                    <div class="flex justify-between text-sm mb-1"><span class="font-semibold"><i class="fa-solid fa-align-left text-gray-400 mr-1"></i>Descrição completa (campos)</span><span>${pctDesc}% (${descOk}/${totalDesc})</span></div>
+                    <div class="w-full h-3 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                        <div class="h-full ${pctDesc === 100 ? 'bg-green-500' : 'bg-red-500'}" style="width:${pctDesc}%"></div>
+                    </div>
                 </div>
             </div>
 
@@ -641,19 +655,41 @@
         renderItemList();
     }
 
+    // Número de evidências do item (considera formato legado hasPdf)
+    function evCount(item) {
+        return Array.isArray(item.evidencias) ? item.evidencias.length : (item.hasPdf ? 1 : 0);
+    }
+    // Verdadeiro quando TODOS os campos definidos para o tipo estão preenchidos
+    function fieldsComplete(item) {
+        const def = LattesTypes.get(item.typeKey);
+        if (!def || !def.fields || !def.fields.length) return true; // tipo sem campos
+        const vals = item.fields || {};
+        return def.fields.every(f => { const v = vals[f.key]; return v != null && String(v).trim() !== ''; });
+    }
+    // Marcador verde (ok) / vermelho (pendente)
+    function marker(ok, label, icon) {
+        const cls = ok
+            ? 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300'
+            : 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300';
+        return `<span class="badge ${cls}"><i class="fa-solid ${icon}"></i> ${label}</span>`;
+    }
+
     function statusBadges(item) {
         const b = [];
+        const def = LattesTypes.get(item.typeKey);
+        // Lattes: verde quando já consta, vermelho quando falta (só itens do Lattes)
         if (item.lattesItem) {
-            b.push(item.inLattes
-                ? '<span class="badge bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300"><i class="fa-solid fa-check"></i> No Lattes</span>'
-                : '<span class="badge bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300"><i class="fa-solid fa-triangle-exclamation"></i> Falta no Lattes</span>');
+            b.push(marker(item.inLattes, 'Lattes', 'fa-graduation-cap'));
         } else {
             b.push('<span class="badge bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300"><i class="fa-solid fa-heart"></i> Não-Lattes</span>');
         }
-        const nEv = Array.isArray(item.evidencias) ? item.evidencias.length : (item.hasPdf ? 1 : 0);
-        b.push(nEv
-            ? `<span class="badge bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300"><i class="fa-solid fa-file-pdf"></i> Comprovado${nEv > 1 ? ` (${nEv})` : ''}</span>`
-            : '<span class="badge bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-300"><i class="fa-solid fa-file-circle-xmark"></i> Sem PDF</span>');
+        // Evidência: verde quando há anexo(s), vermelho quando falta (tipos que exigem)
+        if (!(def && def.noEvidence)) {
+            const n = evCount(item);
+            b.push(marker(n > 0, `evidência${n > 1 ? ` (${n})` : ''}`, 'fa-file-pdf'));
+        }
+        // Descrição: verde quando todos os campos preenchidos, vermelho quando parcial
+        b.push(marker(fieldsComplete(item), 'descrição', 'fa-align-left'));
         return b.join(' ');
     }
 
