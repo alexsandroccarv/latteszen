@@ -925,16 +925,23 @@
         verificarCodificacao();
     }
 
+    // Carimbo de data/hora para nomes de arquivo: AAAA-MM-DD_HHMMSS (hora local)
+    function fileStamp() {
+        const d = new Date(); const p = n => String(n).padStart(2, '0');
+        return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`;
+    }
+
     async function exportCatalog() {
         const data = {
             app: 'lattesZen', version: APP_CONFIG.version, exportedAt: nowISO(),
             items: state.items,
         };
+        const nome = `latteszen-catalogo-${fileStamp()}`;
         // Local padrão: subpasta "00 - Backup" dentro do diretório configurado
         if (Storage.hasDirectory()) {
             try {
-                await Storage.writeJson('latteszen-catalogo', data, LattesTypes.backupFolder());
-                toast(`Backup salvo em "${LattesTypes.backupFolder()}/latteszen-catalogo.json".`, 'ok');
+                await Storage.writeJson(nome, data, LattesTypes.backupFolder());
+                toast(`Backup salvo em "${LattesTypes.backupFolder()}/${nome}.json".`, 'ok');
                 return;
             } catch (e) {
                 toast('Falha ao salvar no diretório: ' + e.message + ' — baixando arquivo.', 'aviso');
@@ -944,7 +951,7 @@
         const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
-        a.download = `latteszen-catalogo-${new Date().toISOString().slice(0, 10)}.json`;
+        a.download = `${nome}.json`;
         a.click();
         URL.revokeObjectURL(a.href);
     }
