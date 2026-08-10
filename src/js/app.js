@@ -930,13 +930,21 @@
         const d = new Date(); const p = n => String(n).padStart(2, '0');
         return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`;
     }
+    // Nome-base do backup: latteszen-<Nome completo>-<timestamp>
+    // O nome vem do item de Identificação (Dados gerais); se não houver, omite.
+    function catalogBaseName() {
+        const id = state.items.find(i => i.typeKey === 'IDENTIFICACAO' && i.fields && i.fields.titulo);
+        const nome = id ? String(id.fields.titulo) : '';
+        const safe = nome.replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, ' ').trim();
+        return safe ? `latteszen-${safe}-${fileStamp()}` : `latteszen-${fileStamp()}`;
+    }
 
     async function exportCatalog() {
         const data = {
             app: 'lattesZen', version: APP_CONFIG.version, exportedAt: nowISO(),
             items: state.items,
         };
-        const nome = `latteszen-catalogo-${fileStamp()}`;
+        const nome = catalogBaseName();
         // Local padrão: subpasta "00 - Backup" dentro do diretório configurado
         if (Storage.hasDirectory()) {
             try {

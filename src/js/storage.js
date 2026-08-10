@@ -162,7 +162,7 @@ window.Storage = (function () {
         const items = [];
         async function scanOne(handle) {
             for await (const [name, h] of handle.entries()) {
-                if (h.kind === 'file' && name.toLowerCase().endsWith('.json') && name !== 'catalogo.json' && name.indexOf('latteszen-catalogo') !== 0) {
+                if (h.kind === 'file' && name.toLowerCase().endsWith('.json') && name !== 'catalogo.json' && name.indexOf('latteszen-') !== 0) {
                     try {
                         const file = await h.getFile();
                         const obj = JSON.parse(await file.text());
