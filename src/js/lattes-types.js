@@ -302,6 +302,20 @@ window.LattesTypes = (function () {
         return `${cat.num || '00'} - ${safe}`;
     }
 
+    // Title Case pt-BR (iniciais maiúsculas, conectores em minúsculas)
+    const TC_MINOR = new Set(['de', 'da', 'do', 'das', 'dos', 'e', 'em', 'a', 'o', 'ao', 'aos', 'à', 'às', 'com', 'por', 'para', 'sem', 'sob', 'entre', 'no', 'na', 'nos', 'nas', 'ou']);
+    function titleCasePt(s) {
+        const toks = String(s == null ? '' : s).toLowerCase().split(/(\s+|\/|-)/);
+        let first = true;
+        return toks.map(t => {
+            if (t === '' || /^\s+$/.test(t) || t === '-') return t;
+            if (t === '/') { first = true; return t; }
+            const res = (!first && TC_MINOR.has(t)) ? t : t.replace(/\p{L}/u, c => c.toUpperCase());
+            first = false;
+            return res;
+        }).join('');
+    }
+
     return {
         categories: LATTES_CATEGORIES,
         naoLattes: NAO_LATTES_TYPE,
@@ -339,8 +353,8 @@ window.LattesTypes = (function () {
             // Áreas de atuação: hierarquia CNPq/CAPES (Grande área › Área › Subárea › Especialidade)
             if (item.typeKey === 'AREA_ATUACAO') {
                 const partes = [f.grandeArea, f.area, f.subarea, f.especialidade].map(x => String(x || '').trim()).filter(Boolean);
-                if (partes.length) return partes.join(' › ');
-                if (f.areaConhecimento) return String(f.areaConhecimento);
+                if (partes.length) return partes.map(titleCasePt).join(' › ');
+                if (f.areaConhecimento) return titleCasePt(f.areaConhecimento);
             }
             return f.titulo || f.curso || f.orientando || f.candidato || f.instituicao || f.nome || '(sem título)';
         },
