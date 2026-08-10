@@ -132,11 +132,8 @@ main { padding: 16px; }
                 <button class="tab-btn px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-gray-600 dark:text-gray-300 hover:text-govbr-600 dark:hover:text-unifesp-400 whitespace-nowrap" role="tab" aria-selected="true" data-tab="catalogar">
                     <i aria-hidden="true" class="fa-solid fa-file-circle-plus mr-1"></i> Catalogar
                 </button>
-                <button class="tab-btn px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-gray-600 dark:text-gray-300 hover:text-govbr-600 dark:hover:text-unifesp-400 whitespace-nowrap" role="tab" aria-selected="false" data-tab="catalogo">
-                    <i aria-hidden="true" class="fa-solid fa-list mr-1"></i> Catálogo
-                </button>
-                <button class="tab-btn px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-gray-600 dark:text-gray-300 hover:text-govbr-600 dark:hover:text-unifesp-400 whitespace-nowrap" role="tab" aria-selected="false" data-tab="relatorio">
-                    <i aria-hidden="true" class="fa-solid fa-clipboard-check mr-1"></i> Relatório / Conformidade
+                <button class="tab-btn px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-gray-600 dark:text-gray-300 hover:text-govbr-600 dark:hover:text-unifesp-400 whitespace-nowrap" role="tab" aria-selected="false" data-tab="conformidade">
+                    <i aria-hidden="true" class="fa-solid fa-clipboard-check mr-1"></i> Conformidade
                 </button>
                 <button class="tab-btn px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-gray-600 dark:text-gray-300 hover:text-govbr-600 dark:hover:text-unifesp-400 whitespace-nowrap" role="tab" aria-selected="false" data-tab="config">
                     <i aria-hidden="true" class="fa-solid fa-gear mr-1"></i> Configurações
@@ -147,10 +144,9 @@ main { padding: 16px; }
 
     <!-- ============================ CONTEÚDO ============================ -->
     <main class="flex-1 w-full max-w-6xl mx-auto px-4 py-6">
-        <div id="tab-catalogar" class="tab-panel" role="tabpanel"></div>
-        <div id="tab-catalogo"  class="tab-panel" role="tabpanel" hidden></div>
-        <div id="tab-relatorio" class="tab-panel" role="tabpanel" hidden></div>
-        <div id="tab-config"    class="tab-panel" role="tabpanel" hidden></div>
+        <div id="tab-catalogar"    class="tab-panel" role="tabpanel"></div>
+        <div id="tab-conformidade" class="tab-panel" role="tabpanel" hidden></div>
+        <div id="tab-config"       class="tab-panel" role="tabpanel" hidden></div>
     </main>
 
     <!-- Área de notificações (toasts) -->
@@ -1397,7 +1393,8 @@ window.LattesXML = (function () {
         evEditing: [],      // evidências do item em edição (array de trabalho)
         lattesParsed: null, // resultado do parse do XML
         currentPdfUrl: null,// URL (blob) do PDF exibido no painel lateral
-        sortOrder: 'desc',  // ordenação por ano no Catálogo
+        sortOrder: 'desc',  // ordenação por ano na Conformidade
+        viewFilter: 'todos',// recorte da lista (todos/comprovados/semPdf/foraLattes/naoLattes)
         vocab: {},          // listas curadas de autocomplete (por chave de campo)
         idPrefix: 'lz',     // prefixo do ID dos arquivos (configurável, até 3 chars)
     };
@@ -1530,7 +1527,7 @@ window.LattesXML = (function () {
                     <div class="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-900 flex items-center justify-center" style="height: 85vh; min-height: 560px">
                         <div id="pdfEmpty" class="h-full flex flex-col items-center justify-center text-center text-gray-400 dark:text-gray-500 p-6">
                             <i class="fa-regular fa-file-lines text-5xl mb-3"></i>
-                            <p class="text-sm">O arquivo (PDF ou imagem) aparece aqui ao anexá-lo no formulário<br>ou ao abrir um item com evidência (aba <strong>Catálogo</strong>).</p>
+                            <p class="text-sm">O arquivo (PDF ou imagem) aparece aqui ao anexá-lo no formulário<br>ou ao abrir um item com evidência (aba <strong>Conformidade</strong>).</p>
                         </div>
                         <iframe id="pdfFrame" class="w-full h-full hidden" title="Pré-visualização do arquivo"></iframe>
                         <img id="pdfImg" class="max-w-full max-h-full object-contain hidden" alt="Pré-visualização da imagem">
@@ -1547,13 +1544,60 @@ window.LattesXML = (function () {
     /* =====================================================================
        ABA: CATÁLOGO (lista de itens)
        ===================================================================== */
-    function renderCatalogo() {
-        const panel = $('#tab-catalogo');
+    // Recortes da lista (cartões de conformidade + filtro da lista)
+    const VIEW_META = {
+        comprovados: { cor: 'green', icone: 'fa-circle-check', titulo: 'Comprovados', desc: 'No Lattes e com evidência' },
+        semPdf:      { cor: 'amber', icone: 'fa-triangle-exclamation', titulo: 'Sem comprovação', desc: 'No Lattes, sem evidência' },
+        foraLattes:  { cor: 'blue',  icone: 'fa-clock', titulo: 'Fora do Lattes', desc: 'Cadastrados, ainda não no Lattes' },
+        naoLattes:   { cor: 'purple', icone: 'fa-heart', titulo: 'Não-Lattes', desc: 'Itens pessoais' },
+    };
+    const VIEW_PREDICATE = {
+        todos:       () => true,
+        comprovados: i => i.lattesItem && i.inLattes && i.hasPdf,
+        semPdf:      i => i.lattesItem && i.inLattes && !i.hasPdf,
+        foraLattes:  i => i.lattesItem && !i.inLattes,
+        naoLattes:   i => !i.lattesItem,
+    };
+
+    // Aba única (antigos "Catálogo" + "Relatório/Conformidade"): painel de
+    // conformidade (cartões + barra) + lista de itens com filtro/ordenação.
+    function renderConformidade() {
+        const panel = $('#tab-conformidade');
+        const count = k => state.items.filter(VIEW_PREDICATE[k]).length;
+        const comprovados = count('comprovados');
+        const total = state.items.filter(i => i.lattesItem && i.inLattes).length;
+        const pct = total ? Math.round(comprovados / total * 100) : 0;
+
+        const card = (key) => {
+            const m = VIEW_META[key];
+            const active = state.viewFilter === key;
+            return `<button type="button" data-view="${key}" title="Filtrar: ${m.titulo}"
+                class="text-left bg-white dark:bg-gray-800 border rounded-lg p-4 hover:shadow transition ${active ? `border-${m.cor}-500 ring-2 ring-${m.cor}-500/40` : 'border-gray-200 dark:border-gray-700'}">
+                <div class="flex items-center gap-2 text-${m.cor}-600 dark:text-${m.cor}-400">
+                    <i class="fa-solid ${m.icone} text-xl"></i><span class="text-2xl font-bold">${count(key)}</span>
+                </div>
+                <p class="text-sm font-semibold mt-1">${m.titulo}</p>
+                <p class="text-xs text-gray-500">${m.desc}</p>
+            </button>`;
+        };
+
         panel.innerHTML = `
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
+                ${card('comprovados')}${card('semPdf')}${card('foraLattes')}${card('naoLattes')}
+            </div>
+
+            <div class="mb-5">
+                <div class="flex justify-between text-sm mb-1"><span class="font-semibold">Conformidade documental</span><span>${pct}% (${comprovados}/${total})</span></div>
+                <div class="w-full h-3 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                    <div class="h-full bg-green-500" style="width:${pct}%"></div>
+                </div>
+            </div>
+
             <div class="flex items-center justify-between mb-3 gap-2 flex-wrap">
                 <h2 class="text-lg font-bold flex items-center gap-2">
                     <i aria-hidden="true" class="fa-solid fa-list text-govbr-600 dark:text-unifesp-400"></i>
-                    Itens catalogados <span id="itemCount" class="text-sm font-normal text-gray-500"></span>
+                    Itens <span id="itemCount" class="text-sm font-normal text-gray-500"></span>
+                    <span id="viewChip" class="hidden text-xs font-normal"></span>
                 </h2>
                 <div class="flex items-center gap-2 flex-wrap">
                     <label class="text-xs text-gray-500 flex items-center gap-1">
@@ -1567,17 +1611,25 @@ window.LattesXML = (function () {
                            class="text-sm px-3 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 w-full sm:w-56">
                 </div>
             </div>
-            <div class="flex gap-2 mb-3">
+            <div class="flex gap-2 mb-3 flex-wrap">
                 <button id="btnExpandAll" class="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600">Expandir todas</button>
                 <button id="btnCollapseAll" class="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600">Recolher todas</button>
+                <button id="btnImprimir" class="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600 ml-auto"><i class="fa-solid fa-print mr-1"></i> Imprimir / PDF</button>
             </div>
             <div id="itemList" class="space-y-3"></div>`;
+
         $('#sortOrder').value = state.sortOrder || 'desc';
         renderItemList();
         $('#filterBox').addEventListener('input', renderItemList);
         $('#sortOrder').addEventListener('change', (e) => { state.sortOrder = e.target.value; renderItemList(); });
         $('#btnExpandAll').addEventListener('click', () => $$('#itemList details').forEach(d => d.open = true));
         $('#btnCollapseAll').addEventListener('click', () => $$('#itemList details').forEach(d => d.open = false));
+        $('#btnImprimir').addEventListener('click', () => window.print());
+        $$('[data-view]', panel).forEach(b => b.addEventListener('click', () => {
+            const k = b.dataset.view;
+            state.viewFilter = (state.viewFilter === k) ? 'todos' : k; // clicar de novo limpa
+            renderConformidade();
+        }));
     }
 
     /* =====================================================================
@@ -2069,16 +2121,34 @@ window.LattesXML = (function () {
 
     function renderItemList() {
         const list = $('#itemList');
-        if (!list) return; // aba Catálogo não está montada
+        if (!list) return; // aba Conformidade não está montada
         const q = ($('#filterBox') && $('#filterBox').value || '').toLowerCase();
         const asc = (state.sortOrder || 'desc') === 'asc';
-        $('#itemCount').textContent = `(${state.items.length})`;
+        const view = state.viewFilter && VIEW_PREDICATE[state.viewFilter] ? state.viewFilter : 'todos';
 
-        let items = state.items.slice();
+        // Recorte (cartão) atualmente selecionado
+        const chip = $('#viewChip');
+        if (chip) {
+            if (view === 'todos') { chip.classList.add('hidden'); chip.textContent = ''; }
+            else {
+                const m = VIEW_META[view];
+                chip.className = `text-xs font-normal badge bg-${m.cor}-100 text-${m.cor}-800 dark:bg-${m.cor}-900/40 dark:text-${m.cor}-300`;
+                chip.innerHTML = `<i class="fa-solid ${m.icone}"></i> ${m.titulo} · <button type="button" id="viewClear" class="underline">ver todos</button>`;
+                const clr = $('#viewClear'); if (clr) clr.addEventListener('click', () => { state.viewFilter = 'todos'; renderConformidade(); });
+            }
+        }
+
+        let items = state.items.filter(VIEW_PREDICATE[view]);
         if (q) items = items.filter(i => (LattesTypes.itemTitle(i) + ' ' + LattesTypes.label(i.typeKey) + ' ' + LattesTypes.categoryLabel(i.categoryKey)).toLowerCase().includes(q));
 
+        const cnt = $('#itemCount');
+        if (cnt) cnt.textContent = (view === 'todos' && !q) ? `(${state.items.length})` : `(${items.length} de ${state.items.length})`;
+
         if (!items.length) {
-            list.innerHTML = `<p class="text-sm text-gray-500 italic py-6 text-center">${state.items.length ? 'Nenhum item corresponde ao filtro.' : 'Nenhum item ainda. Adicione pelo formulário ou importe o XML do Lattes.'}</p>`;
+            const vazio = !state.items.length
+                ? 'Nenhum item ainda. Adicione pelo formulário ou importe o XML do Lattes.'
+                : (view === 'todos' ? 'Nenhum item corresponde ao filtro.' : 'Nenhum item neste recorte.');
+            list.innerHTML = `<p class="text-sm text-gray-500 italic py-6 text-center">${vazio}</p>`;
             return;
         }
         list.innerHTML = buildGroupedHtml(sortByYear(items, asc));
@@ -2215,66 +2285,6 @@ window.LattesXML = (function () {
         toast(`${n} item(ns) importado(s)${atualizados ? `, ${atualizados} atualizado(s)` : ''}.`, 'ok');
         renderXmlResult(state.lattesParsed);
         renderItemList();
-    }
-
-    /* =====================================================================
-       ABA: RELATÓRIO / CONFORMIDADE
-       ===================================================================== */
-    function renderRelatorio() {
-        const panel = $('#tab-relatorio');
-        const lattesSemPdf = state.items.filter(i => i.lattesItem && i.inLattes && !i.hasPdf);
-        const localForaLattes = state.items.filter(i => i.lattesItem && !i.inLattes);
-        const comprovados = state.items.filter(i => i.lattesItem && i.inLattes && i.hasPdf);
-        const naoLattes = state.items.filter(i => !i.lattesItem);
-
-        const total = state.items.filter(i => i.lattesItem && i.inLattes).length;
-        const pct = total ? Math.round(comprovados.length / total * 100) : 0;
-
-        const card = (cor, icone, titulo, valor, desc) => `
-            <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-                <div class="flex items-center gap-2 text-${cor}-600 dark:text-${cor}-400">
-                    <i class="fa-solid ${icone} text-xl"></i><span class="text-2xl font-bold">${valor}</span>
-                </div>
-                <p class="text-sm font-semibold mt-1">${titulo}</p>
-                <p class="text-xs text-gray-500">${desc}</p>
-            </div>`;
-
-        const secao = (arr, vazio) => arr.length
-            ? buildGroupedHtml(sortByYear(arr, false))
-            : `<p class="text-sm text-gray-500 italic">${vazio}</p>`;
-
-        panel.innerHTML = `
-            <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-                ${card('green', 'fa-circle-check', 'Comprovados', comprovados.length, 'No Lattes e com PDF')}
-                ${card('amber', 'fa-triangle-exclamation', 'Sem comprovação', lattesSemPdf.length, 'No Lattes, sem PDF')}
-                ${card('blue', 'fa-clock', 'Fora do Lattes', localForaLattes.length, 'Cadastrados, ainda não no Lattes')}
-                ${card('purple', 'fa-heart', 'Não-Lattes', naoLattes.length, 'Itens pessoais')}
-            </div>
-
-            <div class="mb-6">
-                <div class="flex justify-between text-sm mb-1"><span class="font-semibold">Conformidade documental</span><span>${pct}%</span></div>
-                <div class="w-full h-3 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                    <div class="h-full bg-green-500" style="width:${pct}%"></div>
-                </div>
-            </div>
-
-            <div class="space-y-6">
-                <section>
-                    <h3 class="font-bold mb-2 flex items-center gap-2 text-amber-600"><i class="fa-solid fa-triangle-exclamation"></i> Itens do Lattes SEM evidência (PDF) <span class="text-sm font-normal text-gray-500">(${lattesSemPdf.length})</span></h3>
-                    <div class="space-y-3">${secao(lattesSemPdf, 'Tudo comprovado! 🎉')}</div>
-                </section>
-                <section>
-                    <h3 class="font-bold mb-2 flex items-center gap-2 text-blue-600"><i class="fa-solid fa-clock"></i> Cadastrados que ainda NÃO estão no Lattes <span class="text-sm font-normal text-gray-500">(${localForaLattes.length})</span></h3>
-                    <div class="space-y-3">${secao(localForaLattes, 'Nenhum item pendente de inclusão no Lattes.')}</div>
-                </section>
-            </div>
-
-            <div class="mt-6 flex gap-2">
-                <button id="btnImprimir" class="px-4 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-print mr-1"></i> Imprimir / PDF</button>
-            </div>`;
-
-        bindItemActions(panel);
-        $('#btnImprimir').addEventListener('click', () => window.print());
     }
 
     /* =====================================================================
@@ -2535,8 +2545,8 @@ window.LattesXML = (function () {
        Navegação por abas
        ===================================================================== */
     const RENDERERS = {
-        catalogar: renderCatalogar, catalogo: renderCatalogo,
-        relatorio: renderRelatorio, config: renderConfig,
+        catalogar: renderCatalogar, conformidade: renderConformidade,
+        config: renderConfig,
     };
     function switchTab(name) {
         $$('.tab-btn').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === name ? 'true' : 'false'));
