@@ -409,6 +409,7 @@ window.LattesXML = (function () {
                 titulo: a['ATIVIDADE-REALIZADA'] || 'Atividade técnico-científica', orgao: a['NOME-ORGAO'] || '',
                 anoInicio: a['ANO-INICIO'] || '', anoFim: a['ANO-FIM'] || '' }) },
         ];
+        try {
         for (const atu of doc.getElementsByTagName('ATUACAO-PROFISSIONAL')) {
             const nomeInst = attrs(atu)['NOME-INSTITUICAO'] || '';
             ATIV.forEach(h => {
@@ -419,9 +420,11 @@ window.LattesXML = (function () {
                 }
             });
         }
+        } catch (e) { errors.push('Atividades da atuação: ' + e.message); }
 
         // 7) Dados gerais: identificação, endereço, idiomas, áreas de atuação,
         //    resumo do CV e outras informações relevantes.
+        try {
         const clean = (s) => String(s || '').replace(/&#1[03];/g, m => m === '&#10;' ? '\n' : '').trim();
         const dgEl = doc.getElementsByTagName('DADOS-GERAIS')[0];
         if (dgEl) {
@@ -468,6 +471,7 @@ window.LattesXML = (function () {
                 subarea: a['NOME-DA-SUB-AREA-DO-CONHECIMENTO'] || '', especialidade: a['NOME-DA-ESPECIALIDADE'] || '',
             }, el);
         }
+        } catch (e) { errors.push('Dados gerais: ' + e.message); }
 
         // Titular
         const dg = doc.getElementsByTagName('DADOS-GERAIS')[0];

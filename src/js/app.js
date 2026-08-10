@@ -629,16 +629,20 @@
             return;
         }
         const existingRefs = new Set(state.items.map(i => i.lattesRef).filter(Boolean));
+        const novos = res.items.filter(it => !existingRefs.has(it.lattesRef)).length;
+        const jaCat = res.items.length - novos;
         const resumo = Object.entries(res.summary)
             .map(([k, n]) => `<span class="badge bg-govbr-50 text-govbr-700 dark:bg-gray-700 dark:text-gray-200">${esc(LattesTypes.label(k))}: ${n}</span>`).join(' ');
 
         box.innerHTML = `
             <div class="mb-3">
                 ${res.titular ? `<p class="text-sm mb-1">Titular: <strong>${esc(res.titular)}</strong></p>` : ''}
+                <p class="text-sm mb-1">${res.items.length} itens reconhecidos — <strong class="text-green-700 dark:text-green-400">${novos} novos</strong>, ${jaCat} já catalogado(s).</p>
                 <div class="flex flex-wrap gap-1">${resumo}</div>
             </div>
-            <div class="flex items-center gap-2 mb-2">
-                <button id="btnSelAll" class="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600">Selecionar todos</button>
+            <div class="flex items-center gap-2 mb-2 flex-wrap">
+                <button id="btnSelNovos" class="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600">Selecionar novos</button>
+                <button id="btnSelAll" class="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600">Todos</button>
                 <button id="btnSelNone" class="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600">Nenhum</button>
                 <button id="btnImport" class="ml-auto px-4 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm font-semibold">
                     <i class="fa-solid fa-download mr-1"></i> Importar selecionados
@@ -657,6 +661,9 @@
                 }).join('')}
             </div>`;
 
+        $('#btnSelNovos').addEventListener('click', () => $$('.xmlchk').forEach(c => {
+            c.checked = !existingRefs.has(res.items[+c.dataset.idx].lattesRef);
+        }));
         $('#btnSelAll').addEventListener('click', () => $$('.xmlchk').forEach(c => c.checked = true));
         $('#btnSelNone').addEventListener('click', () => $$('.xmlchk').forEach(c => c.checked = false));
         $('#btnImport').addEventListener('click', importSelected);
