@@ -1381,6 +1381,7 @@ window.LattesXML = (function () {
         currentPdfUrl: null,// URL (blob) do PDF exibido no painel lateral
         sortOrder: 'desc',  // ordenação por ano no Catálogo
         vocab: {},          // listas curadas de autocomplete (por chave de campo)
+        idPrefix: 'lz',     // prefixo do ID dos arquivos (configurável, até 3 chars)
     };
 
     /* --------------------------- Utilidades ----------------------------- */
@@ -1389,9 +1390,31 @@ window.LattesXML = (function () {
     const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => (
         { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
+    // ID do item/arquivo: <prefixo>-<3 alfanuméricos minúsculos>. Prefixo
+    // configurável (até 3 chars). Garante unicidade dentro do catálogo.
+    function randCode(n) {
+        const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+        let r = '';
+        if (crypto && crypto.getRandomValues) {
+            const a = new Uint8Array(n); crypto.getRandomValues(a);
+            for (let i = 0; i < n; i++) r += chars[a[i] % 36];
+        } else {
+            for (let i = 0; i < n; i++) r += chars[Math.floor(Math.random() * 36)];
+        }
+        return r;
+    }
     function uid() {
-        if (crypto && crypto.randomUUID) return 'lz-' + crypto.randomUUID().slice(0, 8);
-        return 'lz-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+        const pref = state.idPrefix || 'lz';
+        for (let tentativa = 0; tentativa < 800; tentativa++) {
+            const id = `${pref}-${randCode(3)}`;
+            if (!state.items.some(i => i.id === id)) return id;
+        }
+        // Espaço de 3 caracteres praticamente esgotado — estende para 4.
+        let id; do { id = `${pref}-${randCode(4)}`; } while (state.items.some(i => i.id === id));
+        return id;
+    }
+    function sanitizePrefix(s) {
+        return String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 3) || 'lz';
     }
     function nowISO() { return new Date().toISOString(); }
 
@@ -2169,6 +2192,15 @@ window.LattesXML = (function () {
                         <button id="btnSync" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-rotate mr-1"></i> Sincronizar do diretório</button>
                         <button id="btnForget" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-link-slash mr-1"></i> Esquecer pasta</button>
                     </div>
+                    <div class="mt-4 pt-3 border-t border-gray-200 dark:border-gray-700">
+                        <h3 class="text-sm font-bold mb-1">Prefixo do identificador dos arquivos</h3>
+                        <p class="text-xs text-gray-500 mb-2">Os arquivos são nomeados como <code class="bg-gray-200 dark:bg-gray-700 px-1 rounded">prefixo-XXX.pdf</code> (3 alfanuméricos). Prefixo de até 3 caracteres (letras minúsculas/números).</p>
+                        <div class="flex items-center gap-2">
+                            <input id="idPrefix" type="text" maxlength="3" value="${esc(state.idPrefix)}" class="w-20 text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 font-mono">
+                            <span class="text-xs text-gray-500">Exemplo: <code id="idPrefixEx" class="bg-gray-200 dark:bg-gray-700 px-1 rounded">${esc(state.idPrefix)}-k7p</code></span>
+                            <button id="btnSavePrefix" class="ml-auto px-3 py-1.5 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm"><i class="fa-solid fa-floppy-disk mr-1"></i> Salvar prefixo</button>
+                        </div>
+                    </div>
                 </section>
 
                 <section class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
@@ -2227,6 +2259,15 @@ window.LattesXML = (function () {
             </div>`;
 
         $('#xmlInput').addEventListener('change', onXmlSelected);
+        $('#idPrefix').addEventListener('input', (e) => {
+            $('#idPrefixEx').textContent = `${sanitizePrefix(e.target.value)}-k7p`;
+        });
+        $('#btnSavePrefix').addEventListener('click', () => {
+            state.idPrefix = sanitizePrefix($('#idPrefix').value);
+            const s = Storage.loadSettings(); s.idPrefix = state.idPrefix; Storage.saveSettings(s);
+            toast(`Prefixo definido: "${state.idPrefix}". Novos arquivos: ${state.idPrefix}-XXX.`, 'ok');
+            renderConfig();
+        });
         $('#btnChooseDir').addEventListener('click', async () => {
             try {
                 await Storage.chooseDirectory();
@@ -2454,7 +2495,9 @@ window.LattesXML = (function () {
 
         // Carrega catálogo, vocabulários e restaura diretório
         state.items = Storage.loadCatalog();
-        state.vocab = (Storage.loadSettings().vocab) || {};
+        const cfg = Storage.loadSettings();
+        state.vocab = cfg.vocab || {};
+        state.idPrefix = sanitizePrefix(cfg.idPrefix || 'lz');
         migrarItens();
         try { await Storage.restoreDirectory(); } catch (_) {}
 
