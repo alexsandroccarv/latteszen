@@ -62,6 +62,22 @@
     }
     function isImageExt(ext) { return /^(jpe?g|png|gif|webp)$/i.test(ext || ''); }
 
+    // Validação do arquivo de evidência: vazio, tamanho e tipo permitido.
+    // Retorna null se OK ou uma mensagem de erro.
+    const MAX_EVID_MB = 20;
+    function checkEvidenceFile(file, allowedExts) {
+        if (!file) return 'Arquivo inválido.';
+        if (file.size === 0) return `"${file.name}" está vazio.`;
+        if (file.size > MAX_EVID_MB * 1024 * 1024) {
+            return `"${file.name}" tem ${(file.size / 1048576).toFixed(1)} MB — o limite é ${MAX_EVID_MB} MB.`;
+        }
+        const ext = fileExt(file);
+        if (allowedExts && allowedExts.length && !allowedExts.includes(ext)) {
+            return `"${file.name}": tipo não permitido (aceitos: ${allowedExts.join(', ')}).`;
+        }
+        return null;
+    }
+
     function toast(msg, type = 'info') {
         const colors = {
             info: 'bg-govbr-600 dark:bg-unifesp-700',
@@ -447,8 +463,9 @@
             $('#dynFields').innerHTML = (def ? def.fields : []).map(f => fieldHtml(f, vals[f.key])).join('');
             // Widgets especiais que precisam de JS após render (cascata de áreas)
             if (def && def.fields.some(f => f.type === 'areatree')) wireAreaTree($('#dynFields'), vals);
-            // Validação em tempo real de ISSN/ISBN
+            // Validação em tempo real (ISSN/ISBN/DOI/URL) e contadores de textarea
             wireValidators($('#dynFields'));
+            wireCounters($('#dynFields'));
             // Alguns tipos não têm comprovação (ex.: Conexões — apenas o link)
             const semEvidencia = !!(def && def.noEvidence);
             $('#evidenceBlock').style.display = semEvidencia ? 'none' : '';
@@ -472,14 +489,22 @@
         renderEvList();
 
         $('#pdfInput').addEventListener('change', (e) => {
+            const acc = e.target.accept || '';
+            const allowed = (acc.includes('application/pdf') || acc === '') ? ['pdf', 'jpg', 'jpeg', 'png'] : ['jpg', 'jpeg', 'png'];
             const files = Array.from(e.target.files || []);
-            files.forEach(f => state.evEditing.push({
-                basename: null, ext: fileExt(f), name: f.name,
-                publica: state.evEditing.length === 0, file: f, // 1ª evidência já vira "pública"
-            }));
+            let added = null;
+            files.forEach(f => {
+                const err = checkEvidenceFile(f, allowed);
+                if (err) { toast(err, 'aviso'); return; }
+                state.evEditing.push({
+                    basename: null, ext: fileExt(f), name: f.name,
+                    publica: state.evEditing.length === 0, file: f, // 1ª evidência já vira "pública"
+                });
+                added = f;
+            });
             e.target.value = '';
             renderEvList();
-            if (files.length) previewPdfFile(files[files.length - 1]); // exibe a última no painel
+            if (added) previewPdfFile(added); // exibe a última válida no painel
         });
 
         // Submit
@@ -532,7 +557,9 @@
         const base = 'w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900';
         let input;
         if (f.type === 'textarea') {
-            input = `<textarea name="${f.key}" ${req} rows="2" placeholder="${esc(f.placeholder || '')}" class="${base}">${esc(val)}</textarea>`;
+            const max = f.maxlength || 4000;
+            input = `<textarea name="${f.key}" ${req} rows="2" maxlength="${max}" data-maxcount="${max}" placeholder="${esc(f.placeholder || '')}" class="${base}">${esc(val)}</textarea>
+                <p class="text-[11px] text-gray-400 dark:text-gray-500 text-right mt-0.5" data-counter-for="${f.key}"></p>`;
         } else if (f.type === 'select') {
             input = `<select name="${f.key}" ${req} class="${base}">
                 <option value="">—</option>
@@ -579,10 +606,16 @@
         } else {
             const t = (f.type === 'url' ? 'url' : (f.type === 'number' ? 'number' : (f.type === 'date' ? 'date' : 'text')));
             const listAttr = (t === 'text' && AUTOCOMPLETE_KEYS.includes(f.key)) ? `list="dl-${f.key}"` : '';
-            const vkind = (f.key === 'issn' || f.key === 'isbn') ? f.key : '';
+            let vkind = '';
+            if (f.key === 'issn' || f.key === 'isbn' || f.key === 'doi') vkind = f.key;
+            else if (t === 'url') vkind = 'url';
             const vAttr = vkind ? `data-validate="${vkind}"` : '';
-            const ph = f.placeholder || (f.key === 'issn' ? '0000-0000' : (f.key === 'isbn' ? 'ISBN-10 ou ISBN-13' : ''));
-            input = `<input type="${t}" name="${f.key}" value="${esc(val)}" ${req} ${listAttr} ${vAttr} placeholder="${esc(ph)}" class="${base}">`;
+            const ph = f.placeholder || (f.key === 'issn' ? '0000-0000'
+                : f.key === 'isbn' ? 'ISBN-10 ou ISBN-13'
+                : t === 'url' ? 'https://…' : '');
+            const extra = t === 'number' ? 'min="0" step="any"'
+                : `maxlength="${f.maxlength || (t === 'url' ? 300 : 500)}"`;
+            input = `<input type="${t}" name="${f.key}" value="${esc(val)}" ${req} ${listAttr} ${vAttr} ${extra} placeholder="${esc(ph)}" class="${base}">`;
         }
         return `<div>
             <label class="block text-xs font-semibold mb-1">${esc(f.label)}${reqMark}</label>
@@ -624,9 +657,30 @@
         }
         return { ok: false, msg: 'ISBN inválido — informe 10 ou 13 dígitos.' };
     }
+    // DOI: aceita o identificador puro ou colado como URL do resolver; normaliza p/ puro.
+    function validateDOI(v) {
+        const s = String(v || '').trim();
+        if (!s) return { ok: true, value: '' };
+        const d = s.replace(/^\s*(https?:\/\/)?(dx\.)?doi\.org\//i, '').trim();
+        if (/^10\.\d{4,9}\/\S+$/.test(d)) return { ok: true, value: d };
+        return { ok: false, msg: 'DOI inválido — formato esperado 10.xxxx/sufixo (ex.: 10.1000/xyz123).' };
+    }
+    // URL: adiciona esquema https:// quando ausente e valida http(s).
+    function validateURL(v) {
+        const s = String(v || '').trim();
+        if (!s) return { ok: true, value: '' };
+        const u = /^[a-z][a-z0-9+.\-]*:\/\//i.test(s) ? s : 'https://' + s;
+        try {
+            const parsed = new URL(u);
+            if (!/^https?:$/.test(parsed.protocol)) return { ok: false, msg: 'URL inválida — use http:// ou https://.' };
+            return { ok: true, value: u };
+        } catch (_) { return { ok: false, msg: 'URL inválida.' }; }
+    }
     function validateField(kind, value) {
         if (kind === 'issn') return validateISSN(value);
         if (kind === 'isbn') return validateISBN(value);
+        if (kind === 'doi') return validateDOI(value);
+        if (kind === 'url') return validateURL(value);
         return { ok: true, value: value };
     }
     // Feedback visual (borda vermelha + mensagem) para campos com data-validate
@@ -649,6 +703,17 @@
                 else { setFieldError(el, ''); if (v && res.value) el.value = res.value; } // normaliza (hífen)
             });
             el.addEventListener('input', () => setFieldError(el, '')); // limpa erro ao digitar
+        });
+    }
+    // Contador de caracteres para textareas com data-maxcount
+    function wireCounters(container) {
+        $$('textarea[data-maxcount]', container).forEach(ta => {
+            const max = +ta.dataset.maxcount;
+            const out = container.querySelector(`[data-counter-for="${ta.name}"]`);
+            if (!out) return;
+            const upd = () => { out.textContent = `${ta.value.length}/${max}`; };
+            upd();
+            ta.addEventListener('input', upd);
         });
     }
 
@@ -705,6 +770,20 @@
         });
         return fields;
     }
+    // Normaliza pontuação tipográfica dos campos-texto p/ compatibilidade
+    // ISO-8859-1 (futura exportação ao Lattes). Retorna nº de caracteres que
+    // ainda ficaram fora do Latin-1 (ex.: emoji) — que viram entidades no XML.
+    function normalizeEncoding(fields) {
+        if (!window.LzEncoding) return 0;
+        let residual = 0;
+        Object.keys(fields).forEach(k => {
+            if (typeof fields[k] !== 'string' || !fields[k]) return;
+            try { fields[k] = LzEncoding.normalizePunctuation(fields[k]); } catch (_) {}
+            try { residual += (LzEncoding.findNonLatin1(fields[k]) || []).length; } catch (_) {}
+        });
+        return residual;
+    }
+
     // Chave lógica p/ detectar duplicatas (tipo + título normalizado + ano).
     // Retorna null quando não há título — aí não arriscamos falso positivo.
     function dupKey(typeKey, fields) {
@@ -748,17 +827,28 @@
             return false;
         }
 
-        // 3) ISSN / ISBN (quando preenchidos) — normaliza com hífen
-        for (const k of ['issn', 'isbn']) {
-            if (fields[k] == null || fields[k] === '') continue;
-            const res = validateField(k, fields[k]);
-            if (!res.ok) {
-                toast(res.msg, 'aviso');
-                const el = form.querySelector(`[data-validate="${k}"]`);
-                if (el) { setFieldError(el, res.msg); el.focus(); el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
-                return false;
+        // 3) Formatos específicos (ISSN/ISBN/DOI/URL) e números ≥ 0
+        for (const f of def.fields) {
+            const raw = fields[f.key];
+            const kind = (f.key === 'issn' || f.key === 'isbn' || f.key === 'doi') ? f.key : (f.type === 'url' ? 'url' : null);
+            if (kind) {
+                if (raw == null || raw === '') continue;
+                const res = validateField(kind, raw);
+                if (!res.ok) {
+                    toast(res.msg, 'aviso');
+                    const el = fieldControl(form, f);
+                    if (el) { setFieldError(el, res.msg); el.focus(); el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+                    return false;
+                }
+                fields[f.key] = res.value; // valor normalizado
+            } else if (f.type === 'number' && raw !== '' && raw != null) {
+                if (isNaN(Number(raw)) || Number(raw) < 0) {
+                    const el = fieldControl(form, f);
+                    if (el) { setFieldError(el, 'Informe um número ≥ 0.'); el.focus(); el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+                    toast(`${f.label}: informe um número válido (≥ 0).`, 'aviso');
+                    return false;
+                }
             }
-            fields[k] = res.value; // formato normalizado (com hífen)
         }
         return true;
     }
@@ -772,6 +862,7 @@
         const def = LattesTypes.get(typeKey);
 
         const fields = collectFields(form, def);
+        const encResid = normalizeEncoding(fields); // compatibilidade ISO-8859-1
         if (!validateItemFields(def, fields, form)) return;
 
         let editing = state.editingId ? state.items.find(i => i.id === state.editingId) : null;
@@ -851,6 +942,7 @@
 
         await persistItem(item);
         toast(editing ? 'Item atualizado.' : 'Item adicionado.', 'ok');
+        if (encResid) toast(`Atenção: ${encResid} caractere(s) fora do ISO-8859-1 permanecem (ex.: emoji) — na exportação ao Lattes virarão entidades XML.`, 'aviso');
 
         state.editingId = null; state.evEditing = [];
         buildForm();
@@ -1207,10 +1299,14 @@
         const sec = $('#perfilSection');
         if (!sec) return;
         wireValidators(sec);
+        wireCounters(sec);
         $$('[data-perfil-foto]', sec).forEach(inp => inp.addEventListener('change', (e) => {
             const f = e.target.files[0];
+            if (!f) return;
+            const err = checkEvidenceFile(f, ['jpg', 'jpeg', 'png']);
+            if (err) { toast(err, 'aviso'); e.target.value = ''; return; }
             const prev = inp.parentElement.querySelector('[data-perfil-foto-preview]');
-            if (f && prev) { prev.src = URL.createObjectURL(f); prev.classList.remove('hidden'); }
+            if (prev) { prev.src = URL.createObjectURL(f); prev.classList.remove('hidden'); }
         }));
         // Carrega a foto atual (se houver) no preview
         (async () => {
@@ -1231,6 +1327,7 @@
         const tk = form.dataset.perfilForm;
         const def = LattesTypes.get(tk);
         const fields = collectFields(form, def);
+        const encResid = normalizeEncoding(fields); // compatibilidade ISO-8859-1
         if (!validateItemFields(def, fields, form)) return;
 
         let item = state.items.find(i => i.typeKey === tk) || {
@@ -1262,6 +1359,7 @@
 
         await persistItem(item);
         toast(`${def.label} salvo.`, 'ok');
+        if (encResid) toast(`Atenção: ${encResid} caractere(s) fora do ISO-8859-1 permanecem (ex.: emoji).`, 'aviso');
         renderConfig();
         renderItemList();
     }
