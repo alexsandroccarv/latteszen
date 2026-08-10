@@ -12,6 +12,7 @@
         lattesParsed: null, // resultado do parse do XML
         currentPdfUrl: null,// URL (blob) do PDF exibido no painel lateral
         sortOrder: 'desc',  // ordenação por ano no Catálogo
+        vocab: {},          // listas curadas de autocomplete (por chave de campo)
     };
 
     /* --------------------------- Utilidades ----------------------------- */
@@ -52,6 +53,11 @@
 
     /* --------------------------- Persistência --------------------------- */
     function saveCatalog() { Storage.saveCatalog(state.items); }
+    function saveVocab() {
+        const s = Storage.loadSettings();
+        s.vocab = state.vocab;
+        Storage.saveSettings(s);
+    }
 
     async function persistItem(item, pdfFile) {
         // grava em memória + localStorage
@@ -334,12 +340,17 @@
     }
 
     // Campos que ganham autocomplete (combobox): escolha da lista OU digitação
-    // de um valor novo. As sugestões vêm dos valores já usados no catálogo.
-    const AUTOCOMPLETE_KEYS = ['instituicao', 'entidade', 'orgao', 'editora', 'periodico', 'evento'];
+    // de um valor novo. Sugestões = lista curada (editável em Configurações) +
+    // valores já usados no catálogo.
+    const AUTOCOMPLETE_KEYS = ['instituicao', 'financiador', 'entidade', 'orgao', 'editora', 'periodico', 'evento'];
+    const VOCAB_LABELS = {
+        instituicao: 'Instituições', financiador: 'Financiadores / Agências', entidade: 'Entidades',
+        orgao: 'Órgãos', editora: 'Editoras', periodico: 'Periódicos / Revistas', evento: 'Eventos',
+    };
     function collectSuggestions(key) {
-        const set = new Set();
+        const set = new Set(state.vocab[key] || []);
         state.items.forEach(i => { const v = i.fields && i.fields[key]; if (v && String(v).trim()) set.add(String(v).trim()); });
-        return Array.from(set).sort((a, b) => a.localeCompare(b, 'pt-BR'));
+        return Array.from(set).filter(Boolean).sort((a, b) => a.localeCompare(b, 'pt-BR'));
     }
     function datalistsHtml() {
         return AUTOCOMPLETE_KEYS.map(k =>
@@ -785,6 +796,30 @@
                     <div id="encResult" class="text-sm mt-3"></div>
                 </section>
 
+                <section class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+                    <h2 class="text-lg font-bold mb-2 flex items-center gap-2"><i class="fa-solid fa-list-check text-govbr-600 dark:text-unifesp-400"></i> Listas de autocomplete</h2>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                        Edite as listas de sugestões dos campos (Instituições, Financiadores/Agências, etc.). Um item por linha —
+                        você pode <strong>corrigir</strong>, <strong>remover</strong> ou <strong>inserir</strong>. Valores já usados no
+                        catálogo também aparecem automaticamente como sugestão (para corrigir um valor que veio de um item, edite o item).
+                    </p>
+                    <div class="space-y-2">
+                        ${AUTOCOMPLETE_KEYS.map(k => `
+                            <details class="border border-gray-200 dark:border-gray-700 rounded">
+                                <summary class="cursor-pointer select-none px-3 py-2 text-sm font-medium flex items-center gap-2">
+                                    ${esc(VOCAB_LABELS[k] || k)}
+                                    <span class="text-xs font-normal text-gray-500">(${collectSuggestions(k).length})</span>
+                                </summary>
+                                <div class="p-2">
+                                    <textarea id="vocab-${k}" rows="6" class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 font-mono" placeholder="Um item por linha">${esc(collectSuggestions(k).join('\n'))}</textarea>
+                                </div>
+                            </details>`).join('')}
+                    </div>
+                    <div class="flex gap-2 mt-3">
+                        <button id="btnSaveVocab" class="px-3 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm"><i class="fa-solid fa-floppy-disk mr-1"></i> Salvar listas</button>
+                    </div>
+                </section>
+
                 <section class="bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800 p-4">
                     <h2 class="text-lg font-bold mb-2 flex items-center gap-2 text-red-700 dark:text-red-400"><i class="fa-solid fa-triangle-exclamation"></i> Zona de risco</h2>
                     <button id="btnClear" class="px-3 py-2 rounded bg-red-600 text-white text-sm"><i class="fa-solid fa-trash mr-1"></i> Limpar catálogo (índice local)</button>
@@ -817,6 +852,17 @@
         $('#btnClear').addEventListener('click', () => {
             if (!confirm('Isto apaga o índice local (localStorage). Os arquivos no diretório NÃO são removidos. Continuar?')) return;
             state.items = []; saveCatalog(); toast('Índice local limpo.', 'ok'); renderItemList();
+        });
+        $('#btnSaveVocab').addEventListener('click', () => {
+            AUTOCOMPLETE_KEYS.forEach(k => {
+                const ta = $(`#vocab-${k}`);
+                if (!ta) return;
+                const linhas = ta.value.split('\n').map(s => s.trim()).filter(Boolean);
+                state.vocab[k] = Array.from(new Set(linhas)).sort((a, b) => a.localeCompare(b, 'pt-BR'));
+            });
+            saveVocab();
+            toast('Listas de autocomplete salvas.', 'ok');
+            renderConfig();
         });
         $('#btnCheckEnc').addEventListener('click', () => verificarCodificacao());
         $('#btnNormalize').addEventListener('click', () => normalizarPontuacao());
@@ -990,8 +1036,9 @@
 
         wireFooterToggles();
 
-        // Carrega catálogo e restaura diretório
+        // Carrega catálogo, vocabulários e restaura diretório
         state.items = Storage.loadCatalog();
+        state.vocab = (Storage.loadSettings().vocab) || {};
         migrarItens();
         try { await Storage.restoreDirectory(); } catch (_) {}
 
