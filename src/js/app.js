@@ -687,14 +687,8 @@
         s.addEventListener('change', () => { refillE(''); });
     }
 
-    async function onSubmitForm(e) {
-        e.preventDefault();
-        const form = e.target;
-        const categoryKey = $('#selCategoria').value;
-        const typeKey = $('#selTipo').value;
-        const naoLattes = LattesTypes.isNaoLattesCategory(categoryKey);
-        const def = LattesTypes.get(typeKey);
-
+    // Coleta os valores dos campos de um formulário conforme a definição do tipo
+    function collectFields(form, def) {
         const fields = {};
         def.fields.forEach(f => {
             if (f.type === 'checkboxes') {
@@ -705,19 +699,18 @@
                 const gv = q => { const el = form.querySelector(`[data-areatree="${q}"]`); return el ? el.value.trim() : ''; };
                 const G = gv('g'), A = gv('a'), S = gv('s'), E = gv('e');
                 fields.grandeArea = G; fields.area = A; fields.subarea = S; fields.especialidade = E;
-                // Exige ao menos Grande área + Área; o valor da chave é a trilha completa
                 fields[f.key] = (G && A) ? [G, A, S, E].filter(Boolean).join(' › ') : '';
             } else {
                 const el = form.elements[f.key];
                 if (el) fields[f.key] = el.value.trim();
             }
         });
-
-        // validação simples
+        return fields;
+    }
+    // Valida obrigatórios + ISSN/ISBN. Retorna true se válido; senão emite aviso.
+    function validateItemFields(def, fields, form) {
         const faltando = def.fields.filter(f => f.required && !fields[f.key]);
-        if (faltando.length) { toast('Preencha: ' + faltando.map(f => f.label).join(', '), 'aviso'); return; }
-
-        // Validação de ISSN/ISBN (quando preenchidos) — normaliza com hífen
+        if (faltando.length) { toast('Preencha: ' + faltando.map(f => f.label).join(', '), 'aviso'); return false; }
         for (const k of ['issn', 'isbn']) {
             if (fields[k] == null || fields[k] === '') continue;
             const res = validateField(k, fields[k]);
@@ -725,10 +718,23 @@
                 toast(res.msg, 'aviso');
                 const el = form.querySelector(`[data-validate="${k}"]`);
                 if (el) { setFieldError(el, res.msg); el.focus(); }
-                return;
+                return false;
             }
             fields[k] = res.value; // formato normalizado (com hífen)
         }
+        return true;
+    }
+
+    async function onSubmitForm(e) {
+        e.preventDefault();
+        const form = e.target;
+        const categoryKey = $('#selCategoria').value;
+        const typeKey = $('#selTipo').value;
+        const naoLattes = LattesTypes.isNaoLattesCategory(categoryKey);
+        const def = LattesTypes.get(typeKey);
+
+        const fields = collectFields(form, def);
+        if (!validateItemFields(def, fields, form)) return;
 
         let editing = state.editingId ? state.items.find(i => i.id === state.editingId) : null;
         // Tipo único (singleton): se já existir outro item desse tipo, atualiza-o
@@ -969,6 +975,13 @@
         const item = state.items.find(i => i.id === id);
         if (!item) return;
         if (btn.dataset.act === 'edit' || btn.dataset.act === 'pdf') {
+            // Itens de perfil (Identificação, Foto, Endereço, etc.) são editados em Configurações
+            if (LattesTypes.isPerfilType(item.typeKey)) {
+                switchTab('config');
+                const sec = $('#perfilSection');
+                if (sec) sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                return;
+            }
             // Abre o item na aba Catalogar; o PDF (se houver) aparece no painel lateral
             switchTab('catalogar');
             buildForm(item);
@@ -1098,12 +1111,114 @@
     /* =====================================================================
        ABA: CONFIGURAÇÕES
        ===================================================================== */
+    /* =====================================================================
+       Dados gerais (perfil) — editados em Configurações
+       ===================================================================== */
+    function perfilCardHtml(tk) {
+        const def = LattesTypes.get(tk);
+        const item = state.items.find(i => i.typeKey === tk);
+        const vals = item ? (item.fields || {}) : {};
+        const resumo = item ? esc(LattesTypes.itemTitle(item)) : 'vazio';
+        const isFoto = tk === 'FOTO_PERFIL';
+        const fotoBlock = isFoto ? `
+            <div>
+                <label class="block text-xs font-semibold mb-1">Imagem (JPEG ou PNG)</label>
+                <input type="file" data-perfil-foto accept="image/jpeg,image/png"
+                       class="w-full text-sm text-gray-600 dark:text-gray-300 file:mr-2 file:px-3 file:py-1.5 file:rounded file:border-0 file:bg-govbr-600 dark:file:bg-unifesp-700 file:text-white">
+                <img data-perfil-foto-preview class="mt-2 max-h-40 rounded border border-gray-200 dark:border-gray-700 hidden" alt="Foto de perfil">
+            </div>` : '';
+        return `<details class="border border-gray-200 dark:border-gray-700 rounded bg-white dark:bg-gray-900">
+            <summary class="cursor-pointer select-none px-3 py-2 text-sm font-medium flex items-center gap-2">
+                <i aria-hidden="true" class="fa-solid fa-angle-right text-xs text-gray-400"></i>
+                ${esc(def.label)}
+                <span class="text-xs font-normal ${item ? 'text-green-600 dark:text-green-400' : 'text-gray-400'} truncate min-w-0">· ${resumo}</span>
+            </summary>
+            <form data-perfil-form="${tk}" class="p-3 space-y-3 border-t border-gray-100 dark:border-gray-700">
+                ${fotoBlock}
+                ${def.fields.map(f => fieldHtml(f, vals[f.key])).join('')}
+                <div class="flex gap-2">
+                    <button type="submit" class="px-3 py-1.5 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm"><i class="fa-solid fa-floppy-disk mr-1"></i> Salvar</button>
+                </div>
+            </form>
+        </details>`;
+    }
+    function perfilSectionHtml() {
+        return `<section id="perfilSection" class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+            <h2 class="text-lg font-bold mb-2 flex items-center gap-2"><i class="fa-solid fa-id-card text-govbr-600 dark:text-unifesp-400"></i> Dados gerais (perfil)</h2>
+            <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">Informações autodeclaradas do Currículo Lattes (Identificação, Foto, Endereço, Texto inicial e Outras informações). São itens <strong>do Lattes</strong> e <strong>não exigem evidência</strong>.</p>
+            <div class="space-y-2">${LattesTypes.perfilTypes().map(perfilCardHtml).join('')}</div>
+        </section>`;
+    }
+    function wirePerfilSection() {
+        const sec = $('#perfilSection');
+        if (!sec) return;
+        wireValidators(sec);
+        $$('[data-perfil-foto]', sec).forEach(inp => inp.addEventListener('change', (e) => {
+            const f = e.target.files[0];
+            const prev = inp.parentElement.querySelector('[data-perfil-foto-preview]');
+            if (f && prev) { prev.src = URL.createObjectURL(f); prev.classList.remove('hidden'); }
+        }));
+        // Carrega a foto atual (se houver) no preview
+        (async () => {
+            const foto = state.items.find(i => i.typeKey === 'FOTO_PERFIL' && evCount(i));
+            const prev = sec.querySelector('[data-perfil-foto-preview]');
+            if (!foto || !prev) return;
+            const ev = evListFromItem(foto)[0];
+            try {
+                const url = await Storage.readAttachmentUrl(ev.basename, LattesTypes.categoryFolder('DADOS_GERAIS'), ev.ext);
+                if (url) { prev.src = url; prev.classList.remove('hidden'); }
+            } catch (_) {}
+        })();
+        $$('[data-perfil-form]', sec).forEach(form => form.addEventListener('submit', onPerfilSubmit));
+    }
+    async function onPerfilSubmit(e) {
+        e.preventDefault();
+        const form = e.currentTarget;
+        const tk = form.dataset.perfilForm;
+        const def = LattesTypes.get(tk);
+        const fields = collectFields(form, def);
+        if (!validateItemFields(def, fields, form)) return;
+
+        let item = state.items.find(i => i.typeKey === tk) || {
+            id: uid(), createdAt: nowISO(), source: 'local', hasPdf: false, evidencias: [], pdfName: null, lattesRef: null,
+        };
+        item.lattesItem = true;              // mantém relacionado ao Lattes
+        item.typeKey = tk;
+        item.categoryKey = 'DADOS_GERAIS';
+        item.fields = fields;
+        item.inLattes = true;
+        item.updatedAt = nowISO();
+
+        // Foto de perfil: a imagem é o conteúdo do item (não uma comprovação)
+        if (tk === 'FOTO_PERFIL') {
+            const inp = form.querySelector('[data-perfil-foto]');
+            const file = inp && inp.files[0];
+            if (file) {
+                const ext = fileExt(file);
+                item.evidencias = [{ basename: item.id, ext, name: file.name, publica: true }];
+                item.hasPdf = true; item.fileExt = ext; item.pdfName = file.name;
+                if (Storage.hasDirectory()) {
+                    try { await Storage.writeAttachment(item.id, file, LattesTypes.categoryFolder('DADOS_GERAIS'), ext); }
+                    catch (err) { toast('Falha ao gravar a imagem: ' + err.message, 'aviso'); }
+                } else {
+                    toast('Imagem não gravada: configure um diretório em Configurações.', 'aviso');
+                }
+            }
+        }
+
+        await persistItem(item);
+        toast(`${def.label} salvo.`, 'ok');
+        renderConfig();
+        renderItemList();
+    }
+
     async function renderConfig() {
         const panel = $('#tab-config');
         const dirName = Storage.hasDirectory() ? await Storage.directoryName() : null;
 
         panel.innerHTML = `
             <div class="space-y-6 max-w-2xl">
+                ${perfilSectionHtml()}
                 ${importLattesSectionHtml()}
                 <section class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
                     <h2 class="text-lg font-bold mb-2 flex items-center gap-2"><i class="fa-solid fa-folder-open text-govbr-600 dark:text-unifesp-400"></i> Diretório de arquivos</h2>
@@ -1184,6 +1299,7 @@
                 </section>
             </div>`;
 
+        wirePerfilSection();
         $('#xmlInput').addEventListener('change', onXmlSelected);
         $('#idPrefix').addEventListener('input', (e) => {
             $('#idPrefixEx').textContent = `${sanitizePrefix(e.target.value)}-k7p`;
