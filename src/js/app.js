@@ -170,10 +170,16 @@
         naoLattes:    { cor: 'purple', icone: 'fa-heart', titulo: 'Não-Lattes', desc: 'Itens pessoais' },
         descObrig:    { cor: 'red', icone: 'fa-align-left', titulo: 'Obrigatórios pendentes', desc: 'Falta campo obrigatório' },
     };
+    // Tipos que exigem evidência (ex.: Identificação, Texto inicial, Outras
+    // informações e Conexões não exigem) — usado nas métricas de conformidade.
+    function needsEvidence(item) {
+        const def = LattesTypes.get(item.typeKey);
+        return !(def && def.noEvidence);
+    }
     const VIEW_PREDICATE = {
         todos:          () => true,
-        comprovados:    i => i.lattesItem && i.inLattes && i.hasPdf,
-        semPdf:         i => i.lattesItem && i.inLattes && !i.hasPdf,
+        comprovados:    i => i.lattesItem && i.inLattes && needsEvidence(i) && i.hasPdf,
+        semPdf:         i => i.lattesItem && i.inLattes && needsEvidence(i) && !i.hasPdf,
         foraLattes:     i => i.lattesItem && !i.inLattes,
         naoLattes:      i => !i.lattesItem,
         descObrig:      i => descState(i) === 'red',
@@ -185,7 +191,8 @@
         const panel = $('#tab-conformidade');
         const count = k => state.items.filter(VIEW_PREDICATE[k]).length;
         const comprovados = count('comprovados');
-        const total = state.items.filter(i => i.lattesItem && i.inLattes).length;
+        // Denominador da conformidade documental: só itens que EXIGEM evidência
+        const total = state.items.filter(i => i.lattesItem && i.inLattes && needsEvidence(i)).length;
         const pct = total ? Math.round(comprovados / total * 100) : 0;
         // Descrição: verde (completo) / amarelo (falta opcional) / vermelho (falta obrigatório)
         const totalDesc = state.items.length;

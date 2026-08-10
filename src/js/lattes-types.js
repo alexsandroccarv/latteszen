@@ -61,8 +61,8 @@ const TYPES = {
     LICENCA: { label: 'Licença Maternidade, Paternidade e Adoção', fields: [{ key: 'titulo', label: 'Descrição', type: 'text', required: true }, { key: 'tipo', label: 'Tipo', type: 'select', options: ['Maternidade', 'Paternidade', 'Adoção'] }, F_AINI, F_AFIM] },
     IDIOMAS: { label: 'Idiomas', fields: [{ key: 'titulo', label: 'Idioma', type: 'text', required: true }, { key: 'habilidades', label: 'Proficiência (nível por habilidade)', type: 'skilllevels', options: ['Leitura', 'Fala', 'Escrita', 'Compreensão'], levels: ['Bom', 'Razoável', 'Pouco'] }] },
     PREMIO: { label: 'Prêmios e títulos', fields: [F_TITULO, F_ANO, { key: 'entidade', label: 'Entidade promotora', type: 'text', required: true }, { key: 'descricao', label: 'Descrição', type: 'textarea' }] },
-    RESUMO_CV: { label: 'Texto inicial do Currículo Lattes', singleton: true, fields: [{ key: 'titulo', label: 'Identificação', type: 'text' }, { key: 'descricao', label: 'Texto', type: 'textarea', required: true }] },
-    OUTRAS_INFO: { label: 'Outras informações relevantes', singleton: true, fields: [{ key: 'titulo', label: 'Título', type: 'text', required: true }, { key: 'descricao', label: 'Descrição', type: 'textarea' }] },
+    RESUMO_CV: { label: 'Texto inicial do Currículo Lattes', singleton: true, noEvidence: true, fields: [{ key: 'titulo', label: 'Identificação', type: 'text' }, { key: 'descricao', label: 'Texto', type: 'textarea', required: true }] },
+    OUTRAS_INFO: { label: 'Outras informações relevantes', singleton: true, noEvidence: true, fields: [{ key: 'titulo', label: 'Título', type: 'text', required: true }, { key: 'descricao', label: 'Descrição', type: 'textarea' }] },
 
     // 02 Formação
     FORMACAO_ACADEMICA: { label: 'Formação acadêmica/titulação', fields: [
