@@ -443,6 +443,8 @@
             $('#dynFields').innerHTML = (def ? def.fields : []).map(f => fieldHtml(f, vals[f.key])).join('');
             // Widgets especiais que precisam de JS após render (cascata de áreas)
             if (def && def.fields.some(f => f.type === 'areatree')) wireAreaTree($('#dynFields'), vals);
+            // Validação em tempo real de ISSN/ISBN
+            wireValidators($('#dynFields'));
             // Alguns tipos não têm comprovação (ex.: Conexões — apenas o link)
             const semEvidencia = !!(def && def.noEvidence);
             $('#evidenceBlock').style.display = semEvidencia ? 'none' : '';
@@ -579,7 +581,10 @@
         } else {
             const t = (f.type === 'url' ? 'url' : (f.type === 'number' ? 'number' : (f.type === 'date' ? 'date' : 'text')));
             const listAttr = (t === 'text' && AUTOCOMPLETE_KEYS.includes(f.key)) ? `list="dl-${f.key}"` : '';
-            input = `<input type="${t}" name="${f.key}" value="${esc(val)}" ${req} ${listAttr} placeholder="${esc(f.placeholder || '')}" class="${base}">`;
+            const vkind = (f.key === 'issn' || f.key === 'isbn') ? f.key : '';
+            const vAttr = vkind ? `data-validate="${vkind}"` : '';
+            const ph = f.placeholder || (f.key === 'issn' ? '0000-0000' : (f.key === 'isbn' ? 'ISBN-10 ou ISBN-13' : ''));
+            input = `<input type="${t}" name="${f.key}" value="${esc(val)}" ${req} ${listAttr} ${vAttr} placeholder="${esc(ph)}" class="${base}">`;
         }
         return `<div>
             <label class="block text-xs font-semibold mb-1">${esc(f.label)}${reqMark}</label>
@@ -591,6 +596,62 @@
     // Normaliza um nome para comparação (sem acentos, maiúsculas, espaços)
     function normNome(s) {
         return String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().replace(/\s+/g, ' ').trim();
+    }
+
+    /* --------- Validação de ISSN / ISBN (com dígito verificador) --------- */
+    // Retorna { ok, value?, msg? }. Vazio é considerado válido (campos opcionais).
+    function validateISSN(v) {
+        const s = String(v || '').trim();
+        if (!s) return { ok: true, value: '' };
+        const d = s.toUpperCase().replace(/[\s-]/g, '');
+        if (!/^\d{7}[\dX]$/.test(d)) return { ok: false, msg: 'ISSN inválido — use 8 dígitos no formato NNNN-NNNC (ex.: 0378-5955).' };
+        let sum = 0; for (let i = 0; i < 7; i++) sum += (8 - i) * Number(d[i]);
+        const chk = d[7] === 'X' ? 10 : Number(d[7]);
+        if (((11 - (sum % 11)) % 11) !== chk) return { ok: false, msg: 'ISSN inválido — dígito verificador não confere.' };
+        return { ok: true, value: d.slice(0, 4) + '-' + d.slice(4) };
+    }
+    function validateISBN(v) {
+        const s = String(v || '').trim();
+        if (!s) return { ok: true, value: '' };
+        const d = s.toUpperCase().replace(/[\s-]/g, '');
+        if (/^\d{9}[\dX]$/.test(d)) { // ISBN-10
+            let sum = 0; for (let i = 0; i < 10; i++) sum += (d[i] === 'X' ? 10 : Number(d[i])) * (10 - i);
+            if (sum % 11 !== 0) return { ok: false, msg: 'ISBN-10 inválido — dígito verificador não confere.' };
+            return { ok: true, value: s }; // preserva a hifenização do usuário
+        }
+        if (/^\d{13}$/.test(d)) { // ISBN-13 (EAN)
+            let sum = 0; for (let i = 0; i < 13; i++) sum += Number(d[i]) * (i % 2 ? 3 : 1);
+            if (sum % 10 !== 0) return { ok: false, msg: 'ISBN-13 inválido — dígito verificador não confere.' };
+            return { ok: true, value: s }; // preserva a hifenização do usuário
+        }
+        return { ok: false, msg: 'ISBN inválido — informe 10 ou 13 dígitos.' };
+    }
+    function validateField(kind, value) {
+        if (kind === 'issn') return validateISSN(value);
+        if (kind === 'isbn') return validateISBN(value);
+        return { ok: true, value: value };
+    }
+    // Feedback visual (borda vermelha + mensagem) para campos com data-validate
+    function setFieldError(el, msg) {
+        el.classList.toggle('border-red-500', !!msg);
+        el.classList.toggle('ring-1', !!msg);
+        el.classList.toggle('ring-red-500', !!msg);
+        let p = el.parentElement.querySelector('.validate-msg');
+        if (msg) {
+            if (!p) { p = document.createElement('p'); p.className = 'validate-msg text-xs text-red-600 dark:text-red-400 mt-0.5'; el.parentElement.appendChild(p); }
+            p.textContent = msg;
+        } else if (p) p.remove();
+    }
+    function wireValidators(container) {
+        $$('[data-validate]', container).forEach(el => {
+            el.addEventListener('blur', () => {
+                const v = el.value.trim();
+                const res = validateField(el.dataset.validate, v);
+                if (v && !res.ok) setFieldError(el, res.msg);
+                else { setFieldError(el, ''); if (v && res.value) el.value = res.value; } // normaliza (hífen)
+            });
+            el.addEventListener('input', () => setFieldError(el, '')); // limpa erro ao digitar
+        });
     }
 
     // Preenche e conecta a cascata Grande área › Área › Subárea › Especialidade
@@ -655,6 +716,19 @@
         // validação simples
         const faltando = def.fields.filter(f => f.required && !fields[f.key]);
         if (faltando.length) { toast('Preencha: ' + faltando.map(f => f.label).join(', '), 'aviso'); return; }
+
+        // Validação de ISSN/ISBN (quando preenchidos) — normaliza com hífen
+        for (const k of ['issn', 'isbn']) {
+            if (fields[k] == null || fields[k] === '') continue;
+            const res = validateField(k, fields[k]);
+            if (!res.ok) {
+                toast(res.msg, 'aviso');
+                const el = form.querySelector(`[data-validate="${k}"]`);
+                if (el) { setFieldError(el, res.msg); el.focus(); }
+                return;
+            }
+            fields[k] = res.value; // formato normalizado (com hífen)
+        }
 
         let editing = state.editingId ? state.items.find(i => i.id === state.editingId) : null;
         // Tipo único (singleton): se já existir outro item desse tipo, atualiza-o
