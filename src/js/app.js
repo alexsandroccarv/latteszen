@@ -716,7 +716,8 @@
     }
 
     function itemCardHtml(i) {
-        const ano = (i.fields && i.fields.ano) ? esc(i.fields.ano) : '—';
+        const anoNum = itemYear(i);
+        const ano = anoNum != null ? String(anoNum) : '—';
         const titulo = esc(LattesTypes.itemTitle(i));
         const tipo = esc(LattesTypes.label(i.typeKey));
         return `

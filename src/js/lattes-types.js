@@ -326,6 +326,16 @@ window.LattesTypes = (function () {
         allFolders() { return LATTES_CATEGORIES.map(slugFolder).concat(BACKUP_FOLDER); },
         itemTitle(item) {
             const f = item.fields || {};
+            // Formação acadêmica/titulação: exibe "anoInicio-anoFim Nível · Curso"
+            // (o campo "titulo" guarda o TCC/dissertação/tese, não serve de rótulo).
+            if (item.typeKey === 'FORMACAO_ACADEMICA') {
+                const ini = String(f.anoInicio || '').trim();
+                const fim = String(f.anoFim || '').trim();
+                const periodo = (ini && fim) ? `${ini}-${fim}` : (ini || fim || '');
+                const resto = [f.nivel, f.curso].map(x => String(x || '').trim()).filter(Boolean).join(' · ');
+                const t = [periodo, resto].filter(Boolean).join(' ');
+                if (t) return t;
+            }
             return f.titulo || f.curso || f.orientando || f.candidato || f.instituicao || f.nome || '(sem título)';
         },
     };
