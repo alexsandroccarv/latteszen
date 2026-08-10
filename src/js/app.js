@@ -129,7 +129,7 @@
                         <i aria-hidden="true" class="fa-solid fa-file-circle-plus text-govbr-600 dark:text-unifesp-400"></i>
                         <span id="formTitulo">Novo item</span>
                     </h2>
-                    <form id="itemForm" class="space-y-3"></form>
+                    <form id="itemForm" class="space-y-3" novalidate></form>
                 </section>
                 <section class="lg:col-span-3 lg:sticky lg:top-4">
                     <div class="flex items-center justify-between mb-3">
@@ -330,7 +330,11 @@
     async function previewEvidence(ev) {
         if (ev.file) { setPdf(URL.createObjectURL(ev.file), ev.name, ev.ext); return; }
         try {
-            const subdir = LattesTypes.categoryFolder($('#selCategoria') ? $('#selCategoria').value : null);
+            // Arquivo já gravado: usar a categoria SALVA do item em edição
+            // (não o seletor, que pode ter sido alterado sem salvar).
+            const it = state.editingId ? state.items.find(i => i.id === state.editingId) : null;
+            const catKey = it ? it.categoryKey : ($('#selCategoria') ? $('#selCategoria').value : null);
+            const subdir = LattesTypes.categoryFolder(catKey);
             const url = await Storage.readAttachmentUrl(ev.basename, subdir, ev.ext);
             if (url) setPdf(url, ev.name, ev.ext);
             else toast('Arquivo não encontrado no diretório (sincronize a pasta).', 'aviso');
@@ -457,17 +461,11 @@
                 : (def && def.key === 'DOCUMENTO_PESSOAL' ? 'Documento (PDF ou imagem)' : 'Evidência (PDF ou imagem)');
         }
 
-        // Se o usuário escolher um tipo ÚNICO (singleton) que já existe, abre-o
-        // para edição em vez de permitir criar um segundo.
-        function maybeLoadSingleton() {
-            if (state.editingId) return;                 // já está editando algo
-            const tk = $('#selTipo').value;
-            if (!LattesTypes.isSingleton(tk)) return;
-            const ex = state.items.find(i => i.typeKey === tk);
-            if (ex) { toast(`"${LattesTypes.label(tk)}" já existe — abrindo para edição.`, 'info'); buildForm(ex); }
-        }
-        selCat.addEventListener('change', () => { currentType = ''; fillTipos(); maybeLoadSingleton(); });
-        $('#selTipo').addEventListener('change', () => { renderDynFields(); maybeLoadSingleton(); });
+        selCat.addEventListener('change', () => { currentType = ''; fillTipos(); });
+        $('#selTipo').addEventListener('change', () => { renderDynFields(); });
+        // Limpa o destaque de erro assim que o usuário corrige o campo
+        $('#dynFields').addEventListener('input', (e) => { if (e.target.matches('input,select,textarea')) setFieldError(e.target, ''); });
+        $('#dynFields').addEventListener('change', (e) => { if (e.target.matches('input,select,textarea')) setFieldError(e.target, ''); });
         // Evidências: carrega as do item em edição (ou lista vazia p/ novo item)
         state.evEditing = editing ? evListFromItem(item) : [];
         fillTipos();
@@ -500,7 +498,7 @@
     // fora da faixa padrão.
     function yearOptions(val) {
         const atual = new Date().getFullYear();
-        const inicio = atual + 5, fim = 1940;
+        const inicio = atual + 5, fim = 1900;
         const anos = [];
         for (let y = inicio; y >= fim; y--) anos.push(y);
         const v = String(val || '').trim();
@@ -707,17 +705,57 @@
         });
         return fields;
     }
-    // Valida obrigatórios + ISSN/ISBN. Retorna true se válido; senão emite aviso.
+    // Chave lógica p/ detectar duplicatas (tipo + título normalizado + ano).
+    // Retorna null quando não há título — aí não arriscamos falso positivo.
+    function dupKey(typeKey, fields) {
+        fields = fields || {};
+        const title = normNome(fields.titulo || fields.curso || fields.orientando || fields.candidato || fields.grandeArea || '');
+        if (!title) return null;
+        const ano = String(fields.ano || fields.anoFim || fields.anoInicio || '').replace(/\D/g, '');
+        return typeKey + '|' + title + '|' + ano;
+    }
+
+    // Resolve o elemento visual de um campo (p/ marcar erro inline)
+    function fieldControl(form, f) {
+        if (!form) return null;
+        if (f.type === 'areatree') return form.querySelector('[data-areatree="g"]');
+        if (f.type === 'checkboxes') return form.querySelector(`[data-cbgroup="${f.key}"]`);
+        if (f.type === 'skilllevels') return form.querySelector(`[data-slgroup="${f.key}"]`);
+        return (form.elements && form.elements[f.key]) || form.querySelector(`[name="${f.key}"]`);
+    }
+    // Valida obrigatórios + coerência de anos + ISSN/ISBN. Marca erros inline
+    // (única via de validação — o form usa novalidate, sem "balão" nativo).
     function validateItemFields(def, fields, form) {
+        // limpa erros anteriores dos campos deste tipo
+        def.fields.forEach(f => { const el = fieldControl(form, f); if (el) setFieldError(el, ''); });
+
+        // 1) Obrigatórios — destaca todos e foca o primeiro
         const faltando = def.fields.filter(f => f.required && !fields[f.key]);
-        if (faltando.length) { toast('Preencha: ' + faltando.map(f => f.label).join(', '), 'aviso'); return false; }
+        if (faltando.length) {
+            let first = null;
+            faltando.forEach(f => { const el = fieldControl(form, f); if (el) { setFieldError(el, 'Campo obrigatório.'); if (!first) first = el; } });
+            if (first) { first.focus(); first.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+            toast('Preencha os campos obrigatórios destacados: ' + faltando.map(f => f.label).join(', '), 'aviso');
+            return false;
+        }
+
+        // 2) Coerência de anos: fim não pode ser anterior ao início
+        const ini = String(fields.anoInicio || '').replace(/\D/g, ''), fim = String(fields.anoFim || '').replace(/\D/g, '');
+        if (ini && fim && Number(fim) < Number(ini)) {
+            const el = fieldControl(form, { key: 'anoFim' });
+            if (el) { setFieldError(el, 'O ano de fim não pode ser anterior ao de início.'); el.focus(); el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+            toast('O ano de fim não pode ser anterior ao de início.', 'aviso');
+            return false;
+        }
+
+        // 3) ISSN / ISBN (quando preenchidos) — normaliza com hífen
         for (const k of ['issn', 'isbn']) {
             if (fields[k] == null || fields[k] === '') continue;
             const res = validateField(k, fields[k]);
             if (!res.ok) {
                 toast(res.msg, 'aviso');
                 const el = form.querySelector(`[data-validate="${k}"]`);
-                if (el) { setFieldError(el, res.msg); el.focus(); }
+                if (el) { setFieldError(el, res.msg); el.focus(); el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
                 return false;
             }
             fields[k] = res.value; // formato normalizado (com hífen)
@@ -743,10 +781,19 @@
             const ex = state.items.find(i => i.typeKey === typeKey && (!editing || i.id !== editing.id));
             if (ex) editing = ex;
         }
+        // Detecção de duplicata (só ao criar item novo, não-singleton)
+        if (!editing && !LattesTypes.isSingleton(typeKey)) {
+            const key = dupKey(typeKey, fields);
+            if (key) {
+                const dup = state.items.find(i => i.typeKey === typeKey && dupKey(i.typeKey, i.fields) === key);
+                if (dup && !confirm(`Já existe um item parecido:\n"${LattesTypes.itemTitle(dup)}".\n\nDeseja cadastrar mesmo assim?`)) return;
+            }
+        }
         const item = editing || {
             id: uid(), createdAt: nowISO(),
             source: 'local', hasPdf: false, pdfName: null, lattesRef: null,
         };
+        const prevCat = item.categoryKey || null;              // categoria ANTES da edição
         const prevEvid = evListFromItem(item); // estado anterior (p/ apagar removidas)
         item.lattesItem = !naoLattes;
         item.typeKey = typeKey;
@@ -758,17 +805,24 @@
 
         // ---- Evidências: grava novas, remove excluídas, aplica ordem/pública ----
         const subdir = LattesTypes.categoryFolder(item.categoryKey);
+        const semDir = !Storage.hasDirectory();
+        // Se a CATEGORIA mudou, move os arquivos já gravados (json + anexos) da
+        // pasta antiga para a nova — evita órfãos e evidências inacessíveis.
+        if (!semDir && editing && prevCat && prevCat !== item.categoryKey) {
+            try { await Storage.moveItemFiles(item.id, LattesTypes.categoryFolder(prevCat), subdir); } catch (_) {}
+        }
         const usedBases = new Set(state.evEditing.filter(ev => ev.basename).map(ev => ev.basename));
         const newBase = () => { let b; do { b = `${item.id}-${randCode(2)}`; } while (usedBases.has(b)); usedBases.add(b); return b; };
-        const semDir = !Storage.hasDirectory();
+        let naoGravadas = 0;
         const evOut = [];
         for (const ev of state.evEditing) {
             if (ev.file) {
+                // Sem diretório configurado NÃO registramos a evidência (o arquivo
+                // não seria gravado — evita metadado apontando p/ arquivo inexistente).
+                if (semDir) { naoGravadas++; continue; }
                 const basename = ev.basename || newBase();
-                if (!semDir) {
-                    try { await Storage.writeAttachment(basename, ev.file, subdir, ev.ext); }
-                    catch (e) { toast('Falha ao gravar evidência "' + ev.name + '": ' + e.message, 'aviso'); }
-                }
+                try { await Storage.writeAttachment(basename, ev.file, subdir, ev.ext); }
+                catch (e) { toast('Falha ao gravar evidência "' + ev.name + '": ' + e.message, 'aviso'); continue; }
                 evOut.push({ basename, ext: ev.ext, name: ev.name, publica: !!ev.publica });
             } else {
                 evOut.push({ basename: ev.basename, ext: ev.ext, name: ev.name, publica: !!ev.publica });
@@ -791,8 +845,8 @@
         const pub = evOut.find(e => e.publica) || evOut[0] || null;
         item.pdfName = pub ? pub.name : null;
         item.fileExt = pub ? pub.ext : null;
-        if (semDir && state.evEditing.some(ev => ev.file)) {
-            toast('Evidências não gravadas: configure um diretório em Configurações.', 'aviso');
+        if (naoGravadas) {
+            toast(`${naoGravadas} evidência(s) não registrada(s): configure um diretório em Configurações e anexe novamente.`, 'aviso');
         }
 
         await persistItem(item);

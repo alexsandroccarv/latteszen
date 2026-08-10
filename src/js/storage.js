@@ -159,6 +159,35 @@ window.Storage = (function () {
         for (const n of rm) { try { await dir.removeEntry(n); } catch (_) {} }
     }
 
+    // Move os arquivos de um item (<id>.json, <id>.<ext>, <id>-*.<ext>) de um
+    // subdiretório para outro — usado quando a CATEGORIA do item muda.
+    async function moveItemFiles(id, fromSubdir, toSubdir) {
+        if (!dirHandle || fromSubdir === toSubdir) return;
+        let from = dirHandle;
+        if (fromSubdir) { try { from = await dirHandle.getDirectoryHandle(fromSubdir); } catch (_) { return; } }
+        const to = await targetDir(toSubdir);
+        const names = [];
+        for await (const [name, h] of from.entries()) {
+            if (h.kind !== 'file') continue;
+            if (name === `${id}.json`) { names.push(name); continue; }
+            const m = name.match(/^(.*)\.([^.]+)$/);
+            if (!m) continue;
+            const base = m[1], ext = m[2].toLowerCase();
+            if ((base === id || base.indexOf(id + '-') === 0) && ATTACH_EXTS.includes(ext)) names.push(name);
+        }
+        for (const name of names) {
+            try {
+                const fh = await from.getFileHandle(name);
+                const file = await fh.getFile();
+                const nh = await to.getFileHandle(name, { create: true });
+                const w = await nh.createWritable();
+                await w.write(file);
+                await w.close();
+                await from.removeEntry(name);
+            } catch (_) { /* se falhar um, segue os demais */ }
+        }
+    }
+
     async function readAttachmentUrl(basename, subdir, ext) {
         const dir = await ensureDirReady();
         let target = dir;
@@ -219,7 +248,7 @@ window.Storage = (function () {
         chooseDirectory, restoreDirectory, ensureDirReady, hasDirectory,
         directoryName, forgetDirectory, verifyPermission,
         // arquivos
-        writeJson, writeAttachment, deleteEntry, deleteItemFiles, readAttachmentUrl, scanDirectory, ensureSubdirs,
+        writeJson, writeAttachment, deleteEntry, deleteItemFiles, moveItemFiles, readAttachmentUrl, scanDirectory, ensureSubdirs,
         // catálogo + settings
         loadCatalog, saveCatalog, loadSettings, saveSettings,
     };
