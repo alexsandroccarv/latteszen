@@ -86,7 +86,7 @@ const TYPES = {
     COMITE_ASSESSORAMENTO: { label: 'Membro de comitê de assessoramento', fields: [{ key: 'titulo', label: 'Comitê / Órgão', type: 'text', required: true }, F_INST, F_AINI, F_AFIM] },
     REVISOR_PERIODICO: { label: 'Revisor de periódico', fields: [{ key: 'titulo', label: 'Periódico', type: 'text', required: true }, { key: 'issn', label: 'ISSN', type: 'text' }, F_AINI, F_AFIM] },
     REVISOR_FOMENTO: { label: 'Revisor de projeto de agência de fomento', fields: [{ key: 'titulo', label: 'Agência de fomento', type: 'text', required: true }, F_AINI, F_AFIM] },
-    AREA_ATUACAO: { label: 'Áreas de atuação', fields: [{ key: 'titulo', label: 'Área', type: 'text', required: true }, { key: 'grandeArea', label: 'Grande área', type: 'text' }, { key: 'subarea', label: 'Subárea', type: 'text' }, { key: 'especialidade', label: 'Especialidade', type: 'text' }] },
+    AREA_ATUACAO: { label: 'Áreas de atuação', noEvidence: true, fields: [{ key: 'areaConhecimento', label: 'Área do conhecimento (CNPq/CAPES)', type: 'areatree', required: true, help: 'Selecione do mais geral ao mais específico: Grande área › Área › Subárea › Especialidade.' }] },
     // Atividades da atuação profissional
     ATIV_ENSINO: { label: 'Ensino / Disciplinas ministradas', fields: [{ key: 'titulo', label: 'Curso / Nível', type: 'text', required: true }, F_INST, F_AINI, F_AFIM, { key: 'disciplinas', label: 'Disciplinas', type: 'textarea' }] },
     ATIV_DIRECAO: { label: 'Direção e administração', fields: [{ key: 'titulo', label: 'Cargo / Função', type: 'text', required: true }, { key: 'orgao', label: 'Órgão', type: 'text' }, F_INST, F_AINI, F_AFIM] },
@@ -335,6 +335,12 @@ window.LattesTypes = (function () {
                 const resto = [f.nivel, f.curso].map(x => String(x || '').trim()).filter(Boolean).join(' · ');
                 const t = [periodo, resto].filter(Boolean).join(' ');
                 if (t) return t;
+            }
+            // Áreas de atuação: hierarquia CNPq/CAPES (Grande área › Área › Subárea › Especialidade)
+            if (item.typeKey === 'AREA_ATUACAO') {
+                const partes = [f.grandeArea, f.area, f.subarea, f.especialidade].map(x => String(x || '').trim()).filter(Boolean);
+                if (partes.length) return partes.join(' › ');
+                if (f.areaConhecimento) return String(f.areaConhecimento);
             }
             return f.titulo || f.curso || f.orientando || f.candidato || f.instituicao || f.nome || '(sem título)';
         },

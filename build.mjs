@@ -16,7 +16,7 @@ const root = dirname(fileURLToPath(import.meta.url));
 const src = join(root, 'src');
 
 // Ordem de carga dos módulos (a mesma dos <script> no template)
-const JS_FILES = ['js/config.js', 'js/encoding.js', 'js/lattes-types.js', 'js/storage.js', 'js/lattes-xml.js', 'js/app.js'];
+const JS_FILES = ['js/config.js', 'js/encoding.js', 'js/areas-conhecimento.js', 'js/lattes-types.js', 'js/storage.js', 'js/lattes-xml.js', 'js/app.js'];
 
 let html = readFileSync(join(src, 'index.html'), 'utf8');
 

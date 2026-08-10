@@ -441,6 +441,8 @@
             const def = LattesTypes.get($('#selTipo').value);
             const vals = item ? (item.fields || {}) : {};
             $('#dynFields').innerHTML = (def ? def.fields : []).map(f => fieldHtml(f, vals[f.key])).join('');
+            // Widgets especiais que precisam de JS após render (cascata de áreas)
+            if (def && def.fields.some(f => f.type === 'areatree')) wireAreaTree($('#dynFields'), vals);
             // Alguns tipos não têm comprovação (ex.: Conexões — apenas o link)
             const semEvidencia = !!(def && def.noEvidence);
             $('#evidenceBlock').style.display = semEvidencia ? 'none' : '';
@@ -565,6 +567,15 @@
                     </select>
                 </div>`).join('')}
             </div>`;
+        } else if (f.type === 'areatree') {
+            // Cascata CNPq/CAPES: 4 selects dependentes (preenchidos por wireAreaTree)
+            const sel = (lvl, lbl) => `<select data-areatree="${lvl}" class="${base}"><option value="">${lbl}</option></select>`;
+            input = `<div data-areatree-group class="space-y-1.5">
+                ${sel('g', '— Grande área —')}
+                ${sel('a', '— Área —')}
+                ${sel('s', '— Subárea —')}
+                ${sel('e', '— Especialidade —')}
+            </div>`;
         } else {
             const t = (f.type === 'url' ? 'url' : (f.type === 'number' ? 'number' : (f.type === 'date' ? 'date' : 'text')));
             const listAttr = (t === 'text' && AUTOCOMPLETE_KEYS.includes(f.key)) ? `list="dl-${f.key}"` : '';
@@ -575,6 +586,44 @@
             ${input}
             ${f.help ? `<p class="text-xs text-gray-500 mt-0.5">${esc(f.help)}</p>` : ''}
         </div>`;
+    }
+
+    // Normaliza um nome para comparação (sem acentos, maiúsculas, espaços)
+    function normNome(s) {
+        return String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().replace(/\s+/g, ' ').trim();
+    }
+
+    // Preenche e conecta a cascata Grande área › Área › Subárea › Especialidade
+    function wireAreaTree(container, vals) {
+        const DATA = window.AreasConhecimento || [];
+        const g = container.querySelector('[data-areatree="g"]');
+        const a = container.querySelector('[data-areatree="a"]');
+        const s = container.querySelector('[data-areatree="s"]');
+        const e = container.querySelector('[data-areatree="e"]');
+        if (!g || !a || !s || !e) return;
+
+        const fill = (sel, placeholder, names, current) => {
+            sel.innerHTML = `<option value="">${esc(placeholder)}</option>` +
+                names.map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join('');
+            if (current) {
+                const want = normNome(current);
+                const opt = Array.from(sel.options).find(o => o.value && normNome(o.value) === want);
+                sel.value = opt ? opt.value : '';
+            } else sel.value = '';
+        };
+        const findG = () => DATA.find(x => x.n === g.value);
+        const findA = () => { const G = findG(); return G ? G.a.find(x => x.n === a.value) : null; };
+        const findS = () => { const A = findA(); return A ? A.s.find(x => x.n === s.value) : null; };
+        const refillA = cur => { const G = findG(); fill(a, '— Área —', G ? G.a.map(x => x.n) : [], cur); a.disabled = !G; };
+        const refillS = cur => { const A = findA(); fill(s, '— Subárea —', A ? A.s.map(x => x.n) : [], cur); s.disabled = !A; };
+        const refillE = cur => { const S = findS(); fill(e, '— Especialidade —', S ? S.e : [], cur); e.disabled = !S; };
+
+        fill(g, '— Grande área —', DATA.map(x => x.n), vals.grandeArea);
+        refillA(vals.area); refillS(vals.subarea); refillE(vals.especialidade);
+
+        g.addEventListener('change', () => { refillA(''); refillS(''); refillE(''); });
+        a.addEventListener('change', () => { refillS(''); refillE(''); });
+        s.addEventListener('change', () => { refillE(''); });
     }
 
     async function onSubmitForm(e) {
@@ -591,6 +640,12 @@
                 fields[f.key] = $$(`[data-cbgroup="${f.key}"]`, form).filter(c => c.checked).map(c => c.value).join('; ');
             } else if (f.type === 'skilllevels') {
                 fields[f.key] = $$(`[data-slgroup="${f.key}"]`, form).filter(s => s.value).map(s => `${s.dataset.skill}: ${s.value}`).join('; ');
+            } else if (f.type === 'areatree') {
+                const gv = q => { const el = form.querySelector(`[data-areatree="${q}"]`); return el ? el.value.trim() : ''; };
+                const G = gv('g'), A = gv('a'), S = gv('s'), E = gv('e');
+                fields.grandeArea = G; fields.area = A; fields.subarea = S; fields.especialidade = E;
+                // Exige ao menos Grande área + Área; o valor da chave é a trilha completa
+                fields[f.key] = (G && A) ? [G, A, S, E].filter(Boolean).join(' › ') : '';
             } else {
                 const el = form.elements[f.key];
                 if (el) fields[f.key] = el.value.trim();

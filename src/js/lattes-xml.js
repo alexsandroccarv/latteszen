@@ -467,8 +467,11 @@ window.LattesXML = (function () {
             const titulo = a['NOME-DA-ESPECIALIDADE'] || a['NOME-DA-SUB-AREA-DO-CONHECIMENTO'] || a['NOME-DA-AREA-DO-CONHECIMENTO'] || humanize(a['NOME-GRANDE-AREA-DO-CONHECIMENTO']);
             if (!titulo) continue;
             add('AREA_ATUACAO', {
-                titulo, grandeArea: humanize(a['NOME-GRANDE-AREA-DO-CONHECIMENTO']),
+                grandeArea: humanize(a['NOME-GRANDE-AREA-DO-CONHECIMENTO']),
+                area: a['NOME-DA-AREA-DO-CONHECIMENTO'] || '',
                 subarea: a['NOME-DA-SUB-AREA-DO-CONHECIMENTO'] || '', especialidade: a['NOME-DA-ESPECIALIDADE'] || '',
+                areaConhecimento: [humanize(a['NOME-GRANDE-AREA-DO-CONHECIMENTO']), a['NOME-DA-AREA-DO-CONHECIMENTO'], a['NOME-DA-SUB-AREA-DO-CONHECIMENTO'], a['NOME-DA-ESPECIALIDADE']].map(x => (x || '').trim()).filter(Boolean).join(' › '),
+                titulo,
             }, el);
         }
         } catch (e) { errors.push('Dados gerais: ' + e.message); }
