@@ -8,7 +8,7 @@
     const state = {
         items: [],          // catálogo
         editingId: null,    // item em edição
-        pendingPdf: null,   // File aguardando gravação
+        evEditing: [],      // evidências do item em edição (array de trabalho)
         lattesParsed: null, // resultado do parse do XML
         currentPdfUrl: null,// URL (blob) do PDF exibido no painel lateral
         sortOrder: 'desc',  // ordenação por ano no Catálogo
@@ -82,40 +82,38 @@
         Storage.saveSettings(s);
     }
 
-    async function persistItem(item, pdfFile) {
-        // grava em memória + localStorage
+    // Grava o item no índice (localStorage) e o JSON no diretório. Os anexos
+    // (evidências) são gravados/removidos separadamente em onSubmitForm.
+    async function persistItem(item) {
         const idx = state.items.findIndex(i => i.id === item.id);
         if (idx >= 0) state.items[idx] = item; else state.items.push(item);
         saveCatalog();
-
-        // grava arquivos no subdiretório da categoria, se um diretório está configurado
         if (Storage.hasDirectory()) {
-            const subdir = LattesTypes.categoryFolder(item.categoryKey);
-            try {
-                await Storage.writeJson(item.id, item, subdir);
-                if (pdfFile) {
-                    const ext = fileExt(pdfFile);
-                    await Storage.writeAttachment(item.id, pdfFile, subdir, ext);
-                    item.hasPdf = true;
-                    item.pdfName = pdfFile.name;
-                    item.fileExt = ext;
-                    saveCatalog();
-                    await Storage.writeJson(item.id, item, subdir); // regrava com hasPdf/fileExt
-                }
-            } catch (e) {
-                toast('Item salvo no índice, mas falhou ao gravar arquivos: ' + e.message, 'aviso');
-                return;
-            }
-        } else if (pdfFile) {
-            toast('Arquivo não gravado: configure um diretório em Configurações.', 'aviso');
+            try { await Storage.writeJson(item.id, item, LattesTypes.categoryFolder(item.categoryKey)); }
+            catch (e) { toast('Item salvo no índice, mas falhou ao gravar o JSON: ' + e.message, 'aviso'); }
         }
+    }
+
+    // Normaliza a lista de evidências de um item (converte formato legado).
+    function evListFromItem(item) {
+        if (item && Array.isArray(item.evidencias) && item.evidencias.length) {
+            return item.evidencias.map(e => ({
+                basename: e.basename, ext: e.ext,
+                name: e.name || `${e.basename}.${e.ext}`, publica: !!e.publica, file: null,
+            }));
+        }
+        if (item && item.hasPdf) { // legado: uma única evidência com id do item
+            const ext = item.fileExt || 'pdf';
+            return [{ basename: item.id, ext, name: item.pdfName || `${item.id}.${ext}`, publica: true, file: null }];
+        }
+        return [];
     }
 
     async function deleteItem(id) {
         const item = state.items.find(i => i.id === id);
         state.items = state.items.filter(i => i.id !== id);
         saveCatalog();
-        try { await Storage.deleteFiles(id, item ? LattesTypes.categoryFolder(item.categoryKey) : null); } catch (_) {}
+        try { await Storage.deleteItemFiles(id, item ? LattesTypes.categoryFolder(item.categoryKey) : null); } catch (_) {}
     }
 
     /* =====================================================================
@@ -235,13 +233,59 @@
     }
     async function showPdfForItem(item) {
         if (!$('#pdfFrame')) return;
-        if (!item.hasPdf) { clearPdf(); return; }
+        const list = evListFromItem(item);
+        if (!list.length) { clearPdf(); return; }
+        const ev = list.find(e => e.publica) || list[0];
         try {
-            const ext = item.fileExt || 'pdf';
-            const url = await Storage.readAttachmentUrl(item.id, LattesTypes.categoryFolder(item.categoryKey), ext);
-            if (url) setPdf(url, item.pdfName || `${item.id}.${ext}`, ext);
+            const url = await Storage.readAttachmentUrl(ev.basename, LattesTypes.categoryFolder(item.categoryKey), ev.ext);
+            if (url) setPdf(url, ev.name, ev.ext);
             else { clearPdf(); toast('Arquivo não encontrado no diretório (sincronize a pasta).', 'aviso'); }
         } catch (e) { clearPdf(); }
+    }
+
+    // Pré-visualiza uma evidência (nova ou já gravada) no painel lateral.
+    async function previewEvidence(ev) {
+        if (ev.file) { setPdf(URL.createObjectURL(ev.file), ev.name, ev.ext); return; }
+        try {
+            const subdir = LattesTypes.categoryFolder($('#selCategoria') ? $('#selCategoria').value : null);
+            const url = await Storage.readAttachmentUrl(ev.basename, subdir, ev.ext);
+            if (url) setPdf(url, ev.name, ev.ext);
+            else toast('Arquivo não encontrado no diretório (sincronize a pasta).', 'aviso');
+        } catch (e) { toast('Não foi possível abrir a evidência: ' + e.message, 'aviso'); }
+    }
+
+    // Renderiza a lista de evidências no formulário (com reordenar / pública / ver / remover).
+    function renderEvList() {
+        const ul = $('#evList');
+        if (!ul) return;
+        if (!state.evEditing.length) {
+            ul.innerHTML = `<li class="text-xs text-gray-400 dark:text-gray-500 italic">Nenhuma evidência anexada.</li>`;
+            return;
+        }
+        ul.innerHTML = state.evEditing.map((ev, idx) => `
+            <li class="flex items-center gap-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded px-2 py-1 text-sm">
+                <i aria-hidden="true" class="fa-solid ${isImageExt(ev.ext) ? 'fa-image' : 'fa-file-pdf'} text-red-600 shrink-0"></i>
+                <span class="min-w-0 flex-1 truncate" title="${esc(ev.name)}">${esc(ev.name)}${ev.file ? ' <span class="text-xs text-green-600">(novo)</span>' : ''}</span>
+                <label class="flex items-center gap-1 text-xs shrink-0" title="Será exibida no futuro módulo de publicação (apenas uma por item)">
+                    <input type="checkbox" data-evpub="${idx}" ${ev.publica ? 'checked' : ''}> pública
+                </label>
+                <button type="button" data-evup="${idx}" title="Subir" class="w-6 h-6 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 shrink-0 disabled:opacity-30" ${idx === 0 ? 'disabled' : ''}><i class="fa-solid fa-arrow-up"></i></button>
+                <button type="button" data-evdown="${idx}" title="Descer" class="w-6 h-6 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 shrink-0 disabled:opacity-30" ${idx === state.evEditing.length - 1 ? 'disabled' : ''}><i class="fa-solid fa-arrow-down"></i></button>
+                <button type="button" data-evsee="${idx}" title="Ver no painel" class="w-6 h-6 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-govbr-600 dark:text-unifesp-400 shrink-0"><i class="fa-solid fa-eye"></i></button>
+                <button type="button" data-evdel="${idx}" title="Remover" class="w-6 h-6 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-red-600 shrink-0"><i class="fa-solid fa-xmark"></i></button>
+            </li>`).join('');
+
+        $$('[data-evpub]', ul).forEach(c => c.addEventListener('change', (e) => {
+            const i = +e.target.dataset.evpub;
+            if (e.target.checked) state.evEditing.forEach((ev, j) => ev.publica = (j === i)); // exclusão mútua
+            else state.evEditing[i].publica = false;
+            renderEvList();
+        }));
+        const swap = (i, j) => { const t = state.evEditing[i]; state.evEditing[i] = state.evEditing[j]; state.evEditing[j] = t; renderEvList(); };
+        $$('[data-evup]', ul).forEach(b => b.addEventListener('click', (e) => { const i = +e.currentTarget.dataset.evup; if (i > 0) swap(i, i - 1); }));
+        $$('[data-evdown]', ul).forEach(b => b.addEventListener('click', (e) => { const i = +e.currentTarget.dataset.evdown; if (i < state.evEditing.length - 1) swap(i, i + 1); }));
+        $$('[data-evsee]', ul).forEach(b => b.addEventListener('click', (e) => previewEvidence(state.evEditing[+e.currentTarget.dataset.evsee])));
+        $$('[data-evdel]', ul).forEach(b => b.addEventListener('click', (e) => { state.evEditing.splice(+e.currentTarget.dataset.evdel, 1); renderEvList(); }));
     }
 
     function buildForm(item) {
@@ -255,10 +299,11 @@
 
         form.innerHTML = `
             <div id="evidenceBlock" class="bg-govbr-50 dark:bg-gray-900 border border-govbr-100 dark:border-gray-700 rounded px-3 py-2">
-                <label class="block text-xs font-semibold mb-1"><i aria-hidden="true" class="fa-solid fa-file-arrow-up text-govbr-600 dark:text-unifesp-400 mr-1"></i> <span id="pdfInputLabel">Evidência (PDF ou imagem)</span></label>
-                <input type="file" id="pdfInput" accept="application/pdf,image/jpeg,image/png"
+                <label class="block text-xs font-semibold mb-1"><i aria-hidden="true" class="fa-solid fa-file-arrow-up text-govbr-600 dark:text-unifesp-400 mr-1"></i> <span id="pdfInputLabel">Evidências (PDF ou imagem)</span></label>
+                <input type="file" id="pdfInput" multiple accept="application/pdf,image/jpeg,image/png"
                        class="w-full text-sm text-gray-600 dark:text-gray-300 file:mr-2 file:px-3 file:py-1.5 file:rounded file:border-0 file:bg-govbr-600 dark:file:bg-unifesp-700 file:text-white">
-                <p id="pdfStatus" class="text-xs text-gray-500 mt-1"></p>
+                <p class="text-xs text-gray-500 mt-1">Pode anexar várias evidências. Marque <strong>“pública”</strong> em <em>uma</em> delas (exibida no futuro módulo de publicação). Use ↑ ↓ para reordenar.</p>
+                <ul id="evList" class="mt-2 space-y-1"></ul>
             </div>
 
             <div class="grid grid-cols-2 gap-2">
@@ -316,7 +361,7 @@
             // Alguns tipos não têm comprovação (ex.: Conexões — apenas o link)
             const semEvidencia = !!(def && def.noEvidence);
             $('#evidenceBlock').style.display = semEvidencia ? 'none' : '';
-            if (semEvidencia) { state.pendingPdf = null; clearPdf(); }
+            if (semEvidencia) { state.evEditing = []; renderEvList(); clearPdf(); }
             // Tipos de arquivo aceitos e rótulo conforme o tipo do item
             const accept = (def && def.accept) || 'application/pdf,image/jpeg,image/png';
             const inp = $('#pdfInput'); if (inp) inp.accept = accept;
@@ -336,25 +381,30 @@
         }
         selCat.addEventListener('change', () => { currentType = ''; fillTipos(); maybeLoadSingleton(); });
         $('#selTipo').addEventListener('change', () => { renderDynFields(); maybeLoadSingleton(); });
+        // Evidências: carrega as do item em edição (ou lista vazia p/ novo item)
+        state.evEditing = editing ? evListFromItem(item) : [];
         fillTipos();
+        renderEvList();
 
-        // PDF
-        const pdfStatus = $('#pdfStatus');
-        if (item && item.hasPdf) pdfStatus.textContent = `PDF atual: ${item.pdfName || item.id + '.pdf'}`;
         $('#pdfInput').addEventListener('change', (e) => {
-            state.pendingPdf = e.target.files[0] || null;
-            pdfStatus.textContent = state.pendingPdf ? `Selecionado: ${state.pendingPdf.name}` : '';
-            if (state.pendingPdf) previewPdfFile(state.pendingPdf); // exibe no painel lateral
+            const files = Array.from(e.target.files || []);
+            files.forEach(f => state.evEditing.push({
+                basename: null, ext: fileExt(f), name: f.name,
+                publica: state.evEditing.length === 0, file: f, // 1ª evidência já vira "pública"
+            }));
+            e.target.value = '';
+            renderEvList();
+            if (files.length) previewPdfFile(files[files.length - 1]); // exibe a última no painel
         });
 
         // Submit
         form.addEventListener('submit', onSubmitForm);
-        $('#btnCancelar').addEventListener('click', () => { state.editingId = null; state.pendingPdf = null; buildForm(); });
+        $('#btnCancelar').addEventListener('click', () => { state.editingId = null; state.evEditing = []; buildForm(); });
 
         state.editingId = editing ? item.id : null;
 
         // Painel lateral do PDF: mostra evidência do item em edição, ou limpa
-        if (editing && item.hasPdf) showPdfForItem(item);
+        if (editing && state.evEditing.length) showPdfForItem(item);
         else clearPdf();
     }
 
@@ -479,6 +529,7 @@
             id: uid(), createdAt: nowISO(),
             source: 'local', hasPdf: false, pdfName: null, lattesRef: null,
         };
+        const prevEvid = evListFromItem(item); // estado anterior (p/ apagar removidas)
         item.lattesItem = !naoLattes;
         item.typeKey = typeKey;
         item.categoryKey = categoryKey;
@@ -487,10 +538,49 @@
         item.inLattes = naoLattes ? false : (inLattesEl ? inLattesEl.checked : false);
         item.updatedAt = nowISO();
 
-        await persistItem(item, state.pendingPdf);
+        // ---- Evidências: grava novas, remove excluídas, aplica ordem/pública ----
+        const subdir = LattesTypes.categoryFolder(item.categoryKey);
+        const usedBases = new Set(state.evEditing.filter(ev => ev.basename).map(ev => ev.basename));
+        const newBase = () => { let b; do { b = `${item.id}-${randCode(2)}`; } while (usedBases.has(b)); usedBases.add(b); return b; };
+        const semDir = !Storage.hasDirectory();
+        const evOut = [];
+        for (const ev of state.evEditing) {
+            if (ev.file) {
+                const basename = ev.basename || newBase();
+                if (!semDir) {
+                    try { await Storage.writeAttachment(basename, ev.file, subdir, ev.ext); }
+                    catch (e) { toast('Falha ao gravar evidência "' + ev.name + '": ' + e.message, 'aviso'); }
+                }
+                evOut.push({ basename, ext: ev.ext, name: ev.name, publica: !!ev.publica });
+            } else {
+                evOut.push({ basename: ev.basename, ext: ev.ext, name: ev.name, publica: !!ev.publica });
+            }
+        }
+        // apaga arquivos de evidências que foram removidas
+        if (!semDir) {
+            const keep = new Set(evOut.map(e => e.basename));
+            for (const old of prevEvid) {
+                if (old.basename && old.basename !== item.id && !keep.has(old.basename)) {
+                    try { await Storage.deleteEntry(old.basename, subdir); } catch (_) {}
+                }
+            }
+        }
+        // exclusão mútua da marca "pública": no máximo uma
+        let temPub = false;
+        evOut.forEach(e => { if (e.publica && !temPub) temPub = true; else e.publica = false; });
+        item.evidencias = evOut;
+        item.hasPdf = evOut.length > 0;
+        const pub = evOut.find(e => e.publica) || evOut[0] || null;
+        item.pdfName = pub ? pub.name : null;
+        item.fileExt = pub ? pub.ext : null;
+        if (semDir && state.evEditing.some(ev => ev.file)) {
+            toast('Evidências não gravadas: configure um diretório em Configurações.', 'aviso');
+        }
+
+        await persistItem(item);
         toast(editing ? 'Item atualizado.' : 'Item adicionado.', 'ok');
 
-        state.editingId = null; state.pendingPdf = null;
+        state.editingId = null; state.evEditing = [];
         buildForm();
         renderItemList();
     }
@@ -504,8 +594,9 @@
         } else {
             b.push('<span class="badge bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300"><i class="fa-solid fa-heart"></i> Não-Lattes</span>');
         }
-        b.push(item.hasPdf
-            ? '<span class="badge bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300"><i class="fa-solid fa-file-pdf"></i> Comprovado</span>'
+        const nEv = Array.isArray(item.evidencias) ? item.evidencias.length : (item.hasPdf ? 1 : 0);
+        b.push(nEv
+            ? `<span class="badge bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300"><i class="fa-solid fa-file-pdf"></i> Comprovado${nEv > 1 ? ` (${nEv})` : ''}</span>`
             : '<span class="badge bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-300"><i class="fa-solid fa-file-circle-xmark"></i> Sem PDF</span>');
         return b.join(' ');
     }
@@ -615,7 +706,6 @@
         if (!item) return;
         if (btn.dataset.act === 'edit' || btn.dataset.act === 'pdf') {
             // Abre o item na aba Catalogar; o PDF (se houver) aparece no painel lateral
-            state.pendingPdf = null;
             switchTab('catalogar');
             buildForm(item);
             window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -719,7 +809,7 @@
                 if (ex) {
                     ex.fields = src.fields; ex.categoryKey = src.categoryKey || ex.categoryKey;
                     ex.inLattes = true; ex.lattesRef = src.lattesRef; ex.updatedAt = nowISO();
-                    await persistItem(ex, null);
+                    await persistItem(ex);
                     atualizados++; continue;
                 }
             }
@@ -730,9 +820,9 @@
                 categoryKey: src.categoryKey || LattesTypes.primaryCategory(src.typeKey),
                 fields: src.fields,
                 source: 'lattes', inLattes: true, lattesRef: src.lattesRef,
-                hasPdf: false, pdfName: null,
+                hasPdf: false, pdfName: null, evidencias: [],
             };
-            await persistItem(item, null);
+            await persistItem(item);
             existingRefs.add(src.lattesRef);
             n++;
         }
@@ -1111,6 +1201,16 @@
                 if (norm !== i.typeKey) { i.typeKey = norm; changed = true; }
             }
             if (!i.categoryKey && i.typeKey) { i.categoryKey = LattesTypes.primaryCategory(i.typeKey); changed = true; }
+            // Migra evidência única (legado) para o novo array de evidências
+            if (!Array.isArray(i.evidencias)) {
+                if (i.hasPdf) {
+                    const ext = i.fileExt || 'pdf';
+                    i.evidencias = [{ basename: i.id, ext, name: i.pdfName || `${i.id}.${ext}`, publica: true }];
+                } else {
+                    i.evidencias = [];
+                }
+                changed = true;
+            }
         });
         if (changed) saveCatalog();
     }

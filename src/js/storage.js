@@ -122,33 +122,51 @@ window.Storage = (function () {
 
     const ATTACH_EXTS = ['pdf', 'jpg', 'jpeg', 'png'];
 
-    // Grava o anexo (PDF ou imagem) com a extensão informada; remove versões
-    // anteriores com outra extensão para não duplicar (ex.: trocar PDF por PNG).
-    async function writeAttachment(id, fileOrBlob, subdir, ext) {
+    // Grava um anexo (evidência) com base name explícito: <basename>.<ext>.
+    // Remove versões anteriores do MESMO basename com outra extensão.
+    async function writeAttachment(basename, fileOrBlob, subdir, ext) {
         ext = (ext || 'pdf').toLowerCase();
         for (const e of ATTACH_EXTS) if (e !== ext) {
-            try { const d = await targetDir(subdir); await d.removeEntry(`${id}.${e}`); } catch (_) {}
+            try { const d = await targetDir(subdir); await d.removeEntry(`${basename}.${e}`); } catch (_) {}
         }
-        await writeFile(`${id}.${ext}`, fileOrBlob, subdir);
+        await writeFile(`${basename}.${ext}`, fileOrBlob, subdir);
     }
 
-    async function deleteFiles(id, subdir) {
+    // Remove um anexo específico (todas as extensões daquele basename).
+    async function deleteEntry(basename, subdir) {
         if (!dirHandle) return;
         let dir = dirHandle;
         if (subdir) { try { dir = await dirHandle.getDirectoryHandle(subdir); } catch (_) { return; } }
-        for (const ext of ATTACH_EXTS.concat('json')) {
-            try { await dir.removeEntry(`${id}.${ext}`); } catch (_) { /* pode não existir */ }
+        for (const ext of ATTACH_EXTS) {
+            try { await dir.removeEntry(`${basename}.${ext}`); } catch (_) {}
         }
     }
 
-    async function readAttachmentUrl(id, subdir, ext) {
+    // Remove todos os arquivos de um item: <id>.json, <id>.<ext> e <id>-*.<ext>.
+    async function deleteItemFiles(id, subdir) {
+        if (!dirHandle) return;
+        let dir = dirHandle;
+        if (subdir) { try { dir = await dirHandle.getDirectoryHandle(subdir); } catch (_) { return; } }
+        const rm = [];
+        for await (const [name, h] of dir.entries()) {
+            if (h.kind !== 'file') continue;
+            if (name === `${id}.json`) { rm.push(name); continue; }
+            const m = name.match(/^(.*)\.([^.]+)$/);
+            if (!m) continue;
+            const base = m[1], ext = m[2].toLowerCase();
+            if ((base === id || base.indexOf(id + '-') === 0) && ATTACH_EXTS.includes(ext)) rm.push(name);
+        }
+        for (const n of rm) { try { await dir.removeEntry(n); } catch (_) {} }
+    }
+
+    async function readAttachmentUrl(basename, subdir, ext) {
         const dir = await ensureDirReady();
         let target = dir;
         if (subdir) { try { target = await dir.getDirectoryHandle(subdir); } catch (_) { return null; } }
         const tryExts = ext ? [ext.toLowerCase()] : ATTACH_EXTS;
         for (const e of tryExts) {
             try {
-                const fh = await target.getFileHandle(`${id}.${e}`);
+                const fh = await target.getFileHandle(`${basename}.${e}`);
                 const file = await fh.getFile();
                 return URL.createObjectURL(file);
             } catch (_) { /* tenta próxima */ }
@@ -201,7 +219,7 @@ window.Storage = (function () {
         chooseDirectory, restoreDirectory, ensureDirReady, hasDirectory,
         directoryName, forgetDirectory, verifyPermission,
         // arquivos
-        writeJson, writeAttachment, deleteFiles, readAttachmentUrl, scanDirectory, ensureSubdirs,
+        writeJson, writeAttachment, deleteEntry, deleteItemFiles, readAttachmentUrl, scanDirectory, ensureSubdirs,
         // catálogo + settings
         loadCatalog, saveCatalog, loadSettings, saveSettings,
     };
