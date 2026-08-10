@@ -1550,7 +1550,7 @@ window.LattesXML = (function () {
         semPdf:       { cor: 'red',   icone: 'fa-file-circle-xmark', titulo: 'Sem evidência', desc: 'No Lattes, sem evidência' },
         foraLattes:   { cor: 'blue',  icone: 'fa-clock', titulo: 'Fora do Lattes', desc: 'Cadastrados, ainda não no Lattes' },
         naoLattes:    { cor: 'purple', icone: 'fa-heart', titulo: 'Não-Lattes', desc: 'Itens pessoais' },
-        descIncompleta: { cor: 'red', icone: 'fa-align-left', titulo: 'Descrição incompleta', desc: 'Campos parcialmente preenchidos' },
+        descObrig:    { cor: 'red', icone: 'fa-align-left', titulo: 'Obrigatórios pendentes', desc: 'Falta campo obrigatório' },
     };
     const VIEW_PREDICATE = {
         todos:          () => true,
@@ -1558,7 +1558,7 @@ window.LattesXML = (function () {
         semPdf:         i => i.lattesItem && i.inLattes && !i.hasPdf,
         foraLattes:     i => i.lattesItem && !i.inLattes,
         naoLattes:      i => !i.lattesItem,
-        descIncompleta: i => !fieldsComplete(i),
+        descObrig:      i => descState(i) === 'red',
     };
 
     // Aba única (antigos "Catálogo" + "Relatório/Conformidade"): painel de
@@ -1569,10 +1569,13 @@ window.LattesXML = (function () {
         const comprovados = count('comprovados');
         const total = state.items.filter(i => i.lattesItem && i.inLattes).length;
         const pct = total ? Math.round(comprovados / total * 100) : 0;
-        // Descrição: itens com todos os campos preenchidos / total de itens
-        const descOk = state.items.filter(fieldsComplete).length;
+        // Descrição: verde (completo) / amarelo (falta opcional) / vermelho (falta obrigatório)
         const totalDesc = state.items.length;
-        const pctDesc = totalDesc ? Math.round(descOk / totalDesc * 100) : 0;
+        const descG = state.items.filter(i => descState(i) === 'green').length;
+        const descA = state.items.filter(i => descState(i) === 'amber').length;
+        const descR = state.items.filter(i => descState(i) === 'red').length;
+        const wDesc = n => totalDesc ? Math.round(n / totalDesc * 100) : 0;
+        const pctDesc = wDesc(descG);
 
         const card = (key) => {
             const m = VIEW_META[key];
@@ -1589,7 +1592,7 @@ window.LattesXML = (function () {
 
         panel.innerHTML = `
             <div class="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-5">
-                ${card('comprovados')}${card('semPdf')}${card('foraLattes')}${card('naoLattes')}${card('descIncompleta')}
+                ${card('comprovados')}${card('semPdf')}${card('foraLattes')}${card('naoLattes')}${card('descObrig')}
             </div>
 
             <div class="grid sm:grid-cols-2 gap-x-6 gap-y-3 mb-5">
@@ -1600,10 +1603,13 @@ window.LattesXML = (function () {
                     </div>
                 </div>
                 <div>
-                    <div class="flex justify-between text-sm mb-1"><span class="font-semibold"><i class="fa-solid fa-align-left text-gray-400 mr-1"></i>Descrição completa (campos)</span><span>${pctDesc}% (${descOk}/${totalDesc})</span></div>
-                    <div class="w-full h-3 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                        <div class="h-full ${pctDesc === 100 ? 'bg-green-500' : 'bg-red-500'}" style="width:${pctDesc}%"></div>
+                    <div class="flex justify-between text-sm mb-1"><span class="font-semibold"><i class="fa-solid fa-align-left text-gray-400 mr-1"></i>Descrição completa (campos)</span><span>${pctDesc}% (${descG}/${totalDesc})</span></div>
+                    <div class="w-full h-3 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden flex" title="Verde: completo · Amarelo: falta opcional · Vermelho: falta obrigatório">
+                        <div class="h-full bg-green-500" style="width:${wDesc(descG)}%"></div>
+                        <div class="h-full bg-amber-500" style="width:${wDesc(descA)}%"></div>
+                        <div class="h-full bg-red-500" style="width:${wDesc(descR)}%"></div>
                     </div>
+                    <p class="text-xs text-gray-500 mt-0.5">${descG} completos · ${descA} falta opcional · ${descR} falta obrigatório</p>
                 </div>
             </div>
 
@@ -2041,17 +2047,27 @@ window.LattesXML = (function () {
     function evCount(item) {
         return Array.isArray(item.evidencias) ? item.evidencias.length : (item.hasPdf ? 1 : 0);
     }
-    // Verdadeiro quando TODOS os campos definidos para o tipo estão preenchidos
-    function fieldsComplete(item) {
+    // Estado de preenchimento da descrição de um item:
+    //   'red'   — falta ao menos um campo OBRIGATÓRIO
+    //   'amber' — obrigatórios ok, mas falta algum campo OPCIONAL
+    //   'green' — todos os campos preenchidos
+    function descState(item) {
         const def = LattesTypes.get(item.typeKey);
-        if (!def || !def.fields || !def.fields.length) return true; // tipo sem campos
+        if (!def || !def.fields || !def.fields.length) return 'green'; // tipo sem campos
         const vals = item.fields || {};
-        return def.fields.every(f => { const v = vals[f.key]; return v != null && String(v).trim() !== ''; });
+        const filled = f => { const v = vals[f.key]; return v != null && String(v).trim() !== ''; };
+        if (def.fields.some(f => f.required && !filled(f))) return 'red';
+        if (def.fields.some(f => !filled(f))) return 'amber';
+        return 'green';
     }
-    // Marcador verde (ok) / vermelho (pendente)
+    // Marcador de 2 estados: verde (ok) / vermelho (pendente)
     function marker(ok, label, icon) {
-        const cls = ok
-            ? 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300'
+        return marker3(ok ? 'green' : 'red', label, icon);
+    }
+    // Marcador de até 3 estados: verde / amarelo / vermelho
+    function marker3(estado, label, icon) {
+        const cls = estado === 'green' ? 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300'
+            : estado === 'amber' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300'
             : 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300';
         return `<span class="badge ${cls}"><i class="fa-solid ${icon}"></i> ${label}</span>`;
     }
@@ -2070,8 +2086,8 @@ window.LattesXML = (function () {
             const n = evCount(item);
             b.push(marker(n > 0, `evidência${n > 1 ? ` (${n})` : ''}`, 'fa-file-pdf'));
         }
-        // Descrição: verde quando todos os campos preenchidos, vermelho quando parcial
-        b.push(marker(fieldsComplete(item), 'descrição', 'fa-align-left'));
+        // Descrição: verde (tudo), amarelo (falta opcional), vermelho (falta obrigatório)
+        b.push(marker3(descState(item), 'descrição', 'fa-align-left'));
         return b.join(' ');
     }
 
