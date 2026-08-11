@@ -19,6 +19,7 @@
         formDirty: false,   // há edições não salvas no formulário de Catalogar?
         saveAndNew: false,  // flag do botão "Salvar e novo"
         activeTab: 'catalogar',
+        editReturnTab: null,// aba para onde voltar após salvar (ex.: veio de Conformidade)
         lastCat: '', lastType: '', // última categoria/tipo usados (agiliza cadastro em série)
         vocab: {},          // listas curadas de autocomplete (por chave de campo)
         idPrefix: 'lz',     // prefixo do ID dos arquivos (configurável, até 3 chars)
@@ -534,6 +535,7 @@
         opts = opts || {};
         const form = $('#itemForm');
         const editing = !!item;
+        if (!editing) state.editReturnTab = null;        // form novo não volta p/ lugar nenhum
         $('#formTitulo').textContent = editing ? 'Editar item' : 'Novo item';
 
         let currentType = item ? LattesTypes.normalizeType(item.typeKey) : (state.lastType || '');
@@ -1154,8 +1156,14 @@
         const st = Storage.loadSettings(); st.lastCat = state.lastCat; st.lastType = state.lastType; Storage.saveSettings(st);
 
         clearDraft(); // item salvo → descarta o rascunho automático
-        const wasEditing = !!editing, saveNew = state.saveAndNew;
-        state.saveAndNew = false; state.editingId = null; state.evEditing = []; state.formDirty = false;
+        const wasEditing = !!editing, saveNew = state.saveAndNew, returnTab = state.editReturnTab;
+        state.saveAndNew = false; state.editReturnTab = null; state.editingId = null; state.evEditing = []; state.formDirty = false;
+        // Edição vinda de outra aba (ex.: Conformidade) + "Salvar alterações": volta para lá
+        if (wasEditing && !saveNew && returnTab) {
+            buildForm(undefined, { focus: false });      // deixa o formulário de Catalogar limpo
+            switchTab(returnTab);
+            return;
+        }
         // Edição + "Salvar alterações": reabre o mesmo item; senão abre um novo (mesma cat/tipo)
         if (wasEditing && !saveNew) buildForm(state.items.find(i => i.id === item.id), { focus: false });
         else buildForm(undefined, { focus: true });
@@ -1228,7 +1236,7 @@
                     <span class="text-sm font-medium truncate flex-1 min-w-[8rem]" title="${tipo} · ${titulo}">${titulo}</span>
                     <div class="flex flex-wrap gap-1 items-center">${statusBadges(i)}</div>
                     <div class="flex gap-0.5 shrink-0 ml-auto">
-                        ${i.hasPdf ? `<button data-act="pdf" data-id="${i.id}" title="Ver arquivo no painel (Catalogar)" class="w-7 h-7 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-red-600"><i class="fa-solid ${isImageExt(i.fileExt) ? 'fa-image' : 'fa-file-pdf'}"></i></button>` : ''}
+                        ${i.hasPdf ? `<button data-act="pdf" data-id="${i.id}" title="Ver arquivo no painel (Catalogar)" class="w-7 h-7 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-green-600 dark:text-green-500"><i class="fa-solid ${isImageExt(i.fileExt) ? 'fa-image' : 'fa-file-pdf'}"></i></button>` : ''}
                         <button data-act="edit" data-id="${i.id}" title="Abrir / Editar" class="w-7 h-7 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-govbr-600 dark:text-unifesp-400"><i class="fa-solid fa-pen"></i></button>
                         <button data-act="del" data-id="${i.id}" title="Excluir" class="w-7 h-7 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-red-600"><i class="fa-solid fa-trash"></i></button>
                     </div>
@@ -1341,8 +1349,10 @@
                 if (sec) sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 return;
             }
-            // Abre o item na aba Catalogar; o PDF (se houver) aparece no painel lateral
+            // Abre o item na aba Catalogar; ao salvar, volta para a aba de origem
+            const from = state.activeTab;
             switchTab('catalogar');
+            state.editReturnTab = (from && from !== 'catalogar') ? from : null;
             buildForm(item);
             window.scrollTo({ top: 0, behavior: 'smooth' });
         } else if (btn.dataset.act === 'del') {
