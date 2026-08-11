@@ -511,13 +511,17 @@
         const inp = $('#pdfInput');
         const acc = inp ? inp.accept : '';
         const allowed = (acc.includes('application/pdf') || acc === '') ? ['pdf', 'jpg', 'jpeg', 'png'] : ['jpg', 'jpeg', 'png'];
+        // Casa o arquivo anexado com um da bandeja (por nome + tamanho) — assim,
+        // mesmo anexando pelo seletor/arrastar, o original é movido p/ Processado.
+        const inboxByKey = new Map((state._inbox || []).map(e => [`${e.name}|${e.size}`, e.name]));
         let added = null;
         Array.from(files || []).forEach(f => {
             const err = checkEvidenceFile(f, allowed);
             if (err) { toast(err, 'aviso'); return; }
+            const inboxName = inboxByKey.get(`${f.name}|${f.size}`) || null;
             state.evEditing.push({
                 basename: null, ext: fileExt(f), name: f.name || `colado.${fileExt(f)}`,
-                publica: state.evEditing.length === 0, file: f,
+                publica: state.evEditing.length === 0, file: f, inboxName,
             });
             added = f;
             state.formDirty = true;
@@ -1211,10 +1215,14 @@
                 }
             }
         }
-        // Move para "00 - Inbox/00 - Processado" os originais que vieram da bandeja
+        // Move para "00 Inbox/00 Processado" os originais que vieram da bandeja
+        let movidos = 0, falhasMove = 0;
         for (const nm of fromInbox) {
-            try { await Storage.moveInboxToProcessed(nm); } catch (_) {}
+            try { await Storage.moveInboxToProcessed(nm); movidos++; }
+            catch (_) { falhasMove++; }
         }
+        if (movidos) toast(`${movidos} arquivo(s) da bandeja movido(s) para “00 Processado”.`, 'ok');
+        if (falhasMove) toast(`${falhasMove} arquivo(s) da bandeja não puderam ser movidos.`, 'aviso');
         // "pública" é livre: 0..N evidências podem estar marcadas
         item.evidencias = evOut;
         item.hasPdf = evOut.length > 0;

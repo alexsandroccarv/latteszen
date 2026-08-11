@@ -146,7 +146,9 @@ window.Storage = (function () {
             const m = name.match(/\.([^.]+)$/);
             const ext = m ? m[1].toLowerCase() : '';
             if (!ATTACH_EXTS.includes(ext)) continue;
-            out.push({ name, ext });
+            let size = null;
+            try { size = (await h.getFile()).size; } catch (_) {}
+            out.push({ name, ext, size });
         }
         out.sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
         return out;
