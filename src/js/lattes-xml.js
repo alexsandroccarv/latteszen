@@ -302,10 +302,17 @@ window.LattesXML = (function () {
             for (const el of doc.getElementsByTagName(tag)) {
                 const b = groupByPrefix(el, 'DADOS-BASICOS');
                 const d = groupByPrefix(el, 'DETALHAMENTO');
+                const simNao = v => { const s = String(v || '').toUpperCase(); return s === 'SIM' ? 'Sim' : (s === 'NAO' || s === 'NÃO' ? 'Não' : ''); };
                 add('PARTICIPACAO_EVENTO', {
-                    titulo: pick(b, 'TITULO', ...TITLE_KEYS) || d['NOME-DO-EVENTO'] || '',
-                    ano: yearOf(b), natureza: 'Participação', tipoEvento: PARTIC_MAP[tag],
+                    titulo: d['NOME-DO-EVENTO'] || pick(b, 'TITULO', ...TITLE_KEYS) || '',
+                    natureza: PARTIC_MAP[tag],
+                    formaParticipacao: humanize(b['FORMA-DE-PARTICIPACAO'] || ''),
+                    tituloApresentacao: pick(b, 'TITULO', ...TITLE_KEYS) || '',
+                    ano: yearOf(b),
+                    pais: b['PAIS'] || '',
                     cidade: d['CIDADE-DO-EVENTO'] || '',
+                    divulgacaoCT: simNao(b['FLAG-DIVULGACAO-CIENTIFICA']),
+                    url: b['HOME-PAGE-DO-TRABALHO'] || '',
                 }, el);
             }
         });

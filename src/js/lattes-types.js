@@ -164,7 +164,18 @@ const TYPES = {
     TOPOGRAFIA_CI: { label: 'Topografia de circuito integrado registrada', fields: PI_FIELDS },
 
     // 09 Eventos
-    PARTICIPACAO_EVENTO: { label: 'Participação em eventos, congressos, exposições, feiras e olimpíadas', fields: [F_TITULO, F_ANO, { key: 'tipoEvento', label: 'Tipo', type: 'select', options: ['Congresso', 'Feira', 'Simpósio', 'Seminário', 'Encontro', 'Oficina', 'Exposição', 'Olimpíada', 'Outro'] }, { key: 'papel', label: 'Forma de participação', type: 'text' }, F_CIDADE, F_URL] },
+    PARTICIPACAO_EVENTO: { label: 'Participação em eventos, congressos, exposições, feiras e olimpíadas', fields: [
+        { key: 'titulo', label: 'Nome do evento', type: 'text', required: true },
+        { key: 'natureza', label: 'Natureza', type: 'select', required: true, options: ['Congresso', 'Seminário', 'Simpósio', 'Oficina', 'Encontro', 'Olimpíada', 'Feira', 'Exposição', 'Outra'] },
+        { key: 'formaParticipacao', label: 'Forma de participação', type: 'select', options: ['Convidado', 'Participante', 'Ouvinte'] },
+        { key: 'tipoParticipacao', label: 'Tipo de apresentação / participação', type: 'select', options: ['Conferencista', 'Simposista', 'Moderador', 'Avaliador', 'Homenageado'] },
+        { key: 'tituloApresentacao', label: 'Título da apresentação', type: 'text', help: 'Preencher apenas para Convidado ou Participante.' },
+        { key: 'classificacao', label: 'Classificação do evento', type: 'select', options: ['Internacional', 'Nacional', 'Regional', 'Local'] },
+        F_ANO,
+        { key: 'pais', label: 'País', type: 'text', placeholder: 'Brasil' },
+        F_CIDADE,
+        { key: 'divulgacaoCT', label: 'É uma produção para educação e popularização de C&T?', type: 'select', options: ['Sim', 'Não'] },
+        { key: 'url', label: 'Home page do trabalho (URL)', type: 'url' }] },
     ORGANIZACAO_EVENTO: { label: 'Organização de eventos, congressos, exposições, feiras e olimpíadas', fields: [F_TITULO, F_ANO, { key: 'tipoEvento', label: 'Tipo', type: 'select', options: ['Congresso', 'Feira', 'Simpósio', 'Seminário', 'Encontro', 'Oficina', 'Exposição', 'Olimpíada', 'Outro'] }, { key: 'instituicao', label: 'Instituição promotora', type: 'text' }, F_CIDADE, F_URL] },
 
     // 10 Orientações
