@@ -13,6 +13,10 @@
         currentPdfUrl: null,// URL (blob) do PDF exibido no painel lateral
         sortOrder: 'desc',  // ordenação por ano na Conformidade
         viewFilter: 'todos',// recorte da lista (todos/comprovados/semPdf/foraLattes/naoLattes)
+        formDirty: false,   // há edições não salvas no formulário de Catalogar?
+        saveAndNew: false,  // flag do botão "Salvar e novo"
+        activeTab: 'catalogar',
+        lastCat: '', lastType: '', // última categoria/tipo usados (agiliza cadastro em série)
         vocab: {},          // listas curadas de autocomplete (por chave de campo)
         idPrefix: 'lz',     // prefixo do ID dos arquivos (configurável, até 3 chars)
     };
@@ -365,9 +369,15 @@
             ul.innerHTML = `<li class="text-xs text-gray-400 dark:text-gray-500 italic">Nenhuma evidência anexada.</li>`;
             return;
         }
-        ul.innerHTML = state.evEditing.map((ev, idx) => `
+        ul.innerHTML = state.evEditing.map((ev, idx) => {
+            const thumb = isImageExt(ev.ext)
+                ? (ev.file
+                    ? `<img src="${URL.createObjectURL(ev.file)}" class="w-8 h-8 object-cover rounded shrink-0" alt="">`
+                    : `<img data-evthumb="${idx}" class="w-8 h-8 object-cover rounded shrink-0 bg-gray-100 dark:bg-gray-700" alt="">`)
+                : `<i aria-hidden="true" class="fa-solid fa-file-pdf text-red-600 shrink-0 w-8 text-center"></i>`;
+            return `
             <li class="flex items-center gap-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded px-2 py-1 text-sm">
-                <i aria-hidden="true" class="fa-solid ${isImageExt(ev.ext) ? 'fa-image' : 'fa-file-pdf'} text-red-600 shrink-0"></i>
+                ${thumb}
                 <span class="min-w-0 flex-1 truncate" title="${esc(ev.name)}">${esc(ev.name)}${ev.file ? ' <span class="text-xs text-green-600">(novo)</span>' : ''}</span>
                 <label class="flex items-center gap-1 text-xs shrink-0" title="Será exibida no futuro módulo de publicação (apenas uma por item)">
                     <input type="checkbox" data-evpub="${idx}" ${ev.publica ? 'checked' : ''}> pública
@@ -376,47 +386,94 @@
                 <button type="button" data-evdown="${idx}" title="Descer" class="w-6 h-6 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 shrink-0 disabled:opacity-30" ${idx === state.evEditing.length - 1 ? 'disabled' : ''}><i class="fa-solid fa-arrow-down"></i></button>
                 <button type="button" data-evsee="${idx}" title="Ver no painel" class="w-6 h-6 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-govbr-600 dark:text-unifesp-400 shrink-0"><i class="fa-solid fa-eye"></i></button>
                 <button type="button" data-evdel="${idx}" title="Remover" class="w-6 h-6 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-red-600 shrink-0"><i class="fa-solid fa-xmark"></i></button>
-            </li>`).join('');
+            </li>`;
+        }).join('');
+
+        // Miniaturas de imagens já gravadas (carrega do diretório, se houver)
+        state.evEditing.forEach(async (ev, idx) => {
+            if (!isImageExt(ev.ext) || ev.file) return;
+            const el = ul.querySelector(`[data-evthumb="${idx}"]`);
+            if (!el) return;
+            try {
+                const it = state.editingId ? state.items.find(i => i.id === state.editingId) : null;
+                const catKey = it ? it.categoryKey : ($('#selCategoria') ? $('#selCategoria').value : null);
+                const url = await Storage.readAttachmentUrl(ev.basename, LattesTypes.categoryFolder(catKey), ev.ext);
+                if (url) el.src = url;
+            } catch (_) {}
+        });
 
         $$('[data-evpub]', ul).forEach(c => c.addEventListener('change', (e) => {
             const i = +e.target.dataset.evpub;
             if (e.target.checked) state.evEditing.forEach((ev, j) => ev.publica = (j === i)); // exclusão mútua
             else state.evEditing[i].publica = false;
+            state.formDirty = true;
             renderEvList();
         }));
-        const swap = (i, j) => { const t = state.evEditing[i]; state.evEditing[i] = state.evEditing[j]; state.evEditing[j] = t; renderEvList(); };
+        const swap = (i, j) => { const t = state.evEditing[i]; state.evEditing[i] = state.evEditing[j]; state.evEditing[j] = t; state.formDirty = true; renderEvList(); };
         $$('[data-evup]', ul).forEach(b => b.addEventListener('click', (e) => { const i = +e.currentTarget.dataset.evup; if (i > 0) swap(i, i - 1); }));
         $$('[data-evdown]', ul).forEach(b => b.addEventListener('click', (e) => { const i = +e.currentTarget.dataset.evdown; if (i < state.evEditing.length - 1) swap(i, i + 1); }));
         $$('[data-evsee]', ul).forEach(b => b.addEventListener('click', (e) => previewEvidence(state.evEditing[+e.currentTarget.dataset.evsee])));
-        $$('[data-evdel]', ul).forEach(b => b.addEventListener('click', (e) => { state.evEditing.splice(+e.currentTarget.dataset.evdel, 1); renderEvList(); }));
+        $$('[data-evdel]', ul).forEach(b => b.addEventListener('click', (e) => {
+            const i = +e.currentTarget.dataset.evdel;
+            const ev = state.evEditing[i];
+            if (!confirm(`Remover a evidência "${ev.name}"?`)) return;
+            state.evEditing.splice(i, 1); state.formDirty = true; renderEvList();
+        }));
     }
 
-    function buildForm(item) {
+    // Adiciona arquivos à lista de evidências (usado por input, arrastar-soltar
+    // e colar). Valida cada arquivo e respeita os tipos aceitos pelo tipo atual.
+    function addEvidenceFiles(files) {
+        const inp = $('#pdfInput');
+        const acc = inp ? inp.accept : '';
+        const allowed = (acc.includes('application/pdf') || acc === '') ? ['pdf', 'jpg', 'jpeg', 'png'] : ['jpg', 'jpeg', 'png'];
+        let added = null;
+        Array.from(files || []).forEach(f => {
+            const err = checkEvidenceFile(f, allowed);
+            if (err) { toast(err, 'aviso'); return; }
+            state.evEditing.push({
+                basename: null, ext: fileExt(f), name: f.name || `colado.${fileExt(f)}`,
+                publica: state.evEditing.length === 0, file: f,
+            });
+            added = f;
+            state.formDirty = true;
+        });
+        renderEvList();
+        if (added) previewPdfFile(added);
+    }
+
+    function buildForm(item, opts) {
+        opts = opts || {};
         const form = $('#itemForm');
         const editing = !!item;
         $('#formTitulo').textContent = editing ? 'Editar item' : 'Novo item';
 
-        let currentType = item ? LattesTypes.normalizeType(item.typeKey) : '';
-        let currentCat = item ? (item.categoryKey || LattesTypes.primaryCategory(currentType)) : '';
+        let currentType = item ? LattesTypes.normalizeType(item.typeKey) : (state.lastType || '');
+        let currentCat = item ? (item.categoryKey || LattesTypes.primaryCategory(currentType))
+            : (state.lastCat || (LattesTypes.categories[0] && LattesTypes.categories[0].key));
         if (currentCat === 'NAO_LATTES') currentCat = 'ATIVIDADES_LIVRES'; // legado
 
         form.innerHTML = `
-            <div id="evidenceBlock" class="bg-govbr-50 dark:bg-gray-900 border border-govbr-100 dark:border-gray-700 rounded px-3 py-2">
-                <label class="block text-xs font-semibold mb-1"><i aria-hidden="true" class="fa-solid fa-file-arrow-up text-govbr-600 dark:text-unifesp-400 mr-1"></i> <span id="pdfInputLabel">Evidências (PDF ou imagem)</span></label>
+            <div id="evidenceBlock" class="bg-govbr-50 dark:bg-gray-900 border border-govbr-100 dark:border-gray-700 rounded px-3 py-2 transition-shadow">
+                <label class="block text-xs font-semibold mb-1" for="pdfInput"><i aria-hidden="true" class="fa-solid fa-file-arrow-up text-govbr-600 dark:text-unifesp-400 mr-1"></i> <span id="pdfInputLabel">Evidências (PDF ou imagem)</span></label>
                 <input type="file" id="pdfInput" multiple accept="application/pdf,image/jpeg,image/png"
                        class="w-full text-sm text-gray-600 dark:text-gray-300 file:mr-2 file:px-3 file:py-1.5 file:rounded file:border-0 file:bg-govbr-600 dark:file:bg-unifesp-700 file:text-white">
-                <p class="text-xs text-gray-500 mt-1">Pode anexar várias evidências. Marque <strong>“pública”</strong> em <em>uma</em> delas (exibida no futuro módulo de publicação). Use ↑ ↓ para reordenar.</p>
+                <p class="text-xs text-gray-500 mt-1">Arraste e solte, cole (Ctrl+V) ou selecione. Marque <strong>“pública”</strong> em <em>uma</em> evidência. Use ↑ ↓ para reordenar.</p>
                 <ul id="evList" class="mt-2 space-y-1"></ul>
             </div>
 
             <div class="grid grid-cols-2 gap-2">
                 <div>
-                    <label class="block text-xs font-semibold mb-1">Categoria</label>
+                    <label class="block text-xs font-semibold mb-1" for="selCategoria">Categoria</label>
                     <select id="selCategoria" class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900"></select>
                 </div>
                 <div>
-                    <label class="block text-xs font-semibold mb-1">Tipo do item</label>
-                    <select id="selTipo" class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900"></select>
+                    <label class="block text-xs font-semibold mb-1" for="selTipoSearch">Tipo do item</label>
+                    <div class="relative">
+                        <input type="text" id="selTipoSearch" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="selTipoList" autocomplete="off" placeholder="Buscar tipo…" class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900">
+                        <input type="hidden" id="selTipo">
+                        <ul id="selTipoList" role="listbox" class="hidden absolute z-30 mt-1 max-h-64 w-full overflow-auto rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 shadow-lg"></ul>
+                    </div>
                 </div>
             </div>
 
@@ -427,33 +484,59 @@
                 <span>Este item <strong>já consta no Currículo Lattes</strong></span>
             </label>
 
-            <div class="flex gap-2 pt-2">
+            <p id="idInfo" class="text-xs text-gray-500"></p>
+
+            <div class="flex gap-2 pt-1 flex-wrap">
                 <button type="submit" class="px-4 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm font-semibold hover:opacity-90">
                     <i aria-hidden="true" class="fa-solid fa-floppy-disk mr-1"></i> ${editing ? 'Salvar alterações' : 'Adicionar item'}
+                </button>
+                <button type="button" id="btnSalvarNovo" class="px-4 py-2 rounded border border-govbr-600 dark:border-unifesp-500 text-govbr-700 dark:text-unifesp-300 text-sm font-semibold hover:bg-govbr-50 dark:hover:bg-gray-800" title="Salva e abre um novo item na mesma categoria/tipo">
+                    <i aria-hidden="true" class="fa-solid fa-plus mr-1"></i> Salvar e novo
                 </button>
                 <button type="button" id="btnCancelar" class="px-4 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm ${editing ? '' : 'hidden'}">Cancelar</button>
             </div>
             ${datalistsHtml()}`;
 
-        // Preencher selects de categoria/tipo
+        // Categoria (select nativo)
         const selCat = $('#selCategoria');
         selCat.innerHTML = LattesTypes.categories.map(c => `<option value="${c.key}">${esc(c.num + '. ' + c.label)}</option>`).join('');
         if (currentCat) selCat.value = currentCat;
 
-        const optFor = (tk) => `<option value="${tk}">${esc(LattesTypes.label(tk))}</option>`;
+        // ---- Tipo do item: combobox pesquisável (input + lista + hidden #selTipo) ----
+        let tipoOptions = [];
+        const tipoOptionsFor = (catKey) => {
+            const cat = LattesTypes.categories.find(c => c.key === catKey);
+            if (!cat) return [];
+            if (cat.groups) return cat.groups.flatMap(g => g.types.map(tk => ({ key: tk, label: LattesTypes.label(tk), group: g.label })));
+            return (cat.types || []).map(tk => ({ key: tk, label: LattesTypes.label(tk), group: null }));
+        };
+        const closeTipoList = () => { const ul = $('#selTipoList'); if (ul) ul.classList.add('hidden'); const s = $('#selTipoSearch'); if (s) s.setAttribute('aria-expanded', 'false'); };
+        const openTipoList = () => { $('#selTipoList').classList.remove('hidden'); $('#selTipoSearch').setAttribute('aria-expanded', 'true'); };
+        function renderTipoList(q) {
+            const ul = $('#selTipoList'); if (!ul) return;
+            const nq = normNome(q || '');
+            const items = tipoOptions.filter(o => !nq || normNome(o.label).includes(nq));
+            if (!items.length) { ul.innerHTML = `<li class="px-2 py-1 text-xs text-gray-400 italic">Nenhum tipo encontrado</li>`; return; }
+            let html = '', last = null;
+            items.forEach(o => {
+                if (o.group && o.group !== last) { html += `<li class="px-2 pt-2 pb-0.5 text-[11px] uppercase tracking-wide text-gray-400">${esc(o.group)}</li>`; last = o.group; }
+                const cur = o.key === $('#selTipo').value ? 'bg-govbr-50 dark:bg-gray-700 font-medium' : '';
+                html += `<li role="option" data-key="${o.key}" class="px-2 py-1 text-sm cursor-pointer hover:bg-govbr-50 dark:hover:bg-gray-700 ${cur}">${esc(o.label)}</li>`;
+            });
+            ul.innerHTML = html;
+            ul.querySelectorAll('[data-key]').forEach(li => li.addEventListener('mousedown', (ev) => { ev.preventDefault(); selectTipo(li.dataset.key); }));
+        }
+        function selectTipo(key, silent) {
+            $('#selTipo').value = key || '';
+            const s = $('#selTipoSearch'); if (s) s.value = key ? LattesTypes.label(key) : '';
+            closeTipoList();
+            if (!silent) { currentType = key; renderDynFields(); }
+        }
         function fillTipos() {
-            const cat = LattesTypes.categories.find(c => c.key === selCat.value);
-            let html;
-            if (cat.groups) {
-                html = cat.groups.map(g =>
-                    `<optgroup label="${esc(g.label)}">${g.types.map(optFor).join('')}</optgroup>`).join('');
-            } else {
-                html = cat.types.map(optFor).join('');
-            }
-            $('#selTipo').innerHTML = html;
-            const allTypes = cat.groups ? cat.groups.flatMap(g => g.types) : cat.types;
-            if (currentType && allTypes.includes(currentType)) $('#selTipo').value = currentType;
-            // "Já consta no Lattes" não se aplica a Atividades livres (categoria 99)
+            tipoOptions = tipoOptionsFor(selCat.value);
+            const valid = currentType && tipoOptions.some(o => o.key === currentType);
+            currentType = valid ? currentType : ((tipoOptions[0] && tipoOptions[0].key) || '');
+            selectTipo(currentType, true);
             $('#inLattesWrap').style.display = LattesTypes.isNaoLattesCategory(selCat.value) ? 'none' : '';
             renderDynFields();
         }
@@ -461,16 +544,13 @@
             const def = LattesTypes.get($('#selTipo').value);
             const vals = item ? (item.fields || {}) : {};
             $('#dynFields').innerHTML = (def ? def.fields : []).map(f => fieldHtml(f, vals[f.key])).join('');
-            // Widgets especiais que precisam de JS após render (cascata de áreas)
+            associateLabels($('#dynFields'));           // a11y: label for/id + aria-required
             if (def && def.fields.some(f => f.type === 'areatree')) wireAreaTree($('#dynFields'), vals);
-            // Validação em tempo real (ISSN/ISBN/DOI/URL) e contadores de textarea
-            wireValidators($('#dynFields'));
-            wireCounters($('#dynFields'));
-            // Alguns tipos não têm comprovação (ex.: Conexões — apenas o link)
+            wireValidators($('#dynFields'));             // ISSN/ISBN/DOI/URL
+            wireCounters($('#dynFields'));               // contador de textareas
             const semEvidencia = !!(def && def.noEvidence);
             $('#evidenceBlock').style.display = semEvidencia ? 'none' : '';
             if (semEvidencia) { state.evEditing = []; renderEvList(); clearPdf(); }
-            // Tipos de arquivo aceitos e rótulo conforme o tipo do item
             const accept = (def && def.accept) || 'application/pdf,image/jpeg,image/png';
             const inp = $('#pdfInput'); if (inp) inp.accept = accept;
             const lbl = $('#pdfInputLabel');
@@ -478,44 +558,62 @@
                 : (def && def.key === 'DOCUMENTO_PESSOAL' ? 'Documento (PDF ou imagem)' : 'Evidência (PDF ou imagem)');
         }
 
+        // Combobox: eventos
+        const search = $('#selTipoSearch');
+        search.addEventListener('focus', () => { search.value = ''; renderTipoList(''); openTipoList(); });
+        search.addEventListener('input', () => { renderTipoList(search.value); openTipoList(); });
+        search.addEventListener('blur', () => { setTimeout(() => { closeTipoList(); search.value = LattesTypes.label($('#selTipo').value); }, 150); });
+        search.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') { closeTipoList(); search.value = LattesTypes.label($('#selTipo').value); search.blur(); }
+            else if (e.key === 'Enter') { e.preventDefault(); const first = $('#selTipoList').querySelector('[data-key]'); if (first) { selectTipo(first.dataset.key); search.blur(); } }
+        });
+
         selCat.addEventListener('change', () => { currentType = ''; fillTipos(); });
-        $('#selTipo').addEventListener('change', () => { renderDynFields(); });
         // Limpa o destaque de erro assim que o usuário corrige o campo
         $('#dynFields').addEventListener('input', (e) => { if (e.target.matches('input,select,textarea')) setFieldError(e.target, ''); });
         $('#dynFields').addEventListener('change', (e) => { if (e.target.matches('input,select,textarea')) setFieldError(e.target, ''); });
+
         // Evidências: carrega as do item em edição (ou lista vazia p/ novo item)
         state.evEditing = editing ? evListFromItem(item) : [];
         fillTipos();
         renderEvList();
 
-        $('#pdfInput').addEventListener('change', (e) => {
-            const acc = e.target.accept || '';
-            const allowed = (acc.includes('application/pdf') || acc === '') ? ['pdf', 'jpg', 'jpeg', 'png'] : ['jpg', 'jpeg', 'png'];
-            const files = Array.from(e.target.files || []);
-            let added = null;
-            files.forEach(f => {
-                const err = checkEvidenceFile(f, allowed);
-                if (err) { toast(err, 'aviso'); return; }
-                state.evEditing.push({
-                    basename: null, ext: fileExt(f), name: f.name,
-                    publica: state.evEditing.length === 0, file: f, // 1ª evidência já vira "pública"
-                });
-                added = f;
-            });
-            e.target.value = '';
-            renderEvList();
-            if (added) previewPdfFile(added); // exibe a última válida no painel
+        // Anexo por seletor de arquivos
+        $('#pdfInput').addEventListener('change', (e) => { addEvidenceFiles(e.target.files); e.target.value = ''; });
+        // Anexo por arrastar-e-soltar
+        const drop = $('#evidenceBlock');
+        ['dragenter', 'dragover'].forEach(ev => drop.addEventListener(ev, (e) => {
+            if (drop.style.display === 'none') return;
+            e.preventDefault(); drop.classList.add('ring-2', 'ring-govbr-400');
+        }));
+        ['dragleave', 'drop'].forEach(ev => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.remove('ring-2', 'ring-govbr-400'); }));
+        drop.addEventListener('drop', (e) => { if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length) addEvidenceFiles(e.dataTransfer.files); });
+        // Anexo por colar (Ctrl+V) uma imagem/arquivo
+        form.addEventListener('paste', (e) => {
+            if (drop.style.display === 'none') return;
+            const items = e.clipboardData && e.clipboardData.items; if (!items) return;
+            const files = [];
+            for (const it of items) { if (it.kind === 'file') { const f = it.getAsFile(); if (f) files.push(f); } }
+            if (files.length) { e.preventDefault(); addEvidenceFiles(files); }
         });
 
-        // Submit
+        // Marca "não salvo" a cada digitação
+        form.addEventListener('input', () => { state.formDirty = true; });
+
+        // Submit / Salvar e novo / Cancelar
         form.addEventListener('submit', onSubmitForm);
-        $('#btnCancelar').addEventListener('click', () => { state.editingId = null; state.evEditing = []; buildForm(); });
+        $('#btnSalvarNovo').addEventListener('click', () => { state.saveAndNew = true; form.requestSubmit(); });
+        $('#btnCancelar').addEventListener('click', () => { state.editingId = null; state.evEditing = []; state.formDirty = false; buildForm(undefined, { focus: true }); });
 
         state.editingId = editing ? item.id : null;
+        $('#idInfo').textContent = editing ? `ID: ${item.id}` : `O ID será gerado ao salvar (prefixo “${state.idPrefix}”).`;
 
         // Painel lateral do PDF: mostra evidência do item em edição, ou limpa
         if (editing && state.evEditing.length) showPdfForItem(item);
         else clearPdf();
+
+        state.formDirty = false;                         // form recém-montado = limpo
+        if (opts.focus) { const first = $('#dynFields').querySelector('input, select, textarea'); if (first) first.focus(); }
     }
 
     // Opções de ano para os seletores (decrescente). Inclui uma folga futura
@@ -683,16 +781,29 @@
         if (kind === 'url') return validateURL(value);
         return { ok: true, value: value };
     }
-    // Feedback visual (borda vermelha + mensagem) para campos com data-validate
+    // Feedback visual (borda vermelha + mensagem + aria-invalid)
     function setFieldError(el, msg) {
         el.classList.toggle('border-red-500', !!msg);
         el.classList.toggle('ring-1', !!msg);
         el.classList.toggle('ring-red-500', !!msg);
+        el.setAttribute('aria-invalid', msg ? 'true' : 'false');
         let p = el.parentElement.querySelector('.validate-msg');
         if (msg) {
             if (!p) { p = document.createElement('p'); p.className = 'validate-msg text-xs text-red-600 dark:text-red-400 mt-0.5'; el.parentElement.appendChild(p); }
             p.textContent = msg;
         } else if (p) p.remove();
+    }
+    // Associa <label> aos controles (for/id) e marca aria-required — a11y
+    function associateLabels(container) {
+        let n = 0;
+        container.querySelectorAll(':scope > div').forEach(wrap => {
+            const label = wrap.querySelector(':scope > label');
+            const ctrl = wrap.querySelector('input, select, textarea');
+            if (!label || !ctrl) return;
+            if (!ctrl.id) ctrl.id = `fld-${++n}-${ctrl.name || 'x'}`;
+            label.setAttribute('for', ctrl.id);
+            if (ctrl.required) ctrl.setAttribute('aria-required', 'true');
+        });
     }
     function wireValidators(container) {
         $$('[data-validate]', container).forEach(el => {
@@ -941,11 +1052,20 @@
         }
 
         await persistItem(item);
-        toast(editing ? 'Item atualizado.' : 'Item adicionado.', 'ok');
+        // Feedback com o local de gravação (subpasta da categoria)
+        const local = Storage.hasDirectory() ? ` em “${subdir}/”` : '';
+        toast((editing ? 'Item atualizado' : 'Item adicionado') + local + '.', 'ok');
         if (encResid) toast(`Atenção: ${encResid} caractere(s) fora do ISO-8859-1 permanecem (ex.: emoji) — na exportação ao Lattes virarão entidades XML.`, 'aviso');
 
-        state.editingId = null; state.evEditing = [];
-        buildForm();
+        // Lembra a última categoria/tipo (agiliza cadastro em série) e persiste
+        state.lastCat = item.categoryKey; state.lastType = item.typeKey;
+        const st = Storage.loadSettings(); st.lastCat = state.lastCat; st.lastType = state.lastType; Storage.saveSettings(st);
+
+        const wasEditing = !!editing, saveNew = state.saveAndNew;
+        state.saveAndNew = false; state.editingId = null; state.evEditing = []; state.formDirty = false;
+        // Edição + "Salvar alterações": reabre o mesmo item; senão abre um novo (mesma cat/tipo)
+        if (wasEditing && !saveNew) buildForm(state.items.find(i => i.id === item.id), { focus: false });
+        else buildForm(undefined, { focus: true });
         renderItemList();
     }
 
@@ -1625,6 +1745,12 @@
         config: renderConfig,
     };
     function switchTab(name) {
+        // Guarda de alterações não salvas ao sair de "Catalogar"
+        if (state.activeTab === 'catalogar' && name !== 'catalogar' && state.formDirty) {
+            if (!confirm('Há alterações não salvas no formulário. Sair mesmo assim?')) return;
+            state.formDirty = false;
+        }
+        state.activeTab = name;
         $$('.tab-btn').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === name ? 'true' : 'false'));
         $$('.tab-panel').forEach(p => p.hidden = (p.id !== 'tab-' + name));
         RENDERERS[name] && RENDERERS[name]();
@@ -1702,8 +1828,13 @@
         const cfg = Storage.loadSettings();
         state.vocab = cfg.vocab || {};
         state.idPrefix = sanitizePrefix(cfg.idPrefix || 'lz');
+        state.lastCat = cfg.lastCat || '';
+        state.lastType = cfg.lastType || '';
         migrarItens();
         try { await Storage.restoreDirectory(); } catch (_) {}
+
+        // Aviso ao fechar/recarregar com edições não salvas
+        window.addEventListener('beforeunload', (e) => { if (state.formDirty) { e.preventDefault(); e.returnValue = ''; } });
 
         // Abas
         $$('.tab-btn').forEach(b => b.addEventListener('click', () => switchTab(b.dataset.tab)));
