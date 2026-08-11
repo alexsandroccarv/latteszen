@@ -4,6 +4,9 @@
 (function () {
     'use strict';
 
+    // Versão do esquema dos itens (carimbada em cada item para migrações futuras)
+    const SCHEMA_VERSION = 2;
+
     /* ----------------------------- Estado ------------------------------- */
     const state = {
         items: [],          // catálogo
@@ -96,19 +99,102 @@
     }
 
     /* --------------------------- Persistência --------------------------- */
-    function saveCatalog() { Storage.saveCatalog(state.items); }
+    // Grava o índice no localStorage protegendo contra estouro de cota.
+    function saveCatalog() {
+        try { Storage.saveCatalog(state.items); return true; }
+        catch (e) {
+            toast('Não foi possível salvar no navegador (armazenamento cheio). Exporte um backup em Configurações e/ou remova itens.', 'erro');
+            return false;
+        }
+    }
     function saveVocab() {
         const s = Storage.loadSettings();
         s.vocab = state.vocab;
         Storage.saveSettings(s);
     }
 
+    // Lembrete de backup: conta gravações desde o último export e avisa a cada 20.
+    function bumpBackupReminder() {
+        const s = Storage.loadSettings();
+        s.sinceBackup = (s.sinceBackup || 0) + 1;
+        Storage.saveSettings(s);
+        if (s.sinceBackup % 20 === 0) {
+            toast(`Você fez ${s.sinceBackup} alterações desde o último backup. Exporte o catálogo em Configurações › Backup.`, 'aviso');
+        }
+    }
+    function resetBackupReminder() {
+        const s = Storage.loadSettings(); s.sinceBackup = 0; Storage.saveSettings(s);
+    }
+
+    /* --------- Rascunho automático do formulário (apenas item NOVO) --------- */
+    const DRAFT_KEY = 'lz_draft';
+    let draftTimer = null;
+    function saveDraftDebounced() {
+        if (state.editingId) return;                 // não rascunha edição de item existente
+        clearTimeout(draftTimer);
+        draftTimer = setTimeout(() => {
+            const form = $('#itemForm'); if (!form) return;
+            const def = LattesTypes.get($('#selTipo').value); if (!def) return;
+            const fields = collectFields(form, def);
+            const temConteudo = Object.values(fields).some(v => String(v || '').trim());
+            if (!temConteudo) { try { localStorage.removeItem(DRAFT_KEY); } catch (_) {} return; }
+            try {
+                localStorage.setItem(DRAFT_KEY, JSON.stringify({
+                    cat: $('#selCategoria').value, type: $('#selTipo').value, fields,
+                }));
+            } catch (_) {}
+        }, 500);
+    }
+    function clearDraft() { try { localStorage.removeItem(DRAFT_KEY); } catch (_) {} const b = $('#draftBanner'); if (b) b.innerHTML = ''; }
+    function loadDraft() { try { return JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null'); } catch (_) { return null; } }
+    function maybeShowDraftBanner() {
+        const bn = $('#draftBanner'); if (!bn) return;
+        const d = state.editingId ? null : loadDraft();
+        if (!d || !d.fields) { bn.innerHTML = ''; return; }
+        const label = LattesTypes.label(d.type) || '';
+        bn.innerHTML = `<div class="flex items-center gap-2 text-xs bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded px-3 py-2 mb-3">
+            <i aria-hidden="true" class="fa-solid fa-clock-rotate-left text-amber-600 shrink-0"></i>
+            <span class="flex-1">Rascunho não salvo encontrado${label ? ` (${esc(label)})` : ''}. As evidências não ficam no rascunho.</span>
+            <button type="button" id="btnDraftRestore" class="px-2 py-1 rounded bg-amber-600 text-white shrink-0">Restaurar</button>
+            <button type="button" id="btnDraftDiscard" class="px-2 py-1 rounded border border-amber-300 dark:border-amber-700 shrink-0">Descartar</button>
+        </div>`;
+        $('#btnDraftRestore').addEventListener('click', () => restoreDraft(d));
+        $('#btnDraftDiscard').addEventListener('click', clearDraft);
+    }
+    function restoreDraft(d) {
+        clearDraft();
+        buildForm(undefined, { focus: false });
+        const selCat = $('#selCategoria');
+        if (d.cat) { selCat.value = d.cat; selCat.dispatchEvent(new Event('change')); }
+        if (d.type && state._selectTipo) state._selectTipo(d.type);   // seleciona o tipo do rascunho
+        const form = $('#itemForm');
+        Object.entries(d.fields || {}).forEach(([k, v]) => {
+            const el = form.elements[k];
+            if (el && el.tagName && /^(INPUT|SELECT|TEXTAREA)$/.test(el.tagName) && el.type !== 'file') el.value = v;
+        });
+        state.formDirty = true;
+        toast('Rascunho restaurado.', 'ok');
+    }
+
+    // Garante no máximo uma evidência marcada como "pública". Retorna true se ajustou.
+    function enforceSinglePublica(item) {
+        if (!Array.isArray(item.evidencias)) return false;
+        let seen = false, changed = false;
+        item.evidencias.forEach(e => {
+            if (e && e.publica) { if (seen) { e.publica = false; changed = true; } else seen = true; }
+        });
+        return changed;
+    }
+
     // Grava o item no índice (localStorage) e o JSON no diretório. Os anexos
     // (evidências) são gravados/removidos separadamente em onSubmitForm.
     async function persistItem(item) {
+        item.schemaVersion = SCHEMA_VERSION;       // carimba a versão do esquema
+        enforceSinglePublica(item);                // integridade: 1 pública no máximo
         const idx = state.items.findIndex(i => i.id === item.id);
         if (idx >= 0) state.items[idx] = item; else state.items.push(item);
         saveCatalog();
+        bumpBackupReminder();
         if (Storage.hasDirectory()) {
             try { await Storage.writeJson(item.id, item, LattesTypes.categoryFolder(item.categoryKey)); }
             catch (e) { toast('Item salvo no índice, mas falhou ao gravar o JSON: ' + e.message, 'aviso'); }
@@ -149,6 +235,7 @@
                         <i aria-hidden="true" class="fa-solid fa-file-circle-plus text-govbr-600 dark:text-unifesp-400"></i>
                         <span id="formTitulo">Novo item</span>
                     </h2>
+                    <div id="draftBanner"></div>
                     <form id="itemForm" class="space-y-3" novalidate></form>
                 </section>
                 <section class="lg:col-span-3 lg:sticky lg:top-4">
@@ -175,6 +262,7 @@
             </div>`;
 
         buildForm();
+        maybeShowDraftBanner();
         $('#pdfClose').addEventListener('click', clearPdf);
         $('#pdfNewTab').addEventListener('click', () => { if (state.currentPdfUrl) window.open(state.currentPdfUrl, '_blank'); });
     }
@@ -530,8 +618,9 @@
             $('#selTipo').value = key || '';
             const s = $('#selTipoSearch'); if (s) s.value = key ? LattesTypes.label(key) : '';
             closeTipoList();
-            if (!silent) { currentType = key; renderDynFields(); }
+            if (!silent) { currentType = key; renderDynFields(); saveDraftDebounced(); }
         }
+        state._selectTipo = selectTipo;                  // ponte p/ restaurar rascunho
         function fillTipos() {
             tipoOptions = tipoOptionsFor(selCat.value);
             const valid = currentType && tipoOptions.some(o => o.key === currentType);
@@ -568,7 +657,7 @@
             else if (e.key === 'Enter') { e.preventDefault(); const first = $('#selTipoList').querySelector('[data-key]'); if (first) { selectTipo(first.dataset.key); search.blur(); } }
         });
 
-        selCat.addEventListener('change', () => { currentType = ''; fillTipos(); });
+        selCat.addEventListener('change', () => { currentType = ''; fillTipos(); saveDraftDebounced(); });
         // Limpa o destaque de erro assim que o usuário corrige o campo
         $('#dynFields').addEventListener('input', (e) => { if (e.target.matches('input,select,textarea')) setFieldError(e.target, ''); });
         $('#dynFields').addEventListener('change', (e) => { if (e.target.matches('input,select,textarea')) setFieldError(e.target, ''); });
@@ -597,8 +686,8 @@
             if (files.length) { e.preventDefault(); addEvidenceFiles(files); }
         });
 
-        // Marca "não salvo" a cada digitação
-        form.addEventListener('input', () => { state.formDirty = true; });
+        // Marca "não salvo" a cada digitação e atualiza o rascunho automático
+        form.addEventListener('input', () => { state.formDirty = true; saveDraftDebounced(); });
 
         // Submit / Salvar e novo / Cancelar
         form.addEventListener('submit', onSubmitForm);
@@ -885,12 +974,15 @@
     // ISO-8859-1 (futura exportação ao Lattes). Retorna nº de caracteres que
     // ainda ficaram fora do Latin-1 (ex.: emoji) — que viram entidades no XML.
     function normalizeEncoding(fields) {
-        if (!window.LzEncoding) return 0;
         let residual = 0;
         Object.keys(fields).forEach(k => {
             if (typeof fields[k] !== 'string' || !fields[k]) return;
-            try { fields[k] = LzEncoding.normalizePunctuation(fields[k]); } catch (_) {}
-            try { residual += (LzEncoding.findNonLatin1(fields[k]) || []).length; } catch (_) {}
+            // Remove caracteres de controle (preserva \t e \n) — integridade
+            fields[k] = fields[k].replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, '');
+            if (window.LzEncoding) {
+                try { fields[k] = LzEncoding.normalizePunctuation(fields[k]); } catch (_) {}
+                try { residual += (LzEncoding.findNonLatin1(fields[k]) || []).length; } catch (_) {}
+            }
         });
         return residual;
     }
@@ -1061,6 +1153,7 @@
         state.lastCat = item.categoryKey; state.lastType = item.typeKey;
         const st = Storage.loadSettings(); st.lastCat = state.lastCat; st.lastType = state.lastType; Storage.saveSettings(st);
 
+        clearDraft(); // item salvo → descarta o rascunho automático
         const wasEditing = !!editing, saveNew = state.saveAndNew;
         state.saveAndNew = false; state.editingId = null; state.evEditing = []; state.formDirty = false;
         // Edição + "Salvar alterações": reabre o mesmo item; senão abre um novo (mesma cat/tipo)
@@ -1697,7 +1790,7 @@
 
     async function exportCatalog() {
         const data = {
-            app: 'lattesZen', version: APP_CONFIG.version, exportedAt: nowISO(),
+            app: 'lattesZen', version: APP_CONFIG.version, schemaVersion: SCHEMA_VERSION, exportedAt: nowISO(),
             items: state.items,
         };
         const nome = catalogBaseName();
@@ -1705,6 +1798,7 @@
         if (Storage.hasDirectory()) {
             try {
                 await Storage.writeJson(nome, data, LattesTypes.backupFolder());
+                resetBackupReminder();
                 toast(`Backup salvo em "${LattesTypes.backupFolder()}/${nome}.json".`, 'ok');
                 return;
             } catch (e) {
@@ -1718,6 +1812,18 @@
         a.download = `${nome}.json`;
         a.click();
         URL.revokeObjectURL(a.href);
+        resetBackupReminder();
+    }
+
+    // Higieniza um item vindo de JSON externo (integridade)
+    function sanitizeImportedItem(i) {
+        if (!Array.isArray(i.evidencias)) {
+            i.evidencias = i.hasPdf ? [{ basename: i.id, ext: i.fileExt || 'pdf', name: i.pdfName || `${i.id}.pdf`, publica: true }] : [];
+        }
+        enforceSinglePublica(i);
+        i.hasPdf = i.evidencias.length > 0;
+        if (!i.categoryKey && i.typeKey) i.categoryKey = LattesTypes.primaryCategory(i.typeKey);
+        i.schemaVersion = SCHEMA_VERSION;
     }
 
     async function importCatalog(e) {
@@ -1728,7 +1834,7 @@
             const items = Array.isArray(data) ? data : data.items;
             if (!Array.isArray(items)) throw new Error('Formato inválido.');
             const byId = new Map(state.items.map(i => [i.id, i]));
-            items.forEach(i => { if (i && i.id) byId.set(i.id, i); });
+            items.forEach(i => { if (i && i.id) { sanitizeImportedItem(i); byId.set(i.id, i); } });
             state.items = Array.from(byId.values());
             saveCatalog();
             toast(`${items.length} item(ns) importado(s) do JSON.`, 'ok');
@@ -1809,6 +1915,10 @@
                 }
                 changed = true;
             }
+            // Garante no máximo uma evidência "pública" (integridade)
+            if (enforceSinglePublica(i)) changed = true;
+            // Carimba a versão do esquema (para migrações futuras)
+            if (i.schemaVersion !== SCHEMA_VERSION) { i.schemaVersion = SCHEMA_VERSION; changed = true; }
         });
         if (changed) saveCatalog();
     }
