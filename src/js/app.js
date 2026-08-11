@@ -6,6 +6,11 @@
 
     // Versão do esquema dos itens (carimbada em cada item para migrações futuras)
     const SCHEMA_VERSION = 2;
+    // Valor sentinela "Não se aplica" (campos URL): conta como preenchido na
+    // conformidade, mas na futura exportação XML do Lattes deve ir EM BRANCO.
+    const NA_VALUE = 'Não se aplica';
+    // Converte um valor para exportação XML (N/A vira branco). Uso futuro.
+    function xmlExportValue(v) { return v === NA_VALUE ? '' : v; }
 
     /* ----------------------------- Estado ------------------------------- */
     const state = {
@@ -170,6 +175,9 @@
         if (d.type && state._selectTipo) state._selectTipo(d.type);   // seleciona o tipo do rascunho
         const form = $('#itemForm');
         Object.entries(d.fields || {}).forEach(([k, v]) => {
+            // Campo URL marcado "Não se aplica": restaura o checkbox N/A
+            const naCb = form.querySelector(`[data-na="${k}"]`);
+            if (naCb && v === NA_VALUE) { naCb.checked = true; naCb.dispatchEvent(new Event('change')); return; }
             const el = form.elements[k];
             if (el && el.tagName && /^(INPUT|SELECT|TEXTAREA)$/.test(el.tagName) && el.type !== 'file') el.value = v;
         });
@@ -626,6 +634,7 @@
             if (def && def.fields.some(f => f.type === 'areatree')) wireAreaTree($('#dynFields'), vals);
             wireValidators($('#dynFields'));             // ISSN/ISBN/DOI/URL
             wireCounters($('#dynFields'));               // contador de textareas
+            wireNA($('#dynFields'));                     // checkbox "N/A" dos campos URL
             const semEvidencia = !!(def && def.noEvidence);
             $('#evidenceBlock').style.display = semEvidencia ? 'none' : '';
             if (semEvidencia) { state.evEditing = []; renderEvList(); clearPdf(); }
@@ -779,6 +788,15 @@
                 ${sel('s', '— Subárea —')}
                 ${sel('e', '— Especialidade —')}
             </div>`;
+        } else if (f.type === 'url') {
+            // URL + "N/A" (Não se aplica): conta como preenchido; vai em branco no XML
+            const na = String(val) === NA_VALUE;
+            input = `<div class="flex items-center gap-2">
+                <input type="url" name="${f.key}" value="${na ? '' : esc(val)}" ${req} data-validate="url" maxlength="300" placeholder="https://…" class="${base} flex-1 ${na ? 'opacity-50' : ''}" ${na ? 'disabled' : ''}>
+                <label class="flex items-center gap-1 text-xs shrink-0 whitespace-nowrap" title="Marque quando não há URL. Conta como preenchido; na exportação XML vai em branco.">
+                    <input type="checkbox" data-na="${f.key}" ${na ? 'checked' : ''}> N/A
+                </label>
+            </div>`;
         } else {
             const t = (f.type === 'url' ? 'url' : (f.type === 'number' ? 'number' : (f.type === 'date' ? 'date' : 'text')));
             const listAttr = (t === 'text' && AUTOCOMPLETE_KEYS.includes(f.key)) ? `list="dl-${f.key}"` : '';
@@ -905,6 +923,17 @@
             ta.addEventListener('input', upd);
         });
     }
+    // Checkbox "N/A" (Não se aplica) dos campos URL: bloqueia/limpa o input
+    function wireNA(container) {
+        $$('[data-na]', container).forEach(cb => cb.addEventListener('change', () => {
+            const input = container.querySelector(`[name="${cb.dataset.na}"]`);
+            if (!input) return;
+            if (cb.checked) { input.value = ''; input.disabled = true; input.classList.add('opacity-50'); setFieldError(input, ''); }
+            else { input.disabled = false; input.classList.remove('opacity-50'); input.focus(); }
+            state.formDirty = true;
+            saveDraftDebounced();
+        }));
+    }
 
     // Preenche e conecta a cascata Grande área › Área › Subárea › Especialidade
     function wireAreaTree(container, vals) {
@@ -952,6 +981,10 @@
                 const G = gv('g'), A = gv('a'), S = gv('s'), E = gv('e');
                 fields.grandeArea = G; fields.area = A; fields.subarea = S; fields.especialidade = E;
                 fields[f.key] = (G && A) ? [G, A, S, E].filter(Boolean).join(' › ') : '';
+            } else if (f.type === 'url') {
+                const na = form.querySelector(`[data-na="${f.key}"]`);
+                if (na && na.checked) fields[f.key] = NA_VALUE;
+                else { const el = form.elements[f.key]; fields[f.key] = el ? el.value.trim() : ''; }
             } else {
                 const el = form.elements[f.key];
                 if (el) fields[f.key] = el.value.trim();
@@ -1025,6 +1058,7 @@
             const kind = (f.key === 'issn' || f.key === 'isbn' || f.key === 'doi') ? f.key : (f.type === 'url' ? 'url' : null);
             if (kind) {
                 if (raw == null || raw === '') continue;
+                if (kind === 'url' && raw === NA_VALUE) continue; // "Não se aplica" não valida
                 const res = validateField(kind, raw);
                 if (!res.ok) {
                     toast(res.msg, 'aviso');
