@@ -122,6 +122,60 @@ window.Storage = (function () {
 
     const ATTACH_EXTS = ['pdf', 'jpg', 'jpeg', 'png'];
 
+    /* ------------------------- Bandeja de entrada ------------------------ */
+    // 00 - Inbox: pasta onde o usuário deposita arquivos ainda não catalogados.
+    // 00 - Processado: subpasta (dentro da Inbox) para onde o original é movido
+    // depois de catalogado.
+    const INBOX_FOLDER = '00 - Inbox';
+    const PROCESSED_FOLDER = '00 - Processado';
+
+    async function inboxDir(create) {
+        const dir = await ensureDirReady();
+        return dir.getDirectoryHandle(INBOX_FOLDER, { create: !!create });
+    }
+    async function ensureInbox() {
+        const inbox = await inboxDir(true);
+        await inbox.getDirectoryHandle(PROCESSED_FOLDER, { create: true });
+    }
+    // Lista os arquivos (PDF/imagem) pendentes na Inbox (ignora subpastas)
+    async function listInbox() {
+        let inbox; try { inbox = await inboxDir(true); } catch (_) { return []; }
+        const out = [];
+        for await (const [name, h] of inbox.entries()) {
+            if (h.kind !== 'file') continue;
+            const m = name.match(/\.([^.]+)$/);
+            const ext = m ? m[1].toLowerCase() : '';
+            if (!ATTACH_EXTS.includes(ext)) continue;
+            out.push({ name, ext });
+        }
+        out.sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
+        return out;
+    }
+    async function readInboxFile(name) {
+        const inbox = await inboxDir(true);
+        const fh = await inbox.getFileHandle(name);
+        return fh.getFile();
+    }
+    // Move o original da Inbox para 00 - Processado; sufixa em caso de colisão.
+    async function moveInboxToProcessed(name) {
+        const inbox = await inboxDir(true);
+        const proc = await inbox.getDirectoryHandle(PROCESSED_FOLDER, { create: true });
+        const dot = name.lastIndexOf('.');
+        const base = dot > 0 ? name.slice(0, dot) : name;
+        const ext = dot > 0 ? name.slice(dot) : '';
+        const exists = async (nm) => { try { await proc.getFileHandle(nm); return true; } catch (_) { return false; } };
+        let target = name, n = 2;
+        while (await exists(target)) { target = `${base}-${n}${ext}`; n++; }
+        const srcFh = await inbox.getFileHandle(name);
+        const file = await srcFh.getFile();
+        const dstFh = await proc.getFileHandle(target, { create: true });
+        const w = await dstFh.createWritable();
+        await w.write(file);
+        await w.close();
+        await inbox.removeEntry(name);
+        return target;
+    }
+
     // Grava um anexo (evidência) com base name explícito: <basename>.<ext>.
     // Remove versões anteriores do MESMO basename com outra extensão.
     async function writeAttachment(basename, fileOrBlob, subdir, ext) {
@@ -216,6 +270,7 @@ window.Storage = (function () {
                         if (obj && obj.id) items.push(obj);
                     } catch (_) { /* ignora inválidos */ }
                 } else if (h.kind === 'directory') {
+                    if (name === INBOX_FOLDER) continue; // não indexa a bandeja de entrada
                     try { await scanOne(h); } catch (_) {}
                 }
             }
@@ -249,6 +304,8 @@ window.Storage = (function () {
         directoryName, forgetDirectory, verifyPermission,
         // arquivos
         writeJson, writeAttachment, deleteEntry, deleteItemFiles, moveItemFiles, readAttachmentUrl, scanDirectory, ensureSubdirs,
+        // bandeja de entrada (inbox)
+        ensureInbox, listInbox, readInboxFile, moveInboxToProcessed,
         // catálogo + settings
         loadCatalog, saveCatalog, loadSettings, saveSettings,
     };

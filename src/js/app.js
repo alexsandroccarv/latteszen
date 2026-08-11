@@ -526,6 +526,56 @@
         if (added) previewPdfFile(added);
     }
 
+    // Usa um arquivo da bandeja de entrada como evidência (marcando a origem,
+    // para mover o original a "00 - Processado" ao salvar o item).
+    async function useInboxFile(entry) {
+        const inp = $('#pdfInput');
+        const acc = inp ? inp.accept : '';
+        const allowed = (acc.includes('application/pdf') || acc === '') ? ['pdf', 'jpg', 'jpeg', 'png'] : ['jpg', 'jpeg', 'png'];
+        let file;
+        try { file = await Storage.readInboxFile(entry.name); }
+        catch (e) { toast('Não foi possível ler o arquivo da bandeja: ' + e.message, 'aviso'); return; }
+        const err = checkEvidenceFile(file, allowed);
+        if (err) { toast(err, 'aviso'); return; }
+        state.evEditing.push({
+            basename: null, ext: fileExt(file), name: file.name || entry.name,
+            publica: state.evEditing.length === 0, file, inboxName: entry.name,
+        });
+        state.formDirty = true;
+        renderEvList();
+        previewPdfFile(file);
+    }
+
+    // Lista os arquivos pendentes em "00 - Inbox"
+    async function renderInbox() {
+        const box = $('#inboxBox'), list = $('#inboxList'), count = $('#inboxCount');
+        if (!box) return;
+        if (!Storage.hasDirectory()) {
+            box.classList.add('hidden');
+            return;
+        }
+        box.classList.remove('hidden');
+        let itens = [];
+        try { itens = await Storage.listInbox(); } catch (_) { itens = []; }
+        count.textContent = `(${itens.length})`;
+        if (!itens.length) {
+            list.innerHTML = `<li class="text-xs text-gray-400 dark:text-gray-500 italic">Vazia. Coloque arquivos em <code>00 - Inbox</code> dentro da pasta de trabalho.</li>`;
+            return;
+        }
+        list.innerHTML = itens.map((it, idx) => `
+            <li class="flex items-center gap-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded px-2 py-1 text-sm">
+                <i aria-hidden="true" class="fa-solid ${isImageExt(it.ext) ? 'fa-image' : 'fa-file-pdf'} text-gray-400 shrink-0"></i>
+                <span class="min-w-0 flex-1 truncate" title="${esc(it.name)}">${esc(it.name)}</span>
+                <button type="button" data-inbox-see="${idx}" title="Ver no painel" class="w-6 h-6 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-govbr-600 dark:text-unifesp-400 shrink-0"><i class="fa-solid fa-eye"></i></button>
+                <button type="button" data-inbox-use="${idx}" class="text-xs px-2 py-0.5 rounded bg-govbr-600 dark:bg-unifesp-700 text-white shrink-0">usar</button>
+            </li>`).join('');
+        $$('[data-inbox-use]', list).forEach(bt => bt.addEventListener('click', (e) => useInboxFile(itens[+e.currentTarget.dataset.inboxUse])));
+        $$('[data-inbox-see]', list).forEach(bt => bt.addEventListener('click', async (e) => {
+            const it = itens[+e.currentTarget.dataset.inboxSee];
+            try { previewPdfFile(await Storage.readInboxFile(it.name)); } catch (_) {}
+        }));
+    }
+
     function buildForm(item, opts) {
         opts = opts || {};
         const form = $('#itemForm');
@@ -545,6 +595,13 @@
                        class="w-full text-sm text-gray-600 dark:text-gray-300 file:mr-2 file:px-3 file:py-1.5 file:rounded file:border-0 file:bg-govbr-600 dark:file:bg-unifesp-700 file:text-white">
                 <p class="text-xs text-gray-500 mt-1">Arraste e solte, cole (Ctrl+V) ou selecione. Marque <strong>“pública”</strong> em <em>quantas</em> evidências quiser (0 ou mais). Use ↑ ↓ para reordenar.</p>
                 <ul id="evList" class="mt-2 space-y-1"></ul>
+                <div id="inboxBox" class="mt-2 pt-2 border-t border-govbr-100 dark:border-gray-700">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-semibold"><i aria-hidden="true" class="fa-solid fa-inbox text-govbr-600 dark:text-unifesp-400 mr-1"></i> Bandeja de entrada <span id="inboxCount" class="font-normal text-gray-400"></span></span>
+                        <button type="button" id="inboxRefresh" class="text-xs px-2 py-0.5 rounded border border-gray-300 dark:border-gray-600">atualizar</button>
+                    </div>
+                    <ul id="inboxList" class="mt-1 space-y-1"></ul>
+                </div>
             </div>
 
             <div class="grid grid-cols-2 gap-2">
@@ -683,6 +740,10 @@
             for (const it of items) { if (it.kind === 'file') { const f = it.getAsFile(); if (f) files.push(f); } }
             if (files.length) { e.preventDefault(); addEvidenceFiles(files); }
         });
+
+        // Bandeja de entrada (00 - Inbox)
+        $('#inboxRefresh').addEventListener('click', renderInbox);
+        renderInbox();
 
         // Marca "não salvo" a cada digitação e atualiza o rascunho automático
         form.addEventListener('input', () => { state.formDirty = true; saveDraftDebounced(); });
@@ -1132,6 +1193,7 @@
         const newBase = () => { let b; do { b = `${item.id}-${randCode(2)}`; } while (usedBases.has(b)); usedBases.add(b); return b; };
         let naoGravadas = 0;
         const evOut = [];
+        const fromInbox = new Set();                 // originais da Inbox a mover p/ Processado
         for (const ev of state.evEditing) {
             if (ev.file) {
                 // Sem diretório configurado NÃO registramos a evidência (o arquivo
@@ -1141,6 +1203,7 @@
                 try { await Storage.writeAttachment(basename, ev.file, subdir, ev.ext); }
                 catch (e) { toast('Falha ao gravar evidência "' + ev.name + '": ' + e.message, 'aviso'); continue; }
                 evOut.push({ basename, ext: ev.ext, name: ev.name, publica: !!ev.publica });
+                if (ev.inboxName) fromInbox.add(ev.inboxName);   // veio da bandeja de entrada
             } else {
                 evOut.push({ basename: ev.basename, ext: ev.ext, name: ev.name, publica: !!ev.publica });
             }
@@ -1153,6 +1216,10 @@
                     try { await Storage.deleteEntry(old.basename, subdir); } catch (_) {}
                 }
             }
+        }
+        // Move para "00 - Inbox/00 - Processado" os originais que vieram da bandeja
+        for (const nm of fromInbox) {
+            try { await Storage.moveInboxToProcessed(nm); } catch (_) {}
         }
         // "pública" é livre: 0..N evidências podem estar marcadas
         item.evidencias = evOut;
@@ -1707,8 +1774,9 @@
         $('#btnChooseDir').addEventListener('click', async () => {
             try {
                 await Storage.chooseDirectory();
-                await Storage.ensureSubdirs(LattesTypes.allFolders()); // cria as 11 subpastas
-                toast('Diretório configurado (subpastas por categoria criadas).', 'ok');
+                await Storage.ensureSubdirs(LattesTypes.allFolders()); // cria as subpastas por categoria
+                try { await Storage.ensureInbox(); } catch (_) {}      // cria 00 - Inbox / 00 - Processado
+                toast('Diretório configurado (subpastas de categoria e “00 - Inbox” criadas).', 'ok');
                 renderConfig();
             } catch (e) { if (e.name !== 'AbortError') toast(e.message, 'erro'); }
         });
