@@ -1453,16 +1453,16 @@
             if (!c) return [];
             return c.groups ? c.groups.flatMap(g => g.types) : (c.types || []);
         };
-        return order.filter(k => groups[k] && groups[k].length).map(k => {
-            const g = groups[k];
+        // Monta as subdivisões por tipo de item (nível interno reutilizável)
+        const typesHtmlFor = (arr, catKey) => {
             const byType = {};
-            g.forEach(i => { (byType[i.typeKey] = byType[i.typeKey] || []).push(i); });
-            const seq = typeOrderOf(k);
+            arr.forEach(i => { (byType[i.typeKey] = byType[i.typeKey] || []).push(i); });
+            const seq = typeOrderOf(catKey);
             const typeKeys = Object.keys(byType).sort((a, b) => {
                 const ia = seq.indexOf(a), ib = seq.indexOf(b);
                 return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib);
             });
-            const typesHtml = typeKeys.map(tk => `
+            return typeKeys.map(tk => `
                 <details open class="border border-gray-100 dark:border-gray-700/60 rounded">
                     <summary class="cursor-pointer select-none px-2 py-1.5 bg-gray-50 dark:bg-gray-800/60 text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
                         <i aria-hidden="true" class="fa-solid fa-angle-right text-xs text-gray-400"></i>
@@ -1471,6 +1471,39 @@
                     </summary>
                     <div class="p-1.5 space-y-1">${byType[tk].map(itemCardHtml).join('')}</div>
                 </details>`).join('');
+        };
+
+        // Em "03 Atuação", agrupa por Instituição e, dentro dela, mantém as
+        // subdivisões por tipo de item (Atuação profissional, atividades, etc.).
+        const SEM_INST = ' ';
+        const instHtmlFor = (arr, catKey) => {
+            const byInst = {};
+            const labelOf = {};
+            arr.forEach(i => {
+                const raw = ((i.fields && i.fields.instituicao) || '').trim();
+                const ik = raw ? normNome(raw) : SEM_INST;
+                if (!byInst[ik]) { byInst[ik] = []; labelOf[ik] = raw; }
+                byInst[ik].push(i);
+            });
+            const instKeys = Object.keys(byInst).sort((a, b) => {
+                if (a === SEM_INST) return 1;
+                if (b === SEM_INST) return -1;
+                return labelOf[a].localeCompare(labelOf[b], 'pt-BR', { sensitivity: 'base' });
+            });
+            return instKeys.map(ik => `
+                <details open class="border border-gray-200 dark:border-gray-700/70 rounded-md">
+                    <summary class="cursor-pointer select-none px-2.5 py-1.5 bg-gray-100/70 dark:bg-gray-800/80 text-sm font-semibold text-gray-700 dark:text-gray-200 flex items-center gap-2">
+                        <i aria-hidden="true" class="fa-solid fa-building text-govbr-600 dark:text-unifesp-400 text-xs"></i>
+                        ${esc(ik === SEM_INST ? '(Sem instituição informada)' : labelOf[ik])}
+                        <span class="text-xs font-normal text-gray-500">(${byInst[ik].length})</span>
+                    </summary>
+                    <div class="p-1.5 space-y-1.5">${typesHtmlFor(byInst[ik], catKey)}</div>
+                </details>`).join('');
+        };
+
+        return order.filter(k => groups[k] && groups[k].length).map(k => {
+            const g = groups[k];
+            const bodyHtml = (k === 'ATUACAO') ? instHtmlFor(g, k) : typesHtmlFor(g, k);
             return `
             <details open class="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
                 <summary class="cursor-pointer select-none px-3 py-2 bg-gray-100 dark:bg-gray-800 font-semibold text-sm flex items-center gap-2">
@@ -1478,7 +1511,7 @@
                     ${esc(LattesTypes.categoryNumLabel(k))}
                     <span class="text-xs font-normal text-gray-500">(${g.length})</span>
                 </summary>
-                <div class="p-2 space-y-2">${typesHtml}</div>
+                <div class="p-2 space-y-2">${bodyHtml}</div>
             </details>`;
         }).join('');
     }
