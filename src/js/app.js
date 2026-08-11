@@ -546,34 +546,27 @@
         previewPdfFile(file);
     }
 
-    // Lista os arquivos pendentes em "00 - Inbox"
+    // Bandeja de entrada: apenas um CONTADOR (sem listar os arquivos).
+    // "Anexar próximo" pega o próximo arquivo pendente ainda não anexado.
     async function renderInbox() {
-        const box = $('#inboxBox'), list = $('#inboxList'), count = $('#inboxCount');
+        const box = $('#inboxBox'), count = $('#inboxCount'), next = $('#inboxNext');
         if (!box) return;
-        if (!Storage.hasDirectory()) {
-            box.classList.add('hidden');
-            return;
-        }
+        if (!Storage.hasDirectory()) { box.classList.add('hidden'); return; }
         box.classList.remove('hidden');
         let itens = [];
         try { itens = await Storage.listInbox(); } catch (_) { itens = []; }
-        count.textContent = `(${itens.length})`;
-        if (!itens.length) {
-            list.innerHTML = `<li class="text-xs text-gray-400 dark:text-gray-500 italic">Vazia. Coloque arquivos em <code>00 Inbox</code> dentro da pasta de trabalho.</li>`;
-            return;
-        }
-        list.innerHTML = itens.map((it, idx) => `
-            <li class="flex items-center gap-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded px-2 py-1 text-sm">
-                <i aria-hidden="true" class="fa-solid ${isImageExt(it.ext) ? 'fa-image' : 'fa-file-pdf'} text-gray-400 shrink-0"></i>
-                <span class="min-w-0 flex-1 truncate" title="${esc(it.name)}">${esc(it.name)}</span>
-                <button type="button" data-inbox-see="${idx}" title="Ver no painel" class="w-6 h-6 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-govbr-600 dark:text-unifesp-400 shrink-0"><i class="fa-solid fa-eye"></i></button>
-                <button type="button" data-inbox-use="${idx}" class="text-xs px-2 py-0.5 rounded bg-govbr-600 dark:bg-unifesp-700 text-white shrink-0">usar</button>
-            </li>`).join('');
-        $$('[data-inbox-use]', list).forEach(bt => bt.addEventListener('click', (e) => useInboxFile(itens[+e.currentTarget.dataset.inboxUse])));
-        $$('[data-inbox-see]', list).forEach(bt => bt.addEventListener('click', async (e) => {
-            const it = itens[+e.currentTarget.dataset.inboxSee];
-            try { previewPdfFile(await Storage.readInboxFile(it.name)); } catch (_) {}
-        }));
+        state._inbox = itens;
+        count.textContent = itens.length ? `— ${itens.length} pendente(s)` : '— vazia';
+        if (next) { next.disabled = !itens.length; next.classList.toggle('opacity-40', !itens.length); }
+    }
+    // Anexa o próximo arquivo da bandeja que ainda não foi anexado a este item
+    async function useNextInbox() {
+        const itens = state._inbox || [];
+        const staged = new Set(state.evEditing.filter(e => e.inboxName).map(e => e.inboxName));
+        const prox = itens.find(it => !staged.has(it.name));
+        if (!prox) { toast('Bandeja vazia ou já anexada a este item.', 'info'); return; }
+        await useInboxFile(prox);
+        await renderInbox();
     }
 
     function buildForm(item, opts) {
@@ -595,12 +588,12 @@
                        class="w-full text-sm text-gray-600 dark:text-gray-300 file:mr-2 file:px-3 file:py-1.5 file:rounded file:border-0 file:bg-govbr-600 dark:file:bg-unifesp-700 file:text-white">
                 <p class="text-xs text-gray-500 mt-1">Arraste e solte, cole (Ctrl+V) ou selecione. Marque <strong>“pública”</strong> em <em>quantas</em> evidências quiser (0 ou mais). Use ↑ ↓ para reordenar.</p>
                 <ul id="evList" class="mt-2 space-y-1"></ul>
-                <div id="inboxBox" class="mt-2 pt-2 border-t border-govbr-100 dark:border-gray-700">
-                    <div class="flex items-center justify-between">
-                        <span class="text-xs font-semibold"><i aria-hidden="true" class="fa-solid fa-inbox text-govbr-600 dark:text-unifesp-400 mr-1"></i> Bandeja de entrada <span id="inboxCount" class="font-normal text-gray-400"></span></span>
+                <div id="inboxBox" class="mt-2 pt-2 border-t border-govbr-100 dark:border-gray-700 flex items-center justify-between gap-2">
+                    <span class="text-xs font-semibold"><i aria-hidden="true" class="fa-solid fa-inbox text-govbr-600 dark:text-unifesp-400 mr-1"></i> Bandeja de entrada <span id="inboxCount" class="font-normal text-gray-400"></span></span>
+                    <span class="flex gap-1 shrink-0">
+                        <button type="button" id="inboxNext" class="text-xs px-2 py-0.5 rounded bg-govbr-600 dark:bg-unifesp-700 text-white">Anexar próximo</button>
                         <button type="button" id="inboxRefresh" class="text-xs px-2 py-0.5 rounded border border-gray-300 dark:border-gray-600">atualizar</button>
-                    </div>
-                    <ul id="inboxList" class="mt-1 space-y-1"></ul>
+                    </span>
                 </div>
             </div>
 
@@ -741,8 +734,9 @@
             if (files.length) { e.preventDefault(); addEvidenceFiles(files); }
         });
 
-        // Bandeja de entrada (00 - Inbox)
+        // Bandeja de entrada (00 Inbox) — apenas contador + "anexar próximo"
         $('#inboxRefresh').addEventListener('click', renderInbox);
+        $('#inboxNext').addEventListener('click', useNextInbox);
         renderInbox();
 
         // Marca "não salvo" a cada digitação e atualiza o rascunho automático
