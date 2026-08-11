@@ -1942,11 +1942,137 @@
     }
 
     /* =====================================================================
+       ABA: PUBLICAR (página pública do currículo — 1 arquivo HTML)
+       ===================================================================== */
+    function fileToDataUrl(file) {
+        return new Promise((res) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = () => res(null); r.readAsDataURL(file); });
+    }
+    // Linha-resumo (subtítulo) de um item, a partir de campos-chave
+    function itemLinha(it) {
+        const f = it.fields || {}, title = LattesTypes.itemTitle(it), parts = [];
+        const add = v => { v = String(v || '').trim(); if (v && v !== title && !parts.includes(v)) parts.push(v); };
+        ['periodico', 'evento', 'instituicao', 'orgao', 'entidade', 'editora', 'cargo', 'tipo', 'financiador', 'autores'].forEach(k => add(f[k]));
+        return parts.slice(0, 4).join(' · ');
+    }
+    const PUB_ICON = { DADOS_GERAIS: '🪪', FORMACAO: '🎓', ATUACAO: '💼', PROJETOS: '🧩', PRODUCOES: '📚', PATENTES_REGISTROS: '📜', INOVACAO: '💡', EDUCACAO_CT: '📢', EVENTOS: '📅', ORIENTACOES: '👥', BANCAS: '⚖️', ATIVIDADES_LIVRES: '🎒' };
+    const PUB_EXCLUDE_TYPES = new Set(['IDENTIFICACAO', 'FOTO_PERFIL', 'ENDERECO', 'RESUMO_CV', 'OUTRAS_INFO', 'DOCUMENTO_PESSOAL']);
+
+    async function buildPublicModel() {
+        const items = state.items;
+        const first = tk => items.find(i => i.typeKey === tk);
+        const byType = tk => items.filter(i => i.typeKey === tk);
+        const ident = first('IDENTIFICACAO'), resumo = first('RESUMO_CV'), endereco = first('ENDERECO'), outrasI = first('OUTRAS_INFO'), fotoItem = first('FOTO_PERFIL');
+        const nome = (ident && ident.fields.titulo) ? ident.fields.titulo : 'Currículo';
+        const iniciais = nome.split(/\s+/).filter(Boolean).slice(0, 2).map(s => s[0]).join('').toUpperCase();
+        const orcid = (ident && ident.fields.orcid || '').trim();
+        const lattesUrl = (ident && ident.fields.url || '').trim();
+        const local = endereco ? [endereco.fields.cidade, endereco.fields.uf].filter(Boolean).join(' / ') : '';
+
+        let foto = null;
+        if (fotoItem && Storage.hasDirectory()) {
+            const ev = (Array.isArray(fotoItem.evidencias) && fotoItem.evidencias[0]) || (fotoItem.hasPdf ? { basename: fotoItem.id, ext: fotoItem.fileExt || 'jpg' } : null);
+            if (ev) { try { const f = await Storage.readAttachmentFile(ev.basename, LattesTypes.categoryFolder('DADOS_GERAIS'), ev.ext); if (f) foto = await fileToDataUrl(f); } catch (_) {} }
+        }
+
+        const contatos = [];
+        if (orcid) contatos.push({ grupo: 'Acadêmicas', plataforma: 'ORCID', url: /^https?:/i.test(orcid) ? orcid : 'https://orcid.org/' + orcid, usuario: orcid });
+        if (lattesUrl) contatos.push({ grupo: 'Acadêmicas', plataforma: 'Lattes', url: lattesUrl, usuario: '' });
+        ['CONEXAO_ACADEMICA', 'CONEXAO_PROFISSIONAL', 'CONEXAO_SOCIAL'].forEach(tk => byType(tk).forEach(i => {
+            const u = (i.fields.url || '').trim(); if (!u) return;
+            const url = (/@/.test(u) && !/^https?:|^mailto:/i.test(u)) ? 'mailto:' + u : u;
+            contatos.push({ grupo: LattesTypes.label(tk), plataforma: i.fields.titulo || LattesTypes.label(tk), url, usuario: i.fields.usuario || '' });
+        }));
+
+        const secoes = [];
+        for (const cat of LattesTypes.categories) {
+            if (cat.key === 'CONEXOES') continue;
+            const typeKeys = cat.groups ? cat.groups.flatMap(g => g.types) : (cat.types || []);
+            const tipos = [];
+            for (const tk of typeKeys) {
+                if (PUB_EXCLUDE_TYPES.has(tk)) continue;
+                // Casa tipo E categoria do item (um tipo pode figurar em mais de
+                // uma categoria; o item pertence só à sua categoria de origem)
+                const its = sortByYear(items.filter(i => i.typeKey === tk && i.categoryKey === cat.key), false);
+                if (!its.length) continue;
+                const itens = [];
+                for (const it of its) {
+                    const anexos = [];
+                    if (Storage.hasDirectory() && Array.isArray(it.evidencias)) {
+                        for (const ev of it.evidencias) {
+                            if (!ev.publica) continue;
+                            try { const f = await Storage.readAttachmentFile(ev.basename, LattesTypes.categoryFolder(it.categoryKey), ev.ext); if (f) { const du = await fileToDataUrl(f); if (du) anexos.push({ name: ev.name || `${ev.basename}.${ev.ext}`, ext: ev.ext, dataUri: du }); } } catch (_) {}
+                        }
+                    }
+                    const y = itemYear(it);
+                    itens.push({ titulo: LattesTypes.itemTitle(it), ano: y != null ? String(y) : '', linha: itemLinha(it), anexos });
+                }
+                tipos.push({ label: LattesTypes.label(tk), itens });
+            }
+            if (tipos.length) secoes.push({ id: 'sec-' + cat.key.toLowerCase(), num: cat.num, label: cat.label, icon: PUB_ICON[cat.key] || '▣', tipos });
+        }
+        return {
+            nome, iniciais, tagline: (ident && ident.fields.citacoes) || '', bio: (resumo && resumo.fields.descricao) || '',
+            foto, local, orcid, lattesUrl, contatos, outras: (outrasI && outrasI.fields.descricao) || '',
+            secoes, geradoEm: new Date().toLocaleString('pt-BR'), totalItens: items.length,
+        };
+    }
+    async function generatePublicHtml() { return LzPublish.renderHtml(await buildPublicModel(), 'elegante'); }
+
+    function renderPublicar() {
+        const panel = $('#tab-publicar');
+        panel.innerHTML = `
+            <div class="space-y-4 max-w-4xl">
+                <section class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+                    <h2 class="text-lg font-bold mb-2 flex items-center gap-2"><i class="fa-solid fa-globe text-govbr-600 dark:text-unifesp-400"></i> Página pública do currículo</h2>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">Gera <strong>um único arquivo HTML</strong> (autossuficiente) com todo o currículo. Foto e contatos vêm do perfil e das Conexões. Apenas as evidências marcadas como <strong>“pública”</strong> são embutidas (em base64) e ficam acessíveis na página.</p>
+                    <div class="flex gap-2 flex-wrap">
+                        <button id="btnPubPreview" class="px-3 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm"><i class="fa-solid fa-eye mr-1"></i> Gerar prévia</button>
+                        <button id="btnPubSave" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-folder-open mr-1"></i> Salvar na pasta (Publicação/index.html)</button>
+                        <button id="btnPubDownload" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-download mr-1"></i> Baixar HTML</button>
+                    </div>
+                    <p id="pubStatus" class="text-xs text-gray-500 mt-2"></p>
+                </section>
+                <div class="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden bg-white" style="height:75vh">
+                    <iframe id="pubPreview" class="w-full h-full" title="Prévia da página pública"></iframe>
+                </div>
+            </div>`;
+        const status = (t) => { const el = $('#pubStatus'); if (el) el.textContent = t; };
+        $('#btnPubPreview').addEventListener('click', async () => {
+            status('Gerando prévia…');
+            try { $('#pubPreview').srcdoc = await generatePublicHtml(); status('Prévia atualizada.'); }
+            catch (e) { status(''); toast('Falha ao gerar: ' + e.message, 'erro'); }
+        });
+        $('#btnPubSave').addEventListener('click', async () => {
+            if (!Storage.hasDirectory()) { toast('Configure um diretório em Configurações para salvar na pasta.', 'aviso'); return; }
+            status('Gerando e salvando…');
+            try {
+                const html = await generatePublicHtml();
+                await Storage.writeFile('index.html', html, 'Publicação');
+                $('#pubPreview').srcdoc = html;
+                status('Salvo em “Publicação/index.html”.');
+                toast('Página salva em “Publicação/index.html”.', 'ok');
+            } catch (e) { status(''); toast('Falha ao salvar: ' + e.message, 'erro'); }
+        });
+        $('#btnPubDownload').addEventListener('click', async () => {
+            status('Gerando arquivo…');
+            try {
+                const html = await generatePublicHtml();
+                $('#pubPreview').srcdoc = html;
+                const nome = (state.items.find(i => i.typeKey === 'IDENTIFICACAO' && i.fields && i.fields.titulo) || {}).fields;
+                const safe = (nome && nome.titulo ? nome.titulo : 'curriculo').replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, '-').toLowerCase();
+                const blob = new Blob([html], { type: 'text/html' });
+                const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `curriculo-${safe}.html`; a.click(); URL.revokeObjectURL(a.href);
+                status('Arquivo baixado.');
+            } catch (e) { status(''); toast('Falha ao gerar: ' + e.message, 'erro'); }
+        });
+    }
+
+    /* =====================================================================
        Navegação por abas
        ===================================================================== */
     const RENDERERS = {
         catalogar: renderCatalogar, conformidade: renderConformidade,
-        config: renderConfig,
+        publicar: renderPublicar, config: renderConfig,
     };
     function switchTab(name) {
         // Guarda de alterações não salvas ao sair de "Catalogar"

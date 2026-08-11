@@ -259,6 +259,19 @@ window.Storage = (function () {
         return null;
     }
 
+    // Devolve o File de um anexo (para embutir em base64 na página pública).
+    async function readAttachmentFile(basename, subdir, ext) {
+        const dir = await ensureDirReady();
+        let target = dir;
+        if (subdir) { try { target = await dir.getDirectoryHandle(subdir); } catch (_) { return null; } }
+        const tryExts = ext ? [ext.toLowerCase()] : ATTACH_EXTS;
+        for (const e of tryExts) {
+            try { const fh = await target.getFileHandle(`${basename}.${e}`); return await fh.getFile(); }
+            catch (_) { /* tenta próxima */ }
+        }
+        return null;
+    }
+
     // Reconstrói o catálogo a partir dos *.json (raiz e subdiretórios de categoria)
     async function scanDirectory() {
         const dir = await ensureDirReady();
@@ -305,7 +318,7 @@ window.Storage = (function () {
         chooseDirectory, restoreDirectory, ensureDirReady, hasDirectory,
         directoryName, forgetDirectory, verifyPermission,
         // arquivos
-        writeJson, writeAttachment, deleteEntry, deleteItemFiles, moveItemFiles, readAttachmentUrl, scanDirectory, ensureSubdirs,
+        writeJson, writeFile, writeAttachment, deleteEntry, deleteItemFiles, moveItemFiles, readAttachmentUrl, readAttachmentFile, scanDirectory, ensureSubdirs,
         // bandeja de entrada (inbox)
         ensureInbox, listInbox, readInboxFile, moveInboxToProcessed,
         // catálogo + settings
