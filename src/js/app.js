@@ -177,21 +177,10 @@
         toast('Rascunho restaurado.', 'ok');
     }
 
-    // Garante no máximo uma evidência marcada como "pública". Retorna true se ajustou.
-    function enforceSinglePublica(item) {
-        if (!Array.isArray(item.evidencias)) return false;
-        let seen = false, changed = false;
-        item.evidencias.forEach(e => {
-            if (e && e.publica) { if (seen) { e.publica = false; changed = true; } else seen = true; }
-        });
-        return changed;
-    }
-
     // Grava o item no índice (localStorage) e o JSON no diretório. Os anexos
     // (evidências) são gravados/removidos separadamente em onSubmitForm.
     async function persistItem(item) {
         item.schemaVersion = SCHEMA_VERSION;       // carimba a versão do esquema
-        enforceSinglePublica(item);                // integridade: 1 pública no máximo
         const idx = state.items.findIndex(i => i.id === item.id);
         if (idx >= 0) state.items[idx] = item; else state.items.push(item);
         saveCatalog();
@@ -468,7 +457,7 @@
             <li class="flex items-center gap-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded px-2 py-1 text-sm">
                 ${thumb}
                 <span class="min-w-0 flex-1 truncate" title="${esc(ev.name)}">${esc(ev.name)}${ev.file ? ' <span class="text-xs text-green-600">(novo)</span>' : ''}</span>
-                <label class="flex items-center gap-1 text-xs shrink-0" title="Será exibida no futuro módulo de publicação (apenas uma por item)">
+                <label class="flex items-center gap-1 text-xs shrink-0" title="Será exibida no futuro módulo de publicação (pode marcar quantas quiser)">
                     <input type="checkbox" data-evpub="${idx}" ${ev.publica ? 'checked' : ''}> pública
                 </label>
                 <button type="button" data-evup="${idx}" title="Subir" class="w-6 h-6 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 shrink-0 disabled:opacity-30" ${idx === 0 ? 'disabled' : ''}><i class="fa-solid fa-arrow-up"></i></button>
@@ -493,10 +482,8 @@
 
         $$('[data-evpub]', ul).forEach(c => c.addEventListener('change', (e) => {
             const i = +e.target.dataset.evpub;
-            if (e.target.checked) state.evEditing.forEach((ev, j) => ev.publica = (j === i)); // exclusão mútua
-            else state.evEditing[i].publica = false;
+            state.evEditing[i].publica = e.target.checked; // 0..N públicas (independentes)
             state.formDirty = true;
-            renderEvList();
         }));
         const swap = (i, j) => { const t = state.evEditing[i]; state.evEditing[i] = state.evEditing[j]; state.evEditing[j] = t; state.formDirty = true; renderEvList(); };
         $$('[data-evup]', ul).forEach(b => b.addEventListener('click', (e) => { const i = +e.currentTarget.dataset.evup; if (i > 0) swap(i, i - 1); }));
@@ -548,7 +535,7 @@
                 <label class="block text-xs font-semibold mb-1" for="pdfInput"><i aria-hidden="true" class="fa-solid fa-file-arrow-up text-govbr-600 dark:text-unifesp-400 mr-1"></i> <span id="pdfInputLabel">Evidências (PDF ou imagem)</span></label>
                 <input type="file" id="pdfInput" multiple accept="application/pdf,image/jpeg,image/png"
                        class="w-full text-sm text-gray-600 dark:text-gray-300 file:mr-2 file:px-3 file:py-1.5 file:rounded file:border-0 file:bg-govbr-600 dark:file:bg-unifesp-700 file:text-white">
-                <p class="text-xs text-gray-500 mt-1">Arraste e solte, cole (Ctrl+V) ou selecione. Marque <strong>“pública”</strong> em <em>uma</em> evidência. Use ↑ ↓ para reordenar.</p>
+                <p class="text-xs text-gray-500 mt-1">Arraste e solte, cole (Ctrl+V) ou selecione. Marque <strong>“pública”</strong> em <em>quantas</em> evidências quiser (0 ou mais). Use ↑ ↓ para reordenar.</p>
                 <ul id="evList" class="mt-2 space-y-1"></ul>
             </div>
 
@@ -1133,12 +1120,10 @@
                 }
             }
         }
-        // exclusão mútua da marca "pública": no máximo uma
-        let temPub = false;
-        evOut.forEach(e => { if (e.publica && !temPub) temPub = true; else e.publica = false; });
+        // "pública" é livre: 0..N evidências podem estar marcadas
         item.evidencias = evOut;
         item.hasPdf = evOut.length > 0;
-        const pub = evOut.find(e => e.publica) || evOut[0] || null;
+        const pub = evOut.find(e => e.publica) || evOut[0] || null; // 1ª pública (ou 1ª) p/ preview/rótulo
         item.pdfName = pub ? pub.name : null;
         item.fileExt = pub ? pub.ext : null;
         if (naoGravadas) {
@@ -1830,7 +1815,6 @@
         if (!Array.isArray(i.evidencias)) {
             i.evidencias = i.hasPdf ? [{ basename: i.id, ext: i.fileExt || 'pdf', name: i.pdfName || `${i.id}.pdf`, publica: true }] : [];
         }
-        enforceSinglePublica(i);
         i.hasPdf = i.evidencias.length > 0;
         if (!i.categoryKey && i.typeKey) i.categoryKey = LattesTypes.primaryCategory(i.typeKey);
         i.schemaVersion = SCHEMA_VERSION;
@@ -1925,8 +1909,6 @@
                 }
                 changed = true;
             }
-            // Garante no máximo uma evidência "pública" (integridade)
-            if (enforceSinglePublica(i)) changed = true;
             // Carimba a versão do esquema (para migrações futuras)
             if (i.schemaVersion !== SCHEMA_VERSION) { i.schemaVersion = SCHEMA_VERSION; changed = true; }
         });
