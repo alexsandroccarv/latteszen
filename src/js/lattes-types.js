@@ -296,12 +296,13 @@ window.LattesTypes = (function () {
     LATTES_CATEGORIES.forEach(c => { catByKey[c.key] = c; });
     catByKey['NAO_LATTES'] = { num: '00', key: 'NAO_LATTES', label: 'Não-Lattes', icon: 'fa-heart' };
 
-    const BACKUP_FOLDER = '00 - Backup';
+    const BACKUP_FOLDER = '00 Backup';
 
     function slugFolder(cat) {
         // Nome de pasta seguro para o sistema de arquivos, legível e ordenável
+        // Padrão: "NN Nome" (número + espaço + nome, sem hífen)
         const safe = (cat.label || cat.key).replace(/[\\/:*?"<>|]/g, '').trim();
-        return `${cat.num || '00'} - ${safe}`;
+        return `${cat.num || '00'} ${safe}`;
     }
 
     // Title Case pt-BR (iniciais maiúsculas, conectores em minúsculas)
@@ -332,7 +333,7 @@ window.LattesTypes = (function () {
         // Itens legados 'NAO_LATTES' vão para a pasta de Atividades livres (99)
         categoryFolder(catKey) {
             if (catKey === 'NAO_LATTES') return slugFolder(catByKey['ATIVIDADES_LIVRES']);
-            const c = catByKey[catKey]; return c ? slugFolder(c) : '99 - Outros';
+            const c = catByKey[catKey]; return c ? slugFolder(c) : '99 Outros';
         },
         primaryCategory(typeKey) { return PRIMARY_CATEGORY[typeKey] || 'PRODUCOES'; },
         normalizeType(typeKey) { return LEGACY_TYPE[typeKey] || typeKey; },

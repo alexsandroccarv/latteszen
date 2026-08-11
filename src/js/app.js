@@ -559,7 +559,7 @@
         try { itens = await Storage.listInbox(); } catch (_) { itens = []; }
         count.textContent = `(${itens.length})`;
         if (!itens.length) {
-            list.innerHTML = `<li class="text-xs text-gray-400 dark:text-gray-500 italic">Vazia. Coloque arquivos em <code>00 - Inbox</code> dentro da pasta de trabalho.</li>`;
+            list.innerHTML = `<li class="text-xs text-gray-400 dark:text-gray-500 italic">Vazia. Coloque arquivos em <code>00 Inbox</code> dentro da pasta de trabalho.</li>`;
             return;
         }
         list.innerHTML = itens.map((it, idx) => `
@@ -1707,7 +1707,7 @@
 
                 <section class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
                     <h2 class="text-lg font-bold mb-2 flex items-center gap-2"><i class="fa-solid fa-file-export text-govbr-600 dark:text-unifesp-400"></i> Backup (JSON)</h2>
-                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">Exporte ou importe todo o catálogo (metadados) num único arquivo JSON. Com um diretório configurado, o backup é salvo automaticamente na subpasta <code class="text-xs bg-gray-200 dark:bg-gray-700 px-1 rounded">00 - Backup</code>.</p>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">Exporte ou importe todo o catálogo (metadados) num único arquivo JSON. Com um diretório configurado, o backup é salvo automaticamente na subpasta <code class="text-xs bg-gray-200 dark:bg-gray-700 px-1 rounded">00 Backup</code>.</p>
                     <div class="flex flex-wrap gap-2">
                         <button id="btnExport" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-download mr-1"></i> Exportar catálogo</button>
                         <label class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm cursor-pointer"><i class="fa-solid fa-upload mr-1"></i> Importar catálogo
@@ -1775,8 +1775,8 @@
             try {
                 await Storage.chooseDirectory();
                 await Storage.ensureSubdirs(LattesTypes.allFolders()); // cria as subpastas por categoria
-                try { await Storage.ensureInbox(); } catch (_) {}      // cria 00 - Inbox / 00 - Processado
-                toast('Diretório configurado (subpastas de categoria e “00 - Inbox” criadas).', 'ok');
+                try { await Storage.ensureInbox(); } catch (_) {}      // cria 00 Inbox / 00 Processado
+                toast('Diretório configurado (subpastas de categoria e “00 Inbox” criadas).', 'ok');
                 renderConfig();
             } catch (e) { if (e.name !== 'AbortError') toast(e.message, 'erro'); }
         });

@@ -123,11 +123,11 @@ window.Storage = (function () {
     const ATTACH_EXTS = ['pdf', 'jpg', 'jpeg', 'png'];
 
     /* ------------------------- Bandeja de entrada ------------------------ */
-    // 00 - Inbox: pasta onde o usuário deposita arquivos ainda não catalogados.
-    // 00 - Processado: subpasta (dentro da Inbox) para onde o original é movido
+    // 00 Inbox: pasta onde o usuário deposita arquivos ainda não catalogados.
+    // 00 Processado: subpasta (dentro da Inbox) para onde o original é movido
     // depois de catalogado.
-    const INBOX_FOLDER = '00 - Inbox';
-    const PROCESSED_FOLDER = '00 - Processado';
+    const INBOX_FOLDER = '00 Inbox';
+    const PROCESSED_FOLDER = '00 Processado';
 
     async function inboxDir(create) {
         const dir = await ensureDirReady();
