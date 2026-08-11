@@ -1395,6 +1395,15 @@
         }
         // Descrição: verde (tudo), amarelo (falta opcional), vermelho (falta obrigatório)
         b.push(marker3(descState(item), 'descrição', 'fa-align-left'));
+        // RSC: marcador âmbar quando o item está habilitado para contagem no RSC-PCCTAE
+        if (state.rscEnabled && item.rsc && item.rsc.conta) {
+            const crit = item.rsc.criterio ? LzRSC.criterio(item.rsc.criterio) : null;
+            const pi = LzRSC.pontosItem(item.rsc);
+            const label = crit ? `RSC ${item.rsc.criterio}` : 'RSC';
+            const pts = (crit && pi.pontos) ? ` · ${String(pi.pontos).replace('.', ',')} pts` : '';
+            const title = crit ? esc(`Requisito ${crit.req} · Item ${crit.item} — ${crit.desc}`) : 'Habilitado para o RSC-PCCTAE (critério ainda não selecionado)';
+            b.push(`<span class="badge bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300" title="${title}"><i class="fa-solid fa-award"></i> ${esc(label)}${pts}</span>`);
+        }
         return b.join(' ');
     }
 
