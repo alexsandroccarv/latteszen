@@ -586,18 +586,21 @@
         const f = (item && item.fields) || {};
         const iniDefault = rsc.dataInicio || (f.anoInicio ? `01/01/${f.anoInicio}` : '');
         const fimDefault = rsc.dataFim || (f.anoFim ? `31/12/${f.anoFim}` : (f.ano ? `31/12/${f.ano}` : ''));
-        const reqOpts = Object.keys(LzRSC.REQUISITOS).map(r => `<option value="${r}">${esc(LzRSC.REQUISITOS[r])}</option>`).join('');
+        // Lista única com TODOS os critérios do decreto, agrupados por Requisito
+        // (optgroup). Cada opção mostra Item · descrição · unidade · pontuação.
+        const critOptgroups = Object.keys(LzRSC.REQUISITOS).map(r => {
+            const opts = LzRSC.criteriosDoRequisito(r).map(c =>
+                `<option value="${c.id}">${c.item}. ${esc(c.desc)} — ${esc(c.unidade)} · ${String(c.pontos).replace('.', ',')} pts</option>`).join('');
+            return `<optgroup label="Requisito ${esc(LzRSC.REQUISITOS[r])}">${opts}</optgroup>`;
+        }).join('');
         box.innerHTML = `
         <div class="bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800 rounded px-3 py-2 space-y-2">
             <label class="flex items-center gap-2 text-sm font-semibold"><i aria-hidden="true" class="fa-solid fa-award text-amber-600"></i>
                 <input type="checkbox" id="rscConta" ${rsc.conta ? 'checked' : ''}> Contabilizar este item no RSC-PCCTAE</label>
             <div id="rscFields" class="${rsc.conta ? '' : 'hidden'} space-y-2">
-                <div class="grid sm:grid-cols-2 gap-2">
-                    <div><label class="block text-xs font-semibold mb-1" for="rscReq">Requisito</label>
-                        <select id="rscReq" class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900"><option value="">—</option>${reqOpts}</select></div>
-                    <div><label class="block text-xs font-semibold mb-1" for="rscCrit">Critério específico (Anexo)</label>
-                        <select id="rscCrit" class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900"><option value="">—</option></select></div>
-                </div>
+                <div><label class="block text-xs font-semibold mb-1" for="rscCrit">Critério específico (Anexos I–VI do Decreto)</label>
+                    <select id="rscCrit" class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900"><option value="">— selecione o critério —</option>${critOptgroups}</select>
+                    <p class="text-[11px] text-gray-500 mt-0.5">Todos os critérios do decreto estão listados, agrupados por Requisito (I a VI).</p></div>
                 <div class="grid sm:grid-cols-2 gap-2">
                     <div><label class="block text-xs font-semibold mb-1" for="rscIni">Data de início</label>
                         <input id="rscIni" type="text" placeholder="25/12/2026" value="${esc(iniDefault)}" class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900"></div>
@@ -621,15 +624,7 @@
             </div>
         </div>`;
 
-        const conta = $('#rscConta'), fields = $('#rscFields');
-        const reqSel = $('#rscReq'), critSel = $('#rscCrit');
-        function fillCrit(keepId) {
-            const req = reqSel.value;
-            const opts = req ? LzRSC.criteriosDoRequisito(req).map(c =>
-                `<option value="${c.id}">${c.item}. ${esc(c.desc)} — ${esc(c.unidade)} · ${String(c.pontos).replace('.', ',')} pts</option>`).join('') : '';
-            critSel.innerHTML = `<option value="">—</option>${opts}`;
-            if (keepId) critSel.value = keepId;
-        }
+        const conta = $('#rscConta'), fields = $('#rscFields'), critSel = $('#rscCrit');
         function recompute() {
             const crit = LzRSC.criterio(critSel.value);
             $('#rscPapelWrap').classList.toggle('hidden', !(crit && crit.pontosSub != null));
@@ -640,10 +635,9 @@
             if (!crit) { el.textContent = 'Selecione o critério para calcular os pontos.'; return; }
             el.textContent = `Pontos: ${String(pi.pontos).replace('.', ',')}  (${pi.quantidade} × ${String(pi.unitario).replace('.', ',')} · ${crit.unidade})`;
         }
-        // prefill
-        if (rsc.criterio) { reqSel.value = String(rsc.criterio.split('.')[0]); fillCrit(rsc.criterio); }
+        // prefill: seleciona diretamente o critério salvo (lista única com optgroups)
+        if (rsc.criterio) critSel.value = rsc.criterio;
         conta.addEventListener('change', () => { fields.classList.toggle('hidden', !conta.checked); state.formDirty = true; recompute(); });
-        reqSel.addEventListener('change', () => { fillCrit(); recompute(); state.formDirty = true; });
         ['change', 'input'].forEach(ev => $('#rscFields').addEventListener(ev, () => { state.formDirty = true; recompute(); }));
         recompute();
     }
