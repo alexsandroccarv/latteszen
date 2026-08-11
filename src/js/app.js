@@ -28,6 +28,8 @@
         lastCat: '', lastType: '', // última categoria/tipo usados (agiliza cadastro em série)
         vocab: {},          // listas curadas de autocomplete (por chave de campo)
         idPrefix: 'lz',     // prefixo do ID dos arquivos (configurável, até 3 chars)
+        rscEnabled: false,  // módulo RSC-PCCTAE habilitado?
+        rscCfg: {},         // dados funcionais do servidor (cargo, escolaridade, etc.)
     };
 
     /* --------------------------- Utilidades ----------------------------- */
@@ -573,6 +575,95 @@
         await renderInbox();
     }
 
+    // Camada RSC no formulário (abaixo dos campos do item), quando habilitado
+    function renderRscBlock(item) {
+        const box = $('#rscBlock'); if (!box) return;
+        const typeKey = $('#selTipo') ? $('#selTipo').value : '';
+        const catKey = $('#selCategoria') ? $('#selCategoria').value : '';
+        const eligivel = state.rscEnabled && typeKey && !LattesTypes.isPerfilType(typeKey) && catKey !== 'CONEXOES';
+        if (!eligivel) { box.innerHTML = ''; return; }
+        const rsc = (item && item.rsc) || {};
+        const f = (item && item.fields) || {};
+        const iniDefault = rsc.dataInicio || (f.anoInicio ? `01/01/${f.anoInicio}` : '');
+        const fimDefault = rsc.dataFim || (f.anoFim ? `31/12/${f.anoFim}` : (f.ano ? `31/12/${f.ano}` : ''));
+        const reqOpts = Object.keys(LzRSC.REQUISITOS).map(r => `<option value="${r}">${esc(LzRSC.REQUISITOS[r])}</option>`).join('');
+        box.innerHTML = `
+        <div class="bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800 rounded px-3 py-2 space-y-2">
+            <label class="flex items-center gap-2 text-sm font-semibold"><i aria-hidden="true" class="fa-solid fa-award text-amber-600"></i>
+                <input type="checkbox" id="rscConta" ${rsc.conta ? 'checked' : ''}> Contabilizar este item no RSC-PCCTAE</label>
+            <div id="rscFields" class="${rsc.conta ? '' : 'hidden'} space-y-2">
+                <div class="grid sm:grid-cols-2 gap-2">
+                    <div><label class="block text-xs font-semibold mb-1" for="rscReq">Requisito</label>
+                        <select id="rscReq" class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900"><option value="">—</option>${reqOpts}</select></div>
+                    <div><label class="block text-xs font-semibold mb-1" for="rscCrit">Critério específico (Anexo)</label>
+                        <select id="rscCrit" class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900"><option value="">—</option></select></div>
+                </div>
+                <div class="grid sm:grid-cols-2 gap-2">
+                    <div><label class="block text-xs font-semibold mb-1" for="rscIni">Data de início</label>
+                        <input id="rscIni" type="text" placeholder="25/12/2026" value="${esc(iniDefault)}" class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900"></div>
+                    <div><label class="block text-xs font-semibold mb-1" for="rscFim">Data de fim</label>
+                        <input id="rscFim" type="text" placeholder="25/12/2026" value="${esc(fimDefault)}" class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900"></div>
+                </div>
+                <div class="grid sm:grid-cols-2 gap-2">
+                    <div id="rscPapelWrap" class="hidden"><label class="block text-xs font-semibold mb-1" for="rscPapel">Papel</label>
+                        <select id="rscPapel" class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900">
+                            <option value="titular" ${rsc.papel !== 'substituto' ? 'selected' : ''}>Titular</option>
+                            <option value="substituto" ${rsc.papel === 'substituto' ? 'selected' : ''}>Substituto</option></select></div>
+                    <div id="rscQtdWrap" class="hidden"><label class="block text-xs font-semibold mb-1" for="rscQtd">Quantidade</label>
+                        <input id="rscQtd" type="number" min="0" step="1" value="${esc(rsc.quantidade != null ? rsc.quantidade : 1)}" class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900"></div>
+                </div>
+                <label class="flex items-center gap-2 text-sm"><input type="checkbox" id="rscInteresse" ${rsc.interesse ? 'checked' : ''}> De interesse institucional</label>
+                <label class="flex items-center gap-2 text-sm"><input type="checkbox" id="rscAlem" ${rsc.alemOrdinario ? 'checked' : ''}> Além das atribuições ordinárias do cargo</label>
+                <div><label class="block text-xs font-semibold mb-1" for="rscJust">Justificativa (para o memorial)</label>
+                    <textarea id="rscJust" rows="2" class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900">${esc(rsc.justificativa || '')}</textarea></div>
+                <label class="flex items-center gap-2 text-sm"><input type="checkbox" id="rscUsado" ${rsc.jaUsado ? 'checked' : ''}> Já utilizado em concessão anterior (não conta no saldo)</label>
+                <p id="rscPontos" class="text-sm font-semibold text-amber-700 dark:text-amber-400"></p>
+            </div>
+        </div>`;
+
+        const conta = $('#rscConta'), fields = $('#rscFields');
+        const reqSel = $('#rscReq'), critSel = $('#rscCrit');
+        function fillCrit(keepId) {
+            const req = reqSel.value;
+            const opts = req ? LzRSC.criteriosDoRequisito(req).map(c =>
+                `<option value="${c.id}">${c.item}. ${esc(c.desc)} — ${esc(c.unidade)} · ${String(c.pontos).replace('.', ',')} pts</option>`).join('') : '';
+            critSel.innerHTML = `<option value="">—</option>${opts}`;
+            if (keepId) critSel.value = keepId;
+        }
+        function recompute() {
+            const crit = LzRSC.criterio(critSel.value);
+            $('#rscPapelWrap').classList.toggle('hidden', !(crit && crit.pontosSub != null));
+            $('#rscQtdWrap').classList.toggle('hidden', !(crit && crit.calc === 'unidade'));
+            const data = collectRsc($('#itemForm'));
+            const pi = LzRSC.pontosItem(data);
+            const el = $('#rscPontos');
+            if (!crit) { el.textContent = 'Selecione o critério para calcular os pontos.'; return; }
+            el.textContent = `Pontos: ${String(pi.pontos).replace('.', ',')}  (${pi.quantidade} × ${String(pi.unitario).replace('.', ',')} · ${crit.unidade})`;
+        }
+        // prefill
+        if (rsc.criterio) { reqSel.value = String(rsc.criterio.split('.')[0]); fillCrit(rsc.criterio); }
+        conta.addEventListener('change', () => { fields.classList.toggle('hidden', !conta.checked); state.formDirty = true; recompute(); });
+        reqSel.addEventListener('change', () => { fillCrit(); recompute(); state.formDirty = true; });
+        ['change', 'input'].forEach(ev => $('#rscFields').addEventListener(ev, () => { state.formDirty = true; recompute(); }));
+        recompute();
+    }
+    // Lê a camada RSC do formulário → objeto rsc (ou {conta:false})
+    function collectRsc(form) {
+        const conta = form.querySelector('#rscConta');
+        if (!conta) return null;
+        const val = id => { const el = form.querySelector('#' + id); return el ? el.value.trim() : ''; };
+        const chk = id => { const el = form.querySelector('#' + id); return !!(el && el.checked); };
+        return {
+            conta: conta.checked,
+            criterio: val('rscCrit'),
+            dataInicio: val('rscIni'), dataFim: val('rscFim'),
+            papel: val('rscPapel') || 'titular',
+            quantidade: val('rscQtd') || '',
+            interesse: chk('rscInteresse'), alemOrdinario: chk('rscAlem'),
+            justificativa: val('rscJust'), jaUsado: chk('rscUsado'),
+        };
+    }
+
     function buildForm(item, opts) {
         opts = opts || {};
         const form = $('#itemForm');
@@ -617,6 +708,7 @@
             </div>
 
             <div id="dynFields" class="space-y-3"></div>
+            <div id="rscBlock" class="space-y-3"></div>
 
             <label id="inLattesWrap" class="flex items-center gap-2 text-sm">
                 <input type="checkbox" id="chkInLattes" ${item ? (item.inLattes ? 'checked' : '') : ''}>
@@ -638,7 +730,9 @@
 
         // Categoria (select nativo)
         const selCat = $('#selCategoria');
-        selCat.innerHTML = LattesTypes.categories.map(c => `<option value="${c.key}">${esc(c.num + '. ' + c.label)}</option>`).join('');
+        selCat.innerHTML = LattesTypes.categories
+            .filter(c => !c.rscOnly || state.rscEnabled)   // categoria RSC só com o módulo ligado
+            .map(c => `<option value="${c.key}">${esc(c.num + '. ' + c.label)}</option>`).join('');
         if (currentCat) selCat.value = currentCat;
 
         // ---- Tipo do item: combobox pesquisável (input + lista + hidden #selTipo) ----
@@ -689,6 +783,7 @@
             wireValidators($('#dynFields'));             // ISSN/ISBN/DOI/URL
             wireCounters($('#dynFields'));               // contador de textareas
             wireNA($('#dynFields'));                     // checkbox "N/A" dos campos URL
+            renderRscBlock(item);                        // camada RSC (se habilitado)
             const semEvidencia = !!(def && def.noEvidence);
             $('#evidenceBlock').style.display = semEvidencia ? 'none' : '';
             if (semEvidencia) { state.evEditing = []; renderEvList(); clearPdf(); }
@@ -1179,6 +1274,9 @@
         item.inLattes = naoLattes ? false : (inLattesEl ? inLattesEl.checked : false);
         item.updatedAt = nowISO();
 
+        // Camada RSC (se habilitado e o item é elegível)
+        if (state.rscEnabled) { const rscData = collectRsc(form); if (rscData) item.rsc = rscData; }
+
         // ---- Evidências: grava novas, remove excluídas, aplica ordem/pública ----
         const subdir = LattesTypes.categoryFolder(item.categoryKey);
         const semDir = !Storage.hasDirectory();
@@ -1606,6 +1704,55 @@
             <div class="space-y-2">${LattesTypes.perfilTypes().map(perfilCardHtml).join('')}</div>
         </section>`;
     }
+
+    /* ------------------------- Configuração do RSC ------------------------ */
+    function rscSectionHtml() {
+        const c = state.rscCfg || {};
+        const inp = (k, lbl, ph) => `<div><label class="block text-xs font-semibold mb-1" for="rsc-${k}">${esc(lbl)}</label>
+            <input id="rsc-${k}" type="text" value="${esc(c[k] || '')}" placeholder="${esc(ph || '')}" class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900"></div>`;
+        const escOpts = LzRSC.ESCOLARIDADE.map(e => `<option value="${e.key}" ${c.escolaridade === e.key ? 'selected' : ''}>${esc(e.label)} (nível ${e.maxN}, IQ ${e.iq}%)</option>`).join('');
+        return `<section id="rscSection" class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+            <h2 class="text-lg font-bold mb-2 flex items-center gap-2"><i class="fa-solid fa-award text-govbr-600 dark:text-unifesp-400"></i> RSC-PCCTAE (opcional)</h2>
+            <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">Reconhecimento de Saberes e Competências (Decreto nº 13.048/2026). Quando habilitado, cada item elegível ganha, abaixo dos campos, uma camada com os dados do RSC, e surge a aba <strong>RSC</strong> (simulador). Uso individual.</p>
+            <label class="flex items-center gap-2 text-sm mb-3">
+                <input type="checkbox" id="rscEnable" ${state.rscEnabled ? 'checked' : ''}>
+                <span>Habilitar módulo <strong>RSC-PCCTAE</strong></span>
+            </label>
+            <div id="rscCfgFields" class="${state.rscEnabled ? '' : 'hidden'} space-y-3">
+                <div class="grid grid-cols-2 gap-2">
+                    ${inp('cargo', 'Cargo', 'ex.: Assistente em Administração')}
+                    ${inp('classe', 'Classe / nível', 'ex.: Classe D, Nível IV')}
+                    ${inp('siape', 'SIAPE', '(opcional)')}
+                    ${inp('lotacao', 'Lotação / unidade', '')}
+                    ${inp('ingresso', 'Data de ingresso no cargo', '25/12/2026')}
+                    ${inp('dataInicioContagem', 'Início da contagem (RSC)', '25/12/2026')}
+                    <div class="col-span-2">
+                        <label class="block text-xs font-semibold mb-1" for="rsc-escolaridade">Escolaridade (limita o nível máximo)</label>
+                        <select id="rsc-escolaridade" class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900"><option value="">—</option>${escOpts}</select>
+                    </div>
+                </div>
+            </div>
+            <div class="flex gap-2 mt-3">
+                <button id="btnSaveRsc" class="px-3 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm"><i class="fa-solid fa-floppy-disk mr-1"></i> Salvar RSC</button>
+            </div>
+        </section>`;
+    }
+    function wireRscConfig() {
+        const en = $('#rscEnable'); if (!en) return;
+        en.addEventListener('change', () => { $('#rscCfgFields').classList.toggle('hidden', !en.checked); });
+        $('#btnSaveRsc').addEventListener('click', () => {
+            state.rscEnabled = $('#rscEnable').checked;
+            const keys = ['cargo', 'classe', 'siape', 'lotacao', 'ingresso', 'dataInicioContagem'];
+            const cfg = {};
+            keys.forEach(k => { const el = $('#rsc-' + k); if (el) cfg[k] = el.value.trim(); });
+            cfg.escolaridade = $('#rsc-escolaridade').value;
+            state.rscCfg = cfg;
+            const s = Storage.loadSettings(); s.rscEnabled = state.rscEnabled; s.rsc = cfg; Storage.saveSettings(s);
+            applyRscVisibility();
+            toast(state.rscEnabled ? 'Módulo RSC habilitado.' : 'Módulo RSC desabilitado.', 'ok');
+            renderConfig();
+        });
+    }
     function wirePerfilSection() {
         const sec = $('#perfilSection');
         if (!sec) return;
@@ -1682,6 +1829,7 @@
         panel.innerHTML = `
             <div class="space-y-6 max-w-2xl">
                 ${perfilSectionHtml()}
+                ${rscSectionHtml()}
                 ${importLattesSectionHtml()}
                 <section class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
                     <h2 class="text-lg font-bold mb-2 flex items-center gap-2"><i class="fa-solid fa-folder-open text-govbr-600 dark:text-unifesp-400"></i> Diretório de arquivos</h2>
@@ -1763,6 +1911,7 @@
             </div>`;
 
         wirePerfilSection();
+        wireRscConfig();
         $('#xmlInput').addEventListener('change', onXmlSelected);
         $('#idPrefix').addEventListener('input', (e) => {
             $('#idPrefixEx').textContent = `${sanitizePrefix(e.target.value)}-k7p`;
@@ -2068,12 +2217,165 @@
     }
 
     /* =====================================================================
+       ABA: RSC-PCCTAE (simulador + memorial/formulário)
+       ===================================================================== */
+    // Itens que contam para o RSC (elegíveis, marcados, com critério e não usados)
+    function rscItensContados() {
+        return state.items.filter(i => i.rsc && i.rsc.conta && i.rsc.criterio && !i.rsc.jaUsado);
+    }
+    function renderRsc() {
+        const panel = $('#tab-rsc');
+        if (!state.rscEnabled) {
+            panel.innerHTML = `<p class="text-sm text-gray-500 italic py-8 text-center">Módulo RSC desabilitado. Habilite em <strong>Configurações › RSC-PCCTAE</strong>.</p>`;
+            return;
+        }
+        const cfg = state.rscCfg || {};
+        const itens = rscItensContados();
+        const rscList = itens.map(i => i.rsc);
+        const sim = LzRSC.simular(rscList, cfg.escolaridade);
+
+        const reqLinha = (r) => {
+            const pr = sim.porRequisito[r];
+            return `<tr class="border-b border-gray-100 dark:border-gray-700/60">
+                <td class="py-1 pr-2 text-xs">${esc(LzRSC.REQUISITOS[r])}</td>
+                <td class="py-1 px-2 text-right tabular-nums">${pr.itens}</td>
+                <td class="py-1 px-2 text-right tabular-nums">${pr.criterios.size}</td>
+                <td class="py-1 pl-2 text-right tabular-nums font-semibold">${String(pr.pontos).replace('.', ',')}</td></tr>`;
+        };
+        const niveisLinha = sim.niveis.map(n => {
+            const cls = n.atingido ? 'text-green-700 dark:text-green-400' : 'text-gray-500';
+            const ic = n.atingido ? 'fa-circle-check' : 'fa-circle';
+            const falta = [];
+            if (!n.okPontos) falta.push(`+${String(n.faltaPontos).replace('.', ',')} pts`);
+            if (!n.okCrit) falta.push(`+${n.faltaCriterios} critério(s)`);
+            if (!n.okReq) falta.push('requisito específico');
+            if (!n.okEsc) falta.push('escolaridade insuficiente');
+            return `<li class="flex items-center gap-2 text-sm ${cls}"><i class="fa-solid ${ic}"></i> ${esc(n.nome)} <span class="text-xs text-gray-400">(${n.min.pontos} pts${n.min.criterios ? ', ' + n.min.criterios + ' crit.' : ''})</span> ${falta.length ? `<span class="text-xs text-amber-600">— falta ${falta.join(', ')}</span>` : ''}</li>`;
+        }).join('');
+
+        // Lista de itens contados (conformidade RSC), agrupada por requisito
+        const grupos = {};
+        itens.forEach(i => { const c = LzRSC.criterio(i.rsc.criterio); const r = c ? c.req : 0; (grupos[r] = grupos[r] || []).push(i); });
+        const listaHtml = Object.keys(grupos).sort().map(r => `
+            <details open class="border border-gray-200 dark:border-gray-700 rounded mb-2">
+                <summary class="cursor-pointer px-3 py-1.5 bg-gray-100 dark:bg-gray-800 text-sm font-medium">${esc(LzRSC.REQUISITOS[r] || 'Sem requisito')} <span class="text-xs text-gray-500">(${grupos[r].length})</span></summary>
+                <div class="p-2 space-y-1">${grupos[r].map(i => {
+                    const pi = LzRSC.pontosItem(i.rsc), c = pi.crit;
+                    return `<div class="flex items-center justify-between gap-2 text-sm border border-gray-100 dark:border-gray-700/60 rounded px-2 py-1">
+                        <span class="min-w-0"><span class="font-medium">${esc(LattesTypes.itemTitle(i))}</span>
+                        <span class="block text-xs text-gray-500">${c ? c.item + '. ' + esc(c.desc) : ''}</span></span>
+                        <span class="shrink-0 font-semibold text-amber-700 dark:text-amber-400 tabular-nums">${String(pi.pontos).replace('.', ',')}</span></div>`;
+                }).join('')}</div>
+            </details>`).join('') || `<p class="text-sm text-gray-500 italic">Nenhum item marcado para o RSC ainda. Em Catalogar, marque “Contabilizar este item no RSC”.</p>`;
+
+        panel.innerHTML = `
+            <div class="grid lg:grid-cols-3 gap-4 mb-4">
+                <div class="lg:col-span-1 bg-gradient-to-br from-govbr-600 to-govbr-800 dark:from-unifesp-700 dark:to-unifesp-900 text-white rounded-lg p-4">
+                    <p class="text-sm opacity-90">Nível alcançável</p>
+                    <p class="text-3xl font-bold">${esc(sim.nivelNome)}</p>
+                    <p class="text-sm mt-1">Incentivo à Qualificação: <strong>${sim.iq}%</strong></p>
+                    <p class="text-xs opacity-80 mt-2">${sim.total.toString().replace('.', ',')} pontos · ${sim.criteriosDistintos} critérios distintos</p>
+                    ${cfg.escolaridade ? `<p class="text-xs opacity-80">Escolaridade limita a nível ${sim.capNivel}.</p>` : `<p class="text-xs opacity-90">⚠ Informe a escolaridade em Configurações.</p>`}
+                </div>
+                <div class="lg:col-span-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                    <h3 class="font-bold text-sm mb-2">Progresso por nível</h3>
+                    <ul class="space-y-1">${niveisLinha}</ul>
+                </div>
+            </div>
+
+            <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 mb-4">
+                <h3 class="font-bold text-sm mb-2">Pontos por requisito</h3>
+                <table class="w-full text-sm"><thead><tr class="text-xs text-gray-500 text-right"><th class="text-left">Requisito</th><th>Itens</th><th>Critérios</th><th>Pontos</th></tr></thead>
+                <tbody>${[1, 2, 3, 4, 5, 6].map(reqLinha).join('')}</tbody></table>
+            </div>
+
+            <div class="flex gap-2 flex-wrap mb-4">
+                <button id="btnRscCsv" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-file-csv mr-1"></i> Exportar planilha (CSV)</button>
+                <button id="btnRscMemorial" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-file-lines mr-1"></i> Gerar memorial</button>
+                <button id="btnRscForm" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-file-signature mr-1"></i> Gerar formulário</button>
+            </div>
+
+            <h3 class="font-bold mb-2">Itens contabilizados</h3>
+            ${listaHtml}`;
+
+        $('#btnRscCsv').addEventListener('click', () => downloadText(rscCsv(itens), 'rsc-comprovacao.csv', 'text/csv'));
+        $('#btnRscMemorial').addEventListener('click', () => downloadText(rscMemorial(itens, sim, cfg), 'rsc-memorial.txt', 'text/plain'));
+        $('#btnRscForm').addEventListener('click', () => downloadText(rscFormulario(sim, cfg), 'rsc-formulario.txt', 'text/plain'));
+    }
+    function downloadText(txt, nome, mime) {
+        const blob = new Blob([txt], { type: (mime || 'text/plain') + ';charset=utf-8' });
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = nome; a.click(); URL.revokeObjectURL(a.href);
+    }
+    function csvCell(s) { s = String(s == null ? '' : s); return /[",;\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }
+    function rscCsv(itens) {
+        const head = ['Requisito', 'Critério', 'Descrição do critério', 'Item (título)', 'Início', 'Fim', 'Papel', 'Qtd', 'Unitário', 'Pontos', 'Evidências'];
+        const rows = itens.map(i => {
+            const pi = LzRSC.pontosItem(i.rsc), c = pi.crit || {};
+            const nEv = Array.isArray(i.evidencias) ? i.evidencias.length : 0;
+            return [c.req || '', c.id || '', c.desc || '', LattesTypes.itemTitle(i), i.rsc.dataInicio || '', i.rsc.dataFim || '',
+                (c.pontosSub != null ? i.rsc.papel : ''), pi.quantidade, pi.unitario, pi.pontos, nEv].map(csvCell).join(';');
+        });
+        return head.map(csvCell).join(';') + '\n' + rows.join('\n');
+    }
+    function rscMemorial(itens, sim, cfg) {
+        const L = [];
+        L.push('MEMORIAL — RSC-PCCTAE'); L.push('='.repeat(40));
+        L.push(`Cargo: ${cfg.cargo || '—'}   Classe/nível: ${cfg.classe || '—'}`);
+        L.push(`Lotação: ${cfg.lotacao || '—'}   SIAPE: ${cfg.siape || '—'}`);
+        L.push(`Ingresso no cargo: ${cfg.ingresso || '—'}   Escolaridade: ${(LzRSC.escInfo(cfg.escolaridade) || {}).label || '—'}`);
+        L.push(`Nível pleiteável (simulado): ${sim.nivelNome} — ${sim.total.toString().replace('.', ',')} pontos, ${sim.criteriosDistintos} critérios.`);
+        L.push('');
+        for (let r = 1; r <= 6; r++) {
+            const grp = itens.filter(i => { const c = LzRSC.criterio(i.rsc.criterio); return c && c.req === r; });
+            if (!grp.length) continue;
+            L.push(`REQUISITO ${LzRSC.REQUISITOS[r]}`); L.push('-'.repeat(40));
+            grp.forEach(i => {
+                const pi = LzRSC.pontosItem(i.rsc), c = pi.crit;
+                L.push(`• ${LattesTypes.itemTitle(i)}`);
+                L.push(`  Critério ${c.id}: ${c.desc}`);
+                const per = (i.rsc.dataInicio || i.rsc.dataFim) ? `  Período: ${i.rsc.dataInicio || '?'} a ${i.rsc.dataFim || '?'}.` : '';
+                L.push(`  ${per}  Pontos: ${String(pi.pontos).replace('.', ',')} (${pi.quantidade} × ${String(pi.unitario).replace('.', ',')}).`);
+                if (i.rsc.justificativa) L.push(`  Justificativa: ${i.rsc.justificativa}`);
+                L.push('');
+            });
+        }
+        return L.join('\n');
+    }
+    function rscFormulario(sim, cfg) {
+        const L = [];
+        L.push('FORMULÁRIO — REQUERIMENTO DE RSC-PCCTAE'); L.push('='.repeat(40));
+        L.push('1) DADOS FUNCIONAIS');
+        L.push(`   Cargo: ${cfg.cargo || '—'}`); L.push(`   Classe/nível: ${cfg.classe || '—'}`);
+        L.push(`   SIAPE: ${cfg.siape || '—'}`); L.push(`   Lotação: ${cfg.lotacao || '—'}`);
+        L.push(`   Data de ingresso no cargo: ${cfg.ingresso || '—'}`);
+        L.push(`   Escolaridade: ${(LzRSC.escInfo(cfg.escolaridade) || {}).label || '—'}`);
+        L.push('');
+        L.push('2) NÍVEL PLEITEADO');
+        L.push(`   Nível RSC-PCCTAE pleiteado: ${sim.nivelNome}`);
+        L.push(`   Pontuação apurada: ${sim.total.toString().replace('.', ',')}  |  Critérios distintos: ${sim.criteriosDistintos}`);
+        L.push(`   Incentivo à Qualificação correspondente: ${sim.iq}%`);
+        L.push('   Saldo de pontos de concessão anterior: ____');
+        L.push('');
+        L.push('3) DECLARAÇÃO DE CONFORMIDADE');
+        L.push('   Declaro que as atividades e experiências relacionadas ocorreram no exercício');
+        L.push('   do cargo e que os pontos não foram utilizados em concessões anteriores.');
+        L.push('');
+        L.push('   Local/Data: ______________________    Assinatura: ______________________');
+        return L.join('\n');
+    }
+
+    /* =====================================================================
        Navegação por abas
        ===================================================================== */
     const RENDERERS = {
         catalogar: renderCatalogar, conformidade: renderConformidade,
-        publicar: renderPublicar, config: renderConfig,
+        publicar: renderPublicar, rsc: renderRsc, config: renderConfig,
     };
+    // Mostra/oculta a aba RSC conforme o módulo esteja habilitado
+    function applyRscVisibility() {
+        const btn = $('.tab-btn[data-tab="rsc"]');
+        if (btn) btn.classList.toggle('hidden', !state.rscEnabled);
+    }
     function switchTab(name) {
         // Guarda de alterações não salvas ao sair de "Catalogar"
         if (state.activeTab === 'catalogar' && name !== 'catalogar' && state.formDirty) {
@@ -2162,7 +2464,10 @@
         state.idPrefix = sanitizePrefix(cfg.idPrefix || 'lz');
         state.lastCat = cfg.lastCat || '';
         state.lastType = cfg.lastType || '';
+        state.rscEnabled = !!cfg.rscEnabled;
+        state.rscCfg = cfg.rsc || {};
         migrarItens();
+        applyRscVisibility();
         try { await Storage.restoreDirectory(); } catch (_) {}
 
         // Aviso ao fechar/recarregar com edições não salvas

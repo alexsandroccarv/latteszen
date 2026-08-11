@@ -211,6 +211,35 @@ const TYPES = {
         { key: 'titulo', label: 'Plataforma / Tipo', type: 'text', required: true, placeholder: 'ex.: LinkedIn, E-mail profissional, Site pessoal' },
         { key: 'url', label: 'Link / URL (ou e-mail)', type: 'text', required: true, placeholder: 'https://...  ou  nome@dominio' },
         { key: 'usuario', label: 'Usuário / contato', type: 'text' }] },
+
+    /* --- RSC — Atividades administrativas (não-Lattes; só com o módulo RSC) --- */
+    RSC_COMISSAO: { label: 'Comissão / GT / comitê / conselho', noExport: true, rsc: true, fields: [
+        { key: 'titulo', label: 'Descrição da atividade', type: 'text', required: true },
+        { key: 'orgao', label: 'Órgão / unidade', type: 'text' }, { key: 'descricao', label: 'Detalhes', type: 'textarea' }] },
+    RSC_CONCURSO: { label: 'Organização de concurso / vestibular / seleção', noExport: true, rsc: true, fields: [
+        { key: 'titulo', label: 'Descrição da atividade', type: 'text', required: true },
+        { key: 'orgao', label: 'Órgão / unidade', type: 'text' }, { key: 'descricao', label: 'Detalhes', type: 'textarea' }] },
+    RSC_CONTRATO: { label: 'Gestão / fiscalização de contrato', noExport: true, rsc: true, fields: [
+        { key: 'titulo', label: 'Contrato / objeto', type: 'text', required: true },
+        { key: 'orgao', label: 'Órgão / unidade', type: 'text' }, { key: 'descricao', label: 'Detalhes', type: 'textarea' }] },
+    RSC_LICITACAO: { label: 'Licitação / planejamento de contratação', noExport: true, rsc: true, fields: [
+        { key: 'titulo', label: 'Descrição da atividade', type: 'text', required: true },
+        { key: 'orgao', label: 'Órgão / unidade', type: 'text' }, { key: 'descricao', label: 'Detalhes', type: 'textarea' }] },
+    RSC_SISTEMA: { label: 'Sistema estruturante / TI', noExport: true, rsc: true, fields: [
+        { key: 'titulo', label: 'Sistema', type: 'text', required: true },
+        { key: 'orgao', label: 'Órgão / unidade', type: 'text' }, { key: 'descricao', label: 'Atuação', type: 'textarea' }] },
+    RSC_CARGO_FUNCAO: { label: 'Cargo de direção / função gratificada (CD/FG)', noExport: true, rsc: true, fields: [
+        { key: 'titulo', label: 'Cargo / função (ex.: CD-04, FG-01)', type: 'text', required: true },
+        { key: 'orgao', label: 'Órgão / unidade', type: 'text' }, { key: 'descricao', label: 'Atribuições', type: 'textarea' }] },
+    RSC_RESP_SETOR: { label: 'Responsável por setor / unidade', noExport: true, rsc: true, fields: [
+        { key: 'titulo', label: 'Setor / unidade', type: 'text', required: true },
+        { key: 'orgao', label: 'Órgão', type: 'text' }, { key: 'descricao', label: 'Detalhes', type: 'textarea' }] },
+    RSC_APOIO_TECNICO: { label: 'Apoio técnico especializado', noExport: true, rsc: true, fields: [
+        { key: 'titulo', label: 'Descrição da atividade', type: 'text', required: true },
+        { key: 'orgao', label: 'Órgão / unidade', type: 'text' }, { key: 'descricao', label: 'Detalhes', type: 'textarea' }] },
+    RSC_ADMIN_OUTRA: { label: 'Outra atividade administrativa', noExport: true, rsc: true, fields: [
+        { key: 'titulo', label: 'Descrição da atividade', type: 'text', required: true },
+        { key: 'orgao', label: 'Órgão / unidade', type: 'text' }, { key: 'descricao', label: 'Detalhes', type: 'textarea' }] },
 };
 // Garante que cada tipo conheça a própria chave
 Object.keys(TYPES).forEach(k => TYPES[k].key = k);
@@ -246,6 +275,8 @@ window.LATTES_CATEGORIES = [
     { num: '09', key: 'EVENTOS', label: 'Eventos', icon: 'fa-calendar-days', types: ['PARTICIPACAO_EVENTO', 'ORGANIZACAO_EVENTO'] },
     { num: '10', key: 'ORIENTACOES', label: 'Orientações', icon: 'fa-user-group', types: ['ORIENTACAO_CONCLUIDA', 'ORIENTACAO_ANDAMENTO'] },
     { num: '11', key: 'BANCAS', label: 'Bancas', icon: 'fa-gavel', types: ['BANCA_CONCLUSAO', 'BANCA_JULGADORA'] },
+    { num: '97', key: 'RSC_ADMIN', label: 'RSC — Atividades administrativas', icon: 'fa-building-columns', naoLattes: true, rscOnly: true,
+      types: ['RSC_COMISSAO', 'RSC_CONCURSO', 'RSC_CONTRATO', 'RSC_LICITACAO', 'RSC_SISTEMA', 'RSC_CARGO_FUNCAO', 'RSC_RESP_SETOR', 'RSC_APOIO_TECNICO', 'RSC_ADMIN_OUTRA'] },
     { num: '98', key: 'CONEXOES', label: 'Conexões', icon: 'fa-share-nodes', naoLattes: true,
       groups: [
           { label: 'Sociais', types: ['CONEXAO_SOCIAL'] },
@@ -282,6 +313,7 @@ const PRIMARY_CATEGORY = {
 };
 AL_KEYS.forEach(k => { PRIMARY_CATEGORY[k] = 'ATIVIDADES_LIVRES'; });
 ['CONEXAO_SOCIAL', 'CONEXAO_ACADEMICA', 'CONEXAO_PROFISSIONAL'].forEach(k => { PRIMARY_CATEGORY[k] = 'CONEXOES'; });
+['RSC_COMISSAO', 'RSC_CONCURSO', 'RSC_CONTRATO', 'RSC_LICITACAO', 'RSC_SISTEMA', 'RSC_CARGO_FUNCAO', 'RSC_RESP_SETOR', 'RSC_APOIO_TECNICO', 'RSC_ADMIN_OUTRA'].forEach(k => { PRIMARY_CATEGORY[k] = 'RSC_ADMIN'; });
 const LEGACY_TYPE = { LIVRO: 'LIVRO_CAPITULO', CAPITULO_LIVRO: 'LIVRO_CAPITULO', SOFTWARE: 'SOFTWARE_SEM_REGISTRO', ORIENTACAO: 'ORIENTACAO_ANDAMENTO', BANCA: 'BANCA_CONCLUSAO' };
 
 /* ---- Categoria/tipo especial: itens NÃO LATTES ---- */
