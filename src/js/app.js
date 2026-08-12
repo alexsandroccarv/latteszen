@@ -1921,26 +1921,6 @@
 
         panel.innerHTML = `
             <div class="space-y-6 max-w-2xl">
-                ${cfgGroup('fa-id-card', 'Perfil')}
-                ${perfilSectionHtml()}
-
-                ${cfgGroup('fa-arrow-right-arrow-left', 'Plataforma Lattes')}
-                ${importLattesSectionHtml()}
-                ${exportLattesSectionHtml()}
-                <section class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-                    <h2 class="text-lg font-bold mb-2 flex items-center gap-2"><i class="fa-solid fa-language text-govbr-600 dark:text-unifesp-400"></i> Compatibilidade com o Lattes (ISO-8859-1)</h2>
-                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
-                        O Currículo Lattes usa a codificação <code class="text-xs bg-gray-200 dark:bg-gray-700 px-1 rounded">ISO-8859-1</code>.
-                        A verificação abaixo aponta caracteres fora dessa tabela (ex.: aspas “curvas”, travessão —, emoji) que,
-                        na exportação, viram entidades numéricas. Você pode normalizá-los automaticamente.
-                    </p>
-                    <div class="flex flex-wrap gap-2">
-                        <button id="btnCheckEnc" class="px-3 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm"><i class="fa-solid fa-spell-check mr-1"></i> Verificar codificação</button>
-                        <button id="btnNormalize" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-wand-magic-sparkles mr-1"></i> Normalizar pontuação</button>
-                    </div>
-                    <div id="encResult" class="text-sm mt-3"></div>
-                </section>
-
                 ${cfgGroup('fa-folder-tree', 'Diretório e dados')}
                 <section class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
                     <h2 class="text-lg font-bold mb-2 flex items-center gap-2"><i class="fa-solid fa-folder-open text-govbr-600 dark:text-unifesp-400"></i> Diretório de arquivos</h2>
@@ -1975,6 +1955,26 @@
                             <input type="file" id="importJson" accept="application/json" class="hidden">
                         </label>
                     </div>
+                </section>
+
+                ${cfgGroup('fa-id-card', 'Perfil')}
+                ${perfilSectionHtml()}
+
+                ${cfgGroup('fa-arrow-right-arrow-left', 'Plataforma Lattes')}
+                ${importLattesSectionHtml()}
+                ${exportLattesSectionHtml()}
+                <section class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+                    <h2 class="text-lg font-bold mb-2 flex items-center gap-2"><i class="fa-solid fa-language text-govbr-600 dark:text-unifesp-400"></i> Compatibilidade com o Lattes (ISO-8859-1)</h2>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                        O Currículo Lattes usa a codificação <code class="text-xs bg-gray-200 dark:bg-gray-700 px-1 rounded">ISO-8859-1</code>.
+                        A verificação abaixo aponta caracteres fora dessa tabela (ex.: aspas “curvas”, travessão —, emoji) que,
+                        na exportação, viram entidades numéricas. Você pode normalizá-los automaticamente.
+                    </p>
+                    <div class="flex flex-wrap gap-2">
+                        <button id="btnCheckEnc" class="px-3 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm"><i class="fa-solid fa-spell-check mr-1"></i> Verificar codificação</button>
+                        <button id="btnNormalize" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-wand-magic-sparkles mr-1"></i> Normalizar pontuação</button>
+                    </div>
+                    <div id="encResult" class="text-sm mt-3"></div>
                 </section>
 
                 ${cfgGroup('fa-award', 'RSC-PCCTAE')}
