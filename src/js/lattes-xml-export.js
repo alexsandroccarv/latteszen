@@ -21,7 +21,15 @@
    ========================================================================== */
 window.LattesXMLExport = (function () {
 
-    const SISTEMA_ORIGEM = 'LATTESZEN';
+    // A Plataforma Lattes só importa XML de origens reconhecidas. "LATTES_OFFLINE"
+    // é a origem do próprio fluxo de importação offline do CNPq (a mesma do XML
+    // real da plataforma) — origens não reconhecidas (ex.: "LATTESZEN") são
+    // rejeitadas na importação, mesmo com XML estruturalmente válido.
+    const SISTEMA_ORIGEM = 'LATTES_OFFLINE';
+    // dd/mm/aaaa e hh/mm/ss atuais no formato do Lattes (DDMMAAAA / HHMMSS)
+    function pad(n) { return String(n).padStart(2, '0'); }
+    function agoraData(d) { return pad(d.getDate()) + pad(d.getMonth() + 1) + d.getFullYear(); }
+    function agoraHora(d) { return pad(d.getHours()) + pad(d.getMinutes()) + pad(d.getSeconds()); }
 
     /* ------------------------------ helpers ------------------------------ */
     function esc(s) {
@@ -736,10 +744,14 @@ window.LattesXMLExport = (function () {
         const outra = buildOutraProducao(pick, orientConcl);
         const compl = buildComplementares(byType, exportable);
 
+        const agora = new Date();
         const rootAttrs = {
             'SISTEMA-ORIGEM-XML': SISTEMA_ORIGEM,
-            'NUMERO-IDENTIFICADOR': settings.numeroIdentificador || '',
+            'DATA-ATUALIZACAO': settings.dataAtualizacao || agoraData(agora),
+            'HORA-ATUALIZACAO': settings.horaAtualizacao || agoraHora(agora),
         };
+        // NUMERO-IDENTIFICADOR é opcional; só emite se houver (evita valor vazio).
+        if (settings.numeroIdentificador) rootAttrs['NUMERO-IDENTIFICADOR'] = settings.numeroIdentificador;
         const inner = [dadosGerais, biblio, tecnica, outra, compl].filter(Boolean).join('');
         const doc = '<?xml version="1.0" encoding="ISO-8859-1"?>\n' + el('CURRICULO-VITAE', rootAttrs, inner) + '\n';
         return doc;
