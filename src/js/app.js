@@ -2217,6 +2217,15 @@
                     </div>
                     <p id="pubStatus" class="text-xs text-gray-500 mt-2"></p>
                 </section>
+                <section class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+                    <h2 class="text-lg font-bold mb-2 flex items-center gap-2"><i class="fa-solid fa-file-code text-govbr-600 dark:text-unifesp-400"></i> Exportar para a Plataforma Lattes (XML)</h2>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">Gera o arquivo <strong>curriculo.xml</strong> no formato oficial do CNPq (schema <em>CurriculoLattes</em>, codificação ISO-8859-1). Inclui apenas os itens das categorias do Lattes — <strong>RSC, Conexões e Atividades livres não são exportados</strong>. As evidências (PDFs) não fazem parte do XML.</p>
+                    <div class="flex gap-2 flex-wrap">
+                        <button id="btnXmlDownload" class="px-3 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm"><i class="fa-solid fa-download mr-1"></i> Baixar XML (.xml)</button>
+                        <button id="btnXmlSave" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-folder-open mr-1"></i> Salvar na pasta (Publicação/curriculo.xml)</button>
+                    </div>
+                    <p id="xmlStatus" class="text-xs text-gray-500 mt-2"></p>
+                </section>
                 <div class="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden bg-white" style="height:75vh">
                     <iframe id="pubPreview" class="w-full h-full" title="Prévia da página pública"></iframe>
                 </div>
@@ -2249,6 +2258,41 @@
                 const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `curriculo-${safe}.html`; a.click(); URL.revokeObjectURL(a.href);
                 status('Arquivo baixado.');
             } catch (e) { status(''); toast('Falha ao gerar: ' + e.message, 'erro'); }
+        });
+
+        // ---- Exportação XML (Plataforma Lattes) ----
+        const xmlStatus = (t) => { const el = $('#xmlStatus'); if (el) el.textContent = t; };
+        function generateLattesXml() {
+            const cfg = Storage.loadSettings() || {};
+            const xml = LattesXMLExport.build(state.items, { numeroIdentificador: cfg.lattesId || '' });
+            // Serializa em ISO-8859-1 (entidades numéricas para fora do Latin-1).
+            return { xml, bytes: LzEncoding.encodeLatin1Xml(xml) };
+        }
+        const xmlExportaveis = () => state.items.filter(i => {
+            const def = LattesTypes.getType(i.typeKey);
+            if (def && def.noExport) return false;
+            return !LattesTypes.isNaoLattesCategory(i.categoryKey);
+        }).length;
+        $('#btnXmlDownload').addEventListener('click', () => {
+            xmlStatus('Gerando XML…');
+            try {
+                const { bytes } = generateLattesXml();
+                const nome = (state.items.find(i => i.typeKey === 'IDENTIFICACAO' && i.fields && i.fields.titulo) || {}).fields;
+                const safe = (nome && nome.titulo ? nome.titulo : 'curriculo').replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, '-').toLowerCase();
+                const blob = new Blob([bytes], { type: 'application/xml' });
+                const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `curriculo-${safe}.xml`; a.click(); URL.revokeObjectURL(a.href);
+                xmlStatus(`XML gerado (${xmlExportaveis()} item(ns) exportado(s)).`);
+            } catch (e) { xmlStatus(''); toast('Falha ao gerar XML: ' + e.message, 'erro'); }
+        });
+        $('#btnXmlSave').addEventListener('click', async () => {
+            if (!Storage.hasDirectory()) { toast('Configure um diretório em Configurações para salvar na pasta.', 'aviso'); return; }
+            xmlStatus('Gerando e salvando XML…');
+            try {
+                const { bytes } = generateLattesXml();
+                await Storage.writeFile('curriculo.xml', bytes, 'Publicação');
+                xmlStatus(`Salvo em “Publicação/curriculo.xml” (${xmlExportaveis()} item(ns)).`);
+                toast('XML salvo em “Publicação/curriculo.xml”.', 'ok');
+            } catch (e) { xmlStatus(''); toast('Falha ao salvar XML: ' + e.message, 'erro'); }
         });
     }
 
