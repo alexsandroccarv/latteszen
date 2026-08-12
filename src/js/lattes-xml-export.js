@@ -97,7 +97,7 @@ window.LattesXMLExport = (function () {
         'DADOS-BASICOS-DO-LIVRO|TIPO': ['LIVRO_PUBLICADO', 'LIVRO_ORGANIZADO_OU_EDICAO', 'NAO_INFORMADO'],
         'DADOS-BASICOS-DA-APRESENTACAO-DE-TRABALHO|NATUREZA': ['COMUNICACAO', 'CONFERENCIA', 'CONGRESSO', 'SEMINARIO', 'SIMPOSIO', 'OUTRA', 'NAO_INFORMADO'],
         'DADOS-BASICOS-DE-CURSOS-CURTA-DURACAO-MINISTRADO|NIVEL-DO-CURSO': ['EXTENSAO', 'APERFEICOAMENTO', 'ESPECIALIZACAO', 'OUTRA', 'NAO_INFORMADO'],
-        'DADOS-BASICOS-DO-TRABALHO-TECNICO|NATUREZA': ['ASSESSORIA', 'CONSULTORIA', 'PARECER', 'ELABORACAO_DE_PROJETO', 'RELATORIO_TECNICO', 'SERVICOS_NA_AREA_DA_SAUDE', 'EXTENSAO_TECNOLOGICA', 'OUTRA', 'NAO_INFORMADO'],
+        'DADOS-BASICOS-DO-TRABALHO-TECNICO|NATUREZA': ['ASSESSORIA', 'CONSULTORIA', 'PARECER', 'ELABORACAO_DE_PROJETO', 'RELATORIO_TECNICO', 'SERVICOS_NA_AREA_DA_SAUDE', 'OUTRA', 'NAO_INFORMADO'],
         'DADOS-BASICOS-DO-PRODUTO-TECNOLOGICO|TIPO-PRODUTO': ['PILOTO', 'PROJETO', 'PROTOTIPO', 'OUTRO', 'NAO_INFORMADO'],
         'DADOS-BASICOS-DO-PROCESSOS-OU-TECNICAS|NATUREZA': ['ANALITICA', 'INSTRUMENTAL', 'PEDAGOGICA', 'PROCESSUAL', 'TERAPEUTICA', 'OUTRA', 'NAO_INFORMADO'],
         'DADOS-BASICOS-DA-PARTITURA|NATUREZA': ['CANTO', 'CORAL', 'ORQUESTRA', 'OUTRO', 'NAO_INFORMADO'],
@@ -159,10 +159,13 @@ window.LattesXMLExport = (function () {
         const citacoes = clean(ident.citacoes) || nome;
         const nacionalidade = clean(ident.nacionalidade) || 'Brasileira';
 
+        // SEXO é #REQUIRED no formato de importação do Lattes (MASCULINO|FEMININO).
+        const sexo = (clean(ident.sexo).toUpperCase().indexOf('F') === 0) ? 'FEMININO' : 'MASCULINO';
         const dgAttrs = {
             'NOME-COMPLETO': nome,
             'NOME-EM-CITACOES-BIBLIOGRAFICAS': citacoes,
             'NACIONALIDADE': nacionalidade,
+            'SEXO': sexo,
             'PAIS-DE-NASCIMENTO': clean(ident.pais),
             'PERMISSAO-DE-DIVULGACAO': 'NAO',
             'ORCID-ID': clean(ident.orcid),
@@ -228,12 +231,8 @@ window.LattesXMLExport = (function () {
             });
         }).join('');
         if (premios) children.push(wrap('PREMIOS-TITULOS', premios));
-        // LICENCAS (o schema Lattes só enumera MATERNIDADE)
-        const licencas = byType('LICENCA').map(it => {
-            const f = it.fields;
-            return el('LICENCA', { 'TIPO-LICENCA': 'MATERNIDADE', 'DATA-INICIO-LICENCA': ddmmaaaa(f.dataInicio), 'DATA-FIM-LICENCA': ddmmaaaa(f.dataFim) });
-        }).join('');
-        if (licencas) children.push(wrap('LICENCAS', licencas));
+        // Obs.: LICENCA não existe no formato de importação do Lattes (nem no DTD
+        // nem no XML real da plataforma) — fica catalogável só localmente.
 
         return el('DADOS-GERAIS', dgAttrs, children.join(''));
     }
@@ -304,7 +303,9 @@ window.LattesXMLExport = (function () {
         };
         const ensino = all.filter(i => i.typeKey === 'ATIV_ENSINO');
         const linhas = all.filter(i => i.typeKey === 'LINHA_PESQUISA');
-        const NAT_PROJ = { PROJETO_PESQUISA: 'PESQUISA', PROJETO_DESENVOLVIMENTO: 'DESENVOLVIMENTO', PROJETO_EXTENSAO: 'EXTENSAO', PROJETO_ENSINO: 'ENSINO', PROJETO_OUTRO: 'OUTRA' };
+        // NATUREZA do projeto: enum do Lattes = (DESENVOLVIMENTO|EXTENSAO|PESQUISA|OUTRA).
+        // "Ensino" não existe no enum → mapeia para OUTRA.
+        const NAT_PROJ = { PROJETO_PESQUISA: 'PESQUISA', PROJETO_DESENVOLVIMENTO: 'DESENVOLVIMENTO', PROJETO_EXTENSAO: 'EXTENSAO', PROJETO_ENSINO: 'OUTRA', PROJETO_OUTRO: 'OUTRA' };
         const projetos = all.filter(i => NAT_PROJ[i.typeKey]);
 
         // agrupa por instituição
@@ -479,7 +480,7 @@ window.LattesXMLExport = (function () {
             'DETALHAMENTO-DO-SOFTWARE', { 'FINALIDADE': f.finalidade, 'PLATAFORMA': f.plataforma, 'AMBIENTE': f.plataforma }, f.autores, f.registro ? registroPatente(f) : '')).join('');
         const patentes = pick('PATENTE').map(f => producao('PATENTE', S(),
             'DADOS-BASICOS-DA-PATENTE', { 'TITULO': f.titulo, 'ANO-DESENVOLVIMENTO': year(f.ano), 'PAIS': f.pais, 'HOME-PAGE': f.url },
-            'DETALHAMENTO-DA-PATENTE', { 'FINALIDADE': f.finalidade, 'INSTITUICAO-FINANCIADORA': f.instituicao, 'CATEGORIA': f.categoria }, f.autores, registroPatente(f) + histSituacao(f))).join('');
+            'DETALHAMENTO-DA-PATENTE', { 'FINALIDADE': f.finalidade, 'INSTITUICAO-FINANCIADORA': f.instituicao, 'CATEGORIA': f.categoria }, f.autores, registroPatente(f))).join('');
         const cultivarProt = pick('CULTIVAR_PROTEGIDA').map(f => producao('CULTIVAR-PROTEGIDA', S(),
             'DADOS-BASICOS-DA-CULTIVAR', { 'DENOMINACAO': f.titulo, 'ANO-SOLICITACAO': year(f.ano), 'PAIS': f.pais },
             'DETALHAMENTO-DA-CULTIVAR', { 'FINALIDADE': f.finalidade, 'INSTITUICAO-FINANCIADORA': f.instituicao }, f.autores, registroPatente(f))).join('');
@@ -502,7 +503,7 @@ window.LattesXMLExport = (function () {
         // são o MESMO elemento (TRABALHO-TECNICO), distintos apenas pela NATUREZA.
         const tecItens = pick('TRABALHO_TECNICO')
             .concat(pick('ASSESSORIA_CONSULTORIA').map(f => Object.assign({}, f, { natureza: f.natureza || 'Assessoria' })))
-            .concat(pick('EXTENSAO_TECNOLOGICA').map(f => Object.assign({}, f, { natureza: 'Extensão tecnológica' })));
+            .concat(pick('EXTENSAO_TECNOLOGICA').map(f => Object.assign({}, f, { natureza: 'Outra' })));
         const trabTec = tecItens.map(f => producao('TRABALHO-TECNICO', S(),
             'DADOS-BASICOS-DO-TRABALHO-TECNICO', { 'NATUREZA': tok('DADOS-BASICOS-DO-TRABALHO-TECNICO', 'NATUREZA', f.natureza), 'TITULO-DO-TRABALHO-TECNICO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma, 'HOME-PAGE-DO-TRABALHO': f.url },
             'DETALHAMENTO-DO-TRABALHO-TECNICO', { 'FINALIDADE': f.finalidade, 'INSTITUICAO-FINANCIADORA': f.instituicao, 'CIDADE-DO-TRABALHO': f.cidade }, f.autores)).join('');
@@ -529,8 +530,10 @@ window.LattesXMLExport = (function () {
         const maquetes = pick('MAQUETE').map(f => producao('MAQUETE', S(),
             'DADOS-BASICOS-DA-MAQUETE', { 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma, 'HOME-PAGE-DO-TRABALHO': f.url },
             'DETALHAMENTO-DA-MAQUETE', { 'FINALIDADE': f.finalidade }, f.autores)).join('');
+        // "Olimpíada" no DTD tem acento (OLIMPÍADA), incompatível com o XSD
+        // (OLIMPIADA). Para valer nos dois, mapeia esse caso raro para "Outro".
         const orgEventos = pick('ORGANIZACAO_EVENTO').map(f => producao('ORGANIZACAO-DE-EVENTO', S(),
-            'DADOS-BASICOS-DA-ORGANIZACAO-DE-EVENTO', { 'TIPO': tok('DADOS-BASICOS-DA-ORGANIZACAO-DE-EVENTO', 'TIPO', f.tipoEvento), 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'HOME-PAGE-DO-TRABALHO': f.url },
+            'DADOS-BASICOS-DA-ORGANIZACAO-DE-EVENTO', { 'TIPO': tok('DADOS-BASICOS-DA-ORGANIZACAO-DE-EVENTO', 'TIPO', /olimp/i.test(f.tipoEvento || '') ? 'Outro' : f.tipoEvento), 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'HOME-PAGE-DO-TRABALHO': f.url },
             'DETALHAMENTO-DA-ORGANIZACAO-DE-EVENTO', { 'INSTITUICAO-PROMOTORA': f.instituicao, 'CIDADE': f.cidade }, f.autores)).join('');
         const midias = pick('MIDIA').map(f => producao('PROGRAMA-DE-RADIO-OU-TV', S(),
             'DADOS-BASICOS-DO-PROGRAMA-DE-RADIO-OU-TV', { 'NATUREZA': tok('DADOS-BASICOS-DO-PROGRAMA-DE-RADIO-OU-TV', 'NATUREZA', f.tipo), 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma, 'HOME-PAGE': f.url },

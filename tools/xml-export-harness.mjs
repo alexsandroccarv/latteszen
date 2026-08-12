@@ -123,3 +123,21 @@ try {
     console.error(err.split('\n').slice(0, 60).join('\n'));
     process.exit(1);
 }
+
+// Valida também contra o DTD LMPL (gramática de IMPORTAÇÃO da Plataforma Lattes).
+// O DTD de 2004 predata o atributo ORCID-ID (presente no XML real da plataforma),
+// então essa única "no declaration" é aceita; qualquer outro erro é falha real.
+const DTD = join(root, 'docs', 'LMPLCurriculo.DTD');
+try {
+    execFileSync('xmllint', ['--noout', '--dtdvalid', DTD, OUT], { stdio: 'pipe' });
+    console.log('✅ VÁLIDO: o XML obedece ao DTD LMPL (importação Lattes).');
+} catch (e) {
+    const err = ((e.stderr ? e.stderr.toString() : '') + (e.stdout ? e.stdout.toString() : '')).split('\n');
+    const reais = err.filter(l => /validity error/.test(l) && !/ORCID-ID/.test(l));
+    if (reais.length) {
+        console.error('\n❌ DTD LMPL INVÁLIDO — erros que quebram a importação no Lattes:\n');
+        console.error(reais.slice(0, 60).join('\n'));
+        process.exit(1);
+    }
+    console.log('✅ VÁLIDO: o XML obedece ao DTD LMPL — apenas ORCID-ID (extensão aceita).');
+}

@@ -58,8 +58,18 @@ writeFileSync(OUT, Buffer.from(bytes));
 console.log(`Itens: ${items.length} — XML ${bytes.length} bytes`);
 try {
     execFileSync('xmllint', ['--noout', '--schema', XSD, OUT], { stdio: 'pipe' });
-    console.log('✅ VÁLIDO (todos os ramos)');
+    console.log('✅ VÁLIDO no XSD (todos os ramos)');
 } catch (e) {
-    console.error('❌ INVÁLIDO:\n' + ((e.stderr || '') + (e.stdout || '')).toString().split('\n').slice(0, 40).join('\n'));
+    console.error('❌ INVÁLIDO (XSD):\n' + ((e.stderr || '') + (e.stdout || '')).toString().split('\n').slice(0, 40).join('\n'));
     process.exit(1);
+}
+// DTD LMPL (importação Lattes) — ignora só ORCID-ID (extensão que o DTD 2004 predata)
+const DTD = join(root, 'docs', 'LMPLCurriculo.DTD');
+try {
+    execFileSync('xmllint', ['--noout', '--dtdvalid', DTD, OUT], { stdio: 'pipe' });
+    console.log('✅ VÁLIDO no DTD LMPL (todos os ramos)');
+} catch (e) {
+    const reais = ((e.stderr || '') + (e.stdout || '')).toString().split('\n').filter(l => /validity error/.test(l) && !/ORCID-ID/.test(l));
+    if (reais.length) { console.error('❌ INVÁLIDO (DTD LMPL):\n' + reais.slice(0, 40).join('\n')); process.exit(1); }
+    console.log('✅ VÁLIDO no DTD LMPL (todos os ramos) — só ORCID-ID (aceito)');
 }

@@ -597,6 +597,7 @@ window.LattesXML = (function () {
             if (g['NOME-COMPLETO']) {
                 add('IDENTIFICACAO', {
                     titulo: g['NOME-COMPLETO'], citacoes: g['NOME-EM-CITACOES-BIBLIOGRAFICAS'] || '',
+                    sexo: /^F/i.test(g['SEXO'] || '') ? 'Feminino' : (g['SEXO'] ? 'Masculino' : ''),
                     nacionalidade: g['NACIONALIDADE'] || '', pais: g['PAIS-DE-NASCIMENTO'] || '',
                     orcid: g['ORCID-ID'] || '',
                 }, dgEl);
