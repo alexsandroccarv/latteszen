@@ -899,11 +899,11 @@
                 ${f.options.map(o => `<option value="${esc(o)}" ${o === val ? 'selected' : ''}>${esc(o)}</option>`).join('')}
             </select>`;
         } else if (f.type === 'year') {
-            // Campo de ano "fechado": seletor de anos, evita digitação incorreta
-            input = `<select name="${f.key}" ${req} class="${base}">
-                <option value="">—</option>
-                ${yearOptions(val)}
-            </select>`;
+            // Campo de ano no mesmo formato do campo de horas (input numérico).
+            // Padrão: ano corrente quando ainda não há valor.
+            const anoAtual = new Date().getFullYear();
+            const v = (val === '' || val == null) ? anoAtual : val;
+            input = `<input type="number" name="${f.key}" value="${esc(v)}" ${req} min="1900" max="${anoAtual + 10}" step="1" inputmode="numeric" placeholder="AAAA" class="${base}">`;
         } else if (f.type === 'checkboxes') {
             const selected = String(val || '').split(/[;,]/).map(s => s.trim()).filter(Boolean);
             input = `<div class="flex flex-wrap gap-x-4 gap-y-1 pt-1">
