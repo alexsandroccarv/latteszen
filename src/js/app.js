@@ -581,9 +581,6 @@
         const eligivel = state.rscEnabled && typeKey && !LattesTypes.isPerfilType(typeKey) && catKey !== 'CONEXOES';
         if (!eligivel) { box.innerHTML = ''; return; }
         const rsc = (item && item.rsc) || {};
-        const f = (item && item.fields) || {};
-        const iniDefault = rsc.dataInicio || (f.anoInicio ? `01/01/${f.anoInicio}` : '');
-        const fimDefault = rsc.dataFim || (f.anoFim ? `31/12/${f.anoFim}` : (f.ano ? `31/12/${f.ano}` : ''));
         // Lista única com TODOS os critérios do decreto, agrupados por Requisito
         // (optgroup). Cada opção mostra Item · descrição · unidade · pontuação.
         const critOptgroups = Object.keys(LzRSC.REQUISITOS).map(r => {
@@ -599,12 +596,7 @@
                 <div><label class="block text-xs font-semibold mb-1" for="rscCrit">Critério específico (Anexos I–VI do Decreto)</label>
                     <select id="rscCrit" class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900"><option value="">— selecione o critério —</option>${critOptgroups}</select>
                     <p class="text-[11px] text-gray-500 mt-0.5">Todos os critérios do decreto estão listados, agrupados por Requisito (I a VI).</p></div>
-                <div class="grid sm:grid-cols-2 gap-2">
-                    <div><label class="block text-xs font-semibold mb-1" for="rscIni">Data de início</label>
-                        <input id="rscIni" type="text" placeholder="25/12/2026" value="${esc(iniDefault)}" class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900"></div>
-                    <div><label class="block text-xs font-semibold mb-1" for="rscFim">Data de fim</label>
-                        <input id="rscFim" type="text" placeholder="25/12/2026" value="${esc(fimDefault)}" class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900"></div>
-                </div>
+                <p class="text-[11px] text-gray-500"><i aria-hidden="true" class="fa-solid fa-calendar-days mr-1"></i>Para critérios por tempo (ano/mês), o período é calculado a partir dos campos de <strong>data</strong> do item acima (início/fim).</p>
                 <div class="grid sm:grid-cols-2 gap-2">
                     <div id="rscPapelWrap" class="hidden"><label class="block text-xs font-semibold mb-1" for="rscPapel">Papel</label>
                         <select id="rscPapel" class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900">
@@ -637,18 +629,38 @@
         if (rsc.criterio) critSel.value = rsc.criterio;
         conta.addEventListener('change', () => { fields.classList.toggle('hidden', !conta.checked); state.formDirty = true; recompute(); });
         ['change', 'input'].forEach(ev => $('#rscFields').addEventListener(ev, () => { state.formDirty = true; recompute(); }));
+        // O período do RSC vem dos campos de data do item: recalcula ao editá-los.
+        const itemForm = $('#itemForm');
+        ['anoInicio', 'anoFim', 'ano'].forEach(name => {
+            const el = itemForm && itemForm.elements ? itemForm.elements[name] : null;
+            if (el && el.addEventListener) el.addEventListener('input', recompute);
+        });
         recompute();
     }
-    // Lê a camada RSC do formulário → objeto rsc (ou {conta:false})
+    // Normaliza ano/data-completa para dd/mm/aaaa (usado no período do RSC).
+    // 'aaaa' vira 01/01/aaaa (início) ou 31/12/aaaa (fim). ISO aaaa-mm-dd também.
+    function _rscToBR(v, endOfYear) {
+        const s = String(v == null ? '' : v).trim();
+        if (!s) return '';
+        if (/^\d{2}\/\d{2}\/\d{4}$/.test(s)) return s;
+        let m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/); if (m) return `${m[3]}/${m[2]}/${m[1]}`;
+        m = s.match(/^(\d{4})$/); if (m) return endOfYear ? `31/12/${s}` : `01/01/${s}`;
+        return '';
+    }
+    // Lê a camada RSC do formulário → objeto rsc (ou {conta:false}). O período
+    // (início/fim) é derivado dos campos de data do próprio item, não mais de
+    // campos de data no bloco RSC (evita redundância).
     function collectRsc(form) {
         const conta = form.querySelector('#rscConta');
         if (!conta) return null;
         const val = id => { const el = form.querySelector('#' + id); return el ? el.value.trim() : ''; };
         const chk = id => { const el = form.querySelector('#' + id); return !!(el && el.checked); };
+        const fld = name => { const el = form.elements ? form.elements[name] : null; return (el && typeof el.value === 'string') ? el.value.trim() : ''; };
         return {
             conta: conta.checked,
             criterio: val('rscCrit'),
-            dataInicio: val('rscIni'), dataFim: val('rscFim'),
+            dataInicio: _rscToBR(fld('anoInicio'), false),
+            dataFim: _rscToBR(fld('anoFim') || fld('ano'), true),
             papel: val('rscPapel') || 'titular',
             quantidade: val('rscQtd') || '',
             interesse: chk('rscInteresse'), alemOrdinario: chk('rscAlem'),
