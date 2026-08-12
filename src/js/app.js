@@ -1604,6 +1604,58 @@
             </section>`;
     }
 
+    function exportLattesSectionHtml() {
+        return `
+            <section class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+                <h2 class="text-lg font-bold mb-2 flex items-center gap-2"><i class="fa-solid fa-file-code text-govbr-600 dark:text-unifesp-400"></i> Exportar para a Plataforma Lattes (XML)</h2>
+                <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">Gera o arquivo <strong>curriculo.xml</strong> no formato oficial do CNPq (schema <em>CurriculoLattes</em>, codificação ISO-8859-1). Inclui apenas os itens das categorias do Lattes — <strong>RSC, Conexões e Atividades livres não são exportados</strong>. As evidências (PDFs) não fazem parte do XML.</p>
+                <div class="flex gap-2 flex-wrap">
+                    <button id="btnXmlDownload" class="px-3 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm"><i class="fa-solid fa-download mr-1"></i> Baixar XML (.xml)</button>
+                    <button id="btnXmlSave" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-folder-open mr-1"></i> Salvar na pasta (Publicação/curriculo.xml)</button>
+                </div>
+                <p id="xmlStatus" class="text-xs text-gray-500 mt-2"></p>
+            </section>`;
+    }
+
+    // Ata os botões da exportação XML (usado dentro de renderConfig).
+    function wireExportLattes() {
+        const xmlStatus = (t) => { const el = $('#xmlStatus'); if (el) el.textContent = t; };
+        function generateLattesXml() {
+            const cfg = Storage.loadSettings() || {};
+            const xml = LattesXMLExport.build(state.items, { numeroIdentificador: cfg.lattesId || '' });
+            // Serializa em ISO-8859-1 (entidades numéricas para fora do Latin-1).
+            return { xml, bytes: LzEncoding.encodeLatin1Xml(xml) };
+        }
+        const xmlExportaveis = () => state.items.filter(i => {
+            const def = LattesTypes.getType(i.typeKey);
+            if (def && def.noExport) return false;
+            return !LattesTypes.isNaoLattesCategory(i.categoryKey);
+        }).length;
+        const dl = $('#btnXmlDownload');
+        if (dl) dl.addEventListener('click', () => {
+            xmlStatus('Gerando XML…');
+            try {
+                const { bytes } = generateLattesXml();
+                const nome = (state.items.find(i => i.typeKey === 'IDENTIFICACAO' && i.fields && i.fields.titulo) || {}).fields;
+                const safe = (nome && nome.titulo ? nome.titulo : 'curriculo').replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, '-').toLowerCase();
+                const blob = new Blob([bytes], { type: 'application/xml' });
+                const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `curriculo-${safe}.xml`; a.click(); URL.revokeObjectURL(a.href);
+                xmlStatus(`XML gerado (${xmlExportaveis()} item(ns) exportado(s)).`);
+            } catch (e) { xmlStatus(''); toast('Falha ao gerar XML: ' + e.message, 'erro'); }
+        });
+        const sv = $('#btnXmlSave');
+        if (sv) sv.addEventListener('click', async () => {
+            if (!Storage.hasDirectory()) { toast('Configure um diretório abaixo para salvar na pasta.', 'aviso'); return; }
+            xmlStatus('Gerando e salvando XML…');
+            try {
+                const { bytes } = generateLattesXml();
+                await Storage.writeFile('curriculo.xml', bytes, 'Publicação');
+                xmlStatus(`Salvo em “Publicação/curriculo.xml” (${xmlExportaveis()} item(ns)).`);
+                toast('XML salvo em “Publicação/curriculo.xml”.', 'ok');
+            } catch (e) { xmlStatus(''); toast('Falha ao salvar XML: ' + e.message, 'erro'); }
+        });
+    }
+
     async function onXmlSelected(e) {
         const file = e.target.files[0];
         if (!file) return;
@@ -1858,15 +1910,38 @@
         renderItemList();
     }
 
+    // Cabeçalho de grupo das Configurações (divisor de seções)
+    function cfgGroup(icon, title) {
+        return `<h2 class="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 flex items-center gap-2 pt-3 pb-1 border-b border-gray-200 dark:border-gray-700"><i class="fa-solid ${icon}"></i> ${esc(title)}</h2>`;
+    }
+
     async function renderConfig() {
         const panel = $('#tab-config');
         const dirName = Storage.hasDirectory() ? await Storage.directoryName() : null;
 
         panel.innerHTML = `
             <div class="space-y-6 max-w-2xl">
+                ${cfgGroup('fa-id-card', 'Perfil')}
                 ${perfilSectionHtml()}
-                ${rscSectionHtml()}
+
+                ${cfgGroup('fa-arrow-right-arrow-left', 'Plataforma Lattes')}
                 ${importLattesSectionHtml()}
+                ${exportLattesSectionHtml()}
+                <section class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+                    <h2 class="text-lg font-bold mb-2 flex items-center gap-2"><i class="fa-solid fa-language text-govbr-600 dark:text-unifesp-400"></i> Compatibilidade com o Lattes (ISO-8859-1)</h2>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                        O Currículo Lattes usa a codificação <code class="text-xs bg-gray-200 dark:bg-gray-700 px-1 rounded">ISO-8859-1</code>.
+                        A verificação abaixo aponta caracteres fora dessa tabela (ex.: aspas “curvas”, travessão —, emoji) que,
+                        na exportação, viram entidades numéricas. Você pode normalizá-los automaticamente.
+                    </p>
+                    <div class="flex flex-wrap gap-2">
+                        <button id="btnCheckEnc" class="px-3 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm"><i class="fa-solid fa-spell-check mr-1"></i> Verificar codificação</button>
+                        <button id="btnNormalize" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-wand-magic-sparkles mr-1"></i> Normalizar pontuação</button>
+                    </div>
+                    <div id="encResult" class="text-sm mt-3"></div>
+                </section>
+
+                ${cfgGroup('fa-folder-tree', 'Diretório e dados')}
                 <section class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
                     <h2 class="text-lg font-bold mb-2 flex items-center gap-2"><i class="fa-solid fa-folder-open text-govbr-600 dark:text-unifesp-400"></i> Diretório de arquivos</h2>
                     <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
@@ -1902,20 +1977,10 @@
                     </div>
                 </section>
 
-                <section class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-                    <h2 class="text-lg font-bold mb-2 flex items-center gap-2"><i class="fa-solid fa-language text-govbr-600 dark:text-unifesp-400"></i> Compatibilidade com o Lattes (ISO-8859-1)</h2>
-                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
-                        O Currículo Lattes usa a codificação <code class="text-xs bg-gray-200 dark:bg-gray-700 px-1 rounded">ISO-8859-1</code>.
-                        A verificação abaixo aponta caracteres fora dessa tabela (ex.: aspas “curvas”, travessão —, emoji) que,
-                        na futura exportação, virariam entidades numéricas. Você pode normalizá-los automaticamente.
-                    </p>
-                    <div class="flex flex-wrap gap-2">
-                        <button id="btnCheckEnc" class="px-3 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm"><i class="fa-solid fa-spell-check mr-1"></i> Verificar codificação</button>
-                        <button id="btnNormalize" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-wand-magic-sparkles mr-1"></i> Normalizar pontuação</button>
-                    </div>
-                    <div id="encResult" class="text-sm mt-3"></div>
-                </section>
+                ${cfgGroup('fa-award', 'RSC-PCCTAE')}
+                ${rscSectionHtml()}
 
+                ${cfgGroup('fa-sliders', 'Avançado')}
                 <section class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
                     <h2 class="text-lg font-bold mb-2 flex items-center gap-2"><i class="fa-solid fa-list-check text-govbr-600 dark:text-unifesp-400"></i> Listas de autocomplete</h2>
                     <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
@@ -1940,14 +2005,15 @@
                     </div>
                 </section>
 
+                ${cfgGroup('fa-triangle-exclamation', 'Zona de risco')}
                 <section class="bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800 p-4">
-                    <h2 class="text-lg font-bold mb-2 flex items-center gap-2 text-red-700 dark:text-red-400"><i class="fa-solid fa-triangle-exclamation"></i> Zona de risco</h2>
                     <button id="btnClear" class="px-3 py-2 rounded bg-red-600 text-white text-sm"><i class="fa-solid fa-trash mr-1"></i> Limpar catálogo (índice local)</button>
                 </section>
             </div>`;
 
         wirePerfilSection();
         wireRscConfig();
+        wireExportLattes();
         $('#xmlInput').addEventListener('change', onXmlSelected);
         $('#idPrefix').addEventListener('input', (e) => {
             $('#idPrefixEx').textContent = `${sanitizePrefix(e.target.value)}-k7p`;
@@ -2217,15 +2283,6 @@
                     </div>
                     <p id="pubStatus" class="text-xs text-gray-500 mt-2"></p>
                 </section>
-                <section class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-                    <h2 class="text-lg font-bold mb-2 flex items-center gap-2"><i class="fa-solid fa-file-code text-govbr-600 dark:text-unifesp-400"></i> Exportar para a Plataforma Lattes (XML)</h2>
-                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">Gera o arquivo <strong>curriculo.xml</strong> no formato oficial do CNPq (schema <em>CurriculoLattes</em>, codificação ISO-8859-1). Inclui apenas os itens das categorias do Lattes — <strong>RSC, Conexões e Atividades livres não são exportados</strong>. As evidências (PDFs) não fazem parte do XML.</p>
-                    <div class="flex gap-2 flex-wrap">
-                        <button id="btnXmlDownload" class="px-3 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm"><i class="fa-solid fa-download mr-1"></i> Baixar XML (.xml)</button>
-                        <button id="btnXmlSave" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-folder-open mr-1"></i> Salvar na pasta (Publicação/curriculo.xml)</button>
-                    </div>
-                    <p id="xmlStatus" class="text-xs text-gray-500 mt-2"></p>
-                </section>
                 <div class="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden bg-white" style="height:75vh">
                     <iframe id="pubPreview" class="w-full h-full" title="Prévia da página pública"></iframe>
                 </div>
@@ -2258,41 +2315,6 @@
                 const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `curriculo-${safe}.html`; a.click(); URL.revokeObjectURL(a.href);
                 status('Arquivo baixado.');
             } catch (e) { status(''); toast('Falha ao gerar: ' + e.message, 'erro'); }
-        });
-
-        // ---- Exportação XML (Plataforma Lattes) ----
-        const xmlStatus = (t) => { const el = $('#xmlStatus'); if (el) el.textContent = t; };
-        function generateLattesXml() {
-            const cfg = Storage.loadSettings() || {};
-            const xml = LattesXMLExport.build(state.items, { numeroIdentificador: cfg.lattesId || '' });
-            // Serializa em ISO-8859-1 (entidades numéricas para fora do Latin-1).
-            return { xml, bytes: LzEncoding.encodeLatin1Xml(xml) };
-        }
-        const xmlExportaveis = () => state.items.filter(i => {
-            const def = LattesTypes.getType(i.typeKey);
-            if (def && def.noExport) return false;
-            return !LattesTypes.isNaoLattesCategory(i.categoryKey);
-        }).length;
-        $('#btnXmlDownload').addEventListener('click', () => {
-            xmlStatus('Gerando XML…');
-            try {
-                const { bytes } = generateLattesXml();
-                const nome = (state.items.find(i => i.typeKey === 'IDENTIFICACAO' && i.fields && i.fields.titulo) || {}).fields;
-                const safe = (nome && nome.titulo ? nome.titulo : 'curriculo').replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, '-').toLowerCase();
-                const blob = new Blob([bytes], { type: 'application/xml' });
-                const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `curriculo-${safe}.xml`; a.click(); URL.revokeObjectURL(a.href);
-                xmlStatus(`XML gerado (${xmlExportaveis()} item(ns) exportado(s)).`);
-            } catch (e) { xmlStatus(''); toast('Falha ao gerar XML: ' + e.message, 'erro'); }
-        });
-        $('#btnXmlSave').addEventListener('click', async () => {
-            if (!Storage.hasDirectory()) { toast('Configure um diretório em Configurações para salvar na pasta.', 'aviso'); return; }
-            xmlStatus('Gerando e salvando XML…');
-            try {
-                const { bytes } = generateLattesXml();
-                await Storage.writeFile('curriculo.xml', bytes, 'Publicação');
-                xmlStatus(`Salvo em “Publicação/curriculo.xml” (${xmlExportaveis()} item(ns)).`);
-                toast('XML salvo em “Publicação/curriculo.xml”.', 'ok');
-            } catch (e) { xmlStatus(''); toast('Falha ao salvar XML: ' + e.message, 'erro'); }
         });
     }
 
