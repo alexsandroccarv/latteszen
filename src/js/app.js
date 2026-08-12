@@ -2131,15 +2131,15 @@
                 <section class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
                     <h2 class="text-lg font-bold mb-2 flex items-center gap-2"><i class="fa-solid fa-list-check text-govbr-600 dark:text-unifesp-400"></i> Listas de autocomplete</h2>
                     <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
-                        Edite as listas de sugestões dos campos (Instituições, Financiadores/Agências, etc.). Um item por linha —
-                        você pode <strong>corrigir</strong>, <strong>remover</strong> ou <strong>inserir</strong>. Valores já usados no
-                        catálogo também aparecem automaticamente como sugestão.
+                        Listas de sugestões dos campos (Instituições, Financiadores/Agências, etc.). Valores já usados no catálogo
+                        aparecem automaticamente. Estas listas são <strong>apenas para visualização</strong> — a única forma de
+                        alterá-las é a função <strong>Renomear em todos os itens</strong>, garantindo consistência com os itens já lançados.
                     </p>
                     <p class="text-xs text-gray-500 dark:text-gray-400 mb-3 flex items-start gap-2">
                         <i aria-hidden="true" class="fa-solid fa-wand-magic-sparkles text-govbr-600 dark:text-unifesp-400 mt-0.5"></i>
-                        <span>Para <strong>corrigir/normalizar</strong> um valor que já está em itens lançados (ex.: padronizar o nome de
-                        uma instituição), use <strong>Renomear em todos os itens</strong> dentro de cada lista: o novo valor é aplicado
-                        a todos os itens que usam o antigo, e os arquivos JSON no diretório são regravados.</span>
+                        <span>Para <strong>corrigir/normalizar</strong> um valor (ex.: padronizar o nome de uma instituição), use
+                        <strong>Renomear em todos os itens</strong> dentro de cada lista: o novo valor é aplicado a todos os itens que
+                        usam o antigo, e os arquivos JSON no diretório são regravados.</span>
                     </p>
                     <div class="space-y-2">
                         ${AUTOCOMPLETE_KEYS.map(k => `
@@ -2164,12 +2164,10 @@
                                     <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-1" data-rencount="${k}"></p>
                                 </div>
                                 <div class="p-2">
-                                    <textarea id="vocab-${k}" rows="6" class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 font-mono" placeholder="Um item por linha">${esc(collectSuggestions(k).join('\n'))}</textarea>
+                                    <p class="text-[11px] text-gray-400 dark:text-gray-500 mb-1"><i aria-hidden="true" class="fa-solid fa-eye mr-1"></i> Somente leitura — use “Renomear” acima para alterar.</p>
+                                    <textarea id="vocab-${k}" rows="6" readonly tabindex="-1" aria-label="Sugestões de ${esc(VOCAB_LABELS[k] || k)} (somente leitura)" class="w-full text-sm px-2 py-1.5 rounded border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 font-mono cursor-default resize-none focus:outline-none">${esc(collectSuggestions(k).join('\n'))}</textarea>
                                 </div>
                             </details>`).join('')}
-                    </div>
-                    <div class="flex gap-2 mt-3">
-                        <button id="btnSaveVocab" class="px-3 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm"><i class="fa-solid fa-floppy-disk mr-1"></i> Salvar listas</button>
                     </div>
                 </section>
 
@@ -2219,17 +2217,6 @@
         $('#btnClear').addEventListener('click', () => {
             if (!confirm('Isto apaga o índice local (localStorage). Os arquivos no diretório NÃO são removidos. Continuar?')) return;
             state.items = []; saveCatalog(); toast('Índice local limpo.', 'ok'); renderItemList();
-        });
-        $('#btnSaveVocab').addEventListener('click', () => {
-            AUTOCOMPLETE_KEYS.forEach(k => {
-                const ta = $(`#vocab-${k}`);
-                if (!ta) return;
-                const linhas = ta.value.split('\n').map(s => s.trim()).filter(Boolean);
-                state.vocab[k] = Array.from(new Set(linhas)).sort((a, b) => a.localeCompare(b, 'pt-BR'));
-            });
-            saveVocab();
-            toast('Listas de autocomplete salvas.', 'ok');
-            renderConfig();
         });
         // Renomear/normalizar valores de autocomplete em todos os itens
         $$('[data-renfrom]').forEach(sel => {
