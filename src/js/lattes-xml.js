@@ -3,12 +3,15 @@
    --------------------------------------------------------------------------
    Faz o parse do XML exportado pela Plataforma Lattes (CNPq) e mapeia as
    seções para os tipos internos (lattes-types.js). Nomes de tags e atributos
-   seguem o schema oficial CurriculoLattes (ver CurriculoLattes.xsd).
+   seguem o schema oficial CurriculoLattes (ver docs/CurriculoLattes.xsd).
 
-   Estratégia: cada tipo-folha tem exatamente um grupo "DADOS-BASICOS-*" e um
+   Estratégia: cada tipo-folha tem um grupo "DADOS-BASICOS-*" e um
    "DETALHAMENTO-*"; localizamos esses grupos por PREFIXO, o que evita
-   enumerar dezenas de nomes de grupo. Título/ano/DOI variam de nome por
-   seção, então usamos listas de candidatos.
+   enumerar dezenas de nomes de grupo. Título/ano/país/idioma variam de nome
+   por seção, então usamos listas de candidatos.
+
+   Este importador tem PARIDADE com o exportador (lattes-xml-export.js): todo
+   campo que o exportador grava, o importador lê de volta.
    ========================================================================== */
 window.LattesXML = (function () {
 
@@ -38,6 +41,11 @@ window.LattesXML = (function () {
     function humanize(v) {
         return v ? v.replace(/_/g, ' ').toLowerCase().replace(/(^|\s)\S/g, c => c.toUpperCase()) : '';
     }
+    // DDMMAAAA (8 dígitos) -> 'AAAA-MM-DD' (formato dos campos date do lattesZen)
+    function dateISO(v) {
+        const s = String(v == null ? '' : v).replace(/\D/g, '');
+        return s.length === 8 ? `${s.slice(4, 8)}-${s.slice(2, 4)}-${s.slice(0, 2)}` : '';
+    }
 
     const TITLE_KEYS = ['TITULO-DO-ARTIGO', 'TITULO-DO-LIVRO', 'TITULO-DO-CAPITULO-DO-LIVRO',
         'TITULO-DO-TRABALHO-TECNICO', 'TITULO-DO-TRABALHO', 'TITULO-DO-TEXTO', 'TITULO-DO-SOFTWARE',
@@ -47,6 +55,21 @@ window.LattesXML = (function () {
 
     function titleOf(b) { return pick(b, ...TITLE_KEYS); }
     function yearOf(b) { return pick(b, ...YEAR_KEYS); }
+    function paisOf(b) { return pick(b, 'PAIS-DE-PUBLICACAO', 'PAIS-DO-EVENTO', 'PAIS'); }
+    function urlOf(b) { return pick(b, 'HOME-PAGE-DO-TRABALHO', 'HOME-PAGE'); }
+    // Campos comuns de DADOS-BASICOS presentes na maioria das produções.
+    function comuns(b) {
+        return { titulo: titleOf(b), ano: yearOf(b), pais: paisOf(b), idioma: b['IDIOMA'] || '', url: urlOf(b), doi: b['DOI'] || '' };
+    }
+    // Registro/patente (filho de DETALHAMENTO em patentes, software, cultivar…)
+    function regOf(el) {
+        const r = attrs(firstTag(el, 'REGISTRO-OU-PATENTE'));
+        return {
+            registro: r['CODIGO-DO-REGISTRO-OU-PATENTE'] || '',
+            dataDeposito: dateISO(r['DATA-PEDIDO-DE-DEPOSITO']),
+            dataConcessao: dateISO(r['DATA-DE-CONCESSAO']),
+        };
+    }
 
     // Coleta autores (grupo repetível AUTORES)
     function autoresOf(el) {
@@ -58,11 +81,24 @@ window.LattesXML = (function () {
         }
         return nomes.join('; ');
     }
+    // Membros de banca (grupo repetível PARTICIPANTE-BANCA)
+    function membrosBanca(el) {
+        const nomes = [];
+        for (const a of el.getElementsByTagName('PARTICIPANTE-BANCA')) {
+            const at = attrs(a);
+            const n = at['NOME-COMPLETO-DO-PARTICIPANTE-DA-BANCA'] || at['NOME-PARA-CITACAO-DO-PARTICIPANTE-DA-BANCA'];
+            if (n) nomes.push(n);
+        }
+        return nomes.join('; ');
+    }
 
     /* ---------------------- mapas de enumeração --------------------------- */
     const PROF_MAP = { BEM: 'Bom', RAZOAVELMENTE: 'Razoável', POUCO: 'Pouco' };
     const NAT_TRABALHO = { COMPLETO: 'Completo', RESUMO: 'Resumo', RESUMO_EXPANDIDO: 'Resumo expandido' };
     const NAT_LIVRO = { LIVRO_PUBLICADO: 'Livro publicado', LIVRO_ORGANIZADO_OU_EDICAO: 'Livro organizado' };
+    const ORIENT_TIPO = { ORIENTADOR_PRINCIPAL: 'Orientador principal', CO_ORIENTADOR: 'Coorientador' };
+    const PROJ_SITUACAO = { EM_ANDAMENTO: 'Em andamento', CONCLUIDO: 'Concluído', DESATIVADO: 'Desativado' };
+    const simNao = v => { const s = String(v || '').toUpperCase(); return s === 'SIM' ? 'Sim' : (s === 'NAO' || s === 'NÃO' ? 'Não' : ''); };
 
     const ORIENT_MAP = {
         'ORIENTACOES-CONCLUIDAS-PARA-MESTRADO':          { tipo: 'Mestrado', situacao: 'Concluída' },
@@ -83,7 +119,7 @@ window.LattesXML = (function () {
         'PARTICIPACAO-EM-SEMINARIO': 'Seminário', 'PARTICIPACAO-EM-SIMPOSIO': 'Simpósio',
         'PARTICIPACAO-EM-OFICINA': 'Oficina', 'PARTICIPACAO-EM-ENCONTRO': 'Encontro',
         'PARTICIPACAO-EM-EXPOSICAO': 'Exposição', 'PARTICIPACAO-EM-OLIMPIADA': 'Olimpíada',
-        'OUTRAS-PARTICIPACOES-EM-EVENTOS-CONGRESSOS': 'Outro',
+        'OUTRAS-PARTICIPACOES-EM-EVENTOS-CONGRESSOS': 'Outra',
     };
 
     const BANCA_MAP = {
@@ -110,133 +146,192 @@ window.LattesXML = (function () {
     };
 
     /* -------------------- handlers por tag (produção) -------------------- */
-    // Cada handler: { tags:[...], typeKey, map(el,b,d) -> fields }
+    // Cada handler: { tags:[...], typeKey (string|fn), map(el,b,d) -> fields }
     const HANDLERS = [
+        // ---- Bibliográfica ----
         { tags: ['ARTIGO-PUBLICADO'], typeKey: 'ARTIGO_PERIODICO',
-          map: (el, b, d) => ({
-              titulo: titleOf(b), ano: yearOf(b), doi: b['DOI'] || '', autores: autoresOf(el),
+          map: (el, b, d) => Object.assign(comuns(b), {
+              autores: autoresOf(el),
               periodico: d['TITULO-DO-PERIODICO-OU-REVISTA'] || '', issn: d['ISSN'] || '',
               volume: d['VOLUME'] || '', fasciculo: d['FASCICULO'] || '', paginas: paginas(d),
           }) },
         { tags: ['ARTIGO-ACEITO-PARA-PUBLICACAO'], typeKey: 'ARTIGO_ACEITO',
-          map: (el, b, d) => ({
-              titulo: titleOf(b), ano: yearOf(b), doi: b['DOI'] || '', autores: autoresOf(el),
+          map: (el, b, d) => Object.assign(comuns(b), {
+              autores: autoresOf(el),
               periodico: d['TITULO-DO-PERIODICO-OU-REVISTA'] || '', issn: d['ISSN'] || '',
           }) },
         { tags: ['LIVRO-PUBLICADO-OU-ORGANIZADO'], typeKey: 'LIVRO_CAPITULO',
-          map: (el, b, d) => ({
-              tipoObra: NAT_LIVRO[b['TIPO']] || 'Livro publicado',
-              titulo: titleOf(b), ano: yearOf(b), autores: autoresOf(el),
+          map: (el, b, d) => Object.assign(comuns(b), {
+              tipoObra: NAT_LIVRO[b['TIPO']] || 'Livro publicado', autores: autoresOf(el),
               editora: d['NOME-DA-EDITORA'] || '', cidade: d['CIDADE-DA-EDITORA'] || '',
               isbn: d['ISBN'] || '', edicao: d['NUMERO-DA-EDICAO-REVISAO'] || '', paginas: d['NUMERO-DE-PAGINAS'] || '',
           }) },
         { tags: ['CAPITULO-DE-LIVRO-PUBLICADO'], typeKey: 'LIVRO_CAPITULO',
-          map: (el, b, d) => ({
-              tipoObra: 'Capítulo de livro',
-              titulo: titleOf(b), ano: yearOf(b), autores: autoresOf(el),
+          map: (el, b, d) => Object.assign(comuns(b), {
+              tipoObra: 'Capítulo de livro', autores: autoresOf(el),
               tituloLivro: d['TITULO-DO-LIVRO'] || '', organizadores: d['ORGANIZADORES'] || '',
-              editora: d['NOME-DA-EDITORA'] || '', isbn: d['ISBN'] || '', paginas: paginas(d),
-          }) },
-        { tags: ['TRABALHO-EM-EVENTOS'], typeKey: 'TRABALHO_EVENTO',
-          map: (el, b, d) => ({
-              titulo: titleOf(b), ano: yearOf(b), doi: b['DOI'] || '', autores: autoresOf(el),
-              natureza: NAT_TRABALHO[b['NATUREZA']] || humanize(b['NATUREZA']),
-              evento: d['NOME-DO-EVENTO'] || '', anais: d['TITULO-DOS-ANAIS-OU-PROCEEDINGS'] || '',
-              cidade: d['CIDADE-DO-EVENTO'] || '', paginas: paginas(d),
+              editora: d['NOME-DA-EDITORA'] || '', cidade: d['CIDADE-DA-EDITORA'] || '',
+              isbn: d['ISBN'] || '', edicao: d['NUMERO-DA-EDICAO-REVISAO'] || '', paginas: paginas(d),
           }) },
         { tags: ['TEXTO-EM-JORNAL-OU-REVISTA'], typeKey: 'TEXTO_JORNAL',
-          map: (el, b, d) => ({
-              titulo: titleOf(b), ano: yearOf(b), autores: autoresOf(el),
-              veiculo: d['TITULO-DO-JORNAL-OU-REVISTA'] || '', data: d['DATA-DE-PUBLICACAO'] || '', paginas: paginas(d),
+          map: (el, b, d) => Object.assign(comuns(b), {
+              autores: autoresOf(el),
+              veiculo: d['TITULO-DO-JORNAL-OU-REVISTA'] || '', data: dateISO(d['DATA-DE-PUBLICACAO']) || d['DATA-DE-PUBLICACAO'] || '',
+              volume: d['VOLUME'] || '', paginas: paginas(d), cidade: d['LOCAL-DE-PUBLICACAO'] || '',
+          }) },
+        { tags: ['TRABALHO-EM-EVENTOS'], typeKey: 'TRABALHO_EVENTO',
+          map: (el, b, d) => Object.assign(comuns(b), {
+              autores: autoresOf(el), natureza: NAT_TRABALHO[b['NATUREZA']] || humanize(b['NATUREZA']),
+              evento: d['NOME-DO-EVENTO'] || '', anais: d['TITULO-DOS-ANAIS-OU-PROCEEDINGS'] || '',
+              isbn: d['ISBN'] || '', cidade: d['CIDADE-DO-EVENTO'] || '', paginas: paginas(d),
+          }) },
+        { tags: ['PARTITURA-MUSICAL'], typeKey: 'PARTITURA',
+          map: (el, b, d) => Object.assign(comuns(b), {
+              autores: autoresOf(el), formacao: d['FORMACAO-INSTRUMENTAL'] || '', editora: d['EDITORA'] || '',
+          }) },
+        { tags: ['TRADUCAO'], typeKey: 'TRADUCAO',
+          map: (el, b, d) => Object.assign(comuns(b), {
+              autores: autoresOf(el), autorOriginal: d['NOME-DO-AUTOR-TRADUZIDO'] || '',
+              obraOriginal: d['TITULO-DA-OBRA-ORIGINAL'] || '', idiomaOriginal: d['IDIOMA-DA-OBRA-ORIGINAL'] || '',
+              editora: d['EDITORA-DA-TRADUCAO'] || '',
+          }) },
+        { tags: ['PREFACIO-POSFACIO'], typeKey: 'PREFACIO',
+          map: (el, b, d) => Object.assign(comuns(b), {
+              autores: autoresOf(el), natureza: humanize(b['NATUREZA']),
+              obra: d['TITULO-DA-PUBLICACAO'] || '', editora: d['EDITORA-DO-PREFACIO-POSFACIO'] || '',
+          }) },
+        { tags: ['OUTRA-PRODUCAO-BIBLIOGRAFICA'], typeKey: 'OUTRA_BIBLIOGRAFICA',
+          map: (el, b, d) => Object.assign(comuns(b), {
+              autores: autoresOf(el), natureza: humanize(b['NATUREZA']), editora: d['EDITORA'] || '',
           }) },
 
         // ---- Produção técnica ----
-        { tags: ['SOFTWARE'], typeKey: 'SOFTWARE_SEM_REGISTRO',
-          map: (el, b, d) => ({
-              titulo: titleOf(b), ano: yearOf(b), autores: autoresOf(el),
-              plataforma: d['PLATAFORMA'] || d['AMBIENTE'] || '', finalidade: d['FINALIDADE'] || b['FINALIDADE'] || '',
-          }) },
-        { tags: ['PATENTE'], typeKey: 'PATENTE',
-          map: (el, b, d) => {
-              const reg = attrs(firstTag(el, 'REGISTRO-OU-PATENTE'));
-              return {
-                  titulo: titleOf(b), ano: yearOf(b), autores: autoresOf(el),
-                  categoria: d['CATEGORIA'] || '', finalidade: d['FINALIDADE'] || '',
-                  registro: reg['CODIGO-DO-REGISTRO-OU-PATENTE'] || '', instituicao: d['INSTITUICAO-FINANCIADORA'] || '',
-              };
-          } },
-        { tags: ['DESENHO-INDUSTRIAL'], typeKey: 'DESENHO_INDUSTRIAL',
-          map: (el, b, d) => ({
-              titulo: titleOf(b), ano: yearOf(b), autores: autoresOf(el),
-              finalidade: d['FINALIDADE'] || '', instituicao: d['INSTITUICAO-FINANCIADORA'] || '',
-          }) },
-        { tags: ['MARCA'], typeKey: 'MARCA',
-          map: (el, b, d) => ({
-              titulo: titleOf(b), ano: yearOf(b), autores: autoresOf(el),
-              natureza: humanize(d['NATUREZA']), finalidade: d['FINALIDADE'] || '',
-          }) },
-        { tags: ['CULTIVAR-REGISTRADA'], typeKey: 'CULTIVAR_REGISTRADA',
-          map: (el, b, d) => ({
-              titulo: b['DENOMINACAO'] || titleOf(b), ano: yearOf(b), autores: autoresOf(el),
-              finalidade: d['FINALIDADE'] || '', instituicao: d['INSTITUICAO-FINANCIADORA'] || '',
-          }) },
-        { tags: ['CULTIVAR-PROTEGIDA'], typeKey: 'CULTIVAR_PROTEGIDA',
-          map: (el, b, d) => ({
-              titulo: b['DENOMINACAO'] || titleOf(b), ano: yearOf(b), autores: autoresOf(el),
-              finalidade: d['FINALIDADE'] || '', instituicao: d['INSTITUICAO-FINANCIADORA'] || '',
-          }) },
-        { tags: ['TOPOGRAFIA-DE-CIRCUITO-INTEGRADO'], typeKey: 'TOPOGRAFIA_CI',
-          map: (el, b, d) => ({
-              titulo: titleOf(b), ano: yearOf(b), autores: autoresOf(el),
-              finalidade: d['FINALIDADE'] || '', instituicao: d['INSTITUICAO-FINANCIADORA'] || '',
+        { tags: ['SOFTWARE'],
+          typeKey: (el) => (regOf(el).registro ? 'SOFTWARE_REGISTRADO' : 'SOFTWARE_SEM_REGISTRO'),
+          map: (el, b, d) => Object.assign(comuns(b), {
+              autores: autoresOf(el), plataforma: d['PLATAFORMA'] || d['AMBIENTE'] || '',
+              finalidade: d['FINALIDADE'] || '', registro: regOf(el).registro,
           }) },
         { tags: ['PRODUTO-TECNOLOGICO'], typeKey: 'PRODUTO_TECNOLOGICO',
-          map: (el, b, d) => ({
-              titulo: titleOf(b), ano: yearOf(b), autores: autoresOf(el),
-              finalidade: d['FINALIDADE'] || '',
+          map: (el, b, d) => Object.assign(comuns(b), {
+              autores: autoresOf(el), natureza: humanize(b['NATUREZA']), finalidade: d['FINALIDADE'] || '',
+              cidade: d['CIDADE-DO-PRODUTO'] || '', registro: regOf(el).registro,
           }) },
         { tags: ['PROCESSOS-OU-TECNICAS'], typeKey: 'PROCESSO_TECNICA',
-          map: (el, b, d) => ({
-              titulo: titleOf(b), ano: yearOf(b), autores: autoresOf(el),
-              natureza: humanize(b['NATUREZA']), finalidade: d['FINALIDADE'] || '',
+          map: (el, b, d) => Object.assign(comuns(b), {
+              autores: autoresOf(el), natureza: humanize(b['NATUREZA']), finalidade: d['FINALIDADE'] || '',
               instituicao: d['INSTITUICAO-FINANCIADORA'] || '', cidade: d['CIDADE-DO-PROCESSO'] || '',
           }) },
         { tags: ['TRABALHO-TECNICO'], typeKey: 'TRABALHO_TECNICO',
-          map: (el, b, d) => ({
-              titulo: titleOf(b), ano: yearOf(b), natureza: humanize(b['NATUREZA']),
-              instituicao: d['INSTITUICAO-FINANCIADORA'] || '', finalidade: d['FINALIDADE'] || '',
+          map: (el, b, d) => Object.assign(comuns(b), {
+              autores: autoresOf(el), natureza: humanize(b['NATUREZA']), finalidade: d['FINALIDADE'] || '',
+              instituicao: d['INSTITUICAO-FINANCIADORA'] || '', cidade: d['CIDADE-DO-TRABALHO'] || '',
+          }) },
+        { tags: ['CARTA-MAPA-OU-SIMILAR'], typeKey: 'CARTA_MAPA',
+          map: (el, b, d) => Object.assign(comuns(b), {
+              autores: autoresOf(el), natureza: humanize(b['NATUREZA']), finalidade: d['FINALIDADE'] || '',
+          }) },
+        { tags: ['CURSO-DE-CURTA-DURACAO-MINISTRADO'], typeKey: 'CURSO_MINISTRADO',
+          map: (el, b, d) => Object.assign(comuns(b), {
+              autores: autoresOf(el), nivel: humanize(b['NIVEL-DO-CURSO']),
+              instituicao: d['INSTITUICAO-PROMOTORA-DO-CURSO'] || '', cidade: d['CIDADE'] || '', cargaHoraria: d['DURACAO'] || '',
+          }) },
+        { tags: ['DESENVOLVIMENTO-DE-MATERIAL-DIDATICO-OU-INSTRUCIONAL'], typeKey: 'MATERIAL_DIDATICO',
+          map: (el, b, d) => Object.assign(comuns(b), { autores: autoresOf(el), finalidade: d['FINALIDADE'] || '' }) },
+        { tags: ['EDITORACAO'], typeKey: 'EDITORACAO',
+          map: (el, b, d) => Object.assign(comuns(b), {
+              autores: autoresOf(el), natureza: humanize(b['NATUREZA']),
+              editora: d['EDITORA'] || '', cidade: d['CIDADE'] || '', paginas: d['NUMERO-DE-PAGINAS'] || '',
+          }) },
+        { tags: ['MANUTENCAO-DE-OBRA-ARTISTICA'], typeKey: 'MANUTENCAO_OBRA',
+          map: (el, b, d) => Object.assign(comuns(b), {
+              autores: autoresOf(el), finalidade: d['LOCAL'] || '', cidade: d['CIDADE'] || '',
+          }) },
+        { tags: ['MAQUETE'], typeKey: 'MAQUETE',
+          map: (el, b, d) => Object.assign(comuns(b), { autores: autoresOf(el), finalidade: d['FINALIDADE'] || '' }) },
+        { tags: ['PROGRAMA-DE-RADIO-OU-TV'], typeKey: 'MIDIA',
+          map: (el, b, d) => Object.assign(comuns(b), {
+              autores: autoresOf(el), veiculo: d['EMISSORA'] || '', cidade: d['CIDADE'] || '',
+          }) },
+        { tags: ['RELATORIO-DE-PESQUISA'], typeKey: 'RELATORIO_PESQUISA',
+          map: (el, b, d) => Object.assign(comuns(b), {
+              autores: autoresOf(el), instituicao: d['INSTITUICAO-FINANCIADORA'] || '',
+          }) },
+        { tags: ['MIDIA-SOCIAL-WEBSITE-BLOG'], typeKey: 'MIDIA_SOCIAL',
+          map: (el, b, d) => Object.assign(comuns(b), { autores: autoresOf(el), plataforma: d['TEMA'] || '' }) },
+        { tags: ['OUTRA-PRODUCAO-TECNICA'], typeKey: 'OUTRA_TECNICA',
+          map: (el, b, d) => Object.assign(comuns(b), {
+              autores: autoresOf(el), natureza: humanize(b['NATUREZA']), finalidade: d['FINALIDADE'] || '',
+              instituicao: d['INSTITUICAO-PROMOTORA'] || '', cidade: d['CIDADE'] || '',
           }) },
         { tags: ['APRESENTACAO-DE-TRABALHO'], typeKey: 'APRESENTACAO',
-          map: (el, b, d) => ({
-              titulo: titleOf(b), ano: yearOf(b), natureza: humanize(b['NATUREZA']),
+          map: (el, b, d) => Object.assign(comuns(b), {
+              autores: autoresOf(el), natureza: humanize(b['NATUREZA']),
               evento: d['NOME-DO-EVENTO'] || '', instituicao: d['INSTITUICAO-PROMOTORA'] || '',
               cidade: d['CIDADE-DA-APRESENTACAO'] || '',
           }) },
-        { tags: ['CURSO-DE-CURTA-DURACAO-MINISTRADO'], typeKey: 'CURSO_MINISTRADO',
-          map: (el, b, d) => ({
-              titulo: titleOf(b), ano: yearOf(b),
-              instituicao: d['INSTITUICAO-PROMOTORA-DO-CURSO'] || '', cargaHoraria: d['DURACAO'] || '',
-          }) },
-        { tags: ['DESENVOLVIMENTO-DE-MATERIAL-DIDATICO-OU-INSTRUCIONAL'], typeKey: 'MATERIAL_DIDATICO',
-          map: (el, b, d) => ({ titulo: titleOf(b), ano: yearOf(b), autores: autoresOf(el), finalidade: d['FINALIDADE'] || '' }) },
         { tags: ['ORGANIZACAO-DE-EVENTO'], typeKey: 'ORGANIZACAO_EVENTO',
-          map: (el, b, d) => ({
-              titulo: titleOf(b), ano: yearOf(b), tipoEvento: humanize(b['TIPO']),
-              instituicao: d['INSTITUICAO-PROMOTORA'] || '', cidade: d['CIDADE'] || '',
+          map: (el, b, d) => Object.assign(comuns(b), {
+              tipoEvento: humanize(b['TIPO']), instituicao: d['INSTITUICAO-PROMOTORA'] || '', cidade: d['CIDADE'] || '',
           }) },
-        { tags: ['EDITORACAO'], typeKey: 'EDITORACAO',
-          map: (el, b, d) => ({
-              titulo: titleOf(b), ano: yearOf(b), natureza: humanize(b['NATUREZA']),
-              editora: d['EDITORA'] || '', cidade: d['CIDADE'] || '', paginas: d['NUMERO-DE-PAGINAS'] || '',
+
+        // ---- Patentes e registros ----
+        { tags: ['PATENTE'], typeKey: 'PATENTE',
+          map: (el, b, d) => Object.assign(comuns(b), {
+              autores: autoresOf(el), categoria: d['CATEGORIA'] || '', finalidade: d['FINALIDADE'] || '',
+              instituicao: d['INSTITUICAO-FINANCIADORA'] || '',
+          }, regOf(el)) },
+        { tags: ['DESENHO-INDUSTRIAL'], typeKey: 'DESENHO_INDUSTRIAL',
+          map: (el, b, d) => Object.assign(comuns(b), {
+              autores: autoresOf(el), finalidade: d['FINALIDADE'] || '', instituicao: d['INSTITUICAO-FINANCIADORA'] || '',
+          }, regOf(el)) },
+        { tags: ['MARCA'], typeKey: 'MARCA',
+          map: (el, b, d) => Object.assign(comuns(b), {
+              autores: autoresOf(el), natureza: humanize(d['NATUREZA']), finalidade: d['FINALIDADE'] || '',
+          }, regOf(el)) },
+        { tags: ['CULTIVAR-REGISTRADA'], typeKey: 'CULTIVAR_REGISTRADA',
+          map: (el, b, d) => Object.assign(comuns(b), {
+              titulo: b['DENOMINACAO'] || titleOf(b), autores: autoresOf(el),
+              finalidade: d['FINALIDADE'] || '', instituicao: d['INSTITUICAO-FINANCIADORA'] || '',
+          }, regOf(el)) },
+        { tags: ['CULTIVAR-PROTEGIDA'], typeKey: 'CULTIVAR_PROTEGIDA',
+          map: (el, b, d) => Object.assign(comuns(b), {
+              titulo: b['DENOMINACAO'] || titleOf(b), autores: autoresOf(el),
+              finalidade: d['FINALIDADE'] || '', instituicao: d['INSTITUICAO-FINANCIADORA'] || '',
+          }, regOf(el)) },
+        { tags: ['TOPOGRAFIA-DE-CIRCUITO-INTEGRADO'], typeKey: 'TOPOGRAFIA_CI',
+          map: (el, b, d) => Object.assign(comuns(b), {
+              autores: autoresOf(el), finalidade: d['FINALIDADE'] || '', instituicao: d['INSTITUICAO-FINANCIADORA'] || '',
+          }, regOf(el)) },
+
+        // ---- Artística/cultural ----
+        { tags: ['ARTES-CENICAS'], typeKey: 'ARTES_CENICAS',
+          map: (el, b, d) => Object.assign(comuns(b), {
+              autores: autoresOf(el), natureza: humanize(b['NATUREZA']),
+              evento: d['INSTITUICAO-PROMOTORA-DO-EVENTO'] || '', cidade: d['CIDADE-DO-EVENTO'] || '',
+          }) },
+        { tags: ['MUSICA'], typeKey: 'MUSICA',
+          map: (el, b, d) => Object.assign(comuns(b), {
+              autores: autoresOf(el), natureza: humanize(b['NATUREZA']),
+              evento: d['INSTITUICAO-PROMOTORA-DO-EVENTO'] || '', cidade: d['CIDADE-DO-EVENTO'] || '',
+          }) },
+        { tags: ['ARTES-VISUAIS'], typeKey: 'ARTES_VISUAIS',
+          map: (el, b, d) => Object.assign(comuns(b), {
+              autores: autoresOf(el), natureza: humanize(b['NATUREZA']),
+              evento: d['INSTITUICAO-PROMOTORA-DO-EVENTO'] || '', cidade: d['CIDADE-DO-EVENTO'] || '',
+          }) },
+        { tags: ['OUTRA-PRODUCAO-ARTISTICA-CULTURAL'], typeKey: 'OUTRA_ARTISTICA',
+          map: (el, b, d) => Object.assign(comuns(b), {
+              autores: autoresOf(el), natureza: humanize(b['NATUREZA']), cidade: d['CIDADE'] || '',
           }) },
 
         // ---- Prêmio ----
-        { tags: ['PREMIO-TITULO'], typeKey: 'PREMIO',
-          map: (el, b) => {
+        { tags: ['PREMIO-TITULO'], typeKey: 'PREMIO', flat: true,
+          map: (el) => {
               const a = attrs(el);
               return { titulo: a['NOME-DO-PREMIO-OU-TITULO'] || '', ano: a['ANO-DA-PREMIACAO'] || '',
                        entidade: a['NOME-DA-ENTIDADE-PROMOTORA'] || '' };
-          }, flat: true },
+          } },
     ];
 
     /* --------------------------- parse principal ------------------------- */
@@ -250,15 +345,12 @@ window.LattesXML = (function () {
         const items = [];
         const summary = {};
         const seenRefs = new Set();
-
         const primaryCat = (window.LattesTypes && window.LattesTypes.primaryCategory) || (() => 'PRODUCOES');
 
         function add(typeKey, fields, el) {
             const canon = (fields.titulo || fields.curso || fields.orientando || fields.candidato || fields.instituicao || '')
                 .toLowerCase().replace(/\s+/g, ' ').trim();
             const categoryKey = primaryCat(typeKey);
-            // A referência inclui a CATEGORIA: o mesmo item em categorias
-            // diferentes é tratado como registros distintos (atrelados à origem).
             const ref = `${categoryKey}|${typeKey}|${canon}|${fields.ano || ''}|${fields.anoInicio || ''}|${fields.anoFim || ''}`;
             if (!canon) return;                 // ignora itens sem título
             if (seenRefs.has(ref)) return;      // dedup dentro do próprio XML (mesma categoria)
@@ -274,7 +366,8 @@ window.LattesXML = (function () {
                     try {
                         const b = h.flat ? attrs(el) : groupByPrefix(el, 'DADOS-BASICOS');
                         const d = h.flat ? {} : groupByPrefix(el, 'DETALHAMENTO');
-                        add(h.typeKey, h.map(el, b, d), el);
+                        const tk = (typeof h.typeKey === 'function') ? h.typeKey(el, b, d) : h.typeKey;
+                        add(tk, h.map(el, b, d), el);
                     } catch (e) { errors.push(`${tag}: ${e.message}`); }
                 }
             });
@@ -290,8 +383,12 @@ window.LattesXML = (function () {
                 add(tkey, {
                     orientando: d['NOME-DO-ORIENTADO'] || d['NOME-DO-ORIENTANDO'] || '',
                     tipo: ctx.tipo,
+                    natureza: ORIENT_TIPO[d['TIPO-DE-ORIENTACAO']] || '',
                     titulo: pick(b, 'TITULO-DO-TRABALHO', 'TITULO'),
+                    curso: d['NOME-DO-CURSO'] || d['NOME-CURSO'] || '',
                     instituicao: d['NOME-DA-INSTITUICAO'] || d['NOME-INSTITUICAO'] || '',
+                    bolsa: d['NOME-DA-AGENCIA'] || '',
+                    pais: b['PAIS'] || '',
                     ano: yearOf(b),
                 }, el);
             }
@@ -302,17 +399,17 @@ window.LattesXML = (function () {
             for (const el of doc.getElementsByTagName(tag)) {
                 const b = groupByPrefix(el, 'DADOS-BASICOS');
                 const d = groupByPrefix(el, 'DETALHAMENTO');
-                const simNao = v => { const s = String(v || '').toUpperCase(); return s === 'SIM' ? 'Sim' : (s === 'NAO' || s === 'NÃO' ? 'Não' : ''); };
                 add('PARTICIPACAO_EVENTO', {
                     titulo: d['NOME-DO-EVENTO'] || pick(b, 'TITULO', ...TITLE_KEYS) || '',
                     natureza: PARTIC_MAP[tag],
-                    formaParticipacao: humanize(b['FORMA-DE-PARTICIPACAO'] || ''),
+                    formaParticipacao: humanize(b['FORMA-PARTICIPACAO'] || b['FORMA-DE-PARTICIPACAO'] || ''),
+                    tipoParticipacao: humanize(b['TIPO-PARTICIPACAO'] || ''),
                     tituloApresentacao: pick(b, 'TITULO', ...TITLE_KEYS) || '',
                     ano: yearOf(b),
                     pais: b['PAIS'] || '',
                     cidade: d['CIDADE-DO-EVENTO'] || '',
                     divulgacaoCT: simNao(b['FLAG-DIVULGACAO-CIENTIFICA']),
-                    url: b['HOME-PAGE-DO-TRABALHO'] || '',
+                    url: urlOf(b),
                 }, el);
             }
         });
@@ -327,7 +424,9 @@ window.LattesXML = (function () {
                     tipo: BANCA_MAP[tag],
                     candidato: d['NOME-DO-CANDIDATO'] || '',
                     titulo: pick(b, 'TITULO', ...TITLE_KEYS),
+                    curso: d['NOME-CURSO'] || '',
                     instituicao: d['NOME-INSTITUICAO'] || '',
+                    membros: membrosBanca(el),
                     ano: yearOf(b),
                 }, el);
             }
@@ -345,21 +444,25 @@ window.LattesXML = (function () {
                 const orientador = pick(a, 'NOME-DO-ORIENTADOR', 'NOME-COMPLETO-DO-ORIENTADOR', 'NOME-ORIENTADOR-GRAD');
                 const anoInicio = a['ANO-DE-INICIO'] || '';
                 const anoFim = a['ANO-DE-CONCLUSAO'] || a['ANO-DE-OBTENCAO-DO-TITULO'] || '';
+                const bolsa = a['NOME-AGENCIA'] || '';
                 if (nivel === 'Pós-Doutorado' || nivel === 'Livre-docência') {
-                    add('POS_DOUTORADO', { tipo: nivel, instituicao: a['NOME-INSTITUICAO'] || '', anoInicio, anoFim, titulo: tituloTrab, orientador }, el);
+                    add('POS_DOUTORADO', {
+                        tipo: nivel, instituicao: a['NOME-INSTITUICAO'] || '', anoInicio, anoFim,
+                        titulo: tituloTrab, orientador, bolsa,
+                    }, el);
                 } else {
                     add('FORMACAO_ACADEMICA', {
                         nivel, curso: a['NOME-CURSO'] || a['NOME-DO-CURSO'] || '',
                         instituicao: a['NOME-INSTITUICAO'] || '', anoInicio, anoFim, titulo: tituloTrab, orientador,
+                        coorientador: a['NOME-DO-CO-ORIENTADOR'] || '', bolsa,
                     }, el);
                 }
             }
         }
 
-        // 5b) Formação complementar (cursos de curta duração, extensão, etc.)
+        // 5b) Formação complementar (cursos de curta duração, extensão, MBA, outros)
         const formCompl = doc.getElementsByTagName('FORMACAO-COMPLEMENTAR')[0];
         if (formCompl) {
-            // Aceita qualquer filho com nome de curso (FORMACAO-COMPLEMENTAR-* e também OUTROS)
             for (const el of formCompl.children) {
                 const a = attrs(el);
                 const nome = a['NOME-CURSO'] || a['NOME-DO-CURSO'];
@@ -380,13 +483,13 @@ window.LattesXML = (function () {
             for (const v of atu.children) {
                 if (v.tagName !== 'VINCULOS') continue;
                 const a = attrs(v);
-                // Quando TIPO/ENQUADRAMENTO é "LIVRE" (ou vazio), o valor real do
-                // vínculo/cargo está nos campos OUTRO-*-INFORMADO.
                 const enumOuVazio = (val) => (val && val !== 'LIVRE') ? humanize(val) : '';
                 add('VINCULO_PROFISSIONAL', {
                     instituicao: nomeInst,
                     vinculo: a['OUTRO-VINCULO-INFORMADO'] || enumOuVazio(a['TIPO-DE-VINCULO']),
                     cargo: a['OUTRO-ENQUADRAMENTO-FUNCIONAL-INFORMADO'] || enumOuVazio(a['ENQUADRAMENTO-FUNCIONAL']),
+                    regime: (String(a['FLAG-DEDICACAO-EXCLUSIVA'] || '').toUpperCase() === 'SIM') ? 'Dedicação exclusiva' : '',
+                    cargaHoraria: a['CARGA-HORARIA-SEMANAL'] || '',
                     anoInicio: a['ANO-INICIO'] || '',
                     anoFim: a['ANO-FIM'] || '',
                     titulo: a['OUTRAS-INFORMACOES'] || '',
@@ -427,11 +530,39 @@ window.LattesXML = (function () {
                     add(h.typeKey, f, el);
                 }
             });
+            // Linhas de pesquisa (dentro de PESQUISA-E-DESENVOLVIMENTO)
+            for (const el of atu.getElementsByTagName('LINHA-DE-PESQUISA')) {
+                const a = attrs(el);
+                add('LINHA_PESQUISA', {
+                    titulo: a['TITULO-DA-LINHA-DE-PESQUISA'] || '',
+                    instituicao: nomeInst,
+                    descricao: a['OBJETIVOS-LINHA-DE-PESQUISA'] || '',
+                }, el);
+            }
         }
         } catch (e) { errors.push('Atividades da atuação: ' + e.message); }
 
-        // 7) Dados gerais: identificação, endereço, idiomas, áreas de atuação,
-        //    resumo do CV e outras informações relevantes.
+        // 6c) Projetos de pesquisa (PROJETO-DE-PESQUISA, aninhado na atuação)
+        try {
+        for (const el of doc.getElementsByTagName('PROJETO-DE-PESQUISA')) {
+            const a = attrs(el);
+            const fin = attrs(firstTag(el, 'FINANCIADOR-DO-PROJETO'))['NOME-INSTITUICAO'] || '';
+            let coord = '';
+            for (const it of el.getElementsByTagName('INTEGRANTES-DO-PROJETO')) {
+                const ia = attrs(it);
+                if (String(ia['FLAG-RESPONSAVEL'] || '').toUpperCase() === 'SIM') { coord = ia['NOME-COMPLETO'] || ''; break; }
+            }
+            add('PROJETO_PESQUISA', {
+                titulo: a['NOME-DO-PROJETO'] || '',
+                anoInicio: a['ANO-INICIO'] || '', anoFim: a['ANO-FIM'] || '',
+                situacao: PROJ_SITUACAO[a['SITUACAO']] || humanize(a['SITUACAO']),
+                financiador: fin, coordenador: coord,
+                descricao: a['DESCRICAO-DO-PROJETO'] || '',
+            }, el);
+        }
+        } catch (e) { errors.push('Projetos: ' + e.message); }
+
+        // 7) Dados gerais: identificação, endereço, idiomas, áreas, resumo, licenças…
         try {
         const clean = (s) => String(s || '').replace(/&#1[03];/g, m => m === '&#10;' ? '\n' : '').trim();
         const dgEl = doc.getElementsByTagName('DADOS-GERAIS')[0];
@@ -440,6 +571,7 @@ window.LattesXML = (function () {
             if (g['NOME-COMPLETO']) {
                 add('IDENTIFICACAO', {
                     titulo: g['NOME-COMPLETO'], citacoes: g['NOME-EM-CITACOES-BIBLIOGRAFICAS'] || '',
+                    nacionalidade: g['NACIONALIDADE'] || '', pais: g['PAIS-DE-NASCIMENTO'] || '',
                     orcid: g['ORCID-ID'] || '',
                 }, dgEl);
             }
@@ -469,7 +601,7 @@ window.LattesXML = (function () {
             ].filter(([, v]) => v && PROF_MAP[v]).map(([k, v]) => `${k}: ${PROF_MAP[v]}`).join('; ');
             add('IDIOMAS', { titulo: a['DESCRICAO-DO-IDIOMA'] || a['IDIOMA'] || '', habilidades: hab }, el);
         }
-        // Áreas de atuação (categoria 03)
+        // Áreas de atuação
         for (const el of doc.getElementsByTagName('AREA-DE-ATUACAO')) {
             const a = attrs(el);
             const titulo = a['NOME-DA-ESPECIALIDADE'] || a['NOME-DA-SUB-AREA-DO-CONHECIMENTO'] || a['NOME-DA-AREA-DO-CONHECIMENTO'] || humanize(a['NOME-GRANDE-AREA-DO-CONHECIMENTO']);
@@ -480,6 +612,16 @@ window.LattesXML = (function () {
                 subarea: a['NOME-DA-SUB-AREA-DO-CONHECIMENTO'] || '', especialidade: a['NOME-DA-ESPECIALIDADE'] || '',
                 areaConhecimento: [humanize(a['NOME-GRANDE-AREA-DO-CONHECIMENTO']), a['NOME-DA-AREA-DO-CONHECIMENTO'], a['NOME-DA-SUB-AREA-DO-CONHECIMENTO'], a['NOME-DA-ESPECIALIDADE']].map(x => (x || '').trim()).filter(Boolean).join(' › '),
                 titulo,
+            }, el);
+        }
+        // Licenças (apenas MATERNIDADE é enumerado no schema)
+        for (const el of doc.getElementsByTagName('LICENCA')) {
+            const a = attrs(el);
+            const tipo = /matern/i.test(a['TIPO-LICENCA'] || '') ? 'Maternidade' : humanize(a['TIPO-LICENCA']);
+            const ini = dateISO(a['DATA-INICIO-LICENCA']); const fim = dateISO(a['DATA-FIM-LICENCA']);
+            add('LICENCA', {
+                titulo: 'Licença' + (tipo ? ' ' + tipo : ''), tipo,
+                anoInicio: (ini.match(/^\d{4}/) || [''])[0], anoFim: (fim.match(/^\d{4}/) || [''])[0],
             }, el);
         }
         } catch (e) { errors.push('Dados gerais: ' + e.message); }
