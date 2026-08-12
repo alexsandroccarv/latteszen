@@ -97,10 +97,14 @@ const TYPES = {
         F_DINI, F_DFIM,
         { key: 'titulo', label: 'Outras informações / atividades', type: 'textarea' }] },
     LINHA_PESQUISA: { label: 'Linhas de pesquisa', fields: [{ key: 'titulo', label: 'Linha de pesquisa', type: 'text', required: true }, F_INST, { key: 'descricao', label: 'Objetivos', type: 'textarea' }] },
-    CORPO_EDITORIAL: { label: 'Membro de corpo editorial', fields: [{ key: 'titulo', label: 'Periódico', type: 'text', required: true }, { key: 'issn', label: 'ISSN', type: 'text' }, F_DINI, F_DFIM] },
-    COMITE_ASSESSORAMENTO: { label: 'Membro de comitê de assessoramento', fields: [{ key: 'titulo', label: 'Comitê / Órgão', type: 'text', required: true }, F_INST, F_DINI, F_DFIM] },
-    REVISOR_PERIODICO: { label: 'Revisor de periódico', fields: [{ key: 'titulo', label: 'Periódico', type: 'text', required: true }, { key: 'issn', label: 'ISSN', type: 'text' }, F_DINI, F_DFIM] },
-    REVISOR_FOMENTO: { label: 'Revisor de projeto de agência de fomento', fields: [{ key: 'titulo', label: 'Agência de fomento', type: 'text', required: true }, F_DINI, F_DFIM] },
+    // noExport: o schema oficial CurriculoLattes.xsd NÃO possui elemento para
+    // corpo editorial, comitê de assessoramento nem revisor (periódico/fomento)
+    // — só há ATIVIDADES-DE-CONSELHO-COMISSAO-E-CONSULTORIA (=ATIV_CONSELHO).
+    // Ficam catalogáveis localmente e na página pública, mas fora do XML Lattes.
+    CORPO_EDITORIAL: { label: 'Membro de corpo editorial', noExport: true, fields: [{ key: 'titulo', label: 'Periódico', type: 'text', required: true }, { key: 'issn', label: 'ISSN', type: 'text' }, F_DINI, F_DFIM] },
+    COMITE_ASSESSORAMENTO: { label: 'Membro de comitê de assessoramento', noExport: true, fields: [{ key: 'titulo', label: 'Comitê / Órgão', type: 'text', required: true }, F_INST, F_DINI, F_DFIM] },
+    REVISOR_PERIODICO: { label: 'Revisor de periódico', noExport: true, fields: [{ key: 'titulo', label: 'Periódico', type: 'text', required: true }, { key: 'issn', label: 'ISSN', type: 'text' }, F_DINI, F_DFIM] },
+    REVISOR_FOMENTO: { label: 'Revisor de projeto de agência de fomento', noExport: true, fields: [{ key: 'titulo', label: 'Agência de fomento', type: 'text', required: true }, F_DINI, F_DFIM] },
     AREA_ATUACAO: { label: 'Áreas de atuação', noEvidence: true, fields: [{ key: 'areaConhecimento', label: 'Área do conhecimento (CNPq/CAPES)', type: 'areatree', required: true, help: 'Selecione do mais geral ao mais específico: Grande área › Área › Subárea › Especialidade.' }] },
     // Atividades da atuação profissional
     ATIV_ENSINO: { label: 'Ensino / Disciplinas ministradas', fields: [{ key: 'titulo', label: 'Curso / Nível', type: 'text', required: true }, F_INST, F_DINI, F_DFIM, { key: 'disciplinas', label: 'Disciplinas', type: 'textarea' }] },

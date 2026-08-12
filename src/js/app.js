@@ -1767,7 +1767,11 @@
            Lattes — casa pela assinatura viva e é "adotado" (recebe lattesRef).
        Assim NUNCA se cria duplicata a cada nova importação do XML.           */
     function _canonTitle(f) {
-        return String((f && (f.titulo || f.curso || f.orientando || f.candidato || f.instituicao)) || '')
+        // Cadeia de campos-título por prioridade. Inclui os campos preservados no
+        // round-trip de tipos sem "titulo" próprio (ex.: Áreas de atuação usam a
+        // hierarquia especialidade/subárea/área), para que também deduplicem.
+        return String((f && (f.titulo || f.curso || f.orientando || f.candidato
+            || f.especialidade || f.subarea || f.area || f.instituicao)) || '')
             .toLowerCase().replace(/\s+/g, ' ').trim();
     }
     // Reduz qualquer data (aaaa, aaaa-mm-dd ou dd/mm/aaaa) ao ano de 4 dígitos.
