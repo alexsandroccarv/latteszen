@@ -883,6 +883,49 @@
         ).join('');
     }
 
+    // Itens do catálogo que usam exatamente `value` no campo `key`.
+    function itemsUsingValue(key, value) {
+        const v = String(value == null ? '' : value).trim();
+        if (!v) return [];
+        return state.items.filter(i => i.fields && String(i.fields[key] == null ? '' : i.fields[key]).trim() === v);
+    }
+
+    // Renomeia/normaliza um valor de autocomplete em TODOS os itens que o usam
+    // (e na lista curada). Regrava os JSONs no diretório. É a forma de "mudar
+    // em um lugar só" um valor já presente em itens lançados.
+    async function renameFieldValue(key, from, to) {
+        const f = String(from == null ? '' : from).trim();
+        const t = String(to == null ? '' : to).trim();
+        if (!f) { toast('Selecione o valor a renomear.', 'aviso'); return; }
+        if (!t) { toast('Informe o novo valor.', 'aviso'); return; }
+        if (f === t) { toast('O novo valor é igual ao atual.', 'aviso'); return; }
+        const alvo = itemsUsingValue(key, f);
+        const label = VOCAB_LABELS[key] || key;
+        if (!confirm(`Renomear em ${label}:\n\n"${f}"\n→ "${t}"\n\nSerá aplicado a ${alvo.length} item(ns) e a lista de sugestões. Os JSONs no diretório serão regravados. Continuar?`)) return;
+
+        alvo.forEach(it => { it.fields[key] = t; });
+        saveCatalog();
+
+        let falhas = 0;
+        if (Storage.hasDirectory()) {
+            for (const it of alvo) {
+                try { await Storage.writeJson(it.id, it, LattesTypes.categoryFolder(it.categoryKey)); }
+                catch (_) { falhas++; }
+            }
+        }
+
+        // Atualiza a lista curada: remove o antigo, garante o novo.
+        const set = new Set((state.vocab[key] || []).map(s => String(s).trim()).filter(Boolean));
+        set.delete(f); set.add(t);
+        state.vocab[key] = Array.from(set).sort((a, b) => a.localeCompare(b, 'pt-BR'));
+        saveVocab();
+
+        renderItemList();
+        renderConfig();
+        if (falhas) toast(`Renomeado em ${alvo.length} item(ns), mas ${falhas} JSON(s) não puderam ser regravados (verifique o diretório).`, 'aviso');
+        else toast(`"${f}" → "${t}" aplicado a ${alvo.length} item(ns).`, 'ok');
+    }
+
     function fieldHtml(f, val) {
         val = val == null ? '' : val;
         const req = f.required ? 'required' : '';
@@ -2061,7 +2104,13 @@
                     <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
                         Edite as listas de sugestões dos campos (Instituições, Financiadores/Agências, etc.). Um item por linha —
                         você pode <strong>corrigir</strong>, <strong>remover</strong> ou <strong>inserir</strong>. Valores já usados no
-                        catálogo também aparecem automaticamente como sugestão (para corrigir um valor que veio de um item, edite o item).
+                        catálogo também aparecem automaticamente como sugestão.
+                    </p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mb-3 flex items-start gap-2">
+                        <i aria-hidden="true" class="fa-solid fa-wand-magic-sparkles text-govbr-600 dark:text-unifesp-400 mt-0.5"></i>
+                        <span>Para <strong>corrigir/normalizar</strong> um valor que já está em itens lançados (ex.: padronizar o nome de
+                        uma instituição), use <strong>Renomear em todos os itens</strong> dentro de cada lista: o novo valor é aplicado
+                        a todos os itens que usam o antigo, e os arquivos JSON no diretório são regravados.</span>
                     </p>
                     <div class="space-y-2">
                         ${AUTOCOMPLETE_KEYS.map(k => `
@@ -2070,6 +2119,21 @@
                                     ${esc(VOCAB_LABELS[k] || k)}
                                     <span class="text-xs font-normal text-gray-500">(${collectSuggestions(k).length})</span>
                                 </summary>
+                                <div class="p-2 border-b border-gray-200 dark:border-gray-700 bg-gray-100/60 dark:bg-gray-900/40">
+                                    <p class="text-[11px] font-medium text-gray-600 dark:text-gray-300 mb-1.5">
+                                        <i aria-hidden="true" class="fa-solid fa-arrows-turn-right mr-1"></i> Renomear em todos os itens
+                                    </p>
+                                    <div class="flex flex-wrap items-center gap-2">
+                                        <select data-renfrom="${k}" class="text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 flex-1 min-w-[10rem]">
+                                            <option value="">— valor atual —</option>
+                                            ${collectSuggestions(k).map(v => `<option value="${esc(v)}">${esc(v)}</option>`).join('')}
+                                        </select>
+                                        <span class="text-gray-400" aria-hidden="true">→</span>
+                                        <input type="text" data-rento="${k}" placeholder="Novo valor (normalizado)" class="text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 flex-1 min-w-[10rem]">
+                                        <button type="button" data-rename="${k}" class="px-3 py-1.5 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm whitespace-nowrap disabled:opacity-40" disabled>Aplicar</button>
+                                    </div>
+                                    <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-1" data-rencount="${k}"></p>
+                                </div>
                                 <div class="p-2">
                                     <textarea id="vocab-${k}" rows="6" class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 font-mono" placeholder="Um item por linha">${esc(collectSuggestions(k).join('\n'))}</textarea>
                                 </div>
@@ -2137,6 +2201,24 @@
             saveVocab();
             toast('Listas de autocomplete salvas.', 'ok');
             renderConfig();
+        });
+        // Renomear/normalizar valores de autocomplete em todos os itens
+        $$('[data-renfrom]').forEach(sel => {
+            const k = sel.getAttribute('data-renfrom');
+            const toEl = document.querySelector(`[data-rento="${k}"]`);
+            const btn = document.querySelector(`[data-rename="${k}"]`);
+            const cnt = document.querySelector(`[data-rencount="${k}"]`);
+            const refresh = () => {
+                const f = sel.value.trim();
+                if (btn) btn.disabled = !f;
+                if (cnt) cnt.textContent = f ? `${itemsUsingValue(k, f).length} item(ns) usam este valor.` : '';
+            };
+            sel.addEventListener('change', () => {
+                if (toEl && sel.value.trim()) toEl.value = sel.value.trim(); // pré-preenche p/ editar
+                refresh();
+            });
+            if (toEl) toEl.addEventListener('input', refresh);
+            if (btn) btn.addEventListener('click', () => renameFieldValue(k, sel.value, toEl ? toEl.value : ''));
         });
         $('#btnCheckEnc').addEventListener('click', () => verificarCodificacao());
         $('#btnNormalize').addEventListener('click', () => normalizarPontuacao());
