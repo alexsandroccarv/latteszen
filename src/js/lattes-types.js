@@ -22,6 +22,10 @@ const F_CIDADE  = { key: 'cidade', label: 'Cidade', type: 'text' };
 const F_NATUREZA = (options) => ({ key: 'natureza', label: 'Natureza', type: 'select', options });
 const F_AINI = { key: 'anoInicio', label: 'Ano de início', type: 'year' };
 const F_AFIM = { key: 'anoFim', label: 'Ano de fim', type: 'year' };
+// Datas completas (dd/mm/aaaa) usadas na categoria Atuação. Na exportação XML
+// Lattes apenas o ANO é mantido (o schema só aceita ANO-INICIO/ANO-FIM).
+const F_DINI = { key: 'anoInicio', label: 'Data de início', type: 'datebr' };
+const F_DFIM = { key: 'anoFim', label: 'Data de fim (vazio = atual)', type: 'datebr' };
 const F_PAIS = { key: 'pais', label: 'País', type: 'text', placeholder: 'Brasil' };
 const F_IDIOMA = { key: 'idioma', label: 'Idioma', type: 'text', placeholder: 'Português' };
 
@@ -90,25 +94,21 @@ const TYPES = {
         { key: 'cargo', label: 'Cargo / Função (enquadramento)', type: 'text' },
         { key: 'regime', label: 'Regime de trabalho', type: 'select', options: ['Dedicação exclusiva', 'Integral', 'Parcial'] },
         { key: 'cargaHoraria', label: 'Carga horária semanal (h)', type: 'number' },
-        F_AINI, { key: 'anoFim', label: 'Ano de fim (vazio = atual)', type: 'year' },
+        F_DINI, F_DFIM,
         { key: 'titulo', label: 'Outras informações / atividades', type: 'textarea' }] },
     LINHA_PESQUISA: { label: 'Linhas de pesquisa', fields: [{ key: 'titulo', label: 'Linha de pesquisa', type: 'text', required: true }, F_INST, { key: 'descricao', label: 'Objetivos', type: 'textarea' }] },
-    CORPO_EDITORIAL: { label: 'Membro de corpo editorial', fields: [{ key: 'titulo', label: 'Periódico', type: 'text', required: true }, { key: 'issn', label: 'ISSN', type: 'text' }, F_AINI, F_AFIM] },
-    COMITE_ASSESSORAMENTO: { label: 'Membro de comitê de assessoramento', fields: [{ key: 'titulo', label: 'Comitê / Órgão', type: 'text', required: true }, F_INST, F_AINI, F_AFIM] },
-    REVISOR_PERIODICO: { label: 'Revisor de periódico', fields: [{ key: 'titulo', label: 'Periódico', type: 'text', required: true }, { key: 'issn', label: 'ISSN', type: 'text' }, F_AINI, F_AFIM] },
-    REVISOR_FOMENTO: { label: 'Revisor de projeto de agência de fomento', fields: [{ key: 'titulo', label: 'Agência de fomento', type: 'text', required: true }, F_AINI, F_AFIM] },
+    CORPO_EDITORIAL: { label: 'Membro de corpo editorial', fields: [{ key: 'titulo', label: 'Periódico', type: 'text', required: true }, { key: 'issn', label: 'ISSN', type: 'text' }, F_DINI, F_DFIM] },
+    COMITE_ASSESSORAMENTO: { label: 'Membro de comitê de assessoramento', fields: [{ key: 'titulo', label: 'Comitê / Órgão', type: 'text', required: true }, F_INST, F_DINI, F_DFIM] },
+    REVISOR_PERIODICO: { label: 'Revisor de periódico', fields: [{ key: 'titulo', label: 'Periódico', type: 'text', required: true }, { key: 'issn', label: 'ISSN', type: 'text' }, F_DINI, F_DFIM] },
+    REVISOR_FOMENTO: { label: 'Revisor de projeto de agência de fomento', fields: [{ key: 'titulo', label: 'Agência de fomento', type: 'text', required: true }, F_DINI, F_DFIM] },
     AREA_ATUACAO: { label: 'Áreas de atuação', noEvidence: true, fields: [{ key: 'areaConhecimento', label: 'Área do conhecimento (CNPq/CAPES)', type: 'areatree', required: true, help: 'Selecione do mais geral ao mais específico: Grande área › Área › Subárea › Especialidade.' }] },
     // Atividades da atuação profissional
-    ATIV_ENSINO: { label: 'Ensino / Disciplinas ministradas', fields: [{ key: 'titulo', label: 'Curso / Nível', type: 'text', required: true }, F_INST, F_AINI, F_AFIM, { key: 'disciplinas', label: 'Disciplinas', type: 'textarea' }] },
-    ATIV_DIRECAO: { label: 'Direção e administração', fields: [{ key: 'titulo', label: 'Cargo / Função', type: 'text', required: true }, { key: 'orgao', label: 'Órgão', type: 'text' }, F_INST, F_AINI, F_AFIM] },
-    ATIV_CONSELHO: { label: 'Conselho, comissão e consultoria', fields: [{ key: 'titulo', label: 'Órgão / Comissão', type: 'text', required: true }, { key: 'papel', label: 'Atuação', type: 'text' }, F_INST,
-        // Data completa (dd/mm/aaaa) para controle interno; na exportação XML
-        // Lattes apenas o ANO é mantido (o schema só aceita ANO-INICIO/ANO-FIM).
-        { key: 'anoInicio', label: 'Data de início', type: 'datebr' },
-        { key: 'anoFim', label: 'Data de fim (vazio = atual)', type: 'datebr' }] },
-    ATIV_EXTENSAO: { label: 'Atividade de extensão universitária', fields: [{ key: 'titulo', label: 'Atividade realizada', type: 'text', required: true }, { key: 'orgao', label: 'Órgão', type: 'text' }, F_INST, F_AINI, F_AFIM] },
-    ATIV_SERVICO: { label: 'Serviço técnico especializado', fields: [{ key: 'titulo', label: 'Serviço realizado', type: 'text', required: true }, { key: 'orgao', label: 'Órgão', type: 'text' }, F_INST, F_AINI, F_AFIM] },
-    ATIV_OUTRA: { label: 'Outra atividade técnico-científica', fields: [{ key: 'titulo', label: 'Atividade realizada', type: 'text', required: true }, { key: 'orgao', label: 'Órgão', type: 'text' }, F_INST, F_AINI, F_AFIM] },
+    ATIV_ENSINO: { label: 'Ensino / Disciplinas ministradas', fields: [{ key: 'titulo', label: 'Curso / Nível', type: 'text', required: true }, F_INST, F_DINI, F_DFIM, { key: 'disciplinas', label: 'Disciplinas', type: 'textarea' }] },
+    ATIV_DIRECAO: { label: 'Direção e administração', fields: [{ key: 'titulo', label: 'Cargo / Função', type: 'text', required: true }, { key: 'orgao', label: 'Órgão', type: 'text' }, F_INST, F_DINI, F_DFIM] },
+    ATIV_CONSELHO: { label: 'Conselho, comissão e consultoria', fields: [{ key: 'titulo', label: 'Órgão / Comissão', type: 'text', required: true }, { key: 'papel', label: 'Atuação', type: 'text' }, F_INST, F_DINI, F_DFIM] },
+    ATIV_EXTENSAO: { label: 'Atividade de extensão universitária', fields: [{ key: 'titulo', label: 'Atividade realizada', type: 'text', required: true }, { key: 'orgao', label: 'Órgão', type: 'text' }, F_INST, F_DINI, F_DFIM] },
+    ATIV_SERVICO: { label: 'Serviço técnico especializado', fields: [{ key: 'titulo', label: 'Serviço realizado', type: 'text', required: true }, { key: 'orgao', label: 'Órgão', type: 'text' }, F_INST, F_DINI, F_DFIM] },
+    ATIV_OUTRA: { label: 'Outra atividade técnico-científica', fields: [{ key: 'titulo', label: 'Atividade realizada', type: 'text', required: true }, { key: 'orgao', label: 'Órgão', type: 'text' }, F_INST, F_DINI, F_DFIM] },
 
     // 04 Projetos
     PROJETO_PESQUISA: { label: 'Projetos de pesquisa', fields: PROJETO_FIELDS },
