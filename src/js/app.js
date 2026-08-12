@@ -2215,8 +2215,17 @@
         $('#btnExport').addEventListener('click', exportCatalog);
         $('#importJson').addEventListener('change', importCatalog);
         $('#btnClear').addEventListener('click', () => {
-            if (!confirm('Isto apaga o índice local (localStorage). Os arquivos no diretório NÃO são removidos. Continuar?')) return;
-            state.items = []; saveCatalog(); toast('Índice local limpo.', 'ok'); renderItemList();
+            if (!confirm('Isto apaga TODO o índice local no navegador — itens catalogados, rascunho não salvo e prévia de importação. Os arquivos no diretório NÃO são removidos. Continuar?')) return;
+            state.items = [];
+            saveCatalog();
+            clearDraft();                 // rascunho não salvo (lz_draft)
+            state.lattesParsed = null;    // prévia de importação do XML
+            state.editingId = null;       // sai de qualquer edição em curso
+            state.evEditing = [];         // evidências em edição
+            resetBackupReminder();        // zera o contador de backup
+            toast('Índice local limpo.', 'ok');
+            renderItemList();
+            renderConfig();               // re-renderiza a aba (Perfil, contadores, prévias)
         });
         // Renomear/normalizar valores de autocomplete em todos os itens
         $$('[data-renfrom]').forEach(sel => {
