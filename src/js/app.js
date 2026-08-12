@@ -953,9 +953,13 @@
             const v = (val === '' || val == null) ? anoAtual : val;
             input = `<input type="number" name="${f.key}" value="${esc(v)}" ${req} min="1900" max="${anoAtual + 10}" step="1" inputmode="numeric" placeholder="AAAA" class="${base}">`;
         } else if (f.type === 'datebr') {
-            // Data completa dd/mm/aaaa (texto com máscara). Guardada por extenso
-            // para controle interno; na exportação XML Lattes só o ANO é mantido.
-            input = `<input type="text" name="${f.key}" value="${esc(val)}" ${req} inputmode="numeric" maxlength="10" placeholder="dd/mm/aaaa" data-datebr class="${base}">`;
+            // Data dd/mm/aaaa OU mm/aaaa (texto com máscara). Guardada por extenso
+            // para controle interno; na exportação XML Lattes o ano é o que conta.
+            // Valor ISO (aaaa-mm-dd), herdado de importação/legado, vira dd/mm/aaaa.
+            let dv = val == null ? '' : String(val);
+            const iso = dv.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+            if (iso) dv = `${iso[3]}/${iso[2]}/${iso[1]}`;
+            input = `<input type="text" name="${f.key}" value="${esc(dv)}" ${req} inputmode="numeric" maxlength="10" placeholder="dd/mm/aaaa ou mm/aaaa" data-datebr class="${base}">`;
         } else if (f.type === 'checkboxes') {
             const selected = String(val || '').split(/[;,]/).map(s => s.trim()).filter(Boolean);
             input = `<div class="flex flex-wrap gap-x-4 gap-y-1 pt-1">
@@ -1123,15 +1127,16 @@
             ta.addEventListener('input', upd);
         });
     }
-    // Máscara dd/mm/aaaa para campos 'datebr': insere as barras conforme digita.
-    // Preserva valor só-ano (ex.: "2020") vindo da importação do Lattes.
+    // Máscara para campos 'datebr': aceita dd/mm/aaaa OU mm/aaaa. A 2ª barra só
+    // é inserida quando há mais de 6 dígitos (aí é dd/mm/aaaa); com até 6 dígitos
+    // fica mm/aaaa. Preserva valor só-ano (ex.: "2020") vindo da importação.
     function wireDateBr(container) {
         $$('[data-datebr]', container).forEach(el => {
             el.addEventListener('input', () => {
                 const d = el.value.replace(/\D/g, '').slice(0, 8);
                 let out = d;
-                if (d.length > 4) out = d.slice(0, 2) + '/' + d.slice(2, 4) + '/' + d.slice(4);
-                else if (d.length > 2) out = d.slice(0, 2) + '/' + d.slice(2);
+                if (d.length > 6) out = d.slice(0, 2) + '/' + d.slice(2, 4) + '/' + d.slice(4); // dd/mm/aaaa
+                else if (d.length > 2) out = d.slice(0, 2) + '/' + d.slice(2);                   // mm/aaaa (ou dd/mm em progresso)
                 el.value = out;
             });
         });
