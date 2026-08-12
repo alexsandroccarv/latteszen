@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ajuda — lattesZen (Currículo Lattes)</title>
+<style>
+  :root{
+    --bg:#f6f7f9; --surface:#ffffff; --text:#1f2937; --muted:#6b7280; --line:#e5e7eb;
+    --accent:#0c326f; --accent2:#1351b4; --chip:#eef2ff; --chipink:#1e3a8a;
+    --code-bg:#eef2f7; --note-bg:#eff6ff; --note-line:#1351b4;
+    --warn-bg:#fff7ed; --warn-line:#c2410c; --ok-bg:#ecfdf5; --ok-line:#047857;
+    --shadow:0 1px 2px rgba(16,24,40,.06),0 1px 3px rgba(16,24,40,.1);
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#0b0f17; --surface:#111827; --text:#e5e7eb; --muted:#9ca3af; --line:#1f2937;
+      --accent:#60a5fa; --accent2:#93c5fd; --chip:#1e293b; --chipink:#bfdbfe;
+      --code-bg:#1e293b; --note-bg:#0f2033; --note-line:#3b82f6;
+      --warn-bg:#2a1a0f; --warn-line:#f59e0b; --ok-bg:#0e2a1e; --ok-line:#34d399;
+      --shadow:0 1px 3px rgba(0,0,0,.5);
+    }
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    line-height:1.6;font-size:16px}
+  a{color:var(--accent2);text-decoration:none}
+  a:hover{text-decoration:underline}
+  header.top{background:var(--accent);color:#fff;padding:16px 20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  header.top .brand{font-weight:700;font-size:1.15rem;display:flex;align-items:center;gap:8px}
+  header.top .brand .sep{opacity:.4;font-weight:300}
+  header.top .spacer{flex:1}
+  header.top a{color:#fff;font-size:.85rem;border:1px solid rgba(255,255,255,.4);padding:6px 12px;border-radius:6px}
+  header.top a:hover{background:rgba(255,255,255,.12);text-decoration:none}
+  .wrap{max-width:900px;margin:0 auto;padding:24px 20px 80px}
+  h1{font-size:1.7rem;margin:.2em 0 .1em}
+  .lead{color:var(--muted);margin-top:0;margin-bottom:1.5em}
+  nav.toc{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 18px;margin-bottom:28px;box-shadow:var(--shadow)}
+  nav.toc h2{font-size:.8rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:0 0 8px}
+  nav.toc ol{margin:0;padding-left:1.2em;columns:2;column-gap:28px}
+  nav.toc li{margin:3px 0;break-inside:avoid}
+  section.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:20px 22px;margin-bottom:22px;box-shadow:var(--shadow)}
+  section.card h2{margin-top:0;font-size:1.25rem;display:flex;align-items:center;gap:10px}
+  .step-num{display:inline-flex;align-items:center;justify-content:center;width:1.6em;height:1.6em;border-radius:50%;background:var(--accent2);color:#fff;font-size:.85rem;font-weight:700;flex-shrink:0}
+  h3{font-size:1.02rem;margin:1.2em 0 .3em}
+  code{background:var(--code-bg);padding:.1em .4em;border-radius:4px;font-size:.88em;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+  ul,ol{padding-left:1.4em}
+  li{margin:.25em 0}
+  .note,.warn,.ok{border-left:4px solid;border-radius:6px;padding:12px 16px;margin:14px 0;font-size:.95rem}
+  .note{background:var(--note-bg);border-color:var(--note-line)}
+  .warn{background:var(--warn-bg);border-color:var(--warn-line)}
+  .ok{background:var(--ok-bg);border-color:var(--ok-line)}
+  .note strong,.warn strong,.ok strong{color:var(--text)}
+  .path{font-family:ui-monospace,monospace;font-size:.85rem;background:var(--code-bg);border:1px solid var(--line);border-radius:6px;padding:10px 14px;margin:10px 0;white-space:pre-wrap}
+  .tag{display:inline-block;background:var(--chip);color:var(--chipink);border-radius:20px;padding:1px 10px;font-size:.8rem;font-weight:600;margin:0 2px}
+  table{width:100%;border-collapse:collapse;margin:12px 0;font-size:.92rem}
+  th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--muted);font-size:.8rem;text-transform:uppercase;letter-spacing:.03em}
+  .kbd{border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;padding:1px 7px;font-size:.85em;background:var(--surface);font-family:ui-monospace,monospace}
+  footer{max-width:900px;margin:0 auto;padding:20px;color:var(--muted);font-size:.85rem;border-top:1px solid var(--line)}
+  .pill{display:inline-block;background:var(--accent);color:#fff;border-radius:6px;padding:2px 8px;font-size:.78rem;font-weight:600}
+</style>
+</head>
+<body>
+<header class="top">
+  <span class="brand">lattesZen <span class="sep">|</span> Ajuda</span>
+  <span class="spacer"></span>
+  <a href="index.html">← Voltar ao aplicativo</a>
+  <a href="ajuda-rsc.html">Ajuda do RSC →</a>
+</header>
+
+<div class="wrap">
+  <h1>Como usar o lattesZen</h1>
+  <p class="lead">Guia dos procedimentos para organizar, comprovar e exportar seu Currículo Lattes. Este guia cobre o fluxo do Lattes; o módulo <strong>RSC-PCCTAE</strong> tem uma <a href="ajuda-rsc.html">página de ajuda própria</a>.</p>
+
+  <div class="note">
+    <strong>Em uma frase:</strong> você escolhe uma <em>pasta no seu computador</em> → importa o XML do Lattes (ou cadastra manualmente) → anexa os PDFs de comprovação → acompanha o que falta na aba <em>Conformidade</em> → e pode exportar tudo de volta como XML do Lattes ou como página pública.
+  </div>
+
+  <nav class="toc">
+    <h2>Nesta página</h2>
+    <ol>
+      <li><a href="#fluxo">Visão geral do fluxo</a></li>
+      <li><a href="#diretorio">1. Criar/escolher o diretório</a></li>
+      <li><a href="#inbox">2. A pasta de entrada (00 Inbox)</a></li>
+      <li><a href="#importar">3. Importar o XML do Lattes</a></li>
+      <li><a href="#catalogar">4. Preencher os campos (Catalogar)</a></li>
+      <li><a href="#conformidade">5. A aba Conformidade</a></li>
+      <li><a href="#exportar">6. Exportar de volta (XML)</a></li>
+      <li><a href="#backup">Backup e codificação</a></li>
+    </ol>
+  </nav>
+
+  <section class="card" id="fluxo">
+    <h2>Visão geral do fluxo</h2>
+    <p>O lattesZen roda inteiramente no seu navegador — <strong>nenhum dado sai do seu computador</strong>. Os itens do currículo ficam gravados em uma pasta que você escolhe, cada um como um par de arquivos: o <code>ID.json</code> (os dados) e, quando houver, o <code>ID.pdf</code> (a evidência/comprovação).</p>
+    <p>O ciclo típico de trabalho é:</p>
+    <ol>
+      <li><strong>Configurar a pasta</strong> onde tudo será gravado (uma única vez).</li>
+      <li><strong>Importar o XML</strong> exportado da Plataforma Lattes — traz seus itens automaticamente.</li>
+      <li><strong>Anexar as evidências</strong> (PDFs) a cada item, usando a pasta de entrada.</li>
+      <li><strong>Conferir na aba Conformidade</strong> o que ainda falta (comprovação ou campos).</li>
+      <li><strong>Exportar</strong> quando quiser: XML atualizado para o Lattes ou página pública.</li>
+    </ol>
+    <div class="warn">
+      <strong>Navegador:</strong> a gravação em pasta usa a <em>File System Access API</em>, disponível no <strong>Google Chrome</strong> e no <strong>Microsoft Edge</strong> (computador). Em navegadores sem suporte, você ainda pode cadastrar itens e usar o <em>Backup em JSON</em>, mas não a gravação automática de <code>PDF</code>/<code>JSON</code> na pasta.
+    </div>
+  </section>
+
+  <section class="card" id="diretorio">
+    <h2><span class="step-num">1</span> Criar e escolher o diretório de arquivos</h2>
+    <p>Antes de tudo, crie no seu computador uma pasta vazia para o currículo (por exemplo <code>Meu-Lattes</code>). Depois, no lattesZen:</p>
+    <ol>
+      <li>Abra a aba <span class="pill">Configurações</span>.</li>
+      <li>Na seção <strong>Diretório de arquivos</strong>, clique em <span class="tag">📁 Escolher pasta</span>.</li>
+      <li>Selecione a pasta que você criou e <strong>autorize o acesso</strong> quando o navegador perguntar.</li>
+    </ol>
+    <p>Pronto — a partir daí, cada item que você salvar é gravado automaticamente ali. O nome da pasta atual aparece na própria seção.</p>
+
+    <h3>O que é gravado na pasta</h3>
+    <ul>
+      <li>Para cada item: <code>prefixo-XXX.json</code> (os dados) e, se você anexar uma evidência, <code>prefixo-XXX.pdf</code> (ou <code>.jpg</code>/<code>.png</code>).</li>
+      <li>Os arquivos são organizados em <strong>subpastas por categoria</strong> (ex.: <code>02 Formação</code>, <code>05 Produções</code>, <code>10 Orientações</code>…), o que mantém tudo navegável fora do app também.</li>
+      <li>Uma subpasta <code>00 Backup</code> guarda cópias automáticas do catálogo em JSON.</li>
+    </ul>
+    <div class="path">Meu-Lattes/
+├── 00 Inbox/            ← você deposita aqui os PDFs a catalogar
+│   └── 00 Processado/   ← originais já usados são movidos para cá
+├── 00 Backup/           ← backups automáticos (JSON)
+├── 01 Dados gerais/
+├── 02 Formação/
+├── 05 Produções/
+│   ├── lz-a3f.json
+│   └── lz-a3f.pdf
+└── … (uma subpasta por categoria)</div>
+
+    <h3>Prefixo do identificador</h3>
+    <p>Em <strong>Configurações → Prefixo do identificador dos arquivos</strong> você define até 3 caracteres (ex.: suas iniciais) usados no nome dos arquivos: <code>abc-k7p.pdf</code>. Útil se você mantém currículos de mais de uma pessoa em pastas diferentes.</p>
+
+    <h3>Botões úteis desta seção</h3>
+    <ul>
+      <li><strong>Sincronizar do diretório</strong>: relê a pasta e reconstrói o catálogo a partir dos arquivos (ex.: ao trocar de computador ou abrir a mesma pasta noutro dia).</li>
+      <li><strong>Esquecer pasta</strong>: desconecta o app da pasta (não apaga nada; só remove o vínculo).</li>
+    </ul>
+    <div class="note"><strong>Dica:</strong> como os dados vivem na pasta, você pode fazer backup dela (nuvem, HD externo) ou movê-la para outro computador e simplesmente <em>Escolher pasta</em> novamente lá.</div>
+  </section>
+
+  <section class="card" id="inbox">
+    <h2><span class="step-num">2</span> A pasta de entrada — <code>00 Inbox</code></h2>
+    <p>A pasta <code>00 Inbox</code> é a sua <strong>bandeja de entrada</strong>: o lugar onde você joga os PDFs de comprovação <em>antes</em> de catalogá-los. Ela é criada automaticamente dentro do diretório.</p>
+    <h3>Como usar</h3>
+    <ol>
+      <li>Copie para <code>00 Inbox</code> todos os comprovantes que pretende anexar (certificados, declarações, primeiras páginas de artigos, atas de banca…).</li>
+      <li>Na aba <span class="pill">Catalogar</span>, a bandeja mostra os arquivos pendentes. Clique em <strong>“Próximo da bandeja”</strong> para carregar o próximo arquivo como evidência do item que está preenchendo.</li>
+      <li>Ao <strong>salvar</strong> o item, o arquivo original é movido para <code>00 Inbox/00 Processado</code> — assim você sempre vê na bandeja apenas o que ainda falta catalogar.</li>
+    </ol>
+    <div class="note"><strong>Por que existe:</strong> ela separa “o que ainda preciso organizar” de “o que já está catalogado”, evitando anexar o mesmo documento duas vezes. Você também pode anexar evidências arrastando o arquivo direto para o formulário, sem passar pela Inbox.</div>
+  </section>
+
+  <section class="card" id="importar">
+    <h2><span class="step-num">3</span> Importar o XML do Currículo Lattes</h2>
+    <p>Em vez de digitar tudo, importe o que já existe no seu Lattes:</p>
+    <h3>a) Exportar o XML na Plataforma Lattes</h3>
+    <ol>
+      <li>Acesse seu currículo no site do <strong>CNPq / Plataforma Lattes</strong>.</li>
+      <li>No menu, escolha <strong>Exportar → XML</strong> e baixe o arquivo <code>.zip</code>; dentro dele há o <code>curriculo.xml</code> (descompacte-o).</li>
+    </ol>
+    <h3>b) Importar no lattesZen</h3>
+    <ol>
+      <li>Abra <span class="pill">Configurações</span> → seção <strong>Importar Currículo Lattes (XML)</strong>.</li>
+      <li>Selecione o arquivo <code>curriculo.xml</code>.</li>
+      <li>O app lista todos os itens reconhecidos, agrupados por tipo, indicando quantos são <strong>novos</strong> e quantos <strong>já estão catalogados</strong>.</li>
+      <li>Marque os que deseja trazer (há atalhos <em>Selecionar novos / Todos / Nenhum</em>) e clique em <strong>Importar selecionados</strong>.</li>
+    </ol>
+    <div class="ok"><strong>Sem duplicar:</strong> itens que você já tem aparecem marcados como “já catalogado” e ficam desmarcados por padrão, para não duplicar. Depois de importar, é só anexar os PDFs de cada um.</div>
+    <div class="note"><strong>Acentuação:</strong> o Lattes usa a codificação <code>ISO-8859-1</code>. O lattesZen decodifica corretamente na importação e reconverte na exportação, preservando acentos e caracteres especiais.</div>
+  </section>
+
+  <section class="card" id="catalogar">
+    <h2><span class="step-num">4</span> Preencher os campos (aba Catalogar)</h2>
+    <p>A aba <span class="pill">Catalogar</span> é onde você cria ou edita um item. O formulário se adapta ao que você seleciona:</p>
+    <ol>
+      <li><strong>Categoria</strong>: escolha entre as categorias do Lattes (Dados gerais, Formação, Produções, Patentes e Registros, Eventos, Orientações, Bancas…).</li>
+      <li><strong>Tipo</strong>: dentro da categoria, escolha o tipo específico (ex.: em Produções → <em>Artigo completo publicado em periódico</em>). Há um campo de busca para achar o tipo rapidamente.</li>
+      <li><strong>Campos</strong>: o formulário mostra apenas os campos daquele tipo (título, ano, autores, ISSN, DOI, país, idioma, etc.). Campos obrigatórios são sinalizados.</li>
+      <li><strong>Evidência (PDF)</strong>: arraste o comprovante para a área indicada, use o seletor de arquivo, ou puxe da bandeja com <em>“Próximo da bandeja”</em>. Você pode marcar uma evidência como <strong>“pública”</strong> — só as públicas entram na página pública do currículo.</li>
+      <li><strong>Salvar</strong>: grava o <code>JSON</code> (e o <code>PDF</code>, se houver) na subpasta da categoria.</li>
+    </ol>
+    <h3>Detalhes que ajudam</h3>
+    <ul>
+      <li><strong>Campos de identidade</strong> (Identificação, Endereço, Texto inicial, Foto) são <em>únicos</em> — ao salvar, atualizam o registro existente em vez de criar outro. São editados como “perfil”.</li>
+      <li><strong>Autocomplete</strong>: campos como Instituição e Agência sugerem valores já usados. As listas podem ser editadas em <em>Configurações → Listas de autocomplete</em>.</li>
+      <li><strong>Detecção de duplicatas</strong>: ao criar um item muito parecido com um já existente, o app avisa antes de gravar.</li>
+      <li><strong>Rascunho</strong>: o que você está digitando é preservado; se sair sem salvar, o app oferece restaurar o rascunho.</li>
+    </ul>
+  </section>
+
+  <section class="card" id="conformidade">
+    <h2><span class="step-num">5</span> A aba Conformidade</h2>
+    <p>A aba <span class="pill">Conformidade</span> é o seu painel de controle: mostra, num relance, o que está completo e o que ainda falta. Ela trabalha com <strong>duas dimensões independentes</strong>:</p>
+    <table>
+      <thead><tr><th>Dimensão</th><th>O que mede</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Conformidade documental</strong></td><td>Percentual de itens que <em>exigem comprovação</em> e já possuem uma evidência (PDF) anexada.</td></tr>
+        <tr><td><strong>Descrição completa</strong></td><td>Percentual de itens com todos os campos preenchidos — <span style="color:#059669">verde</span> = completo, <span style="color:#d97706">amarelo</span> = falta campo opcional, <span style="color:#dc2626">vermelho</span> = falta campo obrigatório.</td></tr>
+      </tbody>
+    </table>
+    <h3>Os cartões (filtros rápidos)</h3>
+    <p>No topo há cartões clicáveis que filtram a lista abaixo:</p>
+    <ul>
+      <li><strong>Comprovados</strong> — itens com evidência anexada.</li>
+      <li><strong>Sem PDF</strong> — itens que precisam de comprovação e ainda não têm.</li>
+      <li><strong>Fora do Lattes</strong> — itens marcados como ainda não lançados na Plataforma Lattes.</li>
+      <li><strong>Não-Lattes</strong> — itens pessoais/administrativos que não fazem parte do Lattes.</li>
+      <li><strong>Descrição obrigatória</strong> — itens a que falta um campo obrigatório.</li>
+    </ul>
+    <p>Clique num cartão para ver só aquele recorte; clique em <em>“ver todos”</em> para limpar o filtro. Há ainda busca por texto e ordenação por ano.</p>
+    <h3>A lista</h3>
+    <p>Abaixo dos cartões, os itens aparecem <strong>agrupados por categoria</strong> (e, na Atuação, por instituição). Cada item traz botões de ação (editar, ver evidência, excluir) e marcadores de estado. Use esta aba como <em>checklist</em> até zerar os pendentes.</p>
+  </section>
+
+  <section class="card" id="exportar">
+    <h2><span class="step-num">6</span> Exportar de volta</h2>
+    <p>Na aba <span class="pill">Publicar</span> há duas saídas:</p>
+    <ul>
+      <li><strong>Página pública do currículo</strong> — um único arquivo HTML autossuficiente, com as evidências marcadas como “públicas” embutidas. Pode ser hospedado ou compartilhado.</li>
+      <li><strong>Exportar para a Plataforma Lattes (XML)</strong> — gera o <code>curriculo.xml</code> no formato oficial do CNPq (schema <em>CurriculoLattes</em>, codificação <code>ISO-8859-1</code>). Inclui apenas as categorias do Lattes; itens de RSC, Conexões e Atividades livres não entram. As evidências (PDFs) não fazem parte do XML.</li>
+    </ul>
+    <div class="note">Você pode baixar o XML ou salvá-lo direto na pasta, em <code>Publicação/curriculo.xml</code>.</div>
+  </section>
+
+  <section class="card" id="backup">
+    <h2>Backup e codificação</h2>
+    <h3>Backup em JSON</h3>
+    <p>Em <strong>Configurações → Backup (JSON)</strong> você exporta/importa todo o catálogo (os metadados) num único arquivo. Com um diretório configurado, um backup também é salvo automaticamente em <code>00 Backup</code>. Guarde-o com regularidade — o app lembra você periodicamente.</p>
+    <h3>Compatibilidade ISO-8859-1</h3>
+    <p>Ainda em Configurações, a seção <strong>Compatibilidade com o Lattes</strong> aponta caracteres fora da tabela ISO-8859-1 (aspas “curvas”, travessão —, emoji…) que virariam entidades numéricas na exportação, e oferece <em>Normalizar pontuação</em> para deixar o texto limpo.</p>
+    <div class="ok" style="margin-top:18px">Dúvidas sobre progressão por <strong>RSC-PCCTAE</strong>? Veja a <a href="ajuda-rsc.html">página de ajuda do RSC</a>.</div>
+  </section>
+</div>
+
+<footer>
+  lattesZen — ajuda do fluxo Currículo Lattes. Software livre (AGPLv3). Este material é de apoio e não substitui a documentação oficial da Plataforma Lattes/CNPq.
+</footer>
+</body>
+</html>

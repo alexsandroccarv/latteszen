@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ajuda — lattesZen (RSC-PCCTAE)</title>
+<style>
+  :root{
+    --bg:#f6f7f9; --surface:#ffffff; --text:#1f2937; --muted:#6b7280; --line:#e5e7eb;
+    --accent:#0c326f; --accent2:#1351b4; --chip:#eef2ff; --chipink:#1e3a8a;
+    --code-bg:#eef2f7; --note-bg:#eff6ff; --note-line:#1351b4;
+    --warn-bg:#fff7ed; --warn-line:#c2410c; --ok-bg:#ecfdf5; --ok-line:#047857;
+    --shadow:0 1px 2px rgba(16,24,40,.06),0 1px 3px rgba(16,24,40,.1);
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#0b0f17; --surface:#111827; --text:#e5e7eb; --muted:#9ca3af; --line:#1f2937;
+      --accent:#60a5fa; --accent2:#93c5fd; --chip:#1e293b; --chipink:#bfdbfe;
+      --code-bg:#1e293b; --note-bg:#0f2033; --note-line:#3b82f6;
+      --warn-bg:#2a1a0f; --warn-line:#f59e0b; --ok-bg:#0e2a1e; --ok-line:#34d399;
+      --shadow:0 1px 3px rgba(0,0,0,.5);
+    }
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    line-height:1.6;font-size:16px}
+  a{color:var(--accent2);text-decoration:none}
+  a:hover{text-decoration:underline}
+  header.top{background:var(--accent);color:#fff;padding:16px 20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  header.top .brand{font-weight:700;font-size:1.15rem;display:flex;align-items:center;gap:8px}
+  header.top .brand .sep{opacity:.4;font-weight:300}
+  header.top .spacer{flex:1}
+  header.top a{color:#fff;font-size:.85rem;border:1px solid rgba(255,255,255,.4);padding:6px 12px;border-radius:6px}
+  header.top a:hover{background:rgba(255,255,255,.12);text-decoration:none}
+  .wrap{max-width:900px;margin:0 auto;padding:24px 20px 80px}
+  h1{font-size:1.7rem;margin:.2em 0 .1em}
+  .lead{color:var(--muted);margin-top:0;margin-bottom:1.5em}
+  nav.toc{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 18px;margin-bottom:28px;box-shadow:var(--shadow)}
+  nav.toc h2{font-size:.8rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:0 0 8px}
+  nav.toc ol{margin:0;padding-left:1.2em;columns:2;column-gap:28px}
+  nav.toc li{margin:3px 0;break-inside:avoid}
+  section.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:20px 22px;margin-bottom:22px;box-shadow:var(--shadow)}
+  section.card h2{margin-top:0;font-size:1.25rem;display:flex;align-items:center;gap:10px}
+  .step-num{display:inline-flex;align-items:center;justify-content:center;width:1.6em;height:1.6em;border-radius:50%;background:var(--accent2);color:#fff;font-size:.85rem;font-weight:700;flex-shrink:0}
+  h3{font-size:1.02rem;margin:1.2em 0 .3em}
+  code{background:var(--code-bg);padding:.1em .4em;border-radius:4px;font-size:.88em;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+  ul,ol{padding-left:1.4em}
+  li{margin:.25em 0}
+  .note,.warn,.ok{border-left:4px solid;border-radius:6px;padding:12px 16px;margin:14px 0;font-size:.95rem}
+  .note{background:var(--note-bg);border-color:var(--note-line)}
+  .warn{background:var(--warn-bg);border-color:var(--warn-line)}
+  .ok{background:var(--ok-bg);border-color:var(--ok-line)}
+  table{width:100%;border-collapse:collapse;margin:12px 0;font-size:.92rem}
+  th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--muted);font-size:.8rem;text-transform:uppercase;letter-spacing:.03em}
+  .tag{display:inline-block;background:var(--chip);color:var(--chipink);border-radius:20px;padding:1px 10px;font-size:.8rem;font-weight:600;margin:0 2px}
+  .pill{display:inline-block;background:var(--accent);color:#fff;border-radius:6px;padding:2px 8px;font-size:.78rem;font-weight:600}
+  footer{max-width:900px;margin:0 auto;padding:20px;color:var(--muted);font-size:.85rem;border-top:1px solid var(--line)}
+</style>
+</head>
+<body>
+<header class="top">
+  <span class="brand">lattesZen <span class="sep">|</span> Ajuda do RSC</span>
+  <span class="spacer"></span>
+  <a href="index.html">← Voltar ao aplicativo</a>
+  <a href="ajuda-lattes.html">Ajuda do Lattes →</a>
+</header>
+
+<div class="wrap">
+  <h1>RSC-PCCTAE no lattesZen</h1>
+  <p class="lead">Como usar o módulo de <strong>Reconhecimento de Saberes e Competências</strong> para simular a pontuação e o nível alcançável, e gerar o memorial. O fluxo geral do currículo (pasta, importação, campos, conformidade) está na <a href="ajuda-lattes.html">ajuda do Lattes</a>.</p>
+
+  <div class="warn">
+    <strong>Aviso importante:</strong> este módulo é uma <em>ferramenta de apoio de uso individual</em>, baseada nas tabelas do <strong>Decreto nº 13.048/2026</strong>. Os cálculos são estimativas para organização pessoal e <strong>não têm caráter oficial</strong> — a avaliação formal cabe à comissão da sua instituição. Sempre confira as regras vigentes e os anexos originais.
+  </div>
+
+  <nav class="toc">
+    <h2>Nesta página</h2>
+    <ol>
+      <li><a href="#oque">O que é o RSC-PCCTAE</a></li>
+      <li><a href="#habilitar">1. Habilitar o módulo</a></li>
+      <li><a href="#camada">2. Marcar itens (camada RSC)</a></li>
+      <li><a href="#categoria97">3. Itens administrativos (cat. 97)</a></li>
+      <li><a href="#simulador">4. A aba RSC (simulador)</a></li>
+      <li><a href="#memorial">5. Memorial e planilha</a></li>
+      <li><a href="#requisitos">Os seis requisitos</a></li>
+    </ol>
+  </nav>
+
+  <section class="card" id="oque">
+    <h2>O que é o RSC-PCCTAE</h2>
+    <p>O <strong>RSC</strong> (Reconhecimento de Saberes e Competências) permite ao servidor técnico-administrativo em educação (PCCTAE) obter, para fins de <strong>Incentivo à Qualificação</strong>, um reconhecimento equivalente a um nível de escolaridade superior ao que possui, com base em atividades, produções e responsabilidades desempenhadas.</p>
+    <p>Na prática, você reúne <strong>evidências</strong> distribuídas em <strong>seis requisitos</strong> (Anexos I–VI do decreto), cada atividade vale uma quantidade de <strong>pontos</strong>, e o total — combinado ao número de <strong>critérios distintos</strong> atendidos e à sua <strong>escolaridade</strong> — determina o <strong>nível de RSC alcançável (RSC-I, RSC-II, RSC-III)</strong>.</p>
+    <p>O lattesZen aproveita os itens que você já cataloga para o Lattes: em vez de recadastrar tudo, você apenas <em>marca</em> quais itens contam para o RSC e a que critério pertencem.</p>
+  </section>
+
+  <section class="card" id="habilitar">
+    <h2><span class="step-num">1</span> Habilitar o módulo</h2>
+    <p>O RSC vem <strong>desligado</strong> por padrão. Para ativá-lo:</p>
+    <ol>
+      <li>Abra a aba <span class="pill">Configurações</span>.</li>
+      <li>Na seção <strong>RSC-PCCTAE (opcional)</strong>, marque <span class="tag">Habilitar módulo RSC-PCCTAE</span>.</li>
+      <li>Preencha os dados do servidor: <strong>cargo</strong>, <strong>classe/nível</strong>, SIAPE (opcional), lotação, data de ingresso e <strong>início da contagem</strong>.</li>
+      <li>Escolha a <strong>escolaridade</strong> — ela <em>limita o nível máximo</em> de RSC que você pode alcançar e define o Incentivo à Qualificação (IQ) correspondente.</li>
+      <li>Clique em <strong>Salvar RSC</strong>.</li>
+    </ol>
+    <div class="note">Ao habilitar, surge uma nova aba <span class="pill">RSC</span> (o simulador) e, dentro do formulário de cada item elegível, aparece uma <strong>camada RSC</strong> logo abaixo dos campos normais.</div>
+  </section>
+
+  <section class="card" id="camada">
+    <h2><span class="step-num">2</span> Marcar itens para o RSC (camada RSC)</h2>
+    <p>Com o módulo ligado, edite um item na aba <span class="pill">Catalogar</span>. Abaixo dos campos, na camada RSC:</p>
+    <ol>
+      <li>Marque <strong>“Contabilizar este item no RSC-PCCTAE”</strong>.</li>
+      <li>Escolha o <strong>critério</strong> correspondente — a lista é organizada pelos seis requisitos (Anexos I–VI); cada opção mostra a descrição, a unidade de medida e os pontos.</li>
+      <li>Quando o critério pedir, informe o <strong>papel/subtipo</strong> (ex.: coordenação vs. participação).</li>
+      <li>Escreva uma <strong>justificativa</strong> — ela entra no memorial.</li>
+      <li>O app calcula e mostra os <strong>pontos do item</strong> na hora (quantidade × valor unitário, conforme a unidade: por ano/fração, por mês ou por unidade).</li>
+    </ol>
+    <p>Itens habilitados para o RSC ganham um <strong>marcador âmbar</strong> na lista da aba Conformidade, indicando o critério e os pontos.</p>
+    <div class="note"><strong>Unidades de cálculo:</strong> <code>ano</code> (por ano ou fração acima de 6 meses, usa as datas de início/fim), <code>mês</code> (por mês) e <code>unidade</code> (conta 1 por designação/projeto/produto/prêmio/evento).</div>
+  </section>
+
+  <section class="card" id="categoria97">
+    <h2><span class="step-num">3</span> Itens que não existem no Lattes — categoria 97</h2>
+    <p>Muitas atividades administrativas que contam para o RSC <strong>não têm lugar no Currículo Lattes</strong> (participação em comissões, gestão de contratos, licitações, cargos de direção/função gratificada, responsabilidade por setor, etc.).</p>
+    <p>Para isso existe a categoria <strong>97 — RSC · Atividades administrativas</strong>, que aparece no catálogo <em>somente quando o módulo RSC está habilitado</em>. Use-a para registrar essas atividades com sua justificativa e evidências. Elas contam para o simulador do RSC, mas <strong>não são exportadas no XML do Lattes</strong>.</p>
+  </section>
+
+  <section class="card" id="simulador">
+    <h2><span class="step-num">4</span> A aba RSC (simulador)</h2>
+    <p>A aba <span class="pill">RSC</span> consolida tudo o que você marcou e mostra:</p>
+    <ul>
+      <li><strong>Nível alcançável</strong> (RSC-I / II / III) em destaque, respeitando o teto imposto pela sua escolaridade.</li>
+      <li><strong>Total de pontos</strong> e <strong>número de critérios distintos</strong> atendidos.</li>
+      <li><strong>Pontos por requisito</strong> (tabela dos Anexos I–VI): itens, critérios e soma de cada um.</li>
+      <li>A <strong>lista dos itens contados</strong>, com os pontos de cada.</li>
+      <li>Para cada nível, quanto <strong>ainda falta</strong> (em pontos e/ou em número de critérios) para atingi-lo.</li>
+    </ul>
+    <p>Assim você enxerga onde concentrar esforço — por exemplo, se falta apenas diversificar critérios em vez de somar mais pontos no mesmo requisito.</p>
+    <div class="note">Só entram no cálculo os itens que estão <strong>marcados para contabilizar</strong>, <strong>com um critério escolhido</strong> e que ainda <strong>não foram usados</strong> num reconhecimento anterior.</div>
+  </section>
+
+  <section class="card" id="memorial">
+    <h2><span class="step-num">5</span> Memorial e planilha</h2>
+    <p>Ainda na aba RSC, você pode gerar os documentos de apoio para montar o processo:</p>
+    <ul>
+      <li><strong>Gerar memorial</strong> — um arquivo de texto (<code>rsc-memorial.txt</code>) com seus dados, os itens por requisito, as justificativas e a pontuação.</li>
+      <li><strong>Planilha (CSV)</strong> — tabela com requisito, critério, descrição, título do item, período, papel, quantidade, valor unitário, pontos e evidências, para conferência e anexação ao processo.</li>
+    </ul>
+    <div class="ok">Como cada item pode ter a evidência (PDF) anexada no fluxo normal do currículo, o memorial e a planilha já refletem a comprovação que você organizou.</div>
+  </section>
+
+  <section class="card" id="requisitos">
+    <h2>Os seis requisitos (Anexos I–VI)</h2>
+    <table>
+      <thead><tr><th>Req.</th><th>Tema</th></tr></thead>
+      <tbody>
+        <tr><td><strong>I</strong></td><td>Grupos, comissões, comitês e representações institucionais</td></tr>
+        <tr><td><strong>II</strong></td><td>Projetos institucionais e apoio a ensino, pesquisa e extensão</td></tr>
+        <tr><td><strong>III</strong></td><td>Premiação e reconhecimento público</td></tr>
+        <tr><td><strong>IV</strong></td><td>Responsabilidades técnico-administrativas ou especializadas</td></tr>
+        <tr><td><strong>V</strong></td><td>Função ou cargo de direção/assessoramento</td></tr>
+        <tr><td><strong>VI</strong></td><td>Produção, prospecção e difusão de conhecimento</td></tr>
+      </tbody>
+    </table>
+    <p>Os valores em pontos de cada critério, os mínimos por nível e o teto por escolaridade estão embutidos no app conforme o decreto. Como a norma pode ser alterada por ato complementar, confira sempre a versão vigente antes de formalizar seu processo.</p>
+  </section>
+</div>
+
+<footer>
+  lattesZen — ajuda do módulo RSC-PCCTAE. Software livre (AGPLv3). Ferramenta de apoio de uso individual; não substitui a avaliação oficial da comissão nem a leitura do Decreto nº 13.048/2026 e seus anexos.
+</footer>
+</body>
+</html>

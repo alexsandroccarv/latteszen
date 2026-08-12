@@ -28,7 +28,7 @@ mkdirSync(dist, { recursive: true });
 cpSync(src, dist, { recursive: true });
 
 // 3) Copia assets e páginas de apoio opcionais que vivam na raiz do repositório
-for (const name of ['images', 'termodeuso.html', 'politicadeprivacidade.html', 'ajuda.html', 'favicon.ico']) {
+for (const name of ['images', 'termodeuso.html', 'politicadeprivacidade.html', 'ajuda.html', 'ajuda-lattes.html', 'ajuda-rsc.html', 'favicon.ico']) {
     const p = join(root, name);
     if (existsSync(p)) cpSync(p, join(dist, name), { recursive: true });
 }
