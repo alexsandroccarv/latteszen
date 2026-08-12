@@ -1668,14 +1668,51 @@
         renderXmlResult(res);
     }
 
+    /* ----------------------- Deduplicação de importação -----------------------
+       Uma "assinatura de conteúdo" identifica o MESMO item entre importações,
+       independente da categoria e resistente a edições locais. Casa três casos:
+       (1) re-importar um item já importado (mesma assinatura viva);
+       (2) item importado e depois EDITADO localmente — a assinatura ORIGINAL do
+           Lattes fica gravada em `lattesRef` (imutável) e continua casando;
+       (3) item criado MANUALMENTE no lattesZen que depois passa a existir no
+           Lattes — casa pela assinatura viva e é "adotado" (recebe lattesRef).
+       Assim NUNCA se cria duplicata a cada nova importação do XML.           */
+    function _canonTitle(f) {
+        return String((f && (f.titulo || f.curso || f.orientando || f.candidato || f.instituicao)) || '')
+            .toLowerCase().replace(/\s+/g, ' ').trim();
+    }
+    function itemSignature(typeKey, fields) {
+        const c = _canonTitle(fields);
+        return c ? `${typeKey}|${c}|${(fields && fields.ano) || ''}|${(fields && fields.anoInicio) || ''}|${(fields && fields.anoFim) || ''}` : '';
+    }
+    // Assinatura(s) derivada(s) de um item existente: a viva (campos atuais) e a
+    // original gravada em lattesRef (formato cat|type|canon|ano|ini|fim → tira a categoria).
+    function itemSignatures(it) {
+        const out = [];
+        const live = itemSignature(it.typeKey, it.fields || {});
+        if (live) out.push(live);
+        if (it.lattesRef) {
+            const parts = String(it.lattesRef).split('|');
+            if (parts.length >= 2) { const s = parts.slice(1).join('|'); if (s) out.push(s); }
+        }
+        return out;
+    }
+    // Mapa assinatura -> item existente (primeira ocorrência vence).
+    function existingSignatureMap() {
+        const map = new Map();
+        for (const it of state.items) for (const s of itemSignatures(it)) if (!map.has(s)) map.set(s, it);
+        return map;
+    }
+
     function renderXmlResult(res) {
         const box = $('#xmlResult');
         if (!res.items.length) {
             box.innerHTML = `<p class="text-sm text-gray-500 italic">Nenhum item reconhecido no XML.</p>`;
             return;
         }
-        const existingRefs = new Set(state.items.map(i => i.lattesRef).filter(Boolean));
-        const novos = res.items.filter(it => !existingRefs.has(it.lattesRef)).length;
+        const sigMap = existingSignatureMap();
+        const isDup = (it) => (LattesTypes.isSingleton(it.typeKey) && state.items.some(x => x.typeKey === it.typeKey)) || sigMap.has(itemSignature(it.typeKey, it.fields || {}));
+        const novos = res.items.filter(it => !isDup(it)).length;
         const jaCat = res.items.length - novos;
         const resumo = Object.entries(res.summary)
             .map(([k, n]) => `<span class="badge bg-govbr-50 text-govbr-700 dark:bg-gray-700 dark:text-gray-200">${esc(LattesTypes.label(k))}: ${n}</span>`).join(' ');
@@ -1696,7 +1733,7 @@
             </div>
             <div class="space-y-1 scroll-area max-h-[60vh] overflow-y-auto pr-1">
                 ${res.items.map((it, idx) => {
-                    const dup = existingRefs.has(it.lattesRef);
+                    const dup = isDup(it);
                     return `<label class="flex items-start gap-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded p-2 text-sm ${dup ? 'opacity-60' : ''}">
                         <input type="checkbox" class="xmlchk mt-1" data-idx="${idx}" ${dup ? '' : 'checked'}>
                         <span class="min-w-0">
@@ -1708,7 +1745,7 @@
             </div>`;
 
         $('#btnSelNovos').addEventListener('click', () => $$('.xmlchk').forEach(c => {
-            c.checked = !existingRefs.has(res.items[+c.dataset.idx].lattesRef);
+            c.checked = !isDup(res.items[+c.dataset.idx]);
         }));
         $('#btnSelAll').addEventListener('click', () => $$('.xmlchk').forEach(c => c.checked = true));
         $('#btnSelNone').addEventListener('click', () => $$('.xmlchk').forEach(c => c.checked = false));
@@ -1718,8 +1755,12 @@
     async function importSelected() {
         const chosen = $$('.xmlchk').filter(c => c.checked).map(c => parseInt(c.dataset.idx, 10));
         if (!chosen.length) { toast('Nenhum item selecionado.', 'aviso'); return; }
-        const existingRefs = new Set(state.items.map(i => i.lattesRef).filter(Boolean));
-        let n = 0, atualizados = 0;
+        // Deduplicação por assinatura de conteúdo — impede duplicar itens já
+        // existentes a cada nova importação, mesmo que tenham sido editados ou
+        // criados manualmente antes de constarem no Lattes.
+        const sigMap = existingSignatureMap();
+        const registrar = (it) => itemSignatures(it).forEach(s => { if (!sigMap.has(s)) sigMap.set(s, it); });
+        let n = 0, atualizados = 0, ignorados = 0;
         for (const idx of chosen) {
             const src = state.lattesParsed.items[idx];
             // Tipos únicos (Identificação, Endereço, Resumo, Outras info): se já
@@ -1733,7 +1774,20 @@
                     atualizados++; continue;
                 }
             }
-            if (existingRefs.has(src.lattesRef)) continue;
+            const sig = itemSignature(src.typeKey, src.fields || {});
+            const match = sig ? sigMap.get(sig) : null;
+            if (match) {
+                // Item já existe: NÃO duplica. Preserva os dados e as evidências
+                // do usuário; apenas "adota" como item do Lattes (grava o
+                // lattesRef original e marca inLattes) para casar nas próximas.
+                let changed = false;
+                if (!match.lattesRef && src.lattesRef) { match.lattesRef = src.lattesRef; changed = true; }
+                if (!match.inLattes) { match.inLattes = true; changed = true; }
+                if (changed) { match.updatedAt = nowISO(); await persistItem(match); atualizados++; }
+                else ignorados++;
+                registrar(match);
+                continue;
+            }
             const item = {
                 id: uid(), createdAt: nowISO(), updatedAt: nowISO(),
                 lattesItem: true, typeKey: src.typeKey,
@@ -1743,10 +1797,11 @@
                 hasPdf: false, pdfName: null, evidencias: [],
             };
             await persistItem(item);
-            existingRefs.add(src.lattesRef);
+            registrar(item);
             n++;
         }
-        toast(`${n} item(ns) importado(s)${atualizados ? `, ${atualizados} atualizado(s)` : ''}.`, 'ok');
+        const extras = [atualizados ? `${atualizados} atualizado(s)` : '', ignorados ? `${ignorados} já existente(s) ignorado(s)` : ''].filter(Boolean).join(', ');
+        toast(`${n} item(ns) importado(s)${extras ? ' — ' + extras : ''}.`, 'ok');
         renderXmlResult(state.lattesParsed);
         renderItemList();
     }
