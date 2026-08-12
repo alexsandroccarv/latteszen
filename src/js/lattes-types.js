@@ -22,6 +22,8 @@ const F_CIDADE  = { key: 'cidade', label: 'Cidade', type: 'text' };
 const F_NATUREZA = (options) => ({ key: 'natureza', label: 'Natureza', type: 'select', options });
 const F_AINI = { key: 'anoInicio', label: 'Ano de início', type: 'year' };
 const F_AFIM = { key: 'anoFim', label: 'Ano de fim', type: 'year' };
+const F_PAIS = { key: 'pais', label: 'País', type: 'text', placeholder: 'Brasil' };
+const F_IDIOMA = { key: 'idioma', label: 'Idioma', type: 'text', placeholder: 'Português' };
 
 // Conjuntos de campos reutilizáveis
 const PROJETO_FIELDS = [F_TITULO,
@@ -32,7 +34,10 @@ const PROJETO_FIELDS = [F_TITULO,
     { key: 'descricao', label: 'Descrição', type: 'textarea' }];
 const PI_FIELDS = [F_TITULO, F_ANO, F_AUTORES, F_FINAL,
     { key: 'registro', label: 'Nº do registro / depósito', type: 'text' },
-    { key: 'instituicao', label: 'Instituição financiadora', type: 'text' }, F_URL];
+    { key: 'dataDeposito', label: 'Data do depósito', type: 'date' },
+    { key: 'dataConcessao', label: 'Data da concessão', type: 'date' },
+    { key: 'situacao', label: 'Situação', type: 'select', options: ['Depositado', 'Concedido', 'Em análise', 'Indeferido'] },
+    { key: 'instituicao', label: 'Instituição financiadora', type: 'text' }, F_PAIS, F_URL];
 const CULTIVAR_FIELDS = [{ key: 'titulo', label: 'Denominação', type: 'text', required: true }, F_ANO, F_AUTORES,
     F_FINAL, { key: 'instituicao', label: 'Instituição financiadora', type: 'text' },
     { key: 'registro', label: 'Nº do registro / solicitação', type: 'text' }, F_URL];
@@ -115,22 +120,22 @@ const TYPES = {
     ARTIGO_PERIODICO: { label: 'Artigos completos publicados em periódicos', fields: [F_TITULO, F_ANO, F_AUTORES,
         { key: 'periodico', label: 'Periódico / Revista', type: 'text', required: true }, { key: 'issn', label: 'ISSN', type: 'text' },
         { key: 'volume', label: 'Volume', type: 'text' }, { key: 'fasciculo', label: 'Fascículo / Número', type: 'text' },
-        { key: 'paginas', label: 'Páginas', type: 'text', placeholder: 'ex.: 120-135' }, F_DOI, F_URL] },
+        { key: 'paginas', label: 'Páginas', type: 'text', placeholder: 'ex.: 120-135' }, F_IDIOMA, F_PAIS, F_DOI, F_URL] },
     ARTIGO_ACEITO: { label: 'Artigos aceitos para publicação', fields: [F_TITULO, F_ANO, F_AUTORES,
-        { key: 'periodico', label: 'Periódico / Revista', type: 'text', required: true }, { key: 'issn', label: 'ISSN', type: 'text' }, F_DOI, F_URL] },
+        { key: 'periodico', label: 'Periódico / Revista', type: 'text', required: true }, { key: 'issn', label: 'ISSN', type: 'text' }, F_IDIOMA, F_DOI, F_URL] },
     LIVRO_CAPITULO: { label: 'Livros e capítulos', fields: [
         { key: 'tipoObra', label: 'Tipo', type: 'select', required: true, options: ['Livro publicado', 'Livro organizado', 'Capítulo de livro'] },
         F_TITULO, F_ANO, F_AUTORES, { key: 'tituloLivro', label: 'Título do livro (se capítulo)', type: 'text' },
         { key: 'organizadores', label: 'Organizadores', type: 'text' }, { key: 'editora', label: 'Editora', type: 'text' },
         F_CIDADE, { key: 'isbn', label: 'ISBN', type: 'text' }, { key: 'edicao', label: 'Edição', type: 'text' },
-        { key: 'paginas', label: 'Páginas', type: 'text' }, F_URL] },
+        { key: 'paginas', label: 'Páginas', type: 'text' }, F_IDIOMA, F_PAIS, F_URL] },
     TEXTO_JORNAL: { label: 'Texto em jornal ou revista (magazine)', fields: [F_TITULO, F_ANO, F_AUTORES,
         { key: 'veiculo', label: 'Jornal / Revista', type: 'text', required: true }, { key: 'data', label: 'Data', type: 'date' },
         { key: 'paginas', label: 'Páginas', type: 'text' }, F_URL] },
     TRABALHO_EVENTO: { label: 'Trabalhos publicados em anais de eventos', fields: [F_TITULO, F_ANO, F_AUTORES,
         F_NATUREZA(['Completo', 'Resumo expandido', 'Resumo']), { key: 'evento', label: 'Nome do evento', type: 'text', required: true },
-        { key: 'anais', label: 'Título dos anais', type: 'text' }, { key: 'cidade', label: 'Cidade do evento', type: 'text' },
-        { key: 'paginas', label: 'Páginas', type: 'text' }, F_DOI, F_URL] },
+        { key: 'anais', label: 'Título dos anais', type: 'text' }, { key: 'isbn', label: 'ISBN/ISSN dos anais', type: 'text' }, { key: 'cidade', label: 'Cidade do evento', type: 'text' }, F_PAIS,
+        { key: 'paginas', label: 'Páginas', type: 'text' }, F_IDIOMA, F_DOI, F_URL] },
     APRESENTACAO: { label: 'Apresentação de trabalho e palestra', fields: [F_TITULO, F_ANO, F_AUTORES,
         F_NATUREZA(['Congresso', 'Seminário', 'Simpósio', 'Conferência ou palestra', 'Comunicação', 'Outra']),
         { key: 'evento', label: 'Nome do evento', type: 'text' }, { key: 'instituicao', label: 'Instituição promotora', type: 'text' },
@@ -165,12 +170,12 @@ const TYPES = {
     OUTRA_ARTISTICA: { label: 'Outra produção artística/cultural', fields: [F_TITULO, F_ANO, F_AUTORES, { key: 'natureza', label: 'Natureza', type: 'text' }, F_URL] },
 
     // 06/07 Patentes e Registros / Inovação
-    PATENTE: { label: 'Patente', fields: [F_TITULO, F_ANO, F_AUTORES, { key: 'categoria', label: 'Categoria / Tipo', type: 'text' }, F_FINAL, { key: 'registro', label: 'Nº do registro / depósito', type: 'text' }, { key: 'instituicao', label: 'Instituição financiadora', type: 'text' }, F_URL] },
-    SOFTWARE_REGISTRADO: { label: 'Programa de Computador Registrado', fields: [F_TITULO, F_ANO, F_AUTORES, { key: 'plataforma', label: 'Plataforma / Ambiente', type: 'text' }, F_FINAL, { key: 'registro', label: 'Nº do registro', type: 'text' }, F_URL] },
+    PATENTE: { label: 'Patente', fields: [F_TITULO, F_ANO, F_AUTORES, { key: 'categoria', label: 'Categoria / Tipo', type: 'text' }, F_FINAL, { key: 'registro', label: 'Nº do registro / depósito', type: 'text' }, { key: 'dataDeposito', label: 'Data do depósito', type: 'date' }, { key: 'dataConcessao', label: 'Data da concessão', type: 'date' }, { key: 'situacao', label: 'Situação', type: 'select', options: ['Depositada', 'Concedida', 'Em exame', 'Indeferida'] }, { key: 'instituicao', label: 'Instituição financiadora', type: 'text' }, F_PAIS, F_URL] },
+    SOFTWARE_REGISTRADO: { label: 'Programa de Computador Registrado', fields: [F_TITULO, F_ANO, F_AUTORES, { key: 'plataforma', label: 'Plataforma / Ambiente', type: 'text' }, F_FINAL, { key: 'registro', label: 'Nº do registro', type: 'text' }, { key: 'dataRegistro', label: 'Data do registro', type: 'date' }, F_PAIS, F_URL] },
     CULTIVAR_PROTEGIDA: { label: 'Cultivar protegida', fields: CULTIVAR_FIELDS },
     CULTIVAR_REGISTRADA: { label: 'Cultivar registrada', fields: CULTIVAR_FIELDS },
     DESENHO_INDUSTRIAL: { label: 'Desenho industrial registrado', fields: PI_FIELDS },
-    MARCA: { label: 'Marca registrada', fields: [F_TITULO, F_ANO, F_AUTORES, F_NATUREZA(['Produto', 'Serviço', 'Coletiva', 'Certificação', 'Outra']), F_FINAL, { key: 'registro', label: 'Nº do registro / depósito', type: 'text' }, F_URL] },
+    MARCA: { label: 'Marca registrada', fields: [F_TITULO, F_ANO, F_AUTORES, F_NATUREZA(['Produto', 'Serviço', 'Coletiva', 'Certificação', 'Outra']), F_FINAL, { key: 'registro', label: 'Nº do registro / depósito', type: 'text' }, { key: 'dataDeposito', label: 'Data do depósito', type: 'date' }, { key: 'dataConcessao', label: 'Data da concessão', type: 'date' }, F_PAIS, F_URL] },
     TOPOGRAFIA_CI: { label: 'Topografia de circuito integrado registrada', fields: PI_FIELDS },
 
     // 09 Eventos
