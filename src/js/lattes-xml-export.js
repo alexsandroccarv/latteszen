@@ -297,7 +297,7 @@ window.LattesXMLExport = (function () {
         const vincs = all.filter(i => i.typeKey === 'VINCULO_PROFISSIONAL');
         const ATIV = {
             ATIV_DIRECAO: { wrap: 'ATIVIDADES-DE-DIRECAO-E-ADMINISTRACAO', leaf: 'DIRECAO-E-ADMINISTRACAO', extra: (f) => ({ 'CARGO-OU-FUNCAO': f.titulo, 'NOME-ORGAO': f.orgao }) },
-            ATIV_CONSELHO: { wrap: 'ATIVIDADES-DE-CONSELHO-COMISSAO-E-CONSULTORIA', leaf: 'CONSELHO-COMISSAO-E-CONSULTORIA', extra: (f) => ({ 'ESPECIFICACAO': f.papel || f.titulo, 'NOME-ORGAO': f.orgao }) },
+            ATIV_CONSELHO: { wrap: 'ATIVIDADES-DE-CONSELHO-COMISSAO-E-CONSULTORIA', leaf: 'CONSELHO-COMISSAO-E-CONSULTORIA', extra: (f) => ({ 'ESPECIFICACAO': f.papel, 'NOME-ORGAO': f.titulo || f.orgao }) },
             ATIV_EXTENSAO: { wrap: 'ATIVIDADES-DE-EXTENSAO-UNIVERSITARIA', leaf: 'EXTENSAO-UNIVERSITARIA', extra: (f) => ({ 'ATIVIDADE-DE-EXTENSAO-REALIZADA': f.titulo, 'NOME-ORGAO': f.orgao }) },
             ATIV_SERVICO: { wrap: 'ATIVIDADES-DE-SERVICO-TECNICO-ESPECIALIZADO', leaf: 'SERVICO-TECNICO-ESPECIALIZADO', extra: (f) => ({ 'SERVICO-REALIZADO': f.titulo, 'NOME-ORGAO': f.orgao }) },
             ATIV_OUTRA: { wrap: 'OUTRAS-ATIVIDADES-TECNICO-CIENTIFICA', leaf: 'OUTRA-ATIVIDADE-TECNICO-CIENTIFICA', extra: (f) => ({ 'ATIVIDADE-REALIZADA': f.titulo, 'NOME-ORGAO': f.orgao }) },

@@ -101,7 +101,11 @@ const TYPES = {
     // Atividades da atuação profissional
     ATIV_ENSINO: { label: 'Ensino / Disciplinas ministradas', fields: [{ key: 'titulo', label: 'Curso / Nível', type: 'text', required: true }, F_INST, F_AINI, F_AFIM, { key: 'disciplinas', label: 'Disciplinas', type: 'textarea' }] },
     ATIV_DIRECAO: { label: 'Direção e administração', fields: [{ key: 'titulo', label: 'Cargo / Função', type: 'text', required: true }, { key: 'orgao', label: 'Órgão', type: 'text' }, F_INST, F_AINI, F_AFIM] },
-    ATIV_CONSELHO: { label: 'Conselho, comissão e consultoria', fields: [{ key: 'titulo', label: 'Órgão / Comissão', type: 'text', required: true }, { key: 'papel', label: 'Atuação', type: 'text' }, F_INST, F_AINI, F_AFIM] },
+    ATIV_CONSELHO: { label: 'Conselho, comissão e consultoria', fields: [{ key: 'titulo', label: 'Órgão / Comissão', type: 'text', required: true }, { key: 'papel', label: 'Atuação', type: 'text' }, F_INST,
+        // Data completa (dd/mm/aaaa) para controle interno; na exportação XML
+        // Lattes apenas o ANO é mantido (o schema só aceita ANO-INICIO/ANO-FIM).
+        { key: 'anoInicio', label: 'Data de início', type: 'datebr' },
+        { key: 'anoFim', label: 'Data de fim (vazio = atual)', type: 'datebr' }] },
     ATIV_EXTENSAO: { label: 'Atividade de extensão universitária', fields: [{ key: 'titulo', label: 'Atividade realizada', type: 'text', required: true }, { key: 'orgao', label: 'Órgão', type: 'text' }, F_INST, F_AINI, F_AFIM] },
     ATIV_SERVICO: { label: 'Serviço técnico especializado', fields: [{ key: 'titulo', label: 'Serviço realizado', type: 'text', required: true }, { key: 'orgao', label: 'Órgão', type: 'text' }, F_INST, F_AINI, F_AFIM] },
     ATIV_OUTRA: { label: 'Outra atividade técnico-científica', fields: [{ key: 'titulo', label: 'Atividade realizada', type: 'text', required: true }, { key: 'orgao', label: 'Órgão', type: 'text' }, F_INST, F_AINI, F_AFIM] },

@@ -769,6 +769,7 @@
             wireValidators($('#dynFields'));             // ISSN/ISBN/DOI/URL
             wireCounters($('#dynFields'));               // contador de textareas
             wireNA($('#dynFields'));                     // checkbox "N/A" dos campos URL
+            wireDateBr($('#dynFields'));                 // máscara dd/mm/aaaa (campos datebr)
             renderRscBlock(item);                        // camada RSC (se habilitado)
             const semEvidencia = !!(def && def.noEvidence);
             $('#evidenceBlock').style.display = semEvidencia ? 'none' : '';
@@ -939,6 +940,10 @@
             const anoAtual = new Date().getFullYear();
             const v = (val === '' || val == null) ? anoAtual : val;
             input = `<input type="number" name="${f.key}" value="${esc(v)}" ${req} min="1900" max="${anoAtual + 10}" step="1" inputmode="numeric" placeholder="AAAA" class="${base}">`;
+        } else if (f.type === 'datebr') {
+            // Data completa dd/mm/aaaa (texto com máscara). Guardada por extenso
+            // para controle interno; na exportação XML Lattes só o ANO é mantido.
+            input = `<input type="text" name="${f.key}" value="${esc(val)}" ${req} inputmode="numeric" maxlength="10" placeholder="dd/mm/aaaa" data-datebr class="${base}">`;
         } else if (f.type === 'checkboxes') {
             const selected = String(val || '').split(/[;,]/).map(s => s.trim()).filter(Boolean);
             input = `<div class="flex flex-wrap gap-x-4 gap-y-1 pt-1">
@@ -1106,6 +1111,19 @@
             ta.addEventListener('input', upd);
         });
     }
+    // Máscara dd/mm/aaaa para campos 'datebr': insere as barras conforme digita.
+    // Preserva valor só-ano (ex.: "2020") vindo da importação do Lattes.
+    function wireDateBr(container) {
+        $$('[data-datebr]', container).forEach(el => {
+            el.addEventListener('input', () => {
+                const d = el.value.replace(/\D/g, '').slice(0, 8);
+                let out = d;
+                if (d.length > 4) out = d.slice(0, 2) + '/' + d.slice(2, 4) + '/' + d.slice(4);
+                else if (d.length > 2) out = d.slice(0, 2) + '/' + d.slice(2);
+                el.value = out;
+            });
+        });
+    }
     // Checkbox "N/A" (Não se aplica) dos campos URL: bloqueia/limpa o input
     function wireNA(container) {
         $$('[data-na]', container).forEach(cb => cb.addEventListener('change', () => {
@@ -1226,9 +1244,11 @@
             return false;
         }
 
-        // 2) Coerência de anos: fim não pode ser anterior ao início
-        const ini = String(fields.anoInicio || '').replace(/\D/g, ''), fim = String(fields.anoFim || '').replace(/\D/g, '');
-        if (ini && fim && Number(fim) < Number(ini)) {
+        // 2) Coerência de anos: fim não pode ser anterior ao início. Extrai o
+        //    ANO de qualquer formato (aaaa, aaaa-mm-dd ou dd/mm/aaaa — datebr).
+        const _yr = s => { const m = String(s || '').match(/\d{4}/); return m ? +m[0] : null; };
+        const ini = _yr(fields.anoInicio), fim = _yr(fields.anoFim);
+        if (ini && fim && fim < ini) {
             const el = fieldControl(form, { key: 'anoFim' });
             if (el) { setFieldError(el, 'O ano de fim não pode ser anterior ao de início.'); el.focus(); el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
             toast('O ano de fim não pode ser anterior ao de início.', 'aviso');
@@ -1733,9 +1753,13 @@
         return String((f && (f.titulo || f.curso || f.orientando || f.candidato || f.instituicao)) || '')
             .toLowerCase().replace(/\s+/g, ' ').trim();
     }
+    // Reduz qualquer data (aaaa, aaaa-mm-dd ou dd/mm/aaaa) ao ano de 4 dígitos.
+    // Assim a assinatura de um item com data completa (ex.: ATIV_CONSELHO) casa
+    // com o mesmo item reimportado do Lattes, que traz só o ano — sem duplicar.
+    function _sigYear(v) { const m = String(v == null ? '' : v).match(/\d{4}/); return m ? m[0] : ''; }
     function itemSignature(typeKey, fields) {
         const c = _canonTitle(fields);
-        return c ? `${typeKey}|${c}|${(fields && fields.ano) || ''}|${(fields && fields.anoInicio) || ''}|${(fields && fields.anoFim) || ''}` : '';
+        return c ? `${typeKey}|${c}|${_sigYear(fields && fields.ano)}|${_sigYear(fields && fields.anoInicio)}|${_sigYear(fields && fields.anoFim)}` : '';
     }
     // Assinatura(s) derivada(s) de um item existente: a viva (campos atuais) e a
     // original gravada em lattesRef (formato cat|type|canon|ano|ini|fim → tira a categoria).
