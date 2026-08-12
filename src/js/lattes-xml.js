@@ -366,7 +366,8 @@ window.LattesXML = (function () {
                 if (!nome) continue;
                 add('FORMACAO_COMPLEMENTAR', {
                     titulo: nome,
-                    ano: a['ANO-DE-CONCLUSAO'] || a['ANO-DE-INICIO'] || '',
+                    anoInicio: a['ANO-DE-INICIO'] || '',
+                    anoFim: a['ANO-DE-CONCLUSAO'] || '',
                     instituicao: a['NOME-INSTITUICAO'] || '',
                     cargaHoraria: a['CARGA-HORARIA'] || '',
                 }, el);
