@@ -1588,6 +1588,21 @@
     /* =====================================================================
        IMPORTAR LATTES (XML) — seção dentro de Configurações
        ===================================================================== */
+    // Aviso de consistência exibido nas operações de XML (importar/exportar):
+    // depois de adotar o lattesZen, as edições devem ocorrer AQUI e não mais
+    // diretamente na Plataforma Lattes (senão a assinatura do item muda e pode
+    // duplicar na próxima importação).
+    function xmlConsistencyNoticeHtml() {
+        return `
+            <div class="text-sm rounded-md border-l-4 border-amber-500 bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-300 px-3 py-2 mb-3 flex gap-2">
+                <i class="fa-solid fa-triangle-exclamation mt-0.5"></i>
+                <span>Para manter a <strong>consistência</strong>: depois de adotar o lattesZen, faça as <strong>edições aqui no lattesZen</strong> e não mais diretamente na Plataforma Lattes. O lattesZen vira a sua fonte de referência e você exporta o XML para atualizar o Lattes. Alterar um item direto na Plataforma Lattes muda o identificador dele e pode gerar <strong>duplicação</strong> ao reimportar.</span>
+            </div>`;
+    }
+    function xmlConsistencyToast() {
+        toast('Lembrete: edite no lattesZen (não direto na Plataforma Lattes) para manter a consistência dos dados.', 'aviso');
+    }
+
     function importLattesSectionHtml() {
         return `
             <section class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
@@ -1598,6 +1613,7 @@
                     Exporte seu currículo em XML na Plataforma Lattes (Menu <em>&rarr; Exportar &rarr; XML</em>) e selecione o arquivo abaixo.
                     Os itens serão listados para você escolher quais importar; cada um poderá receber um PDF depois.
                 </p>
+                ${xmlConsistencyNoticeHtml()}
                 <input type="file" id="xmlInput" accept=".xml,application/xml,text/xml"
                        class="text-sm file:mr-2 file:px-3 file:py-1.5 file:rounded file:border-0 file:bg-govbr-600 dark:file:bg-unifesp-700 file:text-white">
                 <div id="xmlResult" class="mt-3"></div>
@@ -1609,6 +1625,7 @@
             <section class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
                 <h2 class="text-lg font-bold mb-2 flex items-center gap-2"><i class="fa-solid fa-file-code text-govbr-600 dark:text-unifesp-400"></i> Exportar para a Plataforma Lattes (XML)</h2>
                 <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">Gera o arquivo <strong>curriculo.xml</strong> no formato oficial do CNPq (schema <em>CurriculoLattes</em>, codificação ISO-8859-1). Inclui apenas os itens das categorias do Lattes — <strong>RSC, Conexões e Atividades livres não são exportados</strong>. As evidências (PDFs) não fazem parte do XML.</p>
+                ${xmlConsistencyNoticeHtml()}
                 <div class="flex gap-2 flex-wrap">
                     <button id="btnXmlDownload" class="px-3 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm"><i class="fa-solid fa-download mr-1"></i> Baixar XML (.xml)</button>
                     <button id="btnXmlSave" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-folder-open mr-1"></i> Salvar na pasta (Publicação/curriculo.xml)</button>
@@ -1641,6 +1658,7 @@
                 const blob = new Blob([bytes], { type: 'application/xml' });
                 const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `curriculo-${safe}.xml`; a.click(); URL.revokeObjectURL(a.href);
                 xmlStatus(`XML gerado (${xmlExportaveis()} item(ns) exportado(s)).`);
+                xmlConsistencyToast();
             } catch (e) { xmlStatus(''); toast('Falha ao gerar XML: ' + e.message, 'erro'); }
         });
         const sv = $('#btnXmlSave');
@@ -1652,6 +1670,7 @@
                 await Storage.writeFile('curriculo.xml', bytes, 'Publicação');
                 xmlStatus(`Salvo em “Publicação/curriculo.xml” (${xmlExportaveis()} item(ns)).`);
                 toast('XML salvo em “Publicação/curriculo.xml”.', 'ok');
+                xmlConsistencyToast();
             } catch (e) { xmlStatus(''); toast('Falha ao salvar XML: ' + e.message, 'erro'); }
         });
     }
@@ -1802,6 +1821,7 @@
         }
         const extras = [atualizados ? `${atualizados} atualizado(s)` : '', ignorados ? `${ignorados} já existente(s) ignorado(s)` : ''].filter(Boolean).join(', ');
         toast(`${n} item(ns) importado(s)${extras ? ' — ' + extras : ''}.`, 'ok');
+        xmlConsistencyToast();
         renderXmlResult(state.lattesParsed);
         renderItemList();
     }

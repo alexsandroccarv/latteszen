@@ -237,7 +237,8 @@
             <li>O app lista todos os itens reconhecidos, agrupados por tipo, indicando quantos são <strong>novos</strong> e quantos <strong>já estão catalogados</strong>.</li>
             <li>Marque os que deseja trazer (há atalhos <em>Selecionar novos / Todos / Nenhum</em>) e clique em <strong>Importar selecionados</strong>.</li>
           </ol>
-          <div class="ok"><strong>Sem duplicar:</strong> itens que você já tem aparecem marcados como “já catalogado” e ficam desmarcados por padrão, para não duplicar. Depois de importar, é só anexar os PDFs de cada um.</div>
+          <div class="ok"><strong>Sem duplicar:</strong> a cada importação o lattesZen reconhece itens já existentes (por assinatura de conteúdo) e não os duplica — mesmo os que você editou ou criou manualmente. Eles aparecem como “já catalogado”, desmarcados por padrão. Depois de importar, é só anexar os PDFs de cada um.</div>
+          <div class="warn"><strong>Para manter a consistência:</strong> depois de adotar o lattesZen, faça as <strong>edições aqui no lattesZen</strong> e não mais diretamente na Plataforma Lattes — o lattesZen passa a ser sua fonte de referência e você exporta o XML para atualizar o Lattes. Corrigir um item direto na Plataforma Lattes muda o identificador dele e pode gerar duplicação na próxima importação.</div>
           <div class="note"><strong>Acentuação:</strong> o Lattes usa a codificação <code>ISO-8859-1</code>. O lattesZen decodifica corretamente na importação e reconverte na exportação, preservando acentos e caracteres especiais.</div>
         </section>
 
@@ -292,6 +293,7 @@
             <li><strong>Exportar para a Plataforma Lattes (XML)</strong> — gera o <code>curriculo.xml</code> no formato oficial do CNPq (schema <em>CurriculoLattes</em>, codificação <code>ISO-8859-1</code>). Inclui apenas as categorias do Lattes; itens de RSC, Conexões e Atividades livres não entram. As evidências (PDFs) não fazem parte do XML.</li>
           </ul>
           <div class="note">Você pode baixar o XML ou salvá-lo direto na pasta, em <code>Publicação/curriculo.xml</code>.</div>
+          <div class="warn"><strong>Fluxo recomendado:</strong> mantenha o lattesZen como fonte de referência — edite aqui e use o XML exportado para atualizar a Plataforma Lattes, evitando editar nos dois lugares. Assim as reimportações não geram duplicatas.</div>
         </section>
 
         <section class="card" id="backup">
