@@ -20,7 +20,7 @@
         lattesParsed: null, // resultado do parse do XML
         currentPdfUrl: null,// URL (blob) do PDF exibido no painel lateral
         sortOrder: 'desc',  // ordenação por ano na Conformidade
-        viewFilter: 'todos',// recorte da lista (todos/comprovados/semPdf/foraLattes/naoLattes)
+        viewFilter: 'todos',// recorte da lista (todos/comprovados/semPdf/naoLattes/descObrig)
         formDirty: false,   // há edições não salvas no formulário de Catalogar?
         saveAndNew: false,  // flag do botão "Salvar e novo"
         activeTab: 'catalogar',
@@ -272,9 +272,8 @@
        ===================================================================== */
     // Recortes da lista (cartões de conformidade + filtro da lista)
     const VIEW_META = {
-        comprovados:  { cor: 'green', icone: 'fa-circle-check', titulo: 'Comprovados', desc: 'No Lattes e com evidência' },
-        semPdf:       { cor: 'red',   icone: 'fa-file-circle-xmark', titulo: 'Sem evidência', desc: 'No Lattes, sem evidência' },
-        foraLattes:   { cor: 'blue',  icone: 'fa-clock', titulo: 'Fora do Lattes', desc: 'Cadastrados, ainda não no Lattes' },
+        comprovados:  { cor: 'green', icone: 'fa-circle-check', titulo: 'Comprovados', desc: 'Com evidência anexada' },
+        semPdf:       { cor: 'red',   icone: 'fa-file-circle-xmark', titulo: 'Sem evidência', desc: 'Falta anexar comprovação' },
         naoLattes:    { cor: 'purple', icone: 'fa-heart', titulo: 'Não-Lattes', desc: 'Itens pessoais' },
         descObrig:    { cor: 'red', icone: 'fa-align-left', titulo: 'Obrigatórios pendentes', desc: 'Falta campo obrigatório' },
     };
@@ -286,9 +285,8 @@
     }
     const VIEW_PREDICATE = {
         todos:          () => true,
-        comprovados:    i => i.lattesItem && i.inLattes && needsEvidence(i) && i.hasPdf,
-        semPdf:         i => i.lattesItem && i.inLattes && needsEvidence(i) && !i.hasPdf,
-        foraLattes:     i => i.lattesItem && !i.inLattes,
+        comprovados:    i => i.lattesItem && needsEvidence(i) && i.hasPdf,
+        semPdf:         i => i.lattesItem && needsEvidence(i) && !i.hasPdf,
         naoLattes:      i => !i.lattesItem,
         descObrig:      i => descState(i) === 'red',
     };
@@ -300,7 +298,7 @@
         const count = k => state.items.filter(VIEW_PREDICATE[k]).length;
         const comprovados = count('comprovados');
         // Denominador da conformidade documental: só itens que EXIGEM evidência
-        const total = state.items.filter(i => i.lattesItem && i.inLattes && needsEvidence(i)).length;
+        const total = state.items.filter(i => i.lattesItem && needsEvidence(i)).length;
         const pct = total ? Math.round(comprovados / total * 100) : 0;
         // Descrição: verde (completo) / amarelo (falta opcional) / vermelho (falta obrigatório)
         const totalDesc = state.items.length;
@@ -324,8 +322,8 @@
         };
 
         panel.innerHTML = `
-            <div class="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-5">
-                ${card('comprovados')}${card('semPdf')}${card('foraLattes')}${card('naoLattes')}${card('descObrig')}
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
+                ${card('comprovados')}${card('semPdf')}${card('naoLattes')}${card('descObrig')}
             </div>
 
             <div class="grid sm:grid-cols-2 gap-x-6 gap-y-3 mb-5">
@@ -704,11 +702,6 @@
             <div id="dynFields" class="space-y-3"></div>
             <div id="rscBlock" class="space-y-3"></div>
 
-            <label id="inLattesWrap" class="flex items-center gap-2 text-sm">
-                <input type="checkbox" id="chkInLattes" ${item ? (item.inLattes ? 'checked' : '') : ''}>
-                <span>Este item <strong>já consta no Currículo Lattes</strong></span>
-            </label>
-
             <p id="idInfo" class="text-xs text-gray-500"></p>
 
             <div class="flex gap-2 pt-1 flex-wrap">
@@ -765,7 +758,6 @@
             const valid = currentType && tipoOptions.some(o => o.key === currentType);
             currentType = valid ? currentType : ((tipoOptions[0] && tipoOptions[0].key) || '');
             selectTipo(currentType, true);
-            $('#inLattesWrap').style.display = LattesTypes.isNaoLattesCategory(selCat.value) ? 'none' : '';
             renderDynFields();
         }
         function renderDynFields() {
@@ -1307,8 +1299,6 @@
         item.typeKey = typeKey;
         item.categoryKey = categoryKey;
         item.fields = fields;
-        const inLattesEl = $('#chkInLattes');
-        item.inLattes = naoLattes ? false : (inLattesEl ? inLattesEl.checked : false);
         item.updatedAt = nowISO();
 
         // Camada RSC (se habilitado e o item é elegível)
@@ -1425,9 +1415,9 @@
     function statusBadges(item) {
         const b = [];
         const def = LattesTypes.get(item.typeKey);
-        // Lattes: verde quando já consta, vermelho quando falta (só itens do Lattes)
+        // Origem: item do universo Lattes (será exportado no XML) vs. item pessoal
         if (item.lattesItem) {
-            b.push(marker(item.inLattes, 'Lattes', 'fa-graduation-cap'));
+            b.push('<span class="badge bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300"><i class="fa-solid fa-graduation-cap"></i> Lattes</span>');
         } else {
             b.push('<span class="badge bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300"><i class="fa-solid fa-heart"></i> Não-Lattes</span>');
         }
@@ -1831,7 +1821,7 @@
                 const ex = state.items.find(i => i.typeKey === src.typeKey);
                 if (ex) {
                     ex.fields = src.fields; ex.categoryKey = src.categoryKey || ex.categoryKey;
-                    ex.inLattes = true; ex.lattesRef = src.lattesRef; ex.updatedAt = nowISO();
+                    ex.lattesRef = src.lattesRef; ex.updatedAt = nowISO();
                     await persistItem(ex);
                     atualizados++; continue;
                 }
@@ -1841,10 +1831,9 @@
             if (match) {
                 // Item já existe: NÃO duplica. Preserva os dados e as evidências
                 // do usuário; apenas "adota" como item do Lattes (grava o
-                // lattesRef original e marca inLattes) para casar nas próximas.
+                // lattesRef original) para casar nas próximas importações.
                 let changed = false;
                 if (!match.lattesRef && src.lattesRef) { match.lattesRef = src.lattesRef; changed = true; }
-                if (!match.inLattes) { match.inLattes = true; changed = true; }
                 if (changed) { match.updatedAt = nowISO(); await persistItem(match); atualizados++; }
                 else ignorados++;
                 registrar(match);
@@ -1855,7 +1844,7 @@
                 lattesItem: true, typeKey: src.typeKey,
                 categoryKey: src.categoryKey || LattesTypes.primaryCategory(src.typeKey),
                 fields: src.fields,
-                source: 'lattes', inLattes: true, lattesRef: src.lattesRef,
+                source: 'lattes', lattesRef: src.lattesRef,
                 hasPdf: false, pdfName: null, evidencias: [],
             };
             await persistItem(item);
@@ -2001,7 +1990,6 @@
         item.typeKey = tk;
         item.categoryKey = 'DADOS_GERAIS';
         item.fields = fields;
-        item.inLattes = true;
         item.updatedAt = nowISO();
 
         // Foto de perfil: a imagem é o conteúdo do item (não uma comprovação)
