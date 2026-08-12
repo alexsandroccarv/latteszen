@@ -91,6 +91,34 @@ window.LattesXMLExport = (function () {
         return { ini: s.replace(/[^\d]/g, ''), fim: '' };
     }
 
+    /* ---- Enums do XSD: emitir apenas tokens válidos (senão omite) ---- */
+    const ENUMS = {
+        'DADOS-BASICOS-DO-TRABALHO|NATUREZA': ['COMPLETO', 'RESUMO', 'RESUMO_EXPANDIDO', 'NAO_INFORMADO'],
+        'DADOS-BASICOS-DO-LIVRO|TIPO': ['LIVRO_PUBLICADO', 'LIVRO_ORGANIZADO_OU_EDICAO', 'NAO_INFORMADO'],
+        'DADOS-BASICOS-DA-APRESENTACAO-DE-TRABALHO|NATUREZA': ['COMUNICACAO', 'CONFERENCIA', 'CONGRESSO', 'SEMINARIO', 'SIMPOSIO', 'OUTRA', 'NAO_INFORMADO'],
+        'DADOS-BASICOS-DE-CURSOS-CURTA-DURACAO-MINISTRADO|NIVEL-DO-CURSO': ['EXTENSAO', 'APERFEICOAMENTO', 'ESPECIALIZACAO', 'OUTRA', 'NAO_INFORMADO'],
+        'DADOS-BASICOS-DO-TRABALHO-TECNICO|NATUREZA': ['ASSESSORIA', 'CONSULTORIA', 'PARECER', 'ELABORACAO_DE_PROJETO', 'RELATORIO_TECNICO', 'SERVICOS_NA_AREA_DA_SAUDE', 'EXTENSAO_TECNOLOGICA', 'OUTRA', 'NAO_INFORMADO'],
+        'DADOS-BASICOS-DO-PRODUTO-TECNOLOGICO|TIPO-PRODUTO': ['PILOTO', 'PROJETO', 'PROTOTIPO', 'OUTRO', 'NAO_INFORMADO'],
+        'DADOS-BASICOS-DO-PROCESSOS-OU-TECNICAS|NATUREZA': ['ANALITICA', 'INSTRUMENTAL', 'PEDAGOGICA', 'PROCESSUAL', 'TERAPEUTICA', 'OUTRA', 'NAO_INFORMADO'],
+        'DADOS-BASICOS-DA-PARTITURA|NATUREZA': ['CANTO', 'CORAL', 'ORQUESTRA', 'OUTRO', 'NAO_INFORMADO'],
+        'DADOS-BASICOS-DO-PREFACIO-POSFACIO|TIPO': ['PREFACIO', 'POSFACIO', 'APRESENTACAO', 'INTRODUCAO'],
+        'DADOS-BASICOS-DA-TRADUCAO|NATUREZA': ['ARTIGO', 'LIVRO', 'OUTRO', 'NAO_INFORMADO'],
+        'DADOS-BASICOS-DE-EDITORACAO|NATUREZA': ['LIVRO', 'ANAIS', 'CATALOGO', 'COLETANEA', 'ENCICLOPEDIA', 'PERIODICO', 'OUTRA', 'NAO_INFORMADO'],
+        'DADOS-BASICOS-DE-CARTA-MAPA-OU-SIMILAR|NATUREZA': ['AEROFOTOGRAMA', 'CARTA', 'FOTOGRAMA', 'MAPA', 'OUTRA', 'NAO_INFORMADO'],
+        'DADOS-BASICOS-DA-ORGANIZACAO-DE-EVENTO|TIPO': ['CONCERTO', 'CONCURSO', 'CONGRESSO', 'EXPOSICAO', 'FESTIVAL', 'FEIRA', 'OLIMPIADA', 'OUTRO', 'NAO_INFORMADO'],
+        'DADOS-BASICOS-DO-PROGRAMA-DE-RADIO-OU-TV|NATUREZA': ['ENTREVISTA', 'MESA_REDONDA', 'COMENTARIO', 'PROGRAMA', 'OUTRA', 'NAO_INFORMADO'],
+        'DADOS-BASICOS-DA-MIDIA-SOCIAL-WEBSITE-BLOG|NATUREZA': ['REDE_SOCIAL', 'FORUM', 'BLOG', 'SITE'],
+        'DADOS-BASICOS-DE-ARTES-CENICAS|NATUREZA': ['AUDIOVISUAL', 'CIRCENSE', 'COREOGRAFICA', 'DIVERSAS', 'OPERISTICA', 'PERFORMATICA', 'RADIALISTICA', 'TEATRAL', 'OUTRA'],
+        'DADOS-BASICOS-DE-ARTES-VISUAIS|NATUREZA': ['INTERVENCAO_URBANA', 'LIVRO_DE_ARTISTA', 'PERFORMANCE', 'PINTURA', 'PROGRAMACAO_VISUAL', 'VIDEO', 'WEBART', 'ANIMACAO', 'INSTALACAO', 'COMPUTACAO_GRAFICA', 'DESENHO', 'DIVERSAS', 'ESCULTURA', 'FILME', 'FOTOGRAFIA', 'GRAVURA', 'ILUSTRACAO', 'OUTRA'],
+        'DADOS-BASICOS-DA-MUSICA|NATUREZA': ['APRESENTACAO_DE_OBRA', 'ARRANJO', 'AUDIOVISUAL', 'COMPOSICAO', 'DIVERSAS', 'INTERPRETACAO', 'PUBLICACAO_DE_PARTITURA', 'REGISTRO_FONOGRAFICO', 'TRILHA_SONORA', 'OUTRA'],
+    };
+    Object.keys(ENUMS).forEach(k => { ENUMS[k] = new Set(ENUMS[k]); });
+    // Token válido do enum p/ (elemento, atributo); '' se não corresponder (omite).
+    function tok(elem, attr, value) {
+        const set = ENUMS[elem + '|' + attr];
+        const t = (window.LattesEnums ? LattesEnums.token(value) : String(value || '').toUpperCase());
+        return (set && set.has(t)) ? t : '';
+    }
     const NAT_TRABALHO = { 'Completo': 'COMPLETO', 'Resumo': 'RESUMO', 'Resumo expandido': 'RESUMO_EXPANDIDO' };
     const GRANDE_AREA = {
         'CIENCIAS EXATAS E DA TERRA': 'CIENCIAS_EXATAS_E_DA_TERRA',
@@ -200,12 +228,11 @@ window.LattesXMLExport = (function () {
             });
         }).join('');
         if (premios) children.push(wrap('PREMIOS-TITULOS', premios));
-        // LICENCAS (só MATERNIDADE é enumerado no schema)
+        // LICENCAS (o schema Lattes só enumera MATERNIDADE)
         const licencas = byType('LICENCA').map(it => {
             const f = it.fields;
-            const tipo = /matern/i.test(f.tipo || '') ? 'MATERNIDADE' : '';
-            return el('LICENCA', { 'TIPO-LICENCA': tipo });
-        }).filter(x => x.indexOf('MATERNIDADE') >= 0).join('');
+            return el('LICENCA', { 'TIPO-LICENCA': 'MATERNIDADE', 'DATA-INICIO-LICENCA': ddmmaaaa(f.dataInicio), 'DATA-FIM-LICENCA': ddmmaaaa(f.dataFim) });
+        }).join('');
         if (licencas) children.push(wrap('LICENCAS', licencas));
 
         return el('DADOS-GERAIS', dgAttrs, children.join(''));
@@ -276,12 +303,16 @@ window.LattesXMLExport = (function () {
             ATIV_OUTRA: { wrap: 'OUTRAS-ATIVIDADES-TECNICO-CIENTIFICA', leaf: 'OUTRA-ATIVIDADE-TECNICO-CIENTIFICA', extra: (f) => ({ 'ATIVIDADE-REALIZADA': f.titulo, 'NOME-ORGAO': f.orgao }) },
         };
         const ensino = all.filter(i => i.typeKey === 'ATIV_ENSINO');
+        const linhas = all.filter(i => i.typeKey === 'LINHA_PESQUISA');
+        const NAT_PROJ = { PROJETO_PESQUISA: 'PESQUISA', PROJETO_DESENVOLVIMENTO: 'DESENVOLVIMENTO', PROJETO_EXTENSAO: 'EXTENSAO', PROJETO_ENSINO: 'ENSINO', PROJETO_OUTRO: 'OUTRA' };
+        const projetos = all.filter(i => NAT_PROJ[i.typeKey]);
 
         // agrupa por instituição
         const instMap = new Map();
-        const getInst = (nome) => { const k = nome || '(sem instituição)'; if (!instMap.has(k)) instMap.set(k, { nome, vincs: [], ensino: [], ativ: {} }); return instMap.get(k); };
+        const getInst = (nome) => { const k = nome || '(sem instituição)'; if (!instMap.has(k)) instMap.set(k, { nome, vincs: [], ensino: [], linhas: [], ativ: {} }); return instMap.get(k); };
         vincs.forEach(it => getInst(it.fields.instituicao).vincs.push(it));
         ensino.forEach(it => getInst(it.fields.instituicao).ensino.push(it));
+        linhas.forEach(it => getInst(it.fields.instituicao).linhas.push(it));
         all.forEach(it => { if (ATIV[it.typeKey]) { const g = getInst(it.fields.instituicao); (g.ativ[it.typeKey] = g.ativ[it.typeKey] || []).push(it); } });
 
         const blocos = [];
@@ -301,6 +332,11 @@ window.LattesXMLExport = (function () {
             // 2) ATIVIDADES-DE-DIRECAO-E-ADMINISTRACAO (na ordem do XSD)
             (g.ativ.ATIV_DIRECAO || []).length && seq.push(wrap('ATIVIDADES-DE-DIRECAO-E-ADMINISTRACAO',
                 g.ativ.ATIV_DIRECAO.map(it => el('DIRECAO-E-ADMINISTRACAO', Object.assign({ 'ANO-INICIO': year(it.fields.anoInicio), 'ANO-FIM': year(it.fields.anoFim) }, ATIV.ATIV_DIRECAO.extra(it.fields)))).join('')));
+            // 2b) ATIVIDADES-DE-PESQUISA-E-DESENVOLVIMENTO (linhas de pesquisa)
+            g.linhas.length && seq.push(wrap('ATIVIDADES-DE-PESQUISA-E-DESENVOLVIMENTO',
+                el('PESQUISA-E-DESENVOLVIMENTO', {}, g.linhas.map(it => el('LINHA-DE-PESQUISA', {
+                    'TITULO-DA-LINHA-DE-PESQUISA': it.fields.titulo, 'OBJETIVOS-LINHA-DE-PESQUISA': it.fields.descricao,
+                })).join(''))));
             // 3) ATIVIDADES-DE-ENSINO
             g.ensino.length && seq.push(wrap('ATIVIDADES-DE-ENSINO', g.ensino.map(it => {
                 const f = it.fields;
@@ -323,6 +359,20 @@ window.LattesXMLExport = (function () {
             const inner = seq.filter(Boolean).join('');
             if (inner) blocos.push(el('ATUACAO-PROFISSIONAL', { 'NOME-INSTITUICAO': g.nome }, inner));
         }
+        // Projetos (não têm instituição no modelo) → bloco próprio de atuação.
+        if (projetos.length) {
+            const parts = projetos.map(it => {
+                const f = it.fields;
+                const equipe = clean(f.coordenador) ? el('EQUIPE-DO-PROJETO', {}, el('INTEGRANTES-DO-PROJETO', { 'NOME-COMPLETO': f.coordenador, 'NOME-PARA-CITACAO': f.coordenador, 'ORDEM-DE-INTEGRACAO': '1', 'FLAG-RESPONSAVEL': 'SIM' })) : '';
+                const fin = clean(f.financiador) ? el('FINANCIADORES-DO-PROJETO', {}, el('FINANCIADOR-DO-PROJETO', { 'NOME-INSTITUICAO': f.financiador })) : '';
+                return el('PARTICIPACAO-EM-PROJETO', {}, el('PROJETO-DE-PESQUISA', {
+                    'ANO-INICIO': year(f.anoInicio), 'ANO-FIM': year(f.anoFim), 'NOME-DO-PROJETO': f.titulo,
+                    'SITUACAO': (window.LattesEnums ? LattesEnums.token(f.situacao) : ''), 'NATUREZA': NAT_PROJ[it.typeKey],
+                    'DESCRICAO-DO-PROJETO': f.descricao,
+                }, equipe + fin));
+            }).join('');
+            blocos.push(el('ATUACAO-PROFISSIONAL', {}, wrap('ATIVIDADES-DE-PARTICIPACAO-EM-PROJETO', parts)));
+        }
         return blocos.length ? el('ATUACOES-PROFISSIONAIS', {}, blocos.join('')) : '';
     }
 
@@ -333,7 +383,7 @@ window.LattesXMLExport = (function () {
         const trabalhos = pick('TRABALHO_EVENTO').map(f => {
             const p = paginas(f.paginas);
             return producao('TRABALHO-EM-EVENTOS', S(),
-                'DADOS-BASICOS-DO-TRABALHO', { 'NATUREZA': NAT_TRABALHO[f.natureza] || '', 'TITULO-DO-TRABALHO': f.titulo, 'ANO-DO-TRABALHO': year(f.ano), 'PAIS-DO-EVENTO': f.pais, 'IDIOMA': f.idioma, 'DOI': f.doi, 'HOME-PAGE-DO-TRABALHO': f.url },
+                'DADOS-BASICOS-DO-TRABALHO', { 'NATUREZA': tok('DADOS-BASICOS-DO-TRABALHO', 'NATUREZA', f.natureza), 'TITULO-DO-TRABALHO': f.titulo, 'ANO-DO-TRABALHO': year(f.ano), 'PAIS-DO-EVENTO': f.pais, 'IDIOMA': f.idioma, 'DOI': f.doi, 'HOME-PAGE-DO-TRABALHO': f.url },
                 'DETALHAMENTO-DO-TRABALHO', { 'NOME-DO-EVENTO': f.evento, 'CIDADE-DO-EVENTO': f.cidade, 'TITULO-DOS-ANAIS-OU-PROCEEDINGS': f.anais, 'ISBN': f.isbn, 'PAGINA-INICIAL': p.ini, 'PAGINA-FINAL': p.fim },
                 f.autores);
         }).join('');
@@ -363,7 +413,7 @@ window.LattesXMLExport = (function () {
                     f.autores));
             } else {
                 livrosArr.push(producao('LIVRO-PUBLICADO-OU-ORGANIZADO', S(),
-                    'DADOS-BASICOS-DO-LIVRO', { 'TITULO-DO-LIVRO': f.titulo, 'ANO': year(f.ano), 'PAIS-DE-PUBLICACAO': f.pais, 'IDIOMA': f.idioma, 'HOME-PAGE-DO-TRABALHO': f.url },
+                    'DADOS-BASICOS-DO-LIVRO', { 'TIPO': tok('DADOS-BASICOS-DO-LIVRO', 'TIPO', f.tipoObra), 'TITULO-DO-LIVRO': f.titulo, 'ANO': year(f.ano), 'PAIS-DE-PUBLICACAO': f.pais, 'IDIOMA': f.idioma, 'HOME-PAGE-DO-TRABALHO': f.url },
                     'DETALHAMENTO-DO-LIVRO', { 'NUMERO-DE-PAGINAS': f.paginas, 'ISBN': f.isbn, 'NUMERO-DA-EDICAO-REVISAO': f.edicao, 'CIDADE-DA-EDITORA': f.cidade, 'NOME-DA-EDITORA': f.editora },
                     f.autores));
             }
@@ -381,22 +431,22 @@ window.LattesXMLExport = (function () {
         // DEMAIS: outra biblio, partitura, prefácio, tradução
         const outraBib = pick('OUTRA_BIBLIOGRAFICA').map(f =>
             producao('OUTRA-PRODUCAO-BIBLIOGRAFICA', S(),
-                'DADOS-BASICOS-DE-OUTRA-PRODUCAO', { 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS-DE-PUBLICACAO': f.pais, 'IDIOMA': f.idioma, 'HOME-PAGE-DO-TRABALHO': f.url },
+                'DADOS-BASICOS-DE-OUTRA-PRODUCAO', { 'NATUREZA': f.natureza, 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS-DE-PUBLICACAO': f.pais, 'IDIOMA': f.idioma, 'HOME-PAGE-DO-TRABALHO': f.url },
                 'DETALHAMENTO-DE-OUTRA-PRODUCAO', { 'EDITORA': f.editora },
                 f.autores)).join('');
         const partituras = pick('PARTITURA').map(f =>
             producao('PARTITURA-MUSICAL', S(),
-                'DADOS-BASICOS-DA-PARTITURA', { 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS-DE-PUBLICACAO': f.pais, 'IDIOMA': f.idioma, 'HOME-PAGE-DO-TRABALHO': f.url },
+                'DADOS-BASICOS-DA-PARTITURA', { 'NATUREZA': tok('DADOS-BASICOS-DA-PARTITURA', 'NATUREZA', f.natureza), 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS-DE-PUBLICACAO': f.pais, 'IDIOMA': f.idioma, 'HOME-PAGE-DO-TRABALHO': f.url },
                 'DETALHAMENTO-DA-PARTITURA', { 'FORMACAO-INSTRUMENTAL': f.formacao, 'EDITORA': f.editora },
                 f.autores)).join('');
         const prefacios = pick('PREFACIO').map(f =>
             producao('PREFACIO-POSFACIO', S(),
-                'DADOS-BASICOS-DO-PREFACIO-POSFACIO', { 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS-DE-PUBLICACAO': f.pais, 'IDIOMA': f.idioma, 'HOME-PAGE-DO-TRABALHO': f.url },
+                'DADOS-BASICOS-DO-PREFACIO-POSFACIO', { 'TIPO': tok('DADOS-BASICOS-DO-PREFACIO-POSFACIO', 'TIPO', f.natureza), 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS-DE-PUBLICACAO': f.pais, 'IDIOMA': f.idioma, 'HOME-PAGE-DO-TRABALHO': f.url },
                 'DETALHAMENTO-DO-PREFACIO-POSFACIO', { 'TITULO-DA-PUBLICACAO': f.obra, 'EDITORA-DO-PREFACIO-POSFACIO': f.editora },
                 f.autores)).join('');
         const traducoes = pick('TRADUCAO').map(f =>
             producao('TRADUCAO', S(),
-                'DADOS-BASICOS-DA-TRADUCAO', { 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS-DE-PUBLICACAO': f.pais, 'IDIOMA': f.idioma, 'HOME-PAGE-DO-TRABALHO': f.url },
+                'DADOS-BASICOS-DA-TRADUCAO', { 'NATUREZA': tok('DADOS-BASICOS-DA-TRADUCAO', 'NATUREZA', f.natureza), 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS-DE-PUBLICACAO': f.pais, 'IDIOMA': f.idioma, 'HOME-PAGE-DO-TRABALHO': f.url },
                 'DETALHAMENTO-DA-TRADUCAO', { 'NOME-DO-AUTOR-TRADUZIDO': f.autorOriginal, 'TITULO-DA-OBRA-ORIGINAL': f.obraOriginal, 'IDIOMA-DA-OBRA-ORIGINAL': f.idiomaOriginal, 'EDITORA-DA-TRADUCAO': f.editora },
                 f.autores)).join('');
         const demais = wrap('DEMAIS-TIPOS-DE-PRODUCAO-BIBLIOGRAFICA', outraBib + partituras + prefacios + traducoes);
@@ -406,6 +456,11 @@ window.LattesXMLExport = (function () {
     }
 
     /* ========================= 05.2 PRODUCAO-TECNICA ===================== */
+    // Situação da patente → HISTORICO-SITUACOES-PATENTE (DESCRICAO livre + STATUS required).
+    function histSituacao(f) {
+        const s = clean(f.situacao);
+        return s ? el('HISTORICO-SITUACOES-PATENTE', { 'DESCRICAO-SITUACAO-PATENTE': s, 'STATUS-SITUACAO-PATENTE': 'SIM' }) : '';
+    }
     function registroPatente(f) {
         return el('REGISTRO-OU-PATENTE', {
             'CODIGO-DO-REGISTRO-OU-PATENTE': f.registro, 'TITULO-PATENTE': f.titulo,
@@ -424,7 +479,7 @@ window.LattesXMLExport = (function () {
             'DETALHAMENTO-DO-SOFTWARE', { 'FINALIDADE': f.finalidade, 'PLATAFORMA': f.plataforma, 'AMBIENTE': f.plataforma }, f.autores, f.registro ? registroPatente(f) : '')).join('');
         const patentes = pick('PATENTE').map(f => producao('PATENTE', S(),
             'DADOS-BASICOS-DA-PATENTE', { 'TITULO': f.titulo, 'ANO-DESENVOLVIMENTO': year(f.ano), 'PAIS': f.pais, 'HOME-PAGE': f.url },
-            'DETALHAMENTO-DA-PATENTE', { 'FINALIDADE': f.finalidade, 'INSTITUICAO-FINANCIADORA': f.instituicao, 'CATEGORIA': f.categoria }, f.autores, registroPatente(f))).join('');
+            'DETALHAMENTO-DA-PATENTE', { 'FINALIDADE': f.finalidade, 'INSTITUICAO-FINANCIADORA': f.instituicao, 'CATEGORIA': f.categoria }, f.autores, registroPatente(f) + histSituacao(f))).join('');
         const cultivarProt = pick('CULTIVAR_PROTEGIDA').map(f => producao('CULTIVAR-PROTEGIDA', S(),
             'DADOS-BASICOS-DA-CULTIVAR', { 'DENOMINACAO': f.titulo, 'ANO-SOLICITACAO': year(f.ano), 'PAIS': f.pais },
             'DETALHAMENTO-DA-CULTIVAR', { 'FINALIDADE': f.finalidade, 'INSTITUICAO-FINANCIADORA': f.instituicao }, f.autores, registroPatente(f))).join('');
@@ -433,35 +488,40 @@ window.LattesXMLExport = (function () {
             'DETALHAMENTO-DO-DESENHO-INDUSTRIAL', { 'FINALIDADE': f.finalidade, 'INSTITUICAO-FINANCIADORA': f.instituicao }, f.autores, registroPatente(f))).join('');
         const marcas = pick('MARCA').map(f => producao('MARCA', S(),
             'DADOS-BASICOS-DA-MARCA', { 'TITULO': f.titulo, 'ANO-DESENVOLVIMENTO': year(f.ano), 'PAIS': f.pais },
-            'DETALHAMENTO-DA-MARCA', { 'FINALIDADE': f.finalidade }, f.autores, registroPatente(f))).join('');
+            'DETALHAMENTO-DA-MARCA', { 'FINALIDADE': f.finalidade, 'NATUREZA': f.natureza }, f.autores, registroPatente(f))).join('');
         const topografias = pick('TOPOGRAFIA_CI').map(f => producao('TOPOGRAFIA-DE-CIRCUITO-INTEGRADO', S(),
             'DADOS-BASICOS-DA-TOPOGRAFIA-DE-CIRCUITO-INTEGRADO', { 'TITULO': f.titulo, 'ANO-DESENVOLVIMENTO': year(f.ano), 'PAIS': f.pais },
             'DETALHAMENTO-DA-TOPOGRAFIA-DE-CIRCUITO-INTEGRADO', { 'FINALIDADE': f.finalidade, 'INSTITUICAO-FINANCIADORA': f.instituicao }, f.autores, registroPatente(f))).join('');
         const produtos = pick('PRODUTO_TECNOLOGICO').map(f => producao('PRODUTO-TECNOLOGICO', S(),
-            'DADOS-BASICOS-DO-PRODUTO-TECNOLOGICO', { 'TITULO-DO-PRODUTO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma, 'HOME-PAGE-DO-TRABALHO': f.url },
+            'DADOS-BASICOS-DO-PRODUTO-TECNOLOGICO', { 'TIPO-PRODUTO': tok('DADOS-BASICOS-DO-PRODUTO-TECNOLOGICO', 'TIPO-PRODUTO', f.natureza), 'TITULO-DO-PRODUTO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma, 'HOME-PAGE-DO-TRABALHO': f.url },
             'DETALHAMENTO-DO-PRODUTO-TECNOLOGICO', { 'FINALIDADE': f.finalidade, 'CIDADE-DO-PRODUTO': f.cidade }, f.autores, f.registro ? registroPatente(f) : '')).join('');
         const processos = pick('PROCESSO_TECNICA').map(f => producao('PROCESSOS-OU-TECNICAS', S(),
-            'DADOS-BASICOS-DO-PROCESSOS-OU-TECNICAS', { 'TITULO-DO-PROCESSO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma, 'HOME-PAGE-DO-TRABALHO': f.url },
+            'DADOS-BASICOS-DO-PROCESSOS-OU-TECNICAS', { 'NATUREZA': tok('DADOS-BASICOS-DO-PROCESSOS-OU-TECNICAS', 'NATUREZA', f.natureza), 'TITULO-DO-PROCESSO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma, 'HOME-PAGE-DO-TRABALHO': f.url },
             'DETALHAMENTO-DO-PROCESSOS-OU-TECNICAS', { 'FINALIDADE': f.finalidade, 'INSTITUICAO-FINANCIADORA': f.instituicao, 'CIDADE-DO-PROCESSO': f.cidade }, f.autores)).join('');
-        const trabTec = pick('TRABALHO_TECNICO').map(f => producao('TRABALHO-TECNICO', S(),
-            'DADOS-BASICOS-DO-TRABALHO-TECNICO', { 'TITULO-DO-TRABALHO-TECNICO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma, 'HOME-PAGE-DO-TRABALHO': f.url },
+        // Trabalho técnico + Assessoria/Consultoria + Extensão tecnológica: no Lattes
+        // são o MESMO elemento (TRABALHO-TECNICO), distintos apenas pela NATUREZA.
+        const tecItens = pick('TRABALHO_TECNICO')
+            .concat(pick('ASSESSORIA_CONSULTORIA').map(f => Object.assign({}, f, { natureza: f.natureza || 'Assessoria' })))
+            .concat(pick('EXTENSAO_TECNOLOGICA').map(f => Object.assign({}, f, { natureza: 'Extensão tecnológica' })));
+        const trabTec = tecItens.map(f => producao('TRABALHO-TECNICO', S(),
+            'DADOS-BASICOS-DO-TRABALHO-TECNICO', { 'NATUREZA': tok('DADOS-BASICOS-DO-TRABALHO-TECNICO', 'NATUREZA', f.natureza), 'TITULO-DO-TRABALHO-TECNICO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma, 'HOME-PAGE-DO-TRABALHO': f.url },
             'DETALHAMENTO-DO-TRABALHO-TECNICO', { 'FINALIDADE': f.finalidade, 'INSTITUICAO-FINANCIADORA': f.instituicao, 'CIDADE-DO-TRABALHO': f.cidade }, f.autores)).join('');
 
         // DEMAIS-TIPOS-DE-PRODUCAO-TECNICA (na ordem do XSD)
         const apres = pick('APRESENTACAO').map(f => producao('APRESENTACAO-DE-TRABALHO', S(),
-            'DADOS-BASICOS-DA-APRESENTACAO-DE-TRABALHO', { 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma },
+            'DADOS-BASICOS-DA-APRESENTACAO-DE-TRABALHO', { 'NATUREZA': tok('DADOS-BASICOS-DA-APRESENTACAO-DE-TRABALHO', 'NATUREZA', f.natureza), 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma },
             'DETALHAMENTO-DA-APRESENTACAO-DE-TRABALHO', { 'NOME-DO-EVENTO': f.evento, 'INSTITUICAO-PROMOTORA': f.instituicao, 'CIDADE-DA-APRESENTACAO': f.cidade }, f.autores)).join('');
         const cartas = pick('CARTA_MAPA').map(f => producao('CARTA-MAPA-OU-SIMILAR', S(),
-            'DADOS-BASICOS-DE-CARTA-MAPA-OU-SIMILAR', { 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais },
+            'DADOS-BASICOS-DE-CARTA-MAPA-OU-SIMILAR', { 'NATUREZA': tok('DADOS-BASICOS-DE-CARTA-MAPA-OU-SIMILAR', 'NATUREZA', f.natureza), 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma, 'HOME-PAGE-DO-TRABALHO': f.url },
             'DETALHAMENTO-DE-CARTA-MAPA-OU-SIMILAR', { 'FINALIDADE': f.finalidade }, f.autores)).join('');
         const cursos = pick('CURSO_MINISTRADO').map(f => producao('CURSO-DE-CURTA-DURACAO-MINISTRADO', S(),
-            'DADOS-BASICOS-DE-CURSOS-CURTA-DURACAO-MINISTRADO', { 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma, 'HOME-PAGE-DO-TRABALHO': f.url },
+            'DADOS-BASICOS-DE-CURSOS-CURTA-DURACAO-MINISTRADO', { 'NIVEL-DO-CURSO': tok('DADOS-BASICOS-DE-CURSOS-CURTA-DURACAO-MINISTRADO', 'NIVEL-DO-CURSO', f.nivel), 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma, 'HOME-PAGE-DO-TRABALHO': f.url },
             'DETALHAMENTO-DE-CURSOS-CURTA-DURACAO-MINISTRADO', { 'INSTITUICAO-PROMOTORA-DO-CURSO': f.instituicao, 'CIDADE': f.cidade, 'DURACAO': f.cargaHoraria }, f.autores)).join('');
         const materiais = pick('MATERIAL_DIDATICO').map(f => producao('DESENVOLVIMENTO-DE-MATERIAL-DIDATICO-OU-INSTRUCIONAL', S(),
             'DADOS-BASICOS-DO-MATERIAL-DIDATICO-OU-INSTRUCIONAL', { 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma, 'HOME-PAGE-DO-TRABALHO': f.url },
             'DETALHAMENTO-DO-MATERIAL-DIDATICO-OU-INSTRUCIONAL', { 'FINALIDADE': f.finalidade }, f.autores)).join('');
         const editoracoes = pick('EDITORACAO').map(f => producao('EDITORACAO', S(),
-            'DADOS-BASICOS-DE-EDITORACAO', { 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma, 'HOME-PAGE-DO-TRABALHO': f.url },
+            'DADOS-BASICOS-DE-EDITORACAO', { 'NATUREZA': tok('DADOS-BASICOS-DE-EDITORACAO', 'NATUREZA', f.natureza), 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma, 'HOME-PAGE-DO-TRABALHO': f.url },
             'DETALHAMENTO-DE-EDITORACAO', { 'NUMERO-DE-PAGINAS': f.paginas, 'EDITORA': f.editora, 'CIDADE': f.cidade }, f.autores)).join('');
         const manut = pick('MANUTENCAO_OBRA').map(f => producao('MANUTENCAO-DE-OBRA-ARTISTICA', S(),
             'DADOS-BASICOS-DE-MANUTENCAO-DE-OBRA-ARTISTICA', { 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma },
@@ -470,20 +530,19 @@ window.LattesXMLExport = (function () {
             'DADOS-BASICOS-DA-MAQUETE', { 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma, 'HOME-PAGE-DO-TRABALHO': f.url },
             'DETALHAMENTO-DA-MAQUETE', { 'FINALIDADE': f.finalidade }, f.autores)).join('');
         const orgEventos = pick('ORGANIZACAO_EVENTO').map(f => producao('ORGANIZACAO-DE-EVENTO', S(),
-            'DADOS-BASICOS-DA-ORGANIZACAO-DE-EVENTO', { 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'HOME-PAGE-DO-TRABALHO': f.url },
+            'DADOS-BASICOS-DA-ORGANIZACAO-DE-EVENTO', { 'TIPO': tok('DADOS-BASICOS-DA-ORGANIZACAO-DE-EVENTO', 'TIPO', f.tipoEvento), 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'HOME-PAGE-DO-TRABALHO': f.url },
             'DETALHAMENTO-DA-ORGANIZACAO-DE-EVENTO', { 'INSTITUICAO-PROMOTORA': f.instituicao, 'CIDADE': f.cidade }, f.autores)).join('');
         const midias = pick('MIDIA').map(f => producao('PROGRAMA-DE-RADIO-OU-TV', S(),
-            'DADOS-BASICOS-DO-PROGRAMA-DE-RADIO-OU-TV', { 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma, 'HOME-PAGE': f.url },
+            'DADOS-BASICOS-DO-PROGRAMA-DE-RADIO-OU-TV', { 'NATUREZA': tok('DADOS-BASICOS-DO-PROGRAMA-DE-RADIO-OU-TV', 'NATUREZA', f.tipo), 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma, 'HOME-PAGE': f.url },
             'DETALHAMENTO-DO-PROGRAMA-DE-RADIO-OU-TV', { 'EMISSORA': f.veiculo, 'CIDADE': f.cidade }, f.autores)).join('');
         const relatorios = pick('RELATORIO_PESQUISA').map(f => producao('RELATORIO-DE-PESQUISA', S(),
             'DADOS-BASICOS-DO-RELATORIO-DE-PESQUISA', { 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma, 'HOME-PAGE-DO-TRABALHO': f.url },
             'DETALHAMENTO-DO-RELATORIO-DE-PESQUISA', { 'INSTITUICAO-FINANCIADORA': f.instituicao }, f.autores)).join('');
         const midiaSocial = pick('MIDIA_SOCIAL').map(f => producao('MIDIA-SOCIAL-WEBSITE-BLOG', S(),
-            'DADOS-BASICOS-DA-MIDIA-SOCIAL-WEBSITE-BLOG', { 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma, 'HOME-PAGE': f.url },
+            'DADOS-BASICOS-DA-MIDIA-SOCIAL-WEBSITE-BLOG', { 'NATUREZA': tok('DADOS-BASICOS-DA-MIDIA-SOCIAL-WEBSITE-BLOG', 'NATUREZA', f.plataforma), 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma, 'HOME-PAGE': f.url },
             'DETALHAMENTO-DA-MIDIA-SOCIAL-WEBSITE-BLOG', { 'TEMA': f.plataforma }, f.autores)).join('');
-        // Assessoria/consultoria e extensão tecnológica não têm elemento próprio → OUTRA-PRODUCAO-TECNICA
-        const outrasTec = pick('OUTRA_TECNICA', 'ASSESSORIA_CONSULTORIA', 'EXTENSAO_TECNOLOGICA').map(f => producao('OUTRA-PRODUCAO-TECNICA', S(),
-            'DADOS-BASICOS-DE-OUTRA-PRODUCAO-TECNICA', { 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma, 'HOME-PAGE-DO-TRABALHO': f.url },
+        const outrasTec = pick('OUTRA_TECNICA').map(f => producao('OUTRA-PRODUCAO-TECNICA', S(),
+            'DADOS-BASICOS-DE-OUTRA-PRODUCAO-TECNICA', { 'NATUREZA': f.natureza, 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma, 'HOME-PAGE-DO-TRABALHO': f.url },
             'DETALHAMENTO-DE-OUTRA-PRODUCAO-TECNICA', { 'FINALIDADE': f.finalidade, 'INSTITUICAO-PROMOTORA': f.instituicao, 'CIDADE': f.cidade }, f.autores)).join('');
 
         const demais = wrap('DEMAIS-TIPOS-DE-PRODUCAO-TECNICA',
@@ -498,16 +557,16 @@ window.LattesXMLExport = (function () {
         let seq = 0; const S = () => String(++seq);
         // PRODUCAO-ARTISTICA-CULTURAL (ordem do XSD: ...OUTRA..., ARTES-CENICAS, ARTES-VISUAIS, MUSICA)
         const outraArt = pick('OUTRA_ARTISTICA').map(f => producao('OUTRA-PRODUCAO-ARTISTICA-CULTURAL', S(),
-            'DADOS-BASICOS-DE-OUTRA-PRODUCAO-ARTISTICA-CULTURAL', { 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma, 'HOME-PAGE': f.url },
+            'DADOS-BASICOS-DE-OUTRA-PRODUCAO-ARTISTICA-CULTURAL', { 'NATUREZA': f.natureza, 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma, 'HOME-PAGE': f.url },
             'DETALHAMENTO-DE-OUTRA-PRODUCAO-ARTISTICA-CULTURAL', { 'CIDADE': f.cidade }, f.autores)).join('');
         const cenicas = pick('ARTES_CENICAS').map(f => producao('ARTES-CENICAS', S(),
-            'DADOS-BASICOS-DE-ARTES-CENICAS', { 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma, 'HOME-PAGE': f.url },
+            'DADOS-BASICOS-DE-ARTES-CENICAS', { 'NATUREZA': tok('DADOS-BASICOS-DE-ARTES-CENICAS', 'NATUREZA', f.natureza), 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma, 'HOME-PAGE': f.url },
             'DETALHAMENTO-DE-ARTES-CENICAS', { 'INSTITUICAO-PROMOTORA-DO-EVENTO': f.evento, 'CIDADE-DO-EVENTO': f.cidade }, f.autores)).join('');
         const visuais = pick('ARTES_VISUAIS').map(f => producao('ARTES-VISUAIS', S(),
-            'DADOS-BASICOS-DE-ARTES-VISUAIS', { 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma, 'HOME-PAGE': f.url },
+            'DADOS-BASICOS-DE-ARTES-VISUAIS', { 'NATUREZA': tok('DADOS-BASICOS-DE-ARTES-VISUAIS', 'NATUREZA', f.natureza), 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma, 'HOME-PAGE': f.url },
             'DETALHAMENTO-DE-ARTES-VISUAIS', { 'INSTITUICAO-PROMOTORA-DO-EVENTO': f.evento, 'CIDADE-DO-EVENTO': f.cidade }, f.autores)).join('');
         const musicas = pick('MUSICA').map(f => producao('MUSICA', S(),
-            'DADOS-BASICOS-DA-MUSICA', { 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma, 'HOME-PAGE': f.url },
+            'DADOS-BASICOS-DA-MUSICA', { 'NATUREZA': tok('DADOS-BASICOS-DA-MUSICA', 'NATUREZA', f.natureza), 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma, 'HOME-PAGE': f.url },
             'DETALHAMENTO-DA-MUSICA', { 'INSTITUICAO-PROMOTORA-DO-EVENTO': f.evento, 'CIDADE-DO-EVENTO': f.cidade }, f.autores)).join('');
         const artistica = wrap('PRODUCAO-ARTISTICA-CULTURAL', outraArt + cenicas + visuais + musicas);
 
@@ -615,7 +674,8 @@ window.LattesXMLExport = (function () {
         list.forEach(it => {
             const f = it.fields; const nat = map[f.natureza] ? f.natureza : 'Outra';
             const spec = map[nat] || ['OUTRAS-PARTICIPACOES-EM-EVENTOS-CONGRESSOS', 'DADOS-BASICOS-DE-OUTRAS-PARTICIPACOES-EM-EVENTOS-CONGRESSOS', 'DETALHAMENTO-DE-OUTRAS-PARTICIPACOES-EM-EVENTOS-CONGRESSOS'];
-            const db = { 'TITULO': f.titulo || f.tituloApresentacao, 'ANO': year(f.ano), 'PAIS': f.pais, 'TIPO-PARTICIPACAO': f.tipoParticipacao, 'FORMA-PARTICIPACAO': f.formaParticipacao, 'HOME-PAGE-DO-TRABALHO': f.url };
+            const flagCT = /^s/i.test(f.divulgacaoCT || '') ? 'SIM' : (/^n/i.test(f.divulgacaoCT || '') ? 'NAO' : '');
+            const db = { 'TITULO': f.titulo || f.tituloApresentacao, 'ANO': year(f.ano), 'PAIS': f.pais, 'TIPO-PARTICIPACAO': f.tipoParticipacao, 'FORMA-PARTICIPACAO': f.formaParticipacao, 'FLAG-DIVULGACAO-CIENTIFICA': flagCT, 'HOME-PAGE-DO-TRABALHO': f.url };
             const det = { 'NOME-DO-EVENTO': f.titulo, 'CIDADE-DO-EVENTO': f.cidade };
             buckets[nat].push(el(spec[0], { 'SEQUENCIA-PRODUCAO': S() }, el(spec[1], db) + el(spec[2], det)));
         });

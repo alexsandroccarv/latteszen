@@ -64,11 +64,26 @@ window.LattesXML = (function () {
     // Registro/patente (filho de DETALHAMENTO em patentes, software, cultivar…)
     function regOf(el) {
         const r = attrs(firstTag(el, 'REGISTRO-OU-PATENTE'));
+        const h = attrs(firstTag(el, 'HISTORICO-SITUACOES-PATENTE'));
         return {
             registro: r['CODIGO-DO-REGISTRO-OU-PATENTE'] || '',
             dataDeposito: dateISO(r['DATA-PEDIDO-DE-DEPOSITO']),
             dataConcessao: dateISO(r['DATA-DE-CONCESSAO']),
+            situacao: h['DESCRICAO-SITUACAO-PATENTE'] || '',
         };
+    }
+    // Ajusta valores de campos SELECT para a opção exata do tipo (casa por token),
+    // garantindo que o rótulo importado bata com uma opção do formulário.
+    function snapSelects(typeKey, fields) {
+        const def = window.LattesTypes && LattesTypes.getType(typeKey);
+        if (!def || !window.LattesEnums) return;
+        for (const f of (def.fields || [])) {
+            if (f.type !== 'select' || !f.options) continue;
+            const v = fields[f.key]; if (!v || f.options.indexOf(v) >= 0) continue;
+            const t = LattesEnums.tok(v);
+            const match = f.options.find(o => LattesEnums.tok(o) === t);
+            if (match) fields[f.key] = match;
+        }
     }
 
     // Coleta autores (grupo repetível AUTORES)
@@ -187,22 +202,22 @@ window.LattesXML = (function () {
           }) },
         { tags: ['PARTITURA-MUSICAL'], typeKey: 'PARTITURA',
           map: (el, b, d) => Object.assign(comuns(b), {
-              autores: autoresOf(el), formacao: d['FORMACAO-INSTRUMENTAL'] || '', editora: d['EDITORA'] || '',
+              autores: autoresOf(el), natureza: humanize(b['NATUREZA']), formacao: d['FORMACAO-INSTRUMENTAL'] || '', editora: d['EDITORA'] || '',
           }) },
         { tags: ['TRADUCAO'], typeKey: 'TRADUCAO',
           map: (el, b, d) => Object.assign(comuns(b), {
-              autores: autoresOf(el), autorOriginal: d['NOME-DO-AUTOR-TRADUZIDO'] || '',
+              autores: autoresOf(el), natureza: humanize(b['NATUREZA']), autorOriginal: d['NOME-DO-AUTOR-TRADUZIDO'] || '',
               obraOriginal: d['TITULO-DA-OBRA-ORIGINAL'] || '', idiomaOriginal: d['IDIOMA-DA-OBRA-ORIGINAL'] || '',
               editora: d['EDITORA-DA-TRADUCAO'] || '',
           }) },
         { tags: ['PREFACIO-POSFACIO'], typeKey: 'PREFACIO',
           map: (el, b, d) => Object.assign(comuns(b), {
-              autores: autoresOf(el), natureza: humanize(b['NATUREZA']),
+              autores: autoresOf(el), natureza: humanize(b['TIPO'] || b['NATUREZA']),
               obra: d['TITULO-DA-PUBLICACAO'] || '', editora: d['EDITORA-DO-PREFACIO-POSFACIO'] || '',
           }) },
         { tags: ['OUTRA-PRODUCAO-BIBLIOGRAFICA'], typeKey: 'OUTRA_BIBLIOGRAFICA',
           map: (el, b, d) => Object.assign(comuns(b), {
-              autores: autoresOf(el), natureza: humanize(b['NATUREZA']), editora: d['EDITORA'] || '',
+              autores: autoresOf(el), natureza: b['NATUREZA'] || '', editora: d['EDITORA'] || '',
           }) },
 
         // ---- Produção técnica ----
@@ -214,7 +229,7 @@ window.LattesXML = (function () {
           }) },
         { tags: ['PRODUTO-TECNOLOGICO'], typeKey: 'PRODUTO_TECNOLOGICO',
           map: (el, b, d) => Object.assign(comuns(b), {
-              autores: autoresOf(el), natureza: humanize(b['NATUREZA']), finalidade: d['FINALIDADE'] || '',
+              autores: autoresOf(el), natureza: humanize(b['TIPO-PRODUTO'] || b['NATUREZA']), finalidade: d['FINALIDADE'] || '',
               cidade: d['CIDADE-DO-PRODUTO'] || '', registro: regOf(el).registro,
           }) },
         { tags: ['PROCESSOS-OU-TECNICAS'], typeKey: 'PROCESSO_TECNICA',
@@ -222,7 +237,15 @@ window.LattesXML = (function () {
               autores: autoresOf(el), natureza: humanize(b['NATUREZA']), finalidade: d['FINALIDADE'] || '',
               instituicao: d['INSTITUICAO-FINANCIADORA'] || '', cidade: d['CIDADE-DO-PROCESSO'] || '',
           }) },
-        { tags: ['TRABALHO-TECNICO'], typeKey: 'TRABALHO_TECNICO',
+        { tags: ['TRABALHO-TECNICO'],
+          // Assessoria/consultoria e extensão tecnológica são NATUREZA de trabalho
+          // técnico no Lattes → devolvidas aos seus tipos próprios no lattesZen.
+          typeKey: (el, b) => {
+              const t = window.LattesEnums ? LattesEnums.tok(b['NATUREZA']) : '';
+              if (t === 'ASSESSORIA' || t === 'CONSULTORIA') return 'ASSESSORIA_CONSULTORIA';
+              if (t === 'EXTENSAO_TECNOLOGICA') return 'EXTENSAO_TECNOLOGICA';
+              return 'TRABALHO_TECNICO';
+          },
           map: (el, b, d) => Object.assign(comuns(b), {
               autores: autoresOf(el), natureza: humanize(b['NATUREZA']), finalidade: d['FINALIDADE'] || '',
               instituicao: d['INSTITUICAO-FINANCIADORA'] || '', cidade: d['CIDADE-DO-TRABALHO'] || '',
@@ -251,7 +274,7 @@ window.LattesXML = (function () {
           map: (el, b, d) => Object.assign(comuns(b), { autores: autoresOf(el), finalidade: d['FINALIDADE'] || '' }) },
         { tags: ['PROGRAMA-DE-RADIO-OU-TV'], typeKey: 'MIDIA',
           map: (el, b, d) => Object.assign(comuns(b), {
-              autores: autoresOf(el), veiculo: d['EMISSORA'] || '', cidade: d['CIDADE'] || '',
+              autores: autoresOf(el), tipo: humanize(b['NATUREZA']), veiculo: d['EMISSORA'] || '', cidade: d['CIDADE'] || '',
           }) },
         { tags: ['RELATORIO-DE-PESQUISA'], typeKey: 'RELATORIO_PESQUISA',
           map: (el, b, d) => Object.assign(comuns(b), {
@@ -261,7 +284,7 @@ window.LattesXML = (function () {
           map: (el, b, d) => Object.assign(comuns(b), { autores: autoresOf(el), plataforma: d['TEMA'] || '' }) },
         { tags: ['OUTRA-PRODUCAO-TECNICA'], typeKey: 'OUTRA_TECNICA',
           map: (el, b, d) => Object.assign(comuns(b), {
-              autores: autoresOf(el), natureza: humanize(b['NATUREZA']), finalidade: d['FINALIDADE'] || '',
+              autores: autoresOf(el), natureza: b['NATUREZA'] || '', finalidade: d['FINALIDADE'] || '',
               instituicao: d['INSTITUICAO-PROMOTORA'] || '', cidade: d['CIDADE'] || '',
           }) },
         { tags: ['APRESENTACAO-DE-TRABALHO'], typeKey: 'APRESENTACAO',
@@ -287,7 +310,7 @@ window.LattesXML = (function () {
           }, regOf(el)) },
         { tags: ['MARCA'], typeKey: 'MARCA',
           map: (el, b, d) => Object.assign(comuns(b), {
-              autores: autoresOf(el), natureza: humanize(d['NATUREZA']), finalidade: d['FINALIDADE'] || '',
+              autores: autoresOf(el), natureza: d['NATUREZA'] || '', finalidade: d['FINALIDADE'] || '',
           }, regOf(el)) },
         { tags: ['CULTIVAR-REGISTRADA'], typeKey: 'CULTIVAR_REGISTRADA',
           map: (el, b, d) => Object.assign(comuns(b), {
@@ -322,7 +345,7 @@ window.LattesXML = (function () {
           }) },
         { tags: ['OUTRA-PRODUCAO-ARTISTICA-CULTURAL'], typeKey: 'OUTRA_ARTISTICA',
           map: (el, b, d) => Object.assign(comuns(b), {
-              autores: autoresOf(el), natureza: humanize(b['NATUREZA']), cidade: d['CIDADE'] || '',
+              autores: autoresOf(el), natureza: b['NATUREZA'] || '', cidade: d['CIDADE'] || '',
           }) },
 
         // ---- Prêmio ----
@@ -354,6 +377,7 @@ window.LattesXML = (function () {
             const ref = `${categoryKey}|${typeKey}|${canon}|${fields.ano || ''}|${fields.anoInicio || ''}|${fields.anoFim || ''}`;
             if (!canon) return;                 // ignora itens sem título
             if (seenRefs.has(ref)) return;      // dedup dentro do próprio XML (mesma categoria)
+            snapSelects(typeKey, fields);       // casa enums com as opções do tipo
             seenRefs.add(ref);
             items.push({ typeKey, categoryKey, fields, lattesRef: ref });
             summary[typeKey] = (summary[typeKey] || 0) + 1;
@@ -552,7 +576,9 @@ window.LattesXML = (function () {
                 const ia = attrs(it);
                 if (String(ia['FLAG-RESPONSAVEL'] || '').toUpperCase() === 'SIM') { coord = ia['NOME-COMPLETO'] || ''; break; }
             }
-            add('PROJETO_PESQUISA', {
+            const NAT2TIPO = { PESQUISA: 'PROJETO_PESQUISA', DESENVOLVIMENTO: 'PROJETO_DESENVOLVIMENTO', EXTENSAO: 'PROJETO_EXTENSAO', ENSINO: 'PROJETO_ENSINO', OUTRA: 'PROJETO_OUTRO' };
+            const projTipo = NAT2TIPO[window.LattesEnums ? LattesEnums.tok(a['NATUREZA']) : ''] || 'PROJETO_PESQUISA';
+            add(projTipo, {
                 titulo: a['NOME-DO-PROJETO'] || '',
                 anoInicio: a['ANO-INICIO'] || '', anoFim: a['ANO-FIM'] || '',
                 situacao: PROJ_SITUACAO[a['SITUACAO']] || humanize(a['SITUACAO']),
@@ -618,10 +644,9 @@ window.LattesXML = (function () {
         for (const el of doc.getElementsByTagName('LICENCA')) {
             const a = attrs(el);
             const tipo = /matern/i.test(a['TIPO-LICENCA'] || '') ? 'Maternidade' : humanize(a['TIPO-LICENCA']);
-            const ini = dateISO(a['DATA-INICIO-LICENCA']); const fim = dateISO(a['DATA-FIM-LICENCA']);
             add('LICENCA', {
                 titulo: 'Licença' + (tipo ? ' ' + tipo : ''), tipo,
-                anoInicio: (ini.match(/^\d{4}/) || [''])[0], anoFim: (fim.match(/^\d{4}/) || [''])[0],
+                dataInicio: dateISO(a['DATA-INICIO-LICENCA']), dataFim: dateISO(a['DATA-FIM-LICENCA']),
             }, el);
         }
         } catch (e) { errors.push('Dados gerais: ' + e.message); }

@@ -36,13 +36,11 @@ const PI_FIELDS = [F_TITULO, F_ANO, F_AUTORES, F_FINAL,
     { key: 'registro', label: 'Nº do registro / depósito', type: 'text' },
     { key: 'dataDeposito', label: 'Data do depósito', type: 'date' },
     { key: 'dataConcessao', label: 'Data da concessão', type: 'date' },
-    { key: 'situacao', label: 'Situação', type: 'select', options: ['Depositado', 'Concedido', 'Em análise', 'Indeferido'] },
-    { key: 'instituicao', label: 'Instituição financiadora', type: 'text' }, F_PAIS, F_URL];
+    { key: 'instituicao', label: 'Instituição financiadora', type: 'text' }, F_PAIS];
 const CULTIVAR_FIELDS = [{ key: 'titulo', label: 'Denominação', type: 'text', required: true }, F_ANO, F_AUTORES,
     F_FINAL, { key: 'instituicao', label: 'Instituição financiadora', type: 'text' },
     { key: 'registro', label: 'Nº do registro / solicitação', type: 'text' },
-    { key: 'dataConcessao', label: 'Data da concessão / registro', type: 'date' },
-    { key: 'situacao', label: 'Situação', type: 'select', options: ['Protegida', 'Registrada', 'Em análise'] }, F_PAIS, F_URL];
+    { key: 'dataConcessao', label: 'Data da concessão / registro', type: 'date' }, F_PAIS];
 
 // Átomos para a categoria 99 (Atividades livres)
 const AL_ENT   = { key: 'entidade', label: 'Entidade', type: 'text' };
@@ -65,9 +63,9 @@ const TYPES = {
         { key: 'data', label: 'Data de emissão / validade', type: 'date' },
         { key: 'observacoes', label: 'Observações', type: 'textarea' }] },
     ENDERECO: { label: 'Endereço', singleton: true, noEvidence: true, perfil: true, fields: [{ key: 'titulo', label: 'Endereço', type: 'text', required: true }, { key: 'tipo', label: 'Tipo', type: 'select', options: ['Profissional', 'Residencial'] }, F_CIDADE, { key: 'uf', label: 'UF', type: 'text' }, { key: 'cep', label: 'CEP', type: 'text' }] },
-    LICENCA: { label: 'Licença Maternidade, Paternidade e Adoção', fields: [{ key: 'titulo', label: 'Descrição', type: 'text', required: true }, { key: 'tipo', label: 'Tipo', type: 'select', options: ['Maternidade', 'Paternidade', 'Adoção'] }, F_AINI, F_AFIM] },
+    LICENCA: { label: 'Licença maternidade', fields: [{ key: 'titulo', label: 'Descrição', type: 'text', required: true }, { key: 'tipo', label: 'Tipo', type: 'select', options: ['Maternidade'] }, { key: 'dataInicio', label: 'Data de início', type: 'date' }, { key: 'dataFim', label: 'Data de fim', type: 'date' }] },
     IDIOMAS: { label: 'Idiomas', fields: [{ key: 'titulo', label: 'Idioma', type: 'text', required: true }, { key: 'habilidades', label: 'Proficiência (nível por habilidade)', type: 'skilllevels', options: ['Leitura', 'Fala', 'Escrita', 'Compreensão'], levels: ['Bom', 'Razoável', 'Pouco'] }] },
-    PREMIO: { label: 'Prêmios e títulos', fields: [F_TITULO, F_ANO, { key: 'entidade', label: 'Entidade promotora', type: 'text', required: true }, F_PAIS, { key: 'descricao', label: 'Descrição', type: 'textarea' }] },
+    PREMIO: { label: 'Prêmios e títulos', fields: [F_TITULO, F_ANO, { key: 'entidade', label: 'Entidade promotora', type: 'text', required: true }] },
     RESUMO_CV: { label: 'Texto inicial do Currículo Lattes', singleton: true, noEvidence: true, perfil: true, fields: [{ key: 'titulo', label: 'Identificação', type: 'text' }, { key: 'descricao', label: 'Texto', type: 'textarea', required: true }] },
     OUTRAS_INFO: { label: 'Outras informações relevantes', singleton: true, noEvidence: true, perfil: true, fields: [{ key: 'titulo', label: 'Título', type: 'text', required: true }, { key: 'descricao', label: 'Descrição', type: 'textarea' }] },
 
@@ -78,16 +76,13 @@ const TYPES = {
         F_AINI, { key: 'anoFim', label: 'Ano de conclusão', type: 'year' },
         { key: 'titulo', label: 'Título do trabalho (TCC/dissertação/tese)', type: 'text' }, { key: 'orientador', label: 'Orientador(a)', type: 'text' },
         { key: 'coorientador', label: 'Coorientador(a)', type: 'text' },
-        { key: 'bolsa', label: 'Bolsista / Agência financiadora', type: 'text' },
-        { key: 'palavrasChave', label: 'Palavras-chave', type: 'text', placeholder: 'Separe por ponto e vírgula (;)' },
-        { key: 'pais', label: 'País', type: 'text', placeholder: 'Brasil' }] },
+        { key: 'bolsa', label: 'Bolsista / Agência financiadora', type: 'text' }] },
     POS_DOUTORADO: { label: 'Pós-doutorado e/ou livre-docência', fields: [
         { key: 'tipo', label: 'Tipo', type: 'select', required: true, options: ['Pós-Doutorado', 'Livre-docência'] },
         { key: 'instituicao', label: 'Instituição', type: 'text', required: true }, F_AINI, { key: 'anoFim', label: 'Ano de conclusão', type: 'year' },
-        { key: 'titulo', label: 'Título do trabalho', type: 'text' }, { key: 'orientador', label: 'Supervisor(a)', type: 'text' },
-        { key: 'bolsa', label: 'Bolsista / Agência financiadora', type: 'text' },
-        { key: 'pais', label: 'País', type: 'text', placeholder: 'Brasil' }] },
-    FORMACAO_COMPLEMENTAR: { label: 'Formação complementar', fields: [F_TITULO, F_AINI, { key: 'anoFim', label: 'Ano de conclusão', type: 'year' }, F_INST, { key: 'cargaHoraria', label: 'Carga horária (h)', type: 'number' }, { key: 'pais', label: 'País', type: 'text', placeholder: 'Brasil' }, F_URL] },
+        { key: 'titulo', label: 'Título do trabalho', type: 'text' },
+        { key: 'bolsa', label: 'Bolsista / Agência financiadora', type: 'text' }] },
+    FORMACAO_COMPLEMENTAR: { label: 'Formação complementar', fields: [F_TITULO, F_AINI, { key: 'anoFim', label: 'Ano de conclusão', type: 'year' }, F_INST, { key: 'cargaHoraria', label: 'Carga horária (h)', type: 'number' }] },
 
     // 03 Atuação
     VINCULO_PROFISSIONAL: { label: 'Atuação profissional', fields: [
@@ -141,9 +136,9 @@ const TYPES = {
     APRESENTACAO: { label: 'Apresentação de trabalho e palestra', fields: [F_TITULO, F_ANO, F_AUTORES,
         F_NATUREZA(['Congresso', 'Seminário', 'Simpósio', 'Conferência ou palestra', 'Comunicação', 'Outra']),
         { key: 'evento', label: 'Nome do evento', type: 'text' }, { key: 'instituicao', label: 'Instituição promotora', type: 'text' },
-        { key: 'pais', label: 'País', type: 'text', placeholder: 'Brasil' }, F_CIDADE, F_IDIOMA, F_URL] },
-    PARTITURA: { label: 'Partitura musical', fields: [F_TITULO, F_ANO, F_AUTORES, F_NATUREZA(['Coral', 'Orquestral', 'Câmara', 'Outra']), { key: 'formacao', label: 'Formação instrumental', type: 'text' }, { key: 'editora', label: 'Editora', type: 'text' }, F_PAIS, F_IDIOMA, F_URL] },
-    TRADUCAO: { label: 'Tradução', fields: [F_TITULO, F_ANO, F_AUTORES, F_NATUREZA(['Livro', 'Artigo', 'Outra']), { key: 'autorOriginal', label: 'Autor da obra original', type: 'text' }, { key: 'obraOriginal', label: 'Título da obra original', type: 'text' }, { key: 'idiomaOriginal', label: 'Idioma original', type: 'text' }, { key: 'idioma', label: 'Idioma da tradução', type: 'text' }, { key: 'editora', label: 'Editora', type: 'text' }, F_PAIS, F_URL] },
+        { key: 'pais', label: 'País', type: 'text', placeholder: 'Brasil' }, F_CIDADE, F_IDIOMA] },
+    PARTITURA: { label: 'Partitura musical', fields: [F_TITULO, F_ANO, F_AUTORES, F_NATUREZA(['Canto', 'Coral', 'Orquestra', 'Outro']), { key: 'formacao', label: 'Formação instrumental', type: 'text' }, { key: 'editora', label: 'Editora', type: 'text' }, F_PAIS, F_IDIOMA, F_URL] },
+    TRADUCAO: { label: 'Tradução', fields: [F_TITULO, F_ANO, F_AUTORES, F_NATUREZA(['Livro', 'Artigo', 'Outro']), { key: 'autorOriginal', label: 'Autor da obra original', type: 'text' }, { key: 'obraOriginal', label: 'Título da obra original', type: 'text' }, { key: 'idiomaOriginal', label: 'Idioma original', type: 'text' }, { key: 'idioma', label: 'Idioma da tradução', type: 'text' }, { key: 'editora', label: 'Editora', type: 'text' }, F_PAIS, F_URL] },
     PREFACIO: { label: 'Prefácio, posfácio', fields: [F_TITULO, F_ANO, F_AUTORES, F_NATUREZA(['Prefácio', 'Posfácio', 'Apresentação', 'Introdução']), { key: 'obra', label: 'Título da publicação', type: 'text' }, { key: 'editora', label: 'Editora', type: 'text' }, F_PAIS, F_IDIOMA, F_URL] },
     OUTRA_BIBLIOGRAFICA: { label: 'Outra produção bibliográfica', fields: [F_TITULO, F_ANO, F_AUTORES, { key: 'natureza', label: 'Natureza', type: 'text' }, { key: 'editora', label: 'Editora', type: 'text' }, F_PAIS, F_IDIOMA, F_URL] },
 
@@ -151,33 +146,33 @@ const TYPES = {
     ASSESSORIA_CONSULTORIA: { label: 'Assessoria e consultoria', fields: [F_TITULO, F_ANO, F_AUTORES, F_NATUREZA(['Assessoria', 'Consultoria']), F_INST, F_FINAL, F_PAIS, F_CIDADE, F_IDIOMA, F_URL] },
     EXTENSAO_TECNOLOGICA: { label: 'Extensão tecnológica', fields: [F_TITULO, F_ANO, F_AUTORES, F_INST, F_FINAL, F_PAIS, F_CIDADE, F_IDIOMA, F_URL] },
     SOFTWARE_SEM_REGISTRO: { label: 'Programa de computador sem registro', fields: [F_TITULO, F_ANO, F_AUTORES, { key: 'plataforma', label: 'Plataforma / Ambiente', type: 'text' }, F_FINAL, F_PAIS, F_IDIOMA, F_URL] },
-    PRODUTO_TECNOLOGICO: { label: 'Produtos', fields: [F_TITULO, F_ANO, F_AUTORES, F_NATUREZA(['Produto', 'Protótipo', 'Piloto', 'Outra']), F_FINAL, { key: 'registro', label: 'Registro (se houver)', type: 'text' }, F_PAIS, F_CIDADE, F_URL] },
-    PROCESSO_TECNICA: { label: 'Processos ou técnicas', fields: [F_TITULO, F_ANO, F_AUTORES, F_NATUREZA(['Analítico', 'Instrumental', 'Pedagógico', 'De produção', 'Outra']), F_FINAL, { key: 'instituicao', label: 'Instituição financiadora', type: 'text' }, F_PAIS, F_CIDADE, F_URL] },
+    PRODUTO_TECNOLOGICO: { label: 'Produtos', fields: [F_TITULO, F_ANO, F_AUTORES, F_NATUREZA(['Piloto', 'Projeto', 'Protótipo', 'Outro']), F_FINAL, { key: 'registro', label: 'Registro (se houver)', type: 'text' }, F_PAIS, F_CIDADE, F_URL] },
+    PROCESSO_TECNICA: { label: 'Processos ou técnicas', fields: [F_TITULO, F_ANO, F_AUTORES, F_NATUREZA(['Analítica', 'Instrumental', 'Pedagógica', 'Processual', 'Terapêutica', 'Outra']), F_FINAL, { key: 'instituicao', label: 'Instituição financiadora', type: 'text' }, F_PAIS, F_CIDADE, F_URL] },
     TRABALHO_TECNICO: { label: 'Trabalhos técnicos', fields: [F_TITULO, F_ANO, F_AUTORES, F_NATUREZA(['Parecer', 'Elaboração de projeto', 'Relatório técnico', 'Outra']), F_INST, F_FINAL, F_PAIS, F_CIDADE, F_IDIOMA, F_URL] },
-    CARTA_MAPA: { label: 'Cartas, mapas ou similares', fields: [F_TITULO, F_ANO, F_AUTORES, F_NATUREZA(['Carta', 'Mapa', 'Similar']), F_FINAL, F_PAIS, F_CIDADE, F_URL] },
-    CURSO_MINISTRADO: { label: 'Curso de curta duração ministrado', fields: [F_TITULO, F_ANO, F_AUTORES, { key: 'instituicao', label: 'Instituição promotora', type: 'text' }, { key: 'cargaHoraria', label: 'Carga horária (h)', type: 'number' }, { key: 'nivel', label: 'Nível', type: 'select', options: ['Aperfeiçoamento', 'Extensão', 'Especialização', 'Outro'] }, F_PAIS, F_CIDADE, F_IDIOMA, F_URL] },
+    CARTA_MAPA: { label: 'Cartas, mapas ou similares', fields: [F_TITULO, F_ANO, F_AUTORES, F_NATUREZA(['Carta', 'Mapa', 'Aerofotograma', 'Fotograma', 'Outra']), F_FINAL, F_PAIS, F_IDIOMA, F_URL] },
+    CURSO_MINISTRADO: { label: 'Curso de curta duração ministrado', fields: [F_TITULO, F_ANO, F_AUTORES, { key: 'instituicao', label: 'Instituição promotora', type: 'text' }, { key: 'cargaHoraria', label: 'Carga horária (h)', type: 'number' }, { key: 'nivel', label: 'Nível', type: 'select', options: ['Aperfeiçoamento', 'Extensão', 'Especialização', 'Outra'] }, F_PAIS, F_CIDADE, F_IDIOMA, F_URL] },
     MATERIAL_DIDATICO: { label: 'Desenvolvimento de material didático ou instrucional', fields: [F_TITULO, F_ANO, F_AUTORES, F_FINAL, F_PAIS, F_IDIOMA, F_URL] },
-    EDITORACAO: { label: 'Editoração', fields: [F_TITULO, F_ANO, F_NATUREZA(['Livro', 'Coletânea', 'Periódico', 'Anais', 'Enciclopédia', 'Outra']), { key: 'editora', label: 'Editora', type: 'text' }, { key: 'isbn', label: 'ISBN/ISSN', type: 'text' }, { key: 'paginas', label: 'Nº de páginas', type: 'text' }, F_PAIS, F_CIDADE, F_IDIOMA, F_URL] },
-    MANUTENCAO_OBRA: { label: 'Manutenção de obra artística', fields: [F_TITULO, F_ANO, F_AUTORES, F_FINAL, F_PAIS, F_CIDADE, F_URL] },
-    MAQUETE: { label: 'Maquete', fields: [F_TITULO, F_ANO, F_AUTORES, F_FINAL, F_PAIS, F_CIDADE, F_URL] },
+    EDITORACAO: { label: 'Editoração', fields: [F_TITULO, F_ANO, F_NATUREZA(['Livro', 'Coletânea', 'Periódico', 'Anais', 'Enciclopédia', 'Catálogo', 'Outra']), { key: 'editora', label: 'Editora', type: 'text' }, { key: 'paginas', label: 'Nº de páginas', type: 'text' }, F_PAIS, F_CIDADE, F_IDIOMA, F_URL] },
+    MANUTENCAO_OBRA: { label: 'Manutenção de obra artística', fields: [F_TITULO, F_ANO, F_AUTORES, F_FINAL, F_PAIS, F_CIDADE] },
+    MAQUETE: { label: 'Maquete', fields: [F_TITULO, F_ANO, F_AUTORES, F_FINAL, F_PAIS, F_URL] },
     MIDIA: { label: 'Entrevistas, mesas redondas, programas e comentários na mídia', fields: [F_TITULO, F_ANO, F_AUTORES, { key: 'veiculo', label: 'Veículo / Emissora', type: 'text' }, { key: 'tipo', label: 'Tipo', type: 'select', options: ['Entrevista', 'Mesa redonda', 'Programa', 'Comentário'] }, F_PAIS, F_CIDADE, F_IDIOMA, F_URL] },
-    RELATORIO_PESQUISA: { label: 'Relatório de pesquisa', fields: [F_TITULO, F_ANO, F_AUTORES, F_INST, F_FINAL, F_PAIS, F_CIDADE, F_IDIOMA, F_URL] },
-    MIDIA_SOCIAL: { label: 'Redes sociais, websites e blogs', fields: [F_TITULO, F_ANO, F_AUTORES, { key: 'plataforma', label: 'Plataforma', type: 'text' }, F_FINAL, F_URL] },
+    RELATORIO_PESQUISA: { label: 'Relatório de pesquisa', fields: [F_TITULO, F_ANO, F_AUTORES, F_INST, F_PAIS, F_IDIOMA, F_URL] },
+    MIDIA_SOCIAL: { label: 'Redes sociais, websites e blogs', fields: [F_TITULO, F_ANO, F_AUTORES, { key: 'plataforma', label: 'Plataforma / Tema', type: 'text' }, F_PAIS, F_IDIOMA, F_URL] },
     OUTRA_TECNICA: { label: 'Outra produção técnica', fields: [F_TITULO, F_ANO, F_AUTORES, { key: 'natureza', label: 'Natureza', type: 'text' }, F_FINAL, F_PAIS, F_CIDADE, F_IDIOMA, F_URL] },
 
     // 05.3 Produção artística/cultural
     ARTES_CENICAS: { label: 'Artes cênicas', fields: [F_TITULO, F_ANO, F_AUTORES, { key: 'natureza', label: 'Natureza', type: 'text' }, { key: 'evento', label: 'Evento / Local', type: 'text' }, F_PAIS, F_CIDADE, F_IDIOMA, F_URL] },
     MUSICA: { label: 'Música', fields: [F_TITULO, F_ANO, F_AUTORES, { key: 'natureza', label: 'Natureza', type: 'text' }, { key: 'evento', label: 'Evento / Local', type: 'text' }, F_PAIS, F_CIDADE, F_IDIOMA, F_URL] },
-    ARTES_VISUAIS: { label: 'Artes visuais', fields: [F_TITULO, F_ANO, F_AUTORES, { key: 'material', label: 'Material empregado', type: 'text' }, { key: 'evento', label: 'Evento / Local', type: 'text' }, F_PAIS, F_CIDADE, F_IDIOMA, F_URL] },
+    ARTES_VISUAIS: { label: 'Artes visuais', fields: [F_TITULO, F_ANO, F_AUTORES, { key: 'natureza', label: 'Natureza', type: 'text' }, { key: 'evento', label: 'Evento / Local', type: 'text' }, F_PAIS, F_CIDADE, F_IDIOMA, F_URL] },
     OUTRA_ARTISTICA: { label: 'Outra produção artística/cultural', fields: [F_TITULO, F_ANO, F_AUTORES, { key: 'natureza', label: 'Natureza', type: 'text' }, F_PAIS, F_CIDADE, F_IDIOMA, F_URL] },
 
     // 06/07 Patentes e Registros / Inovação
     PATENTE: { label: 'Patente', fields: [F_TITULO, F_ANO, F_AUTORES, { key: 'categoria', label: 'Categoria / Tipo', type: 'text' }, F_FINAL, { key: 'registro', label: 'Nº do registro / depósito', type: 'text' }, { key: 'dataDeposito', label: 'Data do depósito', type: 'date' }, { key: 'dataConcessao', label: 'Data da concessão', type: 'date' }, { key: 'situacao', label: 'Situação', type: 'select', options: ['Depositada', 'Concedida', 'Em exame', 'Indeferida'] }, { key: 'instituicao', label: 'Instituição financiadora', type: 'text' }, F_PAIS, F_URL] },
-    SOFTWARE_REGISTRADO: { label: 'Programa de Computador Registrado', fields: [F_TITULO, F_ANO, F_AUTORES, { key: 'plataforma', label: 'Plataforma / Ambiente', type: 'text' }, F_FINAL, { key: 'registro', label: 'Nº do registro', type: 'text' }, { key: 'dataRegistro', label: 'Data do registro', type: 'date' }, F_PAIS, F_URL] },
+    SOFTWARE_REGISTRADO: { label: 'Programa de Computador Registrado', fields: [F_TITULO, F_ANO, F_AUTORES, { key: 'plataforma', label: 'Plataforma / Ambiente', type: 'text' }, F_FINAL, { key: 'registro', label: 'Nº do registro', type: 'text' }, F_PAIS, F_URL] },
     CULTIVAR_PROTEGIDA: { label: 'Cultivar protegida', fields: CULTIVAR_FIELDS },
     CULTIVAR_REGISTRADA: { label: 'Cultivar registrada', fields: CULTIVAR_FIELDS },
     DESENHO_INDUSTRIAL: { label: 'Desenho industrial registrado', fields: PI_FIELDS },
-    MARCA: { label: 'Marca registrada', fields: [F_TITULO, F_ANO, F_AUTORES, F_NATUREZA(['Produto', 'Serviço', 'Coletiva', 'Certificação', 'Outra']), F_FINAL, { key: 'registro', label: 'Nº do registro / depósito', type: 'text' }, { key: 'dataDeposito', label: 'Data do depósito', type: 'date' }, { key: 'dataConcessao', label: 'Data da concessão', type: 'date' }, F_PAIS, F_URL] },
+    MARCA: { label: 'Marca registrada', fields: [F_TITULO, F_ANO, F_AUTORES, { key: 'natureza', label: 'Natureza', type: 'text' }, F_FINAL, { key: 'registro', label: 'Nº do registro / depósito', type: 'text' }, { key: 'dataDeposito', label: 'Data do depósito', type: 'date' }, { key: 'dataConcessao', label: 'Data da concessão', type: 'date' }, F_PAIS] },
     TOPOGRAFIA_CI: { label: 'Topografia de circuito integrado registrada', fields: PI_FIELDS },
 
     // 09 Eventos
@@ -187,13 +182,12 @@ const TYPES = {
         { key: 'formaParticipacao', label: 'Forma de participação', type: 'select', options: ['Convidado', 'Participante', 'Ouvinte'] },
         { key: 'tipoParticipacao', label: 'Tipo de apresentação / participação', type: 'select', options: ['Conferencista', 'Simposista', 'Moderador', 'Avaliador', 'Homenageado'] },
         { key: 'tituloApresentacao', label: 'Título da apresentação', type: 'text', help: 'Preencher apenas para Convidado ou Participante.' },
-        { key: 'classificacao', label: 'Classificação do evento', type: 'select', options: ['Internacional', 'Nacional', 'Regional', 'Local'] },
         F_ANO,
         { key: 'pais', label: 'País', type: 'text', placeholder: 'Brasil' },
         F_CIDADE,
         { key: 'divulgacaoCT', label: 'É uma produção para educação e popularização de C&T?', type: 'select', options: ['Sim', 'Não'] },
         { key: 'url', label: 'Home page do trabalho (URL)', type: 'url' }] },
-    ORGANIZACAO_EVENTO: { label: 'Organização de eventos, congressos, exposições, feiras e olimpíadas', fields: [F_TITULO, F_ANO, { key: 'tipoEvento', label: 'Tipo', type: 'select', options: ['Congresso', 'Feira', 'Simpósio', 'Seminário', 'Encontro', 'Oficina', 'Exposição', 'Olimpíada', 'Outro'] }, { key: 'instituicao', label: 'Instituição promotora', type: 'text' }, { key: 'classificacao', label: 'Classificação do evento', type: 'select', options: ['Internacional', 'Nacional', 'Regional', 'Local'] }, { key: 'pais', label: 'País', type: 'text', placeholder: 'Brasil' }, F_CIDADE, F_URL] },
+    ORGANIZACAO_EVENTO: { label: 'Organização de eventos, congressos, exposições, feiras e olimpíadas', fields: [F_TITULO, F_ANO, { key: 'tipoEvento', label: 'Tipo', type: 'select', options: ['Concerto', 'Concurso', 'Congresso', 'Exposição', 'Festival', 'Feira', 'Olimpíada', 'Outro'] }, { key: 'instituicao', label: 'Instituição promotora', type: 'text' }, { key: 'pais', label: 'País', type: 'text', placeholder: 'Brasil' }, F_CIDADE, F_URL] },
 
     // 10 Orientações
     ORIENTACAO_CONCLUIDA: { label: 'Orientações e supervisões concluídas', fields: [{ key: 'orientando', label: 'Nome do orientado(a)', type: 'text', required: true }, { key: 'tipo', label: 'Tipo', type: 'select', required: true, options: ['Iniciação científica', 'TCC / Graduação', 'Especialização / Monografia', 'Mestrado', 'Doutorado', 'Pós-Doutorado', 'Outra'] }, { key: 'natureza', label: 'Natureza', type: 'select', options: ['Orientador principal', 'Coorientador'] }, { key: 'titulo', label: 'Título do trabalho', type: 'text' }, { key: 'curso', label: 'Curso', type: 'text' }, F_INST, { key: 'bolsa', label: 'Bolsista / Agência financiadora', type: 'text' }, { key: 'pais', label: 'País', type: 'text', placeholder: 'Brasil' }, F_ANO] },
@@ -349,6 +343,26 @@ window.NAO_LATTES_TYPE = {
     key: 'NAO_LATTES', label: 'Item não-Lattes (pessoal)',
     fields: [F_TITULO, { key: 'categoria', label: 'Categoria', type: 'select', options: ['Hobby', 'Atividade pessoal', 'Voluntariado', 'Certificado avulso', 'Curso livre', 'Outro'] }, F_ANO, { key: 'descricao', label: 'Descrição', type: 'textarea' }, F_URL],
 };
+
+/* ---- Enums do schema Lattes: normalização rótulo↔token ----
+   Muitos atributos do XSD são enumerados (NATUREZA, TIPO, NÍVEL, SITUAÇÃO…).
+   O lattesZen usa rótulos legíveis; o Lattes usa tokens em CAIXA_ALTA. Estas
+   funções convertem nos dois sentidos, garantindo ida-e-volta sem perdas. */
+function _tok(s) {
+    return String(s == null ? '' : s).trim().toUpperCase()
+        .normalize('NFD').replace(/[̀-ͯ]/g, '')   // remove acentos
+        .replace(/[^A-Z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+}
+// Aliases onde o rótulo não normaliza exatamente para o token do XSD.
+const ENUM_ALIAS = {
+    'LIVRO_ORGANIZADO': 'LIVRO_ORGANIZADO_OU_EDICAO',
+    'CONFERENCIA_OU_PALESTRA': 'CONFERENCIA',
+};
+function enumToken(value) {
+    const t = _tok(value);
+    return ENUM_ALIAS[t] || t;
+}
+window.LattesEnums = { tok: _tok, token: enumToken };
 
 /* ---- API pública ---- */
 window.LattesTypes = (function () {
