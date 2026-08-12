@@ -16,6 +16,8 @@
             const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
             if (saved ? saved === 'dark' : prefersDark) htmlEl.classList.add('dark');
             if (localStorage.getItem('altoContraste') === '1') htmlEl.classList.add('high-contrast');
+            const fs = parseInt(localStorage.getItem('fontScale') || '100', 10);
+            if (fs && fs !== 100) htmlEl.style.fontSize = fs + '%';
         })();
     </script>
 
@@ -327,6 +329,11 @@
             <button type="button" id="highContrastToggle" class="hover:text-white transition-colors flex items-center gap-1" aria-pressed="false">
                 <i aria-hidden="true" class="fa-solid fa-circle-half-stroke"></i> Alto contraste
             </button>
+            <span class="text-white/25 dark:text-gray-700">|</span>
+            <span class="flex items-center gap-1" role="group" aria-label="Tamanho da fonte">
+                <button type="button" id="fontDec" class="hover:text-white transition-colors flex items-center gap-1" title="Diminuir fonte" aria-label="Diminuir fonte"><i aria-hidden="true" class="fa-solid fa-magnifying-glass-minus"></i> A-</button>
+                <button type="button" id="fontInc" class="hover:text-white transition-colors flex items-center gap-1" title="Aumentar fonte" aria-label="Aumentar fonte"><i aria-hidden="true" class="fa-solid fa-magnifying-glass-plus"></i> A+</button>
+            </span>
         </div>
         <div class="flex gap-3 items-center flex-wrap justify-center">
             <a href="https://github.com/alexsandroccarv" target="_blank" rel="noopener" class="hover:text-white hover:underline transition-colors flex items-center gap-1">
@@ -364,6 +371,20 @@
             var hc = document.getElementById('highContrastToggle');
             function syncHC() { hc.setAttribute('aria-pressed', htmlEl.classList.contains('high-contrast') ? 'true' : 'false'); }
             if (hc) { syncHC(); hc.addEventListener('click', function () { htmlEl.classList.toggle('high-contrast'); localStorage.setItem('altoContraste', htmlEl.classList.contains('high-contrast') ? '1' : '0'); syncHC(); }); }
+
+            var FS_MIN = 80, FS_MAX = 150, FS_STEP = 10;
+            function getFS() { var n = parseInt(localStorage.getItem('fontScale') || '100', 10); return isNaN(n) ? 100 : n; }
+            var dec = document.getElementById('fontDec'), inc = document.getElementById('fontInc');
+            function applyFS(n) {
+                n = Math.max(FS_MIN, Math.min(FS_MAX, n));
+                htmlEl.style.fontSize = n === 100 ? '' : n + '%';
+                localStorage.setItem('fontScale', String(n));
+                if (dec) dec.disabled = n <= FS_MIN;
+                if (inc) inc.disabled = n >= FS_MAX;
+            }
+            applyFS(getFS());
+            if (dec) dec.addEventListener('click', function () { applyFS(getFS() - FS_STEP); });
+            if (inc) inc.addEventListener('click', function () { applyFS(getFS() + FS_STEP); });
         })();
     </script>
 </body>

@@ -2592,6 +2592,22 @@
             localStorage.setItem(APP_CONFIG.storageKeys.highContrast, htmlEl.classList.contains('high-contrast') ? '1' : '0');
             syncHC();
         });
+
+        // Escala de fonte (acessibilidade): 80%–150%, passo de 10%.
+        const FS_MIN = 80, FS_MAX = 150, FS_STEP = 10;
+        const getFS = () => { const n = parseInt(localStorage.getItem('fontScale') || '100', 10); return isNaN(n) ? 100 : n; };
+        const applyFS = (n) => {
+            n = Math.max(FS_MIN, Math.min(FS_MAX, n));
+            htmlEl.style.fontSize = n === 100 ? '' : n + '%';
+            localStorage.setItem('fontScale', String(n));
+            const dec = $('#fontDec'), inc = $('#fontInc');
+            if (dec) dec.disabled = n <= FS_MIN;
+            if (inc) inc.disabled = n >= FS_MAX;
+        };
+        applyFS(getFS());
+        const dec = $('#fontDec'), inc = $('#fontInc');
+        if (dec) dec.addEventListener('click', () => applyFS(getFS() - FS_STEP));
+        if (inc) inc.addEventListener('click', () => applyFS(getFS() + FS_STEP));
     }
 
     /* =====================================================================
