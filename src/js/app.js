@@ -2219,17 +2219,21 @@
         $('#btnExport').addEventListener('click', exportCatalog);
         $('#importJson').addEventListener('change', importCatalog);
         $('#btnClear').addEventListener('click', () => {
-            if (!confirm('Isto apaga TODO o índice local no navegador — itens catalogados, rascunho não salvo e prévia de importação. Os arquivos no diretório NÃO são removidos. Continuar?')) return;
+            if (!confirm('Isto apaga TODO o índice local no navegador — itens catalogados, rascunho, prévia de importação, listas de autocomplete e a configuração do RSC-PCCTAE. Os arquivos no diretório NÃO são removidos. Continuar?')) return;
             state.items = [];
             saveCatalog();
             clearDraft();                 // rascunho não salvo (lz_draft)
             state.lattesParsed = null;    // prévia de importação do XML
             state.editingId = null;       // sai de qualquer edição em curso
             state.evEditing = [];         // evidências em edição
+            state.vocab = {};             // listas de autocomplete (curadas)
+            state.rscCfg = {};            // configuração do RSC-PCCTAE
+            // Persiste a limpeza das listas e do RSC nas configurações.
+            const s = Storage.loadSettings(); s.vocab = {}; s.rsc = {}; Storage.saveSettings(s);
             resetBackupReminder();        // zera o contador de backup
-            toast('Índice local limpo.', 'ok');
+            toast('Índice local limpo (itens, listas e RSC).', 'ok');
             renderItemList();
-            renderConfig();               // re-renderiza a aba (Perfil, contadores, prévias)
+            renderConfig();               // re-renderiza a aba (Perfil, listas, RSC, contadores)
         });
         // Renomear/normalizar valores de autocomplete em todos os itens
         $$('[data-renfrom]').forEach(sel => {
