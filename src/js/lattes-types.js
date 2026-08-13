@@ -86,7 +86,7 @@ const TYPES = {
         { key: 'instituicao', label: 'Instituição', type: 'text', required: true }, F_AINI, { key: 'anoFim', label: 'Ano de conclusão', type: 'year' },
         { key: 'titulo', label: 'Título do trabalho', type: 'text' },
         { key: 'bolsa', label: 'Bolsista / Agência financiadora', type: 'text' }] },
-    FORMACAO_COMPLEMENTAR: { label: 'Formação complementar', fields: [F_TITULO, F_AINI, { key: 'anoFim', label: 'Ano de conclusão', type: 'year' }, F_INST, { key: 'cargaHoraria', label: 'Carga horária (h)', type: 'number' }] },
+    FORMACAO_COMPLEMENTAR: { label: 'Formação complementar', fields: [F_TITULO, F_DINI, { key: 'anoFim', label: 'Data de conclusão', type: 'datebr' }, F_INST, { key: 'cargaHoraria', label: 'Carga horária (h)', type: 'number' }] },
 
     // 03 Atuação
     VINCULO_PROFISSIONAL: { label: 'Atuação profissional', fields: [
