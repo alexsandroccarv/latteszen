@@ -782,6 +782,7 @@
             wireCounters($('#dynFields'));               // contador de textareas
             wireNA($('#dynFields'));                     // checkbox "N/A" dos campos URL
             wireDateBr($('#dynFields'));                 // máscara dd/mm/aaaa (campos datebr)
+            wireConditional($('#dynFields'), def);       // campos bloqueados por condição
             renderRscBlock(item);                        // camada RSC (se habilitado)
             const semEvidencia = !!(def && def.noEvidence);
             $('#evidenceBlock').style.display = semEvidencia ? 'none' : '';
@@ -1141,6 +1142,26 @@
             });
         });
     }
+    // Campos com `disabledWhen`: bloqueia e limpa o input quando o campo
+    // controlador atinge o valor da condição (e reativa quando sai dela).
+    function wireConditional(container, def) {
+        (def && def.fields || []).filter(f => f.disabledWhen).forEach(f => {
+            const input = container.querySelector(`[name="${f.key}"]`);
+            const ctrl = container.querySelector(`[name="${f.disabledWhen.field}"]`);
+            if (!input || !ctrl) return;
+            const apply = () => {
+                const vals = {}; vals[f.disabledWhen.field] = ctrl.value;
+                const off = isFieldDisabled(f, vals);
+                input.disabled = off;
+                input.classList.toggle('opacity-50', off);
+                input.classList.toggle('cursor-not-allowed', off);
+                if (off) input.value = '';
+                input.placeholder = off ? 'Não se aplica' : (f.placeholder || '');
+            };
+            ctrl.addEventListener('change', apply);
+            apply(); // estado inicial
+        });
+    }
     // Checkbox "N/A" (Não se aplica) dos campos URL: bloqueia/limpa o input
     function wireNA(container) {
         $$('[data-na]', container).forEach(cb => cb.addEventListener('change', () => {
@@ -1187,6 +1208,18 @@
     }
 
     // Coleta os valores dos campos de um formulário conforme a definição do tipo
+    // Um campo com `disabledWhen: { field, equals|in }` fica bloqueado quando o
+    // campo controlador tem o valor indicado (ex.: Título da apresentação some
+    // quando a Forma de participação é "Ouvinte"). Nesse estado não é preenchido
+    // nem contado na completude da descrição.
+    function isFieldDisabled(f, fields) {
+        const c = f && f.disabledWhen;
+        if (!c) return false;
+        const v = (fields || {})[c.field];
+        if (c.equals != null) return v === c.equals;
+        if (Array.isArray(c.in)) return c.in.indexOf(v) >= 0;
+        return false;
+    }
     function collectFields(form, def) {
         const fields = {};
         def.fields.forEach(f => {
@@ -1208,6 +1241,8 @@
                 if (el) fields[f.key] = el.value.trim();
             }
         });
+        // Zera campos bloqueados por condição (não devem ser gravados)
+        def.fields.forEach(f => { if (isFieldDisabled(f, fields)) fields[f.key] = ''; });
         return fields;
     }
     // Normaliza pontuação tipográfica dos campos-texto p/ compatibilidade
@@ -1432,9 +1467,12 @@
         const def = LattesTypes.get(item.typeKey);
         if (!def || !def.fields || !def.fields.length) return 'green'; // tipo sem campos
         const vals = item.fields || {};
+        // Campos bloqueados por condição (ex.: Título da apresentação p/ "Ouvinte")
+        // não contam na completude.
+        const campos = def.fields.filter(f => !isFieldDisabled(f, vals));
         const filled = f => { const v = vals[f.key]; return v != null && String(v).trim() !== ''; };
-        if (def.fields.some(f => f.required && !filled(f))) return 'red';
-        if (def.fields.some(f => !filled(f))) return 'amber';
+        if (campos.some(f => f.required && !filled(f))) return 'red';
+        if (campos.some(f => !filled(f))) return 'amber';
         return 'green';
     }
     // Marcador de 2 estados: verde (ok) / vermelho (pendente)
