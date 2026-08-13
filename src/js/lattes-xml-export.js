@@ -753,7 +753,9 @@ window.LattesXMLExport = (function () {
         // NUMERO-IDENTIFICADOR é opcional; só emite se houver (evita valor vazio).
         if (settings.numeroIdentificador) rootAttrs['NUMERO-IDENTIFICADOR'] = settings.numeroIdentificador;
         const inner = [dadosGerais, biblio, tecnica, outra, compl].filter(Boolean).join('');
-        const doc = '<?xml version="1.0" encoding="ISO-8859-1"?>\n' + el('CURRICULO-VITAE', rootAttrs, inner) + '\n';
+        // Declaração idêntica à do XML aceito pela plataforma: com standalone="no"
+        // e sem quebra de linha antes da raiz (formato do Lattes Offline).
+        const doc = '<?xml version="1.0" encoding="ISO-8859-1" standalone="no"?>' + el('CURRICULO-VITAE', rootAttrs, inner);
         return doc;
     }
 
