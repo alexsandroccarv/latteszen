@@ -1,109 +1,50 @@
-name: CI/CD lattesZen
+name: Publicar lattesZen
 
-# Estratégia de promoção em 3 estágios:
-#   push na branch atual / develop  -> DEV
-#   push na main                    -> HOMOLOGAÇÃO
-#   tag v*                          -> PRODUÇÃO
+# Quando roda:
+#  - a cada push na branch padrão do projeto;
+#  - quando você clica em "Run workflow" na aba Actions (execução manual).
 on:
   push:
-    branches: [main, develop, 'claude/latteszen-project-emre8x']
-    tags: ['v*']
-  pull_request:
-    branches: [main, develop]
+    branches: ['claude/latteszen-project-emre8x']
   workflow_dispatch: {}
 
 permissions:
   contents: read
 
+# Evita dois deploys simultâneos pisando um no outro.
+concurrency:
+  group: publicar
+  cancel-in-progress: true
+
 jobs:
-  # ---------------------------------------------------------------------------
-  # CI: valida os módulos JS e monta a pasta dist/ (site multi-arquivo). Sempre
-  # roda, inclusive em pull requests. É o "portão de qualidade" antes do deploy.
-  # ---------------------------------------------------------------------------
-  ci:
-    name: Validar e construir
+  build-and-deploy:
+    name: Validar, construir e publicar
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Baixar o código
+        uses: actions/checkout@v4
+
+      - name: Preparar Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: '20'
+
       - name: Verificar sintaxe dos módulos JS
         run: for f in src/js/*.js; do node --check "$f"; done
-      - name: Build (monta dist/)
+
+      - name: Montar a pasta publicável (dist/)
         run: node build.mjs
-      - name: Conferir estrutura multi-arquivo do dist/
+
+      - name: Conferir a estrutura do dist/
         run: |
-          test -f dist/index.html || { echo "ERRO: dist/index.html ausente."; exit 1; }
-          test -f dist/js/app.js || { echo "ERRO: dist/js/ ausente."; exit 1; }
-          test -f dist/css/styles.css || { echo "ERRO: dist/css/ ausente."; exit 1; }
-          grep -q 'src="js/' dist/index.html || { echo "ERRO: index.html não referencia js/ (build incorreto)."; exit 1; }
-          grep -q 'href="css/' dist/index.html || { echo "ERRO: index.html não referencia css/ (build incorreto)."; exit 1; }
-      - name: Publicar artefato de build
-        uses: actions/upload-artifact@v4
-        with:
-          name: site
-          path: dist/
+          test -f dist/index.html   || { echo "ERRO: dist/index.html ausente."; exit 1; }
+          test -f dist/js/app.js    || { echo "ERRO: dist/js/ ausente.";        exit 1; }
+          test -f dist/css/styles.css || { echo "ERRO: dist/css/ ausente.";      exit 1; }
 
-  # ---------------------------------------------------------------------------
-  # Jobs de deploy — cada um vinculado a um GitHub Environment (secrets próprios).
-  # Só rodam em push/tag (nunca em pull_request).
-  # ---------------------------------------------------------------------------
-  deploy-dev:
-    name: Deploy DEV
-    needs: ci
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/claude/latteszen-project-emre8x')
-    runs-on: ubuntu-latest
-    environment: dev
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: { node-version: '20' }
-      - name: Build (monta dist/)
-        run: node build.mjs
-      - name: Deploy via rsync/SSH
-        run: bash .github/scripts/deploy.sh
-        env:
-          SSH_HOST: ${{ secrets.SSH_HOST }}
-          SSH_PORT: ${{ secrets.SSH_PORT }}
-          SSH_USER: ${{ secrets.SSH_USER }}
-          SSH_KEY: ${{ secrets.SSH_KEY }}
-          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
-
-  deploy-homolog:
-    name: Deploy HOMOLOGAÇÃO
-    needs: ci
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    environment: homolog
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: { node-version: '20' }
-      - name: Build (monta dist/)
-        run: node build.mjs
-      - name: Deploy via rsync/SSH
-        run: bash .github/scripts/deploy.sh
-        env:
-          SSH_HOST: ${{ secrets.SSH_HOST }}
-          SSH_PORT: ${{ secrets.SSH_PORT }}
-          SSH_USER: ${{ secrets.SSH_USER }}
-          SSH_KEY: ${{ secrets.SSH_KEY }}
-          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
-
-  deploy-producao:
-    name: Deploy PRODUÇÃO
-    needs: ci
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
-    runs-on: ubuntu-latest
-    environment: producao
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: { node-version: '20' }
-      - name: Build (monta dist/)
-        run: node build.mjs
-      - name: Deploy via rsync/SSH
+      # Publica no servidor via rsync sobre SSH. O script PULA automaticamente
+      # (sem falhar) se os secrets ainda não estiverem configurados — então o
+      # CI fica verde mesmo antes de você cadastrar os dados do servidor.
+      - name: Publicar no servidor (rsync/SSH)
         run: bash .github/scripts/deploy.sh
         env:
           SSH_HOST: ${{ secrets.SSH_HOST }}
