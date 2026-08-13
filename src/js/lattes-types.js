@@ -188,7 +188,7 @@ const TYPES = {
         { key: 'titulo', label: 'Nome do evento', type: 'text', required: true },
         { key: 'natureza', label: 'Natureza', type: 'select', required: true, options: ['Congresso', 'Seminário', 'Simpósio', 'Oficina', 'Encontro', 'Olimpíada', 'Feira', 'Exposição', 'Outra'] },
         { key: 'formaParticipacao', label: 'Forma de participação', type: 'select', options: ['Convidado', 'Participante', 'Ouvinte'] },
-        { key: 'tipoParticipacao', label: 'Tipo de apresentação / participação', type: 'select', options: ['Conferencista', 'Simposista', 'Moderador', 'Avaliador', 'Homenageado'] },
+        { key: 'tipoParticipacao', label: 'Tipo de apresentação / participação', type: 'select', options: ['Conferencista', 'Simposista', 'Moderador', 'Avaliador', 'Homenageado'], disabledWhen: { field: 'formaParticipacao', equals: 'Ouvinte' } },
         { key: 'tituloApresentacao', label: 'Título da apresentação', type: 'text', help: 'Preencher apenas para Convidado ou Participante.', disabledWhen: { field: 'formaParticipacao', equals: 'Ouvinte' } },
         F_ANO,
         { key: 'pais', label: 'País', type: 'text', placeholder: 'Brasil' },
