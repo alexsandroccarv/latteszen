@@ -2177,7 +2177,7 @@
 
                 <section class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
                     <h2 class="text-lg font-bold mb-2 flex items-center gap-2"><i class="fa-solid fa-file-export text-govbr-600 dark:text-unifesp-400"></i> Backup (JSON)</h2>
-                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">Exporte ou importe todo o catálogo (metadados) num único arquivo JSON. Com um diretório configurado, o backup é salvo automaticamente na subpasta <code class="text-xs bg-gray-200 dark:bg-gray-700 px-1 rounded">00 Backup</code>.</p>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">Exporte ou importe todo o catálogo (metadados) e as configurações do sistema (prefixo do identificador, listas de autocomplete, RSC-PCCTAE) num único arquivo JSON — é o que permite restaurar tudo num navegador novo. Com um diretório configurado, o backup é salvo automaticamente na subpasta <code class="text-xs bg-gray-200 dark:bg-gray-700 px-1 rounded">00 Backup</code>.</p>
                     <div class="flex flex-wrap gap-2">
                         <button id="btnExport" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-download mr-1"></i> Exportar catálogo</button>
                         <label class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm cursor-pointer"><i class="fa-solid fa-upload mr-1"></i> Importar catálogo
@@ -2410,6 +2410,10 @@
         const data = {
             app: 'lattesZen', version: APP_CONFIG.version, schemaVersion: SCHEMA_VERSION, exportedAt: nowISO(),
             items: state.items,
+            // Configurações do sistema (prefixo do identificador, listas de
+            // autocomplete, RSC etc.) — sem isto, restaurar o backup num
+            // navegador novo perde tudo que está em Configurações.
+            settings: Storage.loadSettings(),
         };
         const nome = catalogBaseName();
         // Local padrão: subpasta "00 - Backup" dentro do diretório configurado
@@ -2454,8 +2458,25 @@
             items.forEach(i => { if (i && i.id) { sanitizeImportedItem(i); byId.set(i.id, i); } });
             state.items = Array.from(byId.values());
             saveCatalog();
-            toast(`${items.length} item(ns) importado(s) do JSON.`, 'ok');
+            // Restaura as configurações do sistema, se presentes no backup (prefixo
+            // do identificador, listas de autocomplete, RSC etc.) — essencial ao
+            // restaurar num navegador novo, onde essas configurações não existem.
+            let restaurouConfig = false;
+            if (data.settings && typeof data.settings === 'object') {
+                const merged = Object.assign(Storage.loadSettings(), data.settings);
+                Storage.saveSettings(merged);
+                state.vocab = merged.vocab || {};
+                state.idPrefix = sanitizePrefix(merged.idPrefix || 'lz');
+                state.lastCat = merged.lastCat || '';
+                state.lastType = merged.lastType || '';
+                state.rscEnabled = !!merged.rscEnabled;
+                state.rscCfg = merged.rsc || {};
+                applyRscVisibility();
+                restaurouConfig = true;
+            }
+            toast(`${items.length} item(ns) importado(s) do JSON.${restaurouConfig ? ' Configurações do sistema restauradas.' : ''}`, 'ok');
             renderItemList();
+            renderConfig();
         } catch (err) { toast('Falha ao importar: ' + err.message, 'erro'); }
         e.target.value = '';
     }
