@@ -211,7 +211,7 @@
         if (item && Array.isArray(item.evidencias) && item.evidencias.length) {
             return item.evidencias.map(e => ({
                 basename: e.basename, ext: e.ext,
-                name: e.name || `${e.basename}.${e.ext}`, publica: !!e.publica, file: null,
+                name: e.name || `${e.basename}.${e.ext}`, publica: !!e.publica, tag: e.tag || '', file: null,
             }));
         }
         if (item && item.hasPdf) { // legado: uma única evidência com id do item
@@ -470,6 +470,7 @@
             <li class="flex items-center gap-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded px-2 py-1 text-sm">
                 ${thumb}
                 <span class="min-w-0 flex-1 truncate" title="${esc(ev.name)}">${esc(ev.name)}${ev.file ? ' <span class="text-xs text-green-600">(novo)</span>' : ''}</span>
+                <input type="text" data-evtag="${idx}" list="dl-evidenciaTag" value="${esc(ev.tag || '')}" placeholder="Tag" title="Tag da evidência (ex.: Certificado, Declaração…)" class="w-24 shrink-0 text-xs px-1.5 py-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900">
                 <label class="flex items-center gap-1 text-xs shrink-0" title="Será exibida no futuro módulo de publicação (pode marcar quantas quiser)">
                     <input type="checkbox" data-evpub="${idx}" ${ev.publica ? 'checked' : ''}> pública
                 </label>
@@ -496,6 +497,11 @@
         $$('[data-evpub]', ul).forEach(c => c.addEventListener('change', (e) => {
             const i = +e.target.dataset.evpub;
             state.evEditing[i].publica = e.target.checked; // 0..N públicas (independentes)
+            state.formDirty = true;
+        }));
+        $$('[data-evtag]', ul).forEach(inp => inp.addEventListener('input', (e) => {
+            const i = +e.target.dataset.evtag;
+            state.evEditing[i].tag = e.target.value;
             state.formDirty = true;
         }));
         const swap = (i, j) => { const t = state.evEditing[i]; state.evEditing[i] = state.evEditing[j]; state.evEditing[j] = t; state.formDirty = true; renderEvList(); };
@@ -526,7 +532,7 @@
             const inboxName = inboxByKey.get(`${f.name}|${f.size}`) || null;
             state.evEditing.push({
                 basename: null, ext: fileExt(f), name: f.name || `colado.${fileExt(f)}`,
-                publica: state.evEditing.length === 0, file: f, inboxName,
+                publica: state.evEditing.length === 0, tag: '', file: f, inboxName,
             });
             added = f;
             state.formDirty = true;
@@ -548,7 +554,7 @@
         if (err) { toast(err, 'aviso'); return; }
         state.evEditing.push({
             basename: null, ext: fileExt(file), name: file.name || entry.name,
-            publica: state.evEditing.length === 0, file, inboxName: entry.name,
+            publica: state.evEditing.length === 0, tag: '', file, inboxName: entry.name,
         });
         state.formDirty = true;
         renderEvList();
@@ -696,7 +702,7 @@
                 <label class="block text-xs font-semibold mb-1" for="pdfInput"><i aria-hidden="true" class="fa-solid fa-file-arrow-up text-govbr-600 dark:text-unifesp-400 mr-1"></i> <span id="pdfInputLabel">Evidências (PDF ou imagem)</span></label>
                 <input type="file" id="pdfInput" multiple accept="application/pdf,image/jpeg,image/png"
                        class="w-full text-sm text-gray-600 dark:text-gray-300 file:mr-2 file:px-3 file:py-1.5 file:rounded file:border-0 file:bg-govbr-600 dark:file:bg-unifesp-700 file:text-white">
-                <p class="text-xs text-gray-500 mt-1">Arraste e solte, cole (Ctrl+V) ou selecione. Marque <strong>“pública”</strong> em <em>quantas</em> evidências quiser (0 ou mais). Use ↑ ↓ para reordenar.</p>
+                <p class="text-xs text-gray-500 mt-1">Arraste e solte, cole (Ctrl+V) ou selecione. Marque <strong>“pública”</strong> em <em>quantas</em> evidências quiser (0 ou mais). Use ↑ ↓ para reordenar. A <strong>tag</strong> categoriza o documento (ex.: Certificado, Declaração…).</p>
                 <ul id="evList" class="mt-2 space-y-1"></ul>
                 <div id="inboxBox" class="mt-2 pt-2 border-t border-govbr-100 dark:border-gray-700 flex items-center justify-between gap-2">
                     <span class="text-xs font-semibold"><i aria-hidden="true" class="fa-solid fa-inbox text-govbr-600 dark:text-unifesp-400 mr-1"></i> Bandeja de entrada <span id="inboxCount" class="font-normal text-gray-400"></span></span>
@@ -884,14 +890,26 @@
     // Campos que ganham autocomplete (combobox): escolha da lista OU digitação
     // de um valor novo. Sugestões = lista curada (editável em Configurações) +
     // valores já usados no catálogo.
-    const AUTOCOMPLETE_KEYS = ['instituicao', 'financiador', 'entidade', 'orgao', 'editora', 'periodico', 'evento'];
+    const AUTOCOMPLETE_KEYS = ['instituicao', 'financiador', 'entidade', 'orgao', 'editora', 'periodico', 'evento', 'evidenciaTag'];
     const VOCAB_LABELS = {
         instituicao: 'Instituições', financiador: 'Financiadores / Agências', entidade: 'Entidades',
         orgao: 'Órgãos', editora: 'Editoras', periodico: 'Periódicos / Revistas', evento: 'Eventos',
+        evidenciaTag: 'Tags de evidências',
     };
+    // Tags sugeridas por padrão para categorizar evidências (documentos anexados).
+    // Qualquer outro valor digitado pelo usuário também é aprendido (collectSuggestions).
+    const DEFAULT_EVIDENCE_TAGS = ['Anais', 'Ata', 'Atestado', 'Capa', 'Certidão', 'Certificado', 'Comprovante',
+        'Contrato', 'Convite', 'Crachá', 'Declaração', 'Diploma', 'Folder', 'Foto', 'Portaria', 'Programação',
+        'Recibo', 'Relatório', 'Vídeo', 'Outros'];
+    // evidenciaTag não é um campo de item.fields — vive em cada evidência
+    // (item.evidencias[].tag) — por isso tem coleta/busca/renomeio à parte.
     function collectSuggestions(key) {
         const set = new Set(state.vocab[key] || []);
-        state.items.forEach(i => { const v = i.fields && i.fields[key]; if (v && String(v).trim()) set.add(String(v).trim()); });
+        if (key === 'evidenciaTag') {
+            state.items.forEach(i => (i.evidencias || []).forEach(e => { if (e.tag && String(e.tag).trim()) set.add(String(e.tag).trim()); }));
+        } else {
+            state.items.forEach(i => { const v = i.fields && i.fields[key]; if (v && String(v).trim()) set.add(String(v).trim()); });
+        }
         return Array.from(set).filter(Boolean).sort((a, b) => a.localeCompare(b, 'pt-BR'));
     }
     function datalistsHtml() {
@@ -904,6 +922,7 @@
     function itemsUsingValue(key, value) {
         const v = String(value == null ? '' : value).trim();
         if (!v) return [];
+        if (key === 'evidenciaTag') return state.items.filter(i => (i.evidencias || []).some(e => String(e.tag == null ? '' : e.tag).trim() === v));
         return state.items.filter(i => i.fields && String(i.fields[key] == null ? '' : i.fields[key]).trim() === v);
     }
 
@@ -920,7 +939,11 @@
         const label = VOCAB_LABELS[key] || key;
         if (!confirm(`Renomear em ${label}:\n\n"${f}"\n→ "${t}"\n\nSerá aplicado a ${alvo.length} item(ns) e a lista de sugestões. Os JSONs no diretório serão regravados. Continuar?`)) return;
 
-        alvo.forEach(it => { it.fields[key] = t; });
+        if (key === 'evidenciaTag') {
+            alvo.forEach(it => (it.evidencias || []).forEach(e => { if (String(e.tag == null ? '' : e.tag).trim() === f) e.tag = t; }));
+        } else {
+            alvo.forEach(it => { it.fields[key] = t; });
+        }
         saveCatalog();
 
         let falhas = 0;
@@ -1414,10 +1437,10 @@
                 const basename = ev.basename || newBase();
                 try { await Storage.writeAttachment(basename, ev.file, subdir, ev.ext); }
                 catch (e) { toast('Falha ao gravar evidência "' + ev.name + '": ' + e.message, 'aviso'); continue; }
-                evOut.push({ basename, ext: ev.ext, name: ev.name, publica: !!ev.publica });
+                evOut.push({ basename, ext: ev.ext, name: ev.name, publica: !!ev.publica, tag: ev.tag || '' });
                 if (ev.inboxName) fromInbox.add(ev.inboxName);   // veio da bandeja de entrada
             } else {
-                evOut.push({ basename: ev.basename, ext: ev.ext, name: ev.name, publica: !!ev.publica });
+                evOut.push({ basename: ev.basename, ext: ev.ext, name: ev.name, publica: !!ev.publica, tag: ev.tag || '' });
             }
         }
         // apaga arquivos de evidências que foram removidas
@@ -2824,6 +2847,9 @@
         state.items = Storage.loadCatalog();
         const cfg = Storage.loadSettings();
         state.vocab = cfg.vocab || {};
+        // Semeia a lista curada de tags de evidências uma única vez (1ª execução);
+        // depois disso, o que estiver salvo prevalece (o usuário pode editar/remover).
+        if (state.vocab.evidenciaTag === undefined) { state.vocab.evidenciaTag = DEFAULT_EVIDENCE_TAGS.slice(); saveVocab(); }
         state.idPrefix = sanitizePrefix(cfg.idPrefix || 'lz');
         state.lastCat = cfg.lastCat || '';
         state.lastType = cfg.lastType || '';
