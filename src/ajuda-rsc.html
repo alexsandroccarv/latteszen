@@ -101,8 +101,10 @@
                 </div>
                 <div class="flex items-center gap-2 overflow-hidden">
                     <h1 class="font-bold text-white leading-none whitespace-nowrap">lattesZen</h1>
-                    <span class="text-xl text-white/30 dark:text-gray-700 font-light">|</span>
-                    <span id="headerSigla" class="font-bold text-white/90 dark:text-unifesp-400 leading-none whitespace-nowrap">UNIFESP</span>
+                    <span id="headerNomeWrap" class="flex items-center gap-2 overflow-hidden hidden">
+                        <span class="text-xl text-white/30 dark:text-gray-700 font-light">|</span>
+                        <span id="headerNome" class="font-bold text-white/90 dark:text-unifesp-400 leading-none whitespace-nowrap truncate"></span>
+                    </span>
                 </div>
             </div>
             <div id="govBrLogo" class="bg-white rounded px-2 py-1.5 flex items-center shrink-0 dark:hidden">
@@ -275,7 +277,7 @@
         </div>
     </footer>
 
-    <!-- Cabeçalho/rodapé dinâmicos: versão, sigla e alternadores de tema (mesmo comportamento do app) -->
+    <!-- Cabeçalho/rodapé dinâmicos: versão, nome do titular e alternadores de tema (mesmo comportamento do app) -->
     <script src="js/config.js"></script>
     <script>
         (function () {
@@ -283,7 +285,17 @@
             var setTxt = function (id, v) { var el = document.getElementById(id); if (el && v != null) el.textContent = v; };
             setTxt('appVersion', C.version);
             setTxt('lastModDate', C.lastModified);
-            if (C.institution) setTxt('headerSigla', C.institution.sigla);
+            // Nome completo do item de Identificação (mesma lógica do app): "lattesZen | Nome".
+            var nome = '';
+            try {
+                var itens = JSON.parse(localStorage.getItem((C.storageKeys && C.storageKeys.catalog) || 'lz_catalog') || '[]');
+                var ident = itens.find(function (i) { return i.typeKey === 'IDENTIFICACAO' && i.fields && i.fields.titulo; });
+                if (ident) nome = String(ident.fields.titulo).trim();
+            } catch (e) {}
+            var nomeWrap = document.getElementById('headerNomeWrap');
+            if (nomeWrap) nomeWrap.classList.toggle('hidden', !nome);
+            setTxt('headerNome', nome);
+            document.title = nome ? (C.name || 'lattesZen') + ' | ' + nome : (C.name || 'lattesZen');
 
             var htmlEl = document.documentElement;
             var tt = document.getElementById('themeToggle');

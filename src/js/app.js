@@ -2145,6 +2145,7 @@
     }
 
     async function renderConfig() {
+        updateHeaderIdentity(); // reflete edições no nome (Identificação, import, limpar catálogo…)
         const panel = $('#tab-config');
         const dirName = Storage.hasDirectory() ? await Storage.directoryName() : null;
 
@@ -2854,11 +2855,21 @@
         if (changed) saveCatalog();
     }
 
+    // Nome no cabeçalho e título da aba: "lattesZen | Nome completo" (vem do
+    // item de Identificação). Sem nome preenchido, mostra só "lattesZen".
+    function updateHeaderIdentity() {
+        const ident = state.items.find(i => i.typeKey === 'IDENTIFICACAO' && i.fields && i.fields.titulo);
+        const nome = ident ? String(ident.fields.titulo).trim() : '';
+        const wrap = $('#headerNomeWrap');
+        if (wrap) wrap.classList.toggle('hidden', !nome);
+        const nomeEl = $('#headerNome');
+        if (nomeEl) nomeEl.textContent = nome;
+        document.title = nome ? `${APP_CONFIG.name} | ${nome}` : APP_CONFIG.name;
+    }
+
     async function init() {
         // Cabeçalho / rodapé dinâmicos
-        const sigla = APP_CONFIG.institution.sigla || '';
-        $('#headerSigla').textContent = sigla;
-        document.title = `${APP_CONFIG.name} - ${sigla}`;
+        document.title = APP_CONFIG.name;
         $('#appVersion').textContent = APP_CONFIG.version;
         $('#lastModDate').textContent = APP_CONFIG.lastModified;
 
@@ -2877,6 +2888,7 @@
         state.rscEnabled = !!cfg.rscEnabled;
         state.rscCfg = cfg.rsc || {};
         migrarItens();
+        updateHeaderIdentity();
         applyRscVisibility();
         try { await Storage.restoreDirectory(); } catch (_) {}
 
