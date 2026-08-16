@@ -1338,8 +1338,11 @@
 
         // 2) Coerência de anos: fim não pode ser anterior ao início. Extrai o
         //    ANO de qualquer formato (aaaa, aaaa-mm-dd ou dd/mm/aaaa — datebr).
+        //    O campo de início chama 'anoInicio' nos tipos com período completo
+        //    (Atuação, Projetos…) e só 'ano' nos demais (Ano de início/fim).
         const _yr = s => { const y = anoDe(s); return y ? +y : null; };
-        const ini = _yr(fields.anoInicio), fim = _yr(fields.anoFim);
+        const inicioKey = def.fields.some(f => f.key === 'anoInicio') ? 'anoInicio' : 'ano';
+        const ini = _yr(fields[inicioKey]), fim = _yr(fields.anoFim);
         if (ini && fim && fim < ini) {
             const el = fieldControl(form, { key: 'anoFim' });
             if (el) { setFieldError(el, 'O ano de fim não pode ser anterior ao de início.'); el.focus(); el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
