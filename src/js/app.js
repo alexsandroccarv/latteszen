@@ -2867,6 +2867,23 @@
         document.title = nome ? `${APP_CONFIG.name} | ${nome}` : APP_CONFIG.name;
     }
 
+    // Aviso de 1ª execução: mostra uma vez (fica marcado em Configurações/settings)
+    // que o app está em desenvolvimento e sem garantias — reforça o backup.
+    function wireFirstRunNotice() {
+        const modal = $('#firstRunModal');
+        const btn = $('#btnFirstRunOk');
+        if (!modal || !btn) return;
+        const cfg = Storage.loadSettings();
+        if (cfg.avisoDevVisto) return;
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        btn.addEventListener('click', () => {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            const s = Storage.loadSettings(); s.avisoDevVisto = true; Storage.saveSettings(s);
+        });
+    }
+
     async function init() {
         // Cabeçalho / rodapé dinâmicos
         document.title = APP_CONFIG.name;
@@ -2898,6 +2915,8 @@
         // Abas
         $$('.tab-btn').forEach(b => b.addEventListener('click', () => switchTab(b.dataset.tab)));
         switchTab('catalogar');
+
+        wireFirstRunNotice();
     }
 
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);

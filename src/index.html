@@ -112,6 +112,24 @@
     <!-- Área de notificações (toasts) -->
     <div id="toasts" class="fixed bottom-16 right-4 z-50 flex flex-col gap-2" aria-live="polite"></div>
 
+    <!-- Aviso de 1ª execução: app em desenvolvimento -->
+    <div id="firstRunModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/60 px-4">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full" role="alertdialog" aria-modal="true" aria-labelledby="firstRunTitle">
+            <div class="bg-govbr-600 dark:bg-gray-900 rounded-t-lg px-4 py-3 flex items-center gap-2">
+                <i aria-hidden="true" class="fa-solid fa-triangle-exclamation text-white"></i>
+                <h2 id="firstRunTitle" class="font-bold text-white">Antes de começar</h2>
+            </div>
+            <div class="p-4 space-y-3 text-sm text-gray-700 dark:text-gray-300">
+                <p>O <strong>lattesZen</strong> ainda está <strong>em desenvolvimento</strong>. Pode ter erros, funcionar diferente do esperado, ou mudar de uma hora para outra.</p>
+                <p><strong>Não nos responsabilizamos por nada</strong> — nem por perda de dados, nem por qualquer outro problema. <strong>Faça sempre uma cópia (backup) dos seus arquivos</strong> (veja Configurações › Backup).</p>
+                <p>Encontrou algo funcionando errado, faltando, ou tem uma sugestão? Abra uma <a href="https://github.com/alexsandroccarv/lattesZen/issues" target="_blank" rel="noopener" class="text-govbr-700 dark:text-unifesp-400 underline font-semibold">issue no repositório</a> e/ou mande uma mensagem.</p>
+            </div>
+            <div class="px-4 pb-4 flex justify-end">
+                <button type="button" id="btnFirstRunOk" class="px-4 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm font-semibold hover:opacity-90">Entendi</button>
+            </div>
+        </div>
+    </div>
+
     <!-- ============================ RODAPÉ ============================ -->
     <footer class="bg-govbr-800 dark:bg-gray-950 border-t border-govbr-700 dark:border-gray-700 py-3 px-6 text-xs text-blue-100 dark:text-gray-400 flex flex-col sm:flex-row justify-between items-center shrink-0 gap-4 transition-colors duration-300">
         <div class="flex items-center gap-4 flex-wrap justify-center">
