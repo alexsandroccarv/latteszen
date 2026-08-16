@@ -200,8 +200,32 @@ const TYPES = {
     ORGANIZACAO_EVENTO: { label: 'Organização de eventos, congressos, exposições, feiras e olimpíadas', fields: [F_TITULO, F_ANO, { key: 'tipoEvento', label: 'Tipo', type: 'select', options: ['Concerto', 'Concurso', 'Congresso', 'Exposição', 'Festival', 'Feira', 'Olimpíada', 'Outro'] }, { key: 'instituicao', label: 'Instituição promotora', type: 'text' }, { key: 'pais', label: 'País', type: 'text', placeholder: 'Brasil' }, F_CIDADE, F_URL] },
 
     // 10 Orientações
-    ORIENTACAO_CONCLUIDA: { label: 'Orientações e supervisões concluídas', fields: [{ key: 'orientando', label: 'Nome do orientado(a)', type: 'text', required: true }, { key: 'tipo', label: 'Tipo', type: 'select', required: true, options: ['Iniciação científica', 'TCC / Graduação', 'Especialização / Monografia', 'Mestrado', 'Doutorado', 'Pós-Doutorado', 'Outra'] }, { key: 'natureza', label: 'Natureza', type: 'select', options: ['Orientador principal', 'Coorientador'] }, { key: 'titulo', label: 'Título do trabalho', type: 'text' }, { key: 'curso', label: 'Curso', type: 'text' }, F_INST, { key: 'bolsa', label: 'Bolsista / Agência financiadora', type: 'text' }, { key: 'pais', label: 'País', type: 'text', placeholder: 'Brasil' }, F_ANO] },
-    ORIENTACAO_ANDAMENTO: { label: 'Orientações e supervisões em andamento', fields: [{ key: 'orientando', label: 'Nome do orientando(a)', type: 'text', required: true }, { key: 'tipo', label: 'Tipo', type: 'select', required: true, options: ['Iniciação científica', 'TCC / Graduação', 'Especialização / Monografia', 'Mestrado', 'Doutorado', 'Pós-Doutorado', 'Outra'] }, { key: 'natureza', label: 'Natureza', type: 'select', options: ['Orientador principal', 'Coorientador'] }, { key: 'titulo', label: 'Título do trabalho', type: 'text' }, { key: 'curso', label: 'Curso', type: 'text' }, F_INST, { key: 'bolsa', label: 'Bolsista / Agência financiadora', type: 'text' }, { key: 'pais', label: 'País', type: 'text', placeholder: 'Brasil' }, F_ANO] },
+    ORIENTACAO_CONCLUIDA: { label: 'Orientações e supervisões concluídas', fields: [
+        { key: 'tipo', label: 'Natureza', type: 'select', required: true, options: ['Iniciação científica', 'TCC / Graduação', 'Especialização / Monografia', 'Mestrado', 'Doutorado', 'Pós-Doutorado', 'Outra'] },
+        { key: 'modalidade', label: 'Tipo', type: 'select', options: ['Acadêmico', 'Profissionalizante'], help: 'Apenas para Mestrado.',
+          disabledWhen: { field: 'tipo', in: ['Iniciação científica', 'TCC / Graduação', 'Especialização / Monografia', 'Doutorado', 'Pós-Doutorado', 'Outra'] } },
+        { key: 'titulo', label: 'Título do trabalho', type: 'text' }, F_ANO, { key: 'pais', label: 'País', type: 'text', placeholder: 'Brasil' }, F_IDIOMA,
+        { key: 'url', label: 'Home page do trabalho (URL)', type: 'url' },
+        { key: 'orientando', label: 'Nome do orientado(a)', type: 'text', required: true },
+        { key: 'natureza', label: 'Tipo de orientação', type: 'select', options: ['Orientador principal', 'Coorientador'] },
+        { key: 'curso', label: 'Curso', type: 'text' }, F_INST, { key: 'bolsa', label: 'Bolsista / Agência financiadora', type: 'text' },
+        { key: 'palavrasChave', label: 'Palavras-chave', type: 'textarea', placeholder: 'Separe por ponto e vírgula (;)', help: 'Até 6 palavras-chave (limite da Plataforma Lattes).' },
+        { key: 'areaConhecimento', label: 'Área do conhecimento (CNPq/CAPES)', type: 'areatree', help: 'Selecione do mais geral ao mais específico: Grande área › Área › Subárea › Especialidade.' },
+        { key: 'outrasInfo', label: 'Outras informações', type: 'textarea' },
+    ] },
+    ORIENTACAO_ANDAMENTO: { label: 'Orientações e supervisões em andamento', fields: [
+        { key: 'tipo', label: 'Natureza', type: 'select', required: true, options: ['Iniciação científica', 'TCC / Graduação', 'Especialização / Monografia', 'Mestrado', 'Doutorado', 'Pós-Doutorado', 'Outra'] },
+        { key: 'modalidade', label: 'Tipo', type: 'select', options: ['Acadêmico', 'Profissionalizante'], help: 'Apenas para Mestrado.',
+          disabledWhen: { field: 'tipo', in: ['Iniciação científica', 'TCC / Graduação', 'Especialização / Monografia', 'Doutorado', 'Pós-Doutorado', 'Outra'] } },
+        { key: 'titulo', label: 'Título do trabalho', type: 'text' }, F_ANO, { key: 'pais', label: 'País', type: 'text', placeholder: 'Brasil' }, F_IDIOMA,
+        { key: 'url', label: 'Home page do trabalho (URL)', type: 'url' },
+        { key: 'orientando', label: 'Nome do orientando(a)', type: 'text', required: true },
+        { key: 'natureza', label: 'Tipo de orientação', type: 'select', options: ['Orientador principal', 'Coorientador'] },
+        { key: 'curso', label: 'Curso', type: 'text' }, F_INST, { key: 'bolsa', label: 'Bolsista / Agência financiadora', type: 'text' },
+        { key: 'palavrasChave', label: 'Palavras-chave', type: 'textarea', placeholder: 'Separe por ponto e vírgula (;)', help: 'Até 6 palavras-chave (limite da Plataforma Lattes).' },
+        { key: 'areaConhecimento', label: 'Área do conhecimento (CNPq/CAPES)', type: 'areatree', help: 'Selecione do mais geral ao mais específico: Grande área › Área › Subárea › Especialidade.' },
+        { key: 'outrasInfo', label: 'Outras informações', type: 'textarea' },
+    ] },
 
     // 11 Bancas
     BANCA_CONCLUSAO: { label: 'Participação em bancas de trabalhos de conclusão', fields: [
@@ -216,7 +240,16 @@ const TYPES = {
         { key: 'areaConhecimento', label: 'Área do conhecimento (CNPq/CAPES)', type: 'areatree', help: 'Selecione do mais geral ao mais específico: Grande área › Área › Subárea › Especialidade.' },
         { key: 'outrasInfo', label: 'Outras informações', type: 'textarea' },
     ] },
-    BANCA_JULGADORA: { label: 'Participação em bancas de comissões julgadoras', fields: [{ key: 'tipo', label: 'Tipo', type: 'select', required: true, options: ['Concurso público', 'Professor titular', 'Livre-docência', 'Avaliação de cursos', 'Outra'] }, { key: 'titulo', label: 'Título / Cargo', type: 'text' }, F_INST, { key: 'membros', label: 'Demais membros da banca', type: 'textarea', placeholder: 'Separe por ponto e vírgula (;)' }, F_ANO] },
+    BANCA_JULGADORA: { label: 'Participação em bancas de comissões julgadoras', fields: [
+        { key: 'tipo', label: 'Natureza', type: 'select', required: true, options: ['Concurso público', 'Professor titular', 'Livre-docência', 'Avaliação de cursos', 'Outra'] },
+        { key: 'titulo', label: 'Título', type: 'text', help: 'Título do concurso, cargo ou processo avaliado.' }, F_ANO, F_PAIS, F_IDIOMA,
+        { key: 'url', label: 'Home page do trabalho (URL)', type: 'url' },
+        F_INST,
+        { key: 'membros', label: 'Participantes da banca', type: 'textarea', placeholder: 'Separe por ponto e vírgula (;)', help: 'Um nome por posição — a ordem digitada é a ordem de autoria na banca.' },
+        { key: 'palavrasChave', label: 'Palavras-chave', type: 'textarea', placeholder: 'Separe por ponto e vírgula (;)', help: 'Até 6 palavras-chave (limite da Plataforma Lattes).' },
+        { key: 'areaConhecimento', label: 'Área do conhecimento (CNPq/CAPES)', type: 'areatree', help: 'Selecione do mais geral ao mais específico: Grande área › Área › Subárea › Especialidade.' },
+        { key: 'outrasInfo', label: 'Outras informações', type: 'textarea' },
+    ] },
 
     // 99 Atividades livres — Desenvolvimento Pessoal e Habilidades
     AL_CURSO_LIVRE: { label: 'Cursos livres', fields: [alNome('Nome do curso'), { key: 'entidade', label: 'Instituição', type: 'text' }, { key: 'frequencia', label: 'Carga horária', type: 'text' }, F_AINI, F_AFIM, AL_IMP, F_URL] },

@@ -609,19 +609,39 @@ window.LattesXMLExport = (function () {
         return inner ? el('OUTRA-PRODUCAO', {}, inner) : '';
     }
 
+    // NATUREZA de "Outras orientações concluídas" É enumerada no schema (as demais
+    // orientações concluídas/em andamento usam NATUREZA como texto livre).
+    const OUTRA_ORIENT_CONCL_NATUREZA = {
+        'Iniciação científica': 'INICIACAO_CIENTIFICA',
+        'TCC / Graduação': 'TRABALHO_DE_CONCLUSAO_DE_CURSO_GRADUACAO',
+        'Especialização / Monografia': 'MONOGRAFIA_DE_CONCLUSAO_DE_CURSO_APERFEICOAMENTO_E_ESPECIALIZACAO',
+    };
     // ORIENTACOES-CONCLUIDAS (vai dentro de OUTRA-PRODUCAO)
     function buildOrientacoesConcluidas(items) {
         const concl = items.filter(i => i.typeKey === 'ORIENTACAO_CONCLUIDA');
         if (!concl.length) return '';
         const buckets = { M: [], D: [], PD: [], O: [] };
+        const MODALIDADE_TOKEN = { 'Acadêmico': 'ACADEMICO', 'Profissionalizante': 'PROFISSIONALIZANTE' };
         let seq = 0; const S = () => String(++seq);
         concl.forEach(it => {
             const f = it.fields; const t = f.tipo || '';
-            const det = (tag) => ({ 'TIPO-DE-ORIENTACAO': orientTipo(f.natureza), 'NOME-DO-ORIENTADO': f.orientando, 'NOME-DA-INSTITUICAO': f.instituicao, 'NOME-DO-CURSO': f.curso, 'NOME-DA-AGENCIA': f.bolsa });
-            if (/mestrado/i.test(t)) buckets.M.push(producao('ORIENTACOES-CONCLUIDAS-PARA-MESTRADO', S(), 'DADOS-BASICOS-DE-ORIENTACOES-CONCLUIDAS-PARA-MESTRADO', { 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma }, 'DETALHAMENTO-DE-ORIENTACOES-CONCLUIDAS-PARA-MESTRADO', det(), ''));
-            else if (/doutorado/i.test(t) && !/p[óo]s/i.test(t)) buckets.D.push(producao('ORIENTACOES-CONCLUIDAS-PARA-DOUTORADO', S(), 'DADOS-BASICOS-DE-ORIENTACOES-CONCLUIDAS-PARA-DOUTORADO', { 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma }, 'DETALHAMENTO-DE-ORIENTACOES-CONCLUIDAS-PARA-DOUTORADO', det(), ''));
-            else if (/p[óo]s/i.test(t)) buckets.PD.push(producao('ORIENTACOES-CONCLUIDAS-PARA-POS-DOUTORADO', S(), 'DADOS-BASICOS-DE-ORIENTACOES-CONCLUIDAS-PARA-POS-DOUTORADO', { 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma }, 'DETALHAMENTO-DE-ORIENTACOES-CONCLUIDAS-PARA-POS-DOUTORADO', det(), ''));
-            else buckets.O.push(producao('OUTRAS-ORIENTACOES-CONCLUIDAS', S(), 'DADOS-BASICOS-DE-OUTRAS-ORIENTACOES-CONCLUIDAS', { 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma }, 'DETALHAMENTO-DE-OUTRAS-ORIENTACOES-CONCLUIDAS', { 'NOME-DO-ORIENTADO': f.orientando, 'NOME-DA-INSTITUICAO': f.instituicao, 'NOME-DO-CURSO': f.curso, 'NOME-DA-AGENCIA': f.bolsa }, ''));
+            // DETALHAMENTO-DE-OUTRAS-ORIENTACOES-CONCLUIDAS não tem TIPO-DE-ORIENTACAO
+            // (só M/D/PD têm esse atributo no schema).
+            const det = { 'TIPO-DE-ORIENTACAO': orientTipo(f.natureza), 'NOME-DO-ORIENTADO': f.orientando, 'NOME-DA-INSTITUICAO': f.instituicao, 'NOME-DO-CURSO': f.curso, 'NOME-DA-AGENCIA': f.bolsa };
+            const detOutras = { 'NOME-DO-ORIENTADO': f.orientando, 'NOME-DA-INSTITUICAO': f.instituicao, 'NOME-DO-CURSO': f.curso, 'NOME-DA-AGENCIA': f.bolsa };
+            const extra = palavrasChaveEl(f.palavrasChave) + areaDoConhecimentoEl(f) + informacoesAdicionaisEl(f.outrasInfo);
+            const mk = (leaf, dbTag, detTag, comTipo) => {
+                const db = { 'NATUREZA': t, 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma, 'HOME-PAGE': f.url };
+                if (comTipo) db['TIPO'] = MODALIDADE_TOKEN[f.modalidade] || ''; // só Mestrado
+                return el(leaf, { 'SEQUENCIA-PRODUCAO': S() }, el(dbTag, db) + el(detTag, det) + extra);
+            };
+            if (/mestrado/i.test(t)) buckets.M.push(mk('ORIENTACOES-CONCLUIDAS-PARA-MESTRADO', 'DADOS-BASICOS-DE-ORIENTACOES-CONCLUIDAS-PARA-MESTRADO', 'DETALHAMENTO-DE-ORIENTACOES-CONCLUIDAS-PARA-MESTRADO', true));
+            else if (/doutorado/i.test(t) && !/p[óo]s/i.test(t)) buckets.D.push(mk('ORIENTACOES-CONCLUIDAS-PARA-DOUTORADO', 'DADOS-BASICOS-DE-ORIENTACOES-CONCLUIDAS-PARA-DOUTORADO', 'DETALHAMENTO-DE-ORIENTACOES-CONCLUIDAS-PARA-DOUTORADO'));
+            else if (/p[óo]s/i.test(t)) buckets.PD.push(mk('ORIENTACOES-CONCLUIDAS-PARA-POS-DOUTORADO', 'DADOS-BASICOS-DE-ORIENTACOES-CONCLUIDAS-PARA-POS-DOUTORADO', 'DETALHAMENTO-DE-ORIENTACOES-CONCLUIDAS-PARA-POS-DOUTORADO'));
+            else {
+                const db = { 'NATUREZA': OUTRA_ORIENT_CONCL_NATUREZA[t] || 'ORIENTACAO-DE-OUTRA-NATUREZA', 'TIPO': t, 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma, 'HOME-PAGE': f.url };
+                buckets.O.push(el('OUTRAS-ORIENTACOES-CONCLUIDAS', { 'SEQUENCIA-PRODUCAO': S() }, el('DADOS-BASICOS-DE-OUTRAS-ORIENTACOES-CONCLUIDAS', db) + el('DETALHAMENTO-DE-OUTRAS-ORIENTACOES-CONCLUIDAS', detOutras) + extra));
+            }
         });
         return wrap('ORIENTACOES-CONCLUIDAS', buckets.M.join('') + buckets.D.join('') + buckets.PD.join('') + buckets.O.join(''));
     }
@@ -688,13 +708,15 @@ window.LattesXMLExport = (function () {
         list.forEach(it => {
             const f = it.fields; const t = f.tipo || '';
             const det = { 'NOME-INSTITUICAO': f.instituicao };
-            const part = participantesBanca(f.membros);
-            const mk = (leaf, dbTag, detTag) => el(leaf, { 'SEQUENCIA-PRODUCAO': S() }, el(dbTag, { 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma }) + el(detTag, det) + part);
+            const extra = palavrasChaveEl(f.palavrasChave) + areaDoConhecimentoEl(f) + informacoesAdicionaisEl(f.outrasInfo);
+            const part = participantesBanca(f.membros) + extra;
+            const db = { 'NATUREZA': t, 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma, 'HOME-PAGE': f.url };
+            const mk = (leaf, dbTag, detTag) => el(leaf, { 'SEQUENCIA-PRODUCAO': S() }, el(dbTag, db) + el(detTag, det) + part);
             if (/titular/i.test(t)) b.T.push(mk('BANCA-JULGADORA-PARA-PROFESSOR-TITULAR', 'DADOS-BASICOS-DA-BANCA-JULGADORA-PARA-PROFESSOR-TITULAR', 'DETALHAMENTO-DA-BANCA-JULGADORA-PARA-PROFESSOR-TITULAR'));
             else if (/concurso/i.test(t)) b.C.push(mk('BANCA-JULGADORA-PARA-CONCURSO-PUBLICO', 'DADOS-BASICOS-DA-BANCA-JULGADORA-PARA-CONCURSO-PUBLICO', 'DETALHAMENTO-DA-BANCA-JULGADORA-PARA-CONCURSO-PUBLICO'));
             else if (/livre/i.test(t)) b.L.push(mk('BANCA-JULGADORA-PARA-LIVRE-DOCENCIA', 'DADOS-BASICOS-DA-BANCA-JULGADORA-PARA-LIVRE-DOCENCIA', 'DETALHAMENTO-DA-BANCA-JULGADORA-PARA-LIVRE-DOCENCIA'));
             else if (/avalia/i.test(t)) b.A.push(mk('BANCA-JULGADORA-PARA-AVALIACAO-CURSOS', 'DADOS-BASICOS-DA-BANCA-JULGADORA-PARA-AVALIACAO-CURSOS', 'DETALHAMENTO-DA-BANCA-JULGADORA-PARA-AVALIACAO-CURSOS'));
-            else b.O.push(el('OUTRAS-BANCAS-JULGADORAS', { 'SEQUENCIA-PRODUCAO': S() }, el('DADOS-BASICOS-DE-OUTRAS-BANCAS-JULGADORAS', { 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma }) + el('DETALHAMENTO-DE-OUTRAS-BANCAS-JULGADORAS', det) + part));
+            else b.O.push(el('OUTRAS-BANCAS-JULGADORAS', { 'SEQUENCIA-PRODUCAO': S() }, el('DADOS-BASICOS-DE-OUTRAS-BANCAS-JULGADORAS', db) + el('DETALHAMENTO-DE-OUTRAS-BANCAS-JULGADORAS', det) + part));
         });
         return wrap('PARTICIPACAO-EM-BANCA-JULGADORA', b.T.join('') + b.C.join('') + b.L.join('') + b.A.join('') + b.O.join(''));
     }
@@ -728,19 +750,28 @@ window.LattesXMLExport = (function () {
     function buildOrientacoesAndamento(list) {
         if (!list.length) return '';
         const b = { M: [], D: [], PD: [], AE: [], G: [], IC: [], O: [] };
+        const MODALIDADE_TOKEN = { 'Acadêmico': 'ACADEMICO', 'Profissionalizante': 'PROFISSIONALIZANTE' };
         let seq = 0; const S = () => String(++seq);
         list.forEach(it => {
             const f = it.fields; const t = f.tipo || '';
             const detBase = { 'NOME-DO-ORIENTANDO': f.orientando, 'NOME-INSTITUICAO': f.instituicao, 'NOME-CURSO': f.curso, 'NOME-DA-AGENCIA': f.bolsa };
-            // Só Mestrado/Doutorado/Pós-Doutorado têm TIPO-DE-ORIENTACAO no detalhamento
-            const mk = (leaf, dbTag, detTag, withTipo) => el(leaf, { 'SEQUENCIA-PRODUCAO': S() }, el(dbTag, { 'TITULO-DO-TRABALHO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma }) + el(detTag, withTipo ? Object.assign({ 'TIPO-DE-ORIENTACAO': orientTipo(f.natureza) }, detBase) : detBase));
-            if (/mestrado/i.test(t)) b.M.push(mk('ORIENTACAO-EM-ANDAMENTO-DE-MESTRADO', 'DADOS-BASICOS-DA-ORIENTACAO-EM-ANDAMENTO-DE-MESTRADO', 'DETALHAMENTO-DA-ORIENTACAO-EM-ANDAMENTO-DE-MESTRADO', true));
+            const extra = palavrasChaveEl(f.palavrasChave) + areaDoConhecimentoEl(f) + informacoesAdicionaisEl(f.outrasInfo);
+            // withTipoOrientacao: só Mestrado/Doutorado/Pós-Doutorado têm TIPO-DE-ORIENTACAO
+            // no detalhamento. comModalidade: só Mestrado tem o atributo TIPO
+            // (Acadêmico/Profissionalizante) no DADOS-BASICOS.
+            const mk = (leaf, dbTag, detTag, withTipoOrientacao, comModalidade) => {
+                const db = { 'NATUREZA': t, 'TITULO-DO-TRABALHO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma, 'HOME-PAGE': f.url };
+                if (comModalidade) db['TIPO'] = MODALIDADE_TOKEN[f.modalidade] || '';
+                const det = withTipoOrientacao ? Object.assign({ 'TIPO-DE-ORIENTACAO': orientTipo(f.natureza) }, detBase) : detBase;
+                return el(leaf, { 'SEQUENCIA-PRODUCAO': S() }, el(dbTag, db) + el(detTag, det) + extra);
+            };
+            if (/mestrado/i.test(t)) b.M.push(mk('ORIENTACAO-EM-ANDAMENTO-DE-MESTRADO', 'DADOS-BASICOS-DA-ORIENTACAO-EM-ANDAMENTO-DE-MESTRADO', 'DETALHAMENTO-DA-ORIENTACAO-EM-ANDAMENTO-DE-MESTRADO', true, true));
             else if (/doutorado/i.test(t) && !/p[óo]s/i.test(t)) b.D.push(mk('ORIENTACAO-EM-ANDAMENTO-DE-DOUTORADO', 'DADOS-BASICOS-DA-ORIENTACAO-EM-ANDAMENTO-DE-DOUTORADO', 'DETALHAMENTO-DA-ORIENTACAO-EM-ANDAMENTO-DE-DOUTORADO', true));
             else if (/p[óo]s/i.test(t)) b.PD.push(mk('ORIENTACAO-EM-ANDAMENTO-DE-POS-DOUTORADO', 'DADOS-BASICOS-DA-ORIENTACAO-EM-ANDAMENTO-DE-POS-DOUTORADO', 'DETALHAMENTO-DA-ORIENTACAO-EM-ANDAMENTO-DE-POS-DOUTORADO', true));
-            else if (/especial|aperfei/i.test(t)) b.AE.push(mk('ORIENTACAO-EM-ANDAMENTO-DE-APERFEICOAMENTO-ESPECIALIZACAO', 'DADOS-BASICOS-DA-ORIENTACAO-EM-ANDAMENTO-DE-APERFEICOAMENTO-ESPECIALIZACAO', 'DETALHAMENTO-DA-ORIENTACAO-EM-ANDAMENTO-DE-APERFEICOAMENTO-ESPECIALIZACAO', false));
-            else if (/gradua|tcc/i.test(t)) b.G.push(mk('ORIENTACAO-EM-ANDAMENTO-DE-GRADUACAO', 'DADOS-BASICOS-DA-ORIENTACAO-EM-ANDAMENTO-DE-GRADUACAO', 'DETALHAMENTO-DA-ORIENTACAO-EM-ANDAMENTO-DE-GRADUACAO', false));
-            else if (/inicia/i.test(t)) b.IC.push(mk('ORIENTACAO-EM-ANDAMENTO-DE-INICIACAO-CIENTIFICA', 'DADOS-BASICOS-DA-ORIENTACAO-EM-ANDAMENTO-DE-INICIACAO-CIENTIFICA', 'DETALHAMENTO-DA-ORIENTACAO-EM-ANDAMENTO-DE-INICIACAO-CIENTIFICA', false));
-            else b.O.push(mk('OUTRAS-ORIENTACOES-EM-ANDAMENTO', 'DADOS-BASICOS-DE-OUTRAS-ORIENTACOES-EM-ANDAMENTO', 'DETALHAMENTO-DE-OUTRAS-ORIENTACOES-EM-ANDAMENTO', false));
+            else if (/especial|aperfei/i.test(t)) b.AE.push(mk('ORIENTACAO-EM-ANDAMENTO-DE-APERFEICOAMENTO-ESPECIALIZACAO', 'DADOS-BASICOS-DA-ORIENTACAO-EM-ANDAMENTO-DE-APERFEICOAMENTO-ESPECIALIZACAO', 'DETALHAMENTO-DA-ORIENTACAO-EM-ANDAMENTO-DE-APERFEICOAMENTO-ESPECIALIZACAO'));
+            else if (/gradua|tcc/i.test(t)) b.G.push(mk('ORIENTACAO-EM-ANDAMENTO-DE-GRADUACAO', 'DADOS-BASICOS-DA-ORIENTACAO-EM-ANDAMENTO-DE-GRADUACAO', 'DETALHAMENTO-DA-ORIENTACAO-EM-ANDAMENTO-DE-GRADUACAO'));
+            else if (/inicia/i.test(t)) b.IC.push(mk('ORIENTACAO-EM-ANDAMENTO-DE-INICIACAO-CIENTIFICA', 'DADOS-BASICOS-DA-ORIENTACAO-EM-ANDAMENTO-DE-INICIACAO-CIENTIFICA', 'DETALHAMENTO-DA-ORIENTACAO-EM-ANDAMENTO-DE-INICIACAO-CIENTIFICA'));
+            else b.O.push(mk('OUTRAS-ORIENTACOES-EM-ANDAMENTO', 'DADOS-BASICOS-DE-OUTRAS-ORIENTACOES-EM-ANDAMENTO', 'DETALHAMENTO-DE-OUTRAS-ORIENTACOES-EM-ANDAMENTO'));
         });
         return wrap('ORIENTACOES-EM-ANDAMENTO', b.M.join('') + b.D.join('') + b.PD.join('') + b.AE.join('') + b.G.join('') + b.IC.join('') + b.O.join(''));
     }

@@ -147,6 +147,15 @@ window.LattesXML = (function () {
         'ORIENTACAO-EM-ANDAMENTO-DE-INICIACAO-CIENTIFICA': { tipo: 'Iniciação científica', situacao: 'Em andamento' },
         'OUTRAS-ORIENTACOES-EM-ANDAMENTO':               { tipo: 'Outra', situacao: 'Em andamento' },
     };
+    // "Outras orientações concluídas" tem NATUREZA enumerada no schema — o
+    // exportador também grava um TIPO em texto livre (mesmo elemento) com o
+    // rótulo exato; preferimos essa cópia e caímos no enum como alternativa.
+    const OUTRA_ORIENT_CONCL_TOKEN_TO_TIPO = {
+        INICIACAO_CIENTIFICA: 'Iniciação científica',
+        TRABALHO_DE_CONCLUSAO_DE_CURSO_GRADUACAO: 'TCC / Graduação',
+        MONOGRAFIA_DE_CONCLUSAO_DE_CURSO_APERFEICOAMENTO_E_ESPECIALIZACAO: 'Especialização / Monografia',
+        'ORIENTACAO-DE-OUTRA-NATUREZA': 'Outra',
+    };
 
     const PARTIC_MAP = {
         'PARTICIPACAO-EM-CONGRESSO': 'Congresso', 'PARTICIPACAO-EM-FEIRA': 'Feira',
@@ -433,17 +442,23 @@ window.LattesXML = (function () {
                 const b = groupByPrefix(el, 'DADOS-BASICOS');
                 const d = groupByPrefix(el, 'DETALHAMENTO');
                 const tkey = ctx.situacao === 'Concluída' ? 'ORIENTACAO_CONCLUIDA' : 'ORIENTACAO_ANDAMENTO';
-                add(tkey, {
+                let tipo = ctx.tipo;
+                if (tag === 'OUTRAS-ORIENTACOES-CONCLUIDAS') tipo = b['TIPO'] || OUTRA_ORIENT_CONCL_TOKEN_TO_TIPO[b['NATUREZA']] || ctx.tipo;
+                else if (tag === 'OUTRAS-ORIENTACOES-EM-ANDAMENTO') tipo = b['NATUREZA'] || ctx.tipo;
+                const fields = Object.assign({
                     orientando: d['NOME-DO-ORIENTADO'] || d['NOME-DO-ORIENTANDO'] || '',
-                    tipo: ctx.tipo,
+                    tipo,
+                    modalidade: ctx.tipo === 'Mestrado' ? (MODALIDADE_MESTRADO_MAP[b['TIPO']] || '') : '',
                     natureza: ORIENT_TIPO[d['TIPO-DE-ORIENTACAO']] || '',
                     titulo: pick(b, 'TITULO-DO-TRABALHO', 'TITULO'),
                     curso: d['NOME-DO-CURSO'] || d['NOME-CURSO'] || '',
                     instituicao: d['NOME-DA-INSTITUICAO'] || d['NOME-INSTITUICAO'] || '',
                     bolsa: d['NOME-DA-AGENCIA'] || '',
-                    pais: b['PAIS'] || '',
+                    pais: b['PAIS'] || '', idioma: b['IDIOMA'] || '', url: urlOf(b),
                     ano: yearOf(b),
-                }, el);
+                    palavrasChave: palavrasChaveOf(el), outrasInfo: informacoesAdicionaisOf(el),
+                }, areaDoConhecimentoOf(el));
+                add(tkey, fields, el);
             }
         });
 
@@ -474,7 +489,7 @@ window.LattesXML = (function () {
                 const d = groupByPrefix(el, 'DETALHAMENTO');
                 const julgadora = tag.indexOf('BANCA-JULGADORA') === 0 || tag === 'OUTRAS-BANCAS-JULGADORAS';
                 const tipo = tag === 'PARTICIPACAO-EM-BANCA-DE-EXAME-QUALIFICACAO' ? qualifNatureza(b['NATUREZA']) : BANCA_MAP[tag];
-                const fields = {
+                const fields = Object.assign({
                     tipo,
                     candidato: d['NOME-DO-CANDIDATO'] || '',
                     titulo: pick(b, 'TITULO', ...TITLE_KEYS),
@@ -482,14 +497,10 @@ window.LattesXML = (function () {
                     instituicao: d['NOME-INSTITUICAO'] || '',
                     membros: membrosBanca(el),
                     ano: yearOf(b),
-                };
-                if (!julgadora) {
-                    Object.assign(fields, {
-                        modalidade: MODALIDADE_MESTRADO_MAP[b['TIPO']] || '',
-                        pais: b['PAIS'] || '', idioma: b['IDIOMA'] || '', url: urlOf(b),
-                        palavrasChave: palavrasChaveOf(el), outrasInfo: informacoesAdicionaisOf(el),
-                    }, areaDoConhecimentoOf(el));
-                }
+                    pais: b['PAIS'] || '', idioma: b['IDIOMA'] || '', url: urlOf(b),
+                    palavrasChave: palavrasChaveOf(el), outrasInfo: informacoesAdicionaisOf(el),
+                }, areaDoConhecimentoOf(el));
+                if (!julgadora) fields.modalidade = MODALIDADE_MESTRADO_MAP[b['TIPO']] || '';
                 add(julgadora ? 'BANCA_JULGADORA' : 'BANCA_CONCLUSAO', fields, el);
             }
         });

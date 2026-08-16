@@ -26,12 +26,25 @@ items.push(mk('POS_DOUTORADO', 'FORMACAO', { tipo: 'Livre-docência', instituica
 // Livro e capítulo
 items.push(mk('LIVRO_CAPITULO', 'PRODUCOES', { tipoObra: 'Livro publicado', titulo: 'Meu Livro', ano: '2020', autores: 'TAL, F.', editora: 'Ed', cidade: 'SP', isbn: '978-1', paginas: '200' }));
 items.push(mk('LIVRO_CAPITULO', 'PRODUCOES', { tipoObra: 'Capítulo de livro', titulo: 'Meu Capítulo', ano: '2021', autores: 'TAL, F.; X, Y', tituloLivro: 'Coletânea', organizadores: 'Org Z', editora: 'Ed', paginas: '10-30', isbn: '978-2' }));
-// Orientações concluídas — todos os tipos
-['Mestrado', 'Doutorado', 'Pós-Doutorado', 'Iniciação científica'].forEach(tipo =>
-    items.push(mk('ORIENTACAO_CONCLUIDA', 'ORIENTACOES', { orientando: 'Aluno ' + tipo, tipo, natureza: 'Orientador principal', titulo: 'Tese ' + tipo, curso: 'PPG', instituicao: 'UNIFESP', bolsa: 'CNPq', ano: '2019', pais: 'Brasil' })));
-// Orientações em andamento — todos os tipos
+// Orientações concluídas — todas as naturezas + campos novos (modalidade só em
+// Mestrado, idioma, home page, palavras-chave, área do conhecimento, outras informações)
 ['Mestrado', 'Doutorado', 'Pós-Doutorado', 'Especialização / Monografia', 'TCC / Graduação', 'Iniciação científica', 'Outra'].forEach(tipo =>
-    items.push(mk('ORIENTACAO_ANDAMENTO', 'ORIENTACOES', { orientando: 'And ' + tipo, tipo, natureza: 'Coorientador', titulo: 'Trab ' + tipo, curso: 'PPG', instituicao: 'UNIFESP', ano: '2024', pais: 'Brasil' })));
+    items.push(mk('ORIENTACAO_CONCLUIDA', 'ORIENTACOES', {
+        orientando: 'Aluno ' + tipo, tipo, modalidade: tipo === 'Mestrado' ? 'Profissionalizante' : '',
+        natureza: 'Orientador principal', titulo: 'Tese ' + tipo, curso: 'PPG', instituicao: 'UNIFESP', bolsa: 'CNPq',
+        ano: '2019', pais: 'Brasil', idioma: 'Português', url: 'https://example.org/orientacao',
+        palavrasChave: 'clima; saúde', grandeArea: 'Ciências da Saúde', area: 'Medicina', subarea: 'Clínica Médica',
+        especialidade: 'Cardiologia', outrasInfo: 'Observação livre.',
+    })));
+// Orientações em andamento — todas as naturezas + mesmos campos novos
+['Mestrado', 'Doutorado', 'Pós-Doutorado', 'Especialização / Monografia', 'TCC / Graduação', 'Iniciação científica', 'Outra'].forEach(tipo =>
+    items.push(mk('ORIENTACAO_ANDAMENTO', 'ORIENTACOES', {
+        orientando: 'And ' + tipo, tipo, modalidade: tipo === 'Mestrado' ? 'Acadêmico' : '',
+        natureza: 'Coorientador', titulo: 'Trab ' + tipo, curso: 'PPG', instituicao: 'UNIFESP',
+        ano: '2024', pais: 'Brasil', idioma: 'Português', url: 'https://example.org/orientacao-andamento',
+        palavrasChave: 'clima; saúde', grandeArea: 'Ciências da Saúde', area: 'Medicina', subarea: 'Clínica Médica',
+        especialidade: 'Cardiologia', outrasInfo: 'Observação livre.',
+    })));
 // Bancas de conclusão — todas as naturezas + campos novos (modalidade só em
 // Mestrado, país/idioma/home page, palavras-chave, área do conhecimento, outras informações)
 [
@@ -47,9 +60,14 @@ items.push(mk('LIVRO_CAPITULO', 'PRODUCOES', { tipoObra: 'Capítulo de livro', t
     palavrasChave: 'chuva; seca; clima', grandeArea: 'Ciências da Saúde', area: 'Medicina', subarea: 'Clínica Médica',
     especialidade: 'Cardiologia', outrasInfo: 'Observação livre.',
 })));
-// Bancas julgadoras — todos os tipos
+// Bancas julgadoras — todas as naturezas + campos novos
 ['Concurso público', 'Professor titular', 'Livre-docência', 'Avaliação de cursos', 'Outra'].forEach(tipo =>
-    items.push(mk('BANCA_JULGADORA', 'BANCAS', { tipo, titulo: 'Julg ' + tipo, instituicao: 'UNIFESP', membros: 'Prof A; Prof B', ano: '2023' })));
+    items.push(mk('BANCA_JULGADORA', 'BANCAS', {
+        tipo, titulo: 'Julg ' + tipo, instituicao: 'UNIFESP', membros: 'Prof A; Prof B', ano: '2023',
+        pais: 'Brasil', idioma: 'Português', url: 'https://example.org/banca-julgadora',
+        palavrasChave: 'gestão; avaliação', grandeArea: 'Ciências Sociais Aplicadas', area: 'Administração',
+        outrasInfo: 'Observação livre.',
+    })));
 // Participação em eventos — todas as naturezas
 ['Congresso', 'Seminário', 'Simpósio', 'Oficina', 'Encontro', 'Olimpíada', 'Feira', 'Exposição', 'Outra'].forEach(natureza =>
     items.push(mk('PARTICIPACAO_EVENTO', 'EVENTOS', { titulo: 'Evento ' + natureza, natureza, formaParticipacao: 'Participante', tipoParticipacao: 'Conferencista', tituloApresentacao: 'Palestra', classificacao: 'Nacional', ano: '2023', pais: 'Brasil', cidade: 'SP' })));
