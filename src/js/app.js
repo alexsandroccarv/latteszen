@@ -79,7 +79,7 @@
 
     // Validação do arquivo de evidência: vazio, tamanho e tipo permitido.
     // Retorna null se OK ou uma mensagem de erro.
-    const MAX_EVID_MB = 20;
+    const MAX_EVID_MB = 40;
     function checkEvidenceFile(file, allowedExts) {
         if (!file) return 'Arquivo inválido.';
         if (file.size === 0) return `"${file.name}" está vazio.`;
