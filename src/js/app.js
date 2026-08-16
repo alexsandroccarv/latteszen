@@ -1484,16 +1484,17 @@
         const st = Storage.loadSettings(); st.lastCat = state.lastCat; st.lastType = state.lastType; Storage.saveSettings(st);
 
         clearDraft(); // item salvo → descarta o rascunho automático
-        const wasEditing = !!editing, saveNew = state.saveAndNew, returnTab = state.editReturnTab;
+        const saveNew = state.saveAndNew, returnTab = state.editReturnTab;
         state.saveAndNew = false; state.editReturnTab = null; state.editingId = null; state.evEditing = []; state.formDirty = false;
-        // Edição vinda de outra aba (ex.: Conformidade) + "Salvar alterações": volta para lá
-        if (wasEditing && !saveNew && returnTab) {
+        // Vindo de outra aba (ex.: Conformidade) + "Salvar alterações"/"Adicionar item": volta para lá
+        if (!saveNew && returnTab) {
             buildForm(undefined, { focus: false });      // deixa o formulário de Catalogar limpo
             switchTab(returnTab);
             return;
         }
-        // Edição + "Salvar alterações": reabre o mesmo item; senão abre um novo (mesma cat/tipo)
-        if (wasEditing && !saveNew) buildForm(state.items.find(i => i.id === item.id), { focus: false });
+        // "Adicionar item" / "Salvar alterações": reabre o item recém-salvo (novo ou editado),
+        // para revisar/anexar evidência. "Salvar e novo": abre um item em branco (mesma cat/tipo).
+        if (!saveNew) buildForm(state.items.find(i => i.id === item.id), { focus: false });
         else buildForm(undefined, { focus: true });
         renderItemList();
     }
