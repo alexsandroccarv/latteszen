@@ -4,7 +4,7 @@ Organizador do **Currículo Lattes** que roda inteiramente no navegador, com
 importação e exportação fiéis ao XML oficial do CNPq e anexação de evidências
 (comprovações) diretamente numa pasta local do seu computador.
 
-> Versão 0.1.2 · UNIFESP
+> Versão 0.2.0 · UNIFESP
 
 ---
 

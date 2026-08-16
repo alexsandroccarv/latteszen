@@ -3,8 +3,8 @@
    ========================================================================== */
 window.APP_CONFIG = {
     name: 'lattesZen',
-    version: 'v0.1.2',
-    lastModified: '13/08/2026',
+    version: 'v0.2.0',
+    lastModified: '16/08/2026',
     institution: {
         sigla: 'UNIFESP',
     },
