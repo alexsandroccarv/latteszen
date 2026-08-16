@@ -735,7 +735,7 @@
 
             <div class="flex gap-2 pt-1 flex-wrap">
                 <button type="submit" class="px-4 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm font-semibold hover:opacity-90">
-                    <i aria-hidden="true" class="fa-solid fa-floppy-disk mr-1"></i> ${editing ? 'Salvar alterações' : 'Adicionar item'}
+                    <i aria-hidden="true" class="fa-solid fa-floppy-disk mr-1"></i> ${editing ? 'Salvar alterações' : 'Salvar'}
                 </button>
                 <button type="button" id="btnSalvarNovo" class="px-4 py-2 rounded border border-govbr-600 dark:border-unifesp-500 text-govbr-700 dark:text-unifesp-300 text-sm font-semibold hover:bg-govbr-50 dark:hover:bg-gray-800" title="Salva e abre um novo item na mesma categoria/tipo">
                     <i aria-hidden="true" class="fa-solid fa-plus mr-1"></i> Salvar e novo
@@ -1486,13 +1486,13 @@
         clearDraft(); // item salvo → descarta o rascunho automático
         const saveNew = state.saveAndNew, returnTab = state.editReturnTab;
         state.saveAndNew = false; state.editReturnTab = null; state.editingId = null; state.evEditing = []; state.formDirty = false;
-        // Vindo de outra aba (ex.: Conformidade) + "Salvar alterações"/"Adicionar item": volta para lá
+        // Vindo de outra aba (ex.: Conformidade) + "Salvar alterações"/"Salvar": volta para lá
         if (!saveNew && returnTab) {
             buildForm(undefined, { focus: false });      // deixa o formulário de Catalogar limpo
             switchTab(returnTab);
             return;
         }
-        // "Adicionar item" / "Salvar alterações": reabre o item recém-salvo (novo ou editado),
+        // "Salvar" / "Salvar alterações": reabre o item recém-salvo (novo ou editado),
         // para revisar/anexar evidência. "Salvar e novo": abre um item em branco (mesma cat/tipo).
         if (!saveNew) buildForm(state.items.find(i => i.id === item.id), { focus: false });
         else buildForm(undefined, { focus: true });
