@@ -92,6 +92,30 @@ window.LattesXMLExport = (function () {
             'ORDEM-PARTICIPANTE': String(i + 1),
         })).join('');
     }
+    // PALAVRAS-CHAVE (até 6, atributos PALAVRA-CHAVE-1..6) a partir de "chuva; seca"
+    function palavrasChaveEl(str) {
+        const arr = String(str == null ? '' : str).split(';').map(clean).filter(Boolean).slice(0, 6);
+        if (!arr.length) return '';
+        const attrs = {};
+        arr.forEach((v, i) => { attrs[`PALAVRA-CHAVE-${i + 1}`] = v; });
+        return el('PALAVRAS-CHAVE', attrs);
+    }
+    // AREAS-DO-CONHECIMENTO (só a área primária, AREA-DO-CONHECIMENTO-1) a partir
+    // dos campos do seletor em cascata (f.grandeArea/area/subarea/especialidade).
+    function areaDoConhecimentoEl(f) {
+        if (!f.grandeArea && !f.area) return '';
+        return el('AREAS-DO-CONHECIMENTO', {}, el('AREA-DO-CONHECIMENTO-1', {
+            'NOME-GRANDE-AREA-DO-CONHECIMENTO': grandeAreaToken(f.grandeArea),
+            'NOME-DA-AREA-DO-CONHECIMENTO': f.area,
+            'NOME-DA-SUB-AREA-DO-CONHECIMENTO': f.subarea,
+            'NOME-DA-ESPECIALIDADE': f.especialidade,
+        }));
+    }
+    // INFORMACOES-ADICIONAIS (texto livre)
+    function informacoesAdicionaisEl(str) {
+        const v = clean(str);
+        return v ? el('INFORMACOES-ADICIONAIS', { 'DESCRICAO-INFORMACOES-ADICIONAIS': v }) : '';
+    }
     // páginas "100-115" → {ini, fim}
     function paginas(v) {
         const s = clean(v); const m = s.match(/(\d+)\s*[-–a]\s*(\d+)/);
@@ -633,18 +657,26 @@ window.LattesXMLExport = (function () {
     function buildBancasConclusao(list) {
         if (!list.length) return '';
         const b = { M: [], D: [], Q: [], AE: [], G: [], O: [] };
+        const MODALIDADE_TOKEN = { 'Acadêmico': 'ACADEMICO', 'Profissionalizante': 'PROFISSIONALIZANTE' };
         let seq = 0; const S = () => String(++seq);
         list.forEach(it => {
             const f = it.fields; const t = f.tipo || '';
             const det = { 'NOME-DO-CANDIDATO': f.candidato, 'NOME-INSTITUICAO': f.instituicao, 'NOME-CURSO': f.curso };
-            const part = participantesBanca(f.membros);
-            const mk = (leaf, dbTag, detTag) => el(leaf, { 'SEQUENCIA-PRODUCAO': S() }, el(dbTag, { 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma }) + el(detTag, det) + part);
-            if (/mestrado/i.test(t)) b.M.push(mk('PARTICIPACAO-EM-BANCA-DE-MESTRADO', 'DADOS-BASICOS-DA-PARTICIPACAO-EM-BANCA-DE-MESTRADO', 'DETALHAMENTO-DA-PARTICIPACAO-EM-BANCA-DE-MESTRADO'));
+            const extra = palavrasChaveEl(f.palavrasChave) + areaDoConhecimentoEl(f) + informacoesAdicionaisEl(f.outrasInfo);
+            const part = participantesBanca(f.membros) + extra;
+            const mk = (leaf, dbTag, detTag, comTipo) => {
+                const db = { 'NATUREZA': t, 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma, 'HOME-PAGE': f.url };
+                if (comTipo) db['TIPO'] = MODALIDADE_TOKEN[f.modalidade] || ''; // só Mestrado (Acadêmico/Profissionalizante)
+                return el(leaf, { 'SEQUENCIA-PRODUCAO': S() }, el(dbTag, db) + el(detTag, det) + part);
+            };
+            // "qualific" primeiro: "Exame de qualificação de mestrado/doutorado" contêm
+            // as substrings "mestrado"/"doutorado" e cairiam nos ramos errados.
+            if (/qualific/i.test(t)) b.Q.push(mk('PARTICIPACAO-EM-BANCA-DE-EXAME-QUALIFICACAO', 'DADOS-BASICOS-DA-PARTICIPACAO-EM-BANCA-DE-EXAME-QUALIFICACAO', 'DETALHAMENTO-DA-PARTICIPACAO-EM-BANCA-DE-EXAME-QUALIFICACAO'));
+            else if (/mestrado/i.test(t)) b.M.push(mk('PARTICIPACAO-EM-BANCA-DE-MESTRADO', 'DADOS-BASICOS-DA-PARTICIPACAO-EM-BANCA-DE-MESTRADO', 'DETALHAMENTO-DA-PARTICIPACAO-EM-BANCA-DE-MESTRADO', true));
             else if (/doutorado/i.test(t)) b.D.push(mk('PARTICIPACAO-EM-BANCA-DE-DOUTORADO', 'DADOS-BASICOS-DA-PARTICIPACAO-EM-BANCA-DE-DOUTORADO', 'DETALHAMENTO-DA-PARTICIPACAO-EM-BANCA-DE-DOUTORADO'));
-            else if (/qualific/i.test(t)) b.Q.push(mk('PARTICIPACAO-EM-BANCA-DE-EXAME-QUALIFICACAO', 'DADOS-BASICOS-DA-PARTICIPACAO-EM-BANCA-DE-EXAME-QUALIFICACAO', 'DETALHAMENTO-DA-PARTICIPACAO-EM-BANCA-DE-EXAME-QUALIFICACAO'));
             else if (/especial|aperfei/i.test(t)) b.AE.push(mk('PARTICIPACAO-EM-BANCA-DE-APERFEICOAMENTO-ESPECIALIZACAO', 'DADOS-BASICOS-DA-PARTICIPACAO-EM-BANCA-DE-APERFEICOAMENTO-ESPECIALIZACAO', 'DETALHAMENTO-DA-PARTICIPACAO-EM-BANCA-DE-APERFEICOAMENTO-ESPECIALIZACAO'));
             else if (/gradua|tcc/i.test(t)) b.G.push(mk('PARTICIPACAO-EM-BANCA-DE-GRADUACAO', 'DADOS-BASICOS-DA-PARTICIPACAO-EM-BANCA-DE-GRADUACAO', 'DETALHAMENTO-DA-PARTICIPACAO-EM-BANCA-DE-GRADUACAO'));
-            else b.O.push(el('OUTRAS-PARTICIPACOES-EM-BANCA', { 'SEQUENCIA-PRODUCAO': S() }, el('DADOS-BASICOS-DE-OUTRAS-PARTICIPACOES-EM-BANCA', { 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma }) + el('DETALHAMENTO-DE-OUTRAS-PARTICIPACOES-EM-BANCA', det) + part));
+            else b.O.push(el('OUTRAS-PARTICIPACOES-EM-BANCA', { 'SEQUENCIA-PRODUCAO': S() }, el('DADOS-BASICOS-DE-OUTRAS-PARTICIPACOES-EM-BANCA', { 'NATUREZA': t, 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma, 'HOME-PAGE': f.url }) + el('DETALHAMENTO-DE-OUTRAS-PARTICIPACOES-EM-BANCA', det) + part));
         });
         return wrap('PARTICIPACAO-EM-BANCA-TRABALHOS-CONCLUSAO', b.M.join('') + b.D.join('') + b.Q.join('') + b.AE.join('') + b.G.join('') + b.O.join(''));
     }

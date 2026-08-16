@@ -106,6 +106,25 @@ window.LattesXML = (function () {
         }
         return nomes.join('; ');
     }
+    // PALAVRAS-CHAVE (PALAVRA-CHAVE-1..6) -> "chuva; seca"
+    function palavrasChaveOf(el) {
+        const p = attrs(firstTag(el, 'PALAVRAS-CHAVE'));
+        return [1, 2, 3, 4, 5, 6].map(i => p[`PALAVRA-CHAVE-${i}`]).filter(Boolean).join('; ');
+    }
+    // AREA-DO-CONHECIMENTO-1 (dentro de AREAS-DO-CONHECIMENTO) -> campos do seletor em cascata
+    function areaDoConhecimentoOf(el) {
+        const a = attrs(firstTag(el, 'AREA-DO-CONHECIMENTO-1'));
+        return {
+            grandeArea: humanize(a['NOME-GRANDE-AREA-DO-CONHECIMENTO']),
+            area: a['NOME-DA-AREA-DO-CONHECIMENTO'] || '',
+            subarea: a['NOME-DA-SUB-AREA-DO-CONHECIMENTO'] || '',
+            especialidade: a['NOME-DA-ESPECIALIDADE'] || '',
+        };
+    }
+    // INFORMACOES-ADICIONAIS -> texto livre
+    function informacoesAdicionaisOf(el) {
+        return attrs(firstTag(el, 'INFORMACOES-ADICIONAIS'))['DESCRICAO-INFORMACOES-ADICIONAIS'] || '';
+    }
 
     /* ---------------------- mapas de enumeração --------------------------- */
     const PROF_MAP = { BEM: 'Bom', RAZOAVELMENTE: 'Razoável', POUCO: 'Pouco' };
@@ -140,9 +159,9 @@ window.LattesXML = (function () {
     const BANCA_MAP = {
         'PARTICIPACAO-EM-BANCA-DE-MESTRADO': 'Mestrado',
         'PARTICIPACAO-EM-BANCA-DE-DOUTORADO': 'Doutorado',
-        'PARTICIPACAO-EM-BANCA-DE-EXAME-QUALIFICACAO': 'Qualificação',
-        'PARTICIPACAO-EM-BANCA-DE-APERFEICOAMENTO-ESPECIALIZACAO': 'Especialização / Aperfeiçoamento',
-        'PARTICIPACAO-EM-BANCA-DE-GRADUACAO': 'TCC / Graduação',
+        'PARTICIPACAO-EM-BANCA-DE-EXAME-QUALIFICACAO': 'Exame de qualificação de doutorado',
+        'PARTICIPACAO-EM-BANCA-DE-APERFEICOAMENTO-ESPECIALIZACAO': 'Curso de aperfeiçoamento/especialização',
+        'PARTICIPACAO-EM-BANCA-DE-GRADUACAO': 'Graduação',
         'OUTRAS-PARTICIPACOES-EM-BANCA': 'Outra',
         'BANCA-JULGADORA-PARA-PROFESSOR-TITULAR': 'Professor titular',
         'BANCA-JULGADORA-PARA-CONCURSO-PUBLICO': 'Concurso público',
@@ -150,6 +169,16 @@ window.LattesXML = (function () {
         'BANCA-JULGADORA-PARA-AVALIACAO-CURSOS': 'Avaliação de cursos',
         'OUTRAS-BANCAS-JULGADORAS': 'Outra',
     };
+    // Mestrado é o único com TIPO (ACADEMICO/PROFISSIONALIZANTE) no schema.
+    const MODALIDADE_MESTRADO_MAP = { ACADEMICO: 'Acadêmico', PROFISSIONALIZANTE: 'Profissionalizante' };
+    // O schema junta qualificação de mestrado e de doutorado num só elemento;
+    // distinguimos pelo atributo NATUREZA (texto livre) quando presente.
+    function qualifNatureza(raw) {
+        const s = String(raw || '').toLowerCase();
+        if (s.indexOf('mestrado') >= 0) return 'Exame de qualificação de mestrado';
+        if (s.indexOf('doutorado') >= 0) return 'Exame de qualificação de doutorado';
+        return raw || 'Exame de qualificação de doutorado';
+    }
 
     const FORMACAO_MAP = {
         'GRADUACAO': 'Graduação', 'ESPECIALIZACAO': 'Especialização', 'APERFEICOAMENTO': 'Aperfeiçoamento',
@@ -444,15 +473,24 @@ window.LattesXML = (function () {
                 const b = groupByPrefix(el, 'DADOS-BASICOS');
                 const d = groupByPrefix(el, 'DETALHAMENTO');
                 const julgadora = tag.indexOf('BANCA-JULGADORA') === 0 || tag === 'OUTRAS-BANCAS-JULGADORAS';
-                add(julgadora ? 'BANCA_JULGADORA' : 'BANCA_CONCLUSAO', {
-                    tipo: BANCA_MAP[tag],
+                const tipo = tag === 'PARTICIPACAO-EM-BANCA-DE-EXAME-QUALIFICACAO' ? qualifNatureza(b['NATUREZA']) : BANCA_MAP[tag];
+                const fields = {
+                    tipo,
                     candidato: d['NOME-DO-CANDIDATO'] || '',
                     titulo: pick(b, 'TITULO', ...TITLE_KEYS),
                     curso: d['NOME-CURSO'] || '',
                     instituicao: d['NOME-INSTITUICAO'] || '',
                     membros: membrosBanca(el),
                     ano: yearOf(b),
-                }, el);
+                };
+                if (!julgadora) {
+                    Object.assign(fields, {
+                        modalidade: MODALIDADE_MESTRADO_MAP[b['TIPO']] || '',
+                        pais: b['PAIS'] || '', idioma: b['IDIOMA'] || '', url: urlOf(b),
+                        palavrasChave: palavrasChaveOf(el), outrasInfo: informacoesAdicionaisOf(el),
+                    }, areaDoConhecimentoOf(el));
+                }
+                add(julgadora ? 'BANCA_JULGADORA' : 'BANCA_CONCLUSAO', fields, el);
             }
         });
 

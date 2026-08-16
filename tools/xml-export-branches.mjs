@@ -32,9 +32,21 @@ items.push(mk('LIVRO_CAPITULO', 'PRODUCOES', { tipoObra: 'Capítulo de livro', t
 // Orientações em andamento — todos os tipos
 ['Mestrado', 'Doutorado', 'Pós-Doutorado', 'Especialização / Monografia', 'TCC / Graduação', 'Iniciação científica', 'Outra'].forEach(tipo =>
     items.push(mk('ORIENTACAO_ANDAMENTO', 'ORIENTACOES', { orientando: 'And ' + tipo, tipo, natureza: 'Coorientador', titulo: 'Trab ' + tipo, curso: 'PPG', instituicao: 'UNIFESP', ano: '2024', pais: 'Brasil' })));
-// Bancas de conclusão — todos os tipos
-['Mestrado', 'Doutorado', 'Qualificação', 'Especialização / Aperfeiçoamento', 'TCC / Graduação'].forEach(tipo =>
-    items.push(mk('BANCA_CONCLUSAO', 'BANCAS', { tipo, candidato: 'Cand ' + tipo, titulo: 'Banca ' + tipo, curso: 'PPG', instituicao: 'UNIFESP', membros: 'Prof A; Prof B', ano: '2022' })));
+// Bancas de conclusão — todas as naturezas + campos novos (modalidade só em
+// Mestrado, país/idioma/home page, palavras-chave, área do conhecimento, outras informações)
+[
+    { tipo: 'Mestrado', modalidade: 'Acadêmico' },
+    { tipo: 'Doutorado' },
+    { tipo: 'Exame de qualificação de mestrado' },
+    { tipo: 'Exame de qualificação de doutorado' },
+    { tipo: 'Curso de aperfeiçoamento/especialização' },
+    { tipo: 'Graduação' },
+].forEach(({ tipo, modalidade }) => items.push(mk('BANCA_CONCLUSAO', 'BANCAS', {
+    tipo, modalidade, candidato: 'Cand ' + tipo, titulo: 'Banca ' + tipo, curso: 'PPG', instituicao: 'UNIFESP',
+    membros: 'Prof A; Prof B', ano: '2022', pais: 'Brasil', idioma: 'Português', url: 'https://example.org/banca',
+    palavrasChave: 'chuva; seca; clima', grandeArea: 'Ciências da Saúde', area: 'Medicina', subarea: 'Clínica Médica',
+    especialidade: 'Cardiologia', outrasInfo: 'Observação livre.',
+})));
 // Bancas julgadoras — todos os tipos
 ['Concurso público', 'Professor titular', 'Livre-docência', 'Avaliação de cursos', 'Outra'].forEach(tipo =>
     items.push(mk('BANCA_JULGADORA', 'BANCAS', { tipo, titulo: 'Julg ' + tipo, instituicao: 'UNIFESP', membros: 'Prof A; Prof B', ano: '2023' })));
