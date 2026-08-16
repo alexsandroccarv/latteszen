@@ -1006,7 +1006,8 @@
             const t = (f.type === 'url' ? 'url' : (f.type === 'number' ? 'number' : (f.type === 'date' ? 'date' : 'text')));
             const listAttr = (t === 'text' && AUTOCOMPLETE_KEYS.includes(f.key)) ? `list="dl-${f.key}"` : '';
             let vkind = '';
-            if (f.key === 'issn' || f.key === 'isbn' || f.key === 'doi') vkind = f.key;
+            if (f.validate) vkind = f.validate;
+            else if (f.key === 'issn' || f.key === 'isbn' || f.key === 'doi') vkind = f.key;
             else if (t === 'url') vkind = 'url';
             const vAttr = vkind ? `data-validate="${vkind}"` : '';
             const ph = f.placeholder || (f.key === 'issn' ? '0000-0000'
@@ -1056,6 +1057,14 @@
         }
         return { ok: false, msg: 'ISBN inválido — informe 10 ou 13 dígitos.' };
     }
+    // Anais de eventos: aceita ISBN (10/13 dígitos) OU ISSN (8 dígitos) no mesmo campo.
+    function validateISBNorISSN(v) {
+        const s = String(v || '').trim();
+        if (!s) return { ok: true, value: '' };
+        const d = s.toUpperCase().replace(/[\s-]/g, '');
+        if (/^\d{7}[\dX]$/.test(d)) return validateISSN(v);
+        return validateISBN(v);
+    }
     // DOI: aceita o identificador puro ou colado como URL do resolver; normaliza p/ puro.
     function validateDOI(v) {
         const s = String(v || '').trim();
@@ -1078,6 +1087,7 @@
     function validateField(kind, value) {
         if (kind === 'issn') return validateISSN(value);
         if (kind === 'isbn') return validateISBN(value);
+        if (kind === 'isbnIssn') return validateISBNorISSN(value);
         if (kind === 'doi') return validateDOI(value);
         if (kind === 'url') return validateURL(value);
         return { ok: true, value: value };

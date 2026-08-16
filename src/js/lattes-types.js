@@ -139,7 +139,7 @@ const TYPES = {
         { key: 'volume', label: 'Volume', type: 'text' }, { key: 'paginas', label: 'Páginas', type: 'text' }, F_CIDADE, F_PAIS, F_IDIOMA, F_URL] },
     TRABALHO_EVENTO: { label: 'Trabalhos publicados em anais de eventos', fields: [F_TITULO, F_ANO, F_AUTORES,
         F_NATUREZA(['Completo', 'Resumo expandido', 'Resumo']), { key: 'evento', label: 'Nome do evento', type: 'text', required: true },
-        { key: 'anais', label: 'Título dos anais', type: 'text' }, { key: 'isbn', label: 'ISBN/ISSN dos anais', type: 'text' }, { key: 'cidade', label: 'Cidade do evento', type: 'text' }, F_PAIS,
+        { key: 'anais', label: 'Título dos anais', type: 'text' }, { key: 'isbn', label: 'ISBN/ISSN dos anais', type: 'text', validate: 'isbnIssn', placeholder: 'ISBN-10, ISBN-13 ou ISSN' }, { key: 'cidade', label: 'Cidade do evento', type: 'text' }, F_PAIS,
         { key: 'paginas', label: 'Páginas', type: 'text' }, F_IDIOMA, F_DOI, F_URL] },
     APRESENTACAO: { label: 'Apresentação de trabalho e palestra', fields: [F_TITULO, F_ANO, F_AUTORES,
         F_NATUREZA(['Congresso', 'Seminário', 'Simpósio', 'Conferência ou palestra', 'Comunicação', 'Outra']),
