@@ -7,12 +7,14 @@
    o item catalogado guarda SEMPRE categoryKey + typeKey.
 
    Campo: { key, label, type, required?, options?, placeholder? }
-   type: 'text' | 'textarea' | 'number' | 'year' | 'date' | 'url' | 'select'
+   type: 'text' | 'textarea' | 'number' | 'datebr' | 'date' | 'url' | 'select'
+   'datebr': aceita aaaa, mm/aaaa ou dd/mm/aaaa; na exportação XML Lattes
+   apenas o ANO é mantido (usado em todo campo de ano da aplicação).
    ========================================================================== */
 
 // Átomos de campo reutilizados
 const F_TITULO  = { key: 'titulo', label: 'Título', type: 'text', required: true };
-const F_ANO     = { key: 'ano', label: 'Ano', type: 'year', required: true, placeholder: 'AAAA' };
+const F_ANO     = { key: 'ano', label: 'Ano', type: 'datebr', required: true };
 const F_DOI     = { key: 'doi', label: 'DOI', type: 'text', placeholder: '10.xxxx/xxxxx' };
 const F_URL     = { key: 'url', label: 'URL / Link', type: 'url' };
 const F_AUTORES = { key: 'autores', label: 'Autores', type: 'textarea', placeholder: 'Separe por ponto e vírgula (;)' };
@@ -20,8 +22,8 @@ const F_INST    = { key: 'instituicao', label: 'Instituição', type: 'text' };
 const F_FINAL   = { key: 'finalidade', label: 'Finalidade / Descrição', type: 'textarea' };
 const F_CIDADE  = { key: 'cidade', label: 'Cidade', type: 'text' };
 const F_NATUREZA = (options) => ({ key: 'natureza', label: 'Natureza', type: 'select', options });
-const F_AINI = { key: 'anoInicio', label: 'Ano de início', type: 'year' };
-const F_AFIM = { key: 'anoFim', label: 'Ano de fim', type: 'year' };
+const F_AINI = { key: 'anoInicio', label: 'Ano de início', type: 'datebr' };
+const F_AFIM = { key: 'anoFim', label: 'Ano de fim', type: 'datebr' };
 // Datas completas (dd/mm/aaaa) usadas na categoria Atuação. Na exportação XML
 // Lattes apenas o ANO é mantido (o schema só aceita ANO-INICIO/ANO-FIM).
 const F_DINI = { key: 'anoInicio', label: 'Data de início', type: 'datebr' };
@@ -31,7 +33,7 @@ const F_IDIOMA = { key: 'idioma', label: 'Idioma', type: 'text', placeholder: 'P
 
 // Conjuntos de campos reutilizáveis
 const PROJETO_FIELDS = [F_TITULO,
-    { key: 'anoInicio', label: 'Ano de início', type: 'year', required: true }, F_AFIM,
+    { key: 'anoInicio', label: 'Ano de início', type: 'datebr', required: true }, F_AFIM,
     { key: 'situacao', label: 'Situação', type: 'select', options: ['Em andamento', 'Concluído', 'Desativado'] },
     { key: 'financiador', label: 'Financiador / Agência', type: 'text' },
     { key: 'coordenador', label: 'Coordenador(a)', type: 'text' },
@@ -52,14 +54,14 @@ const AL_PAPEL = { key: 'papel', label: 'Papel / Atuação', type: 'text' };
 const AL_FREQ  = { key: 'frequencia', label: 'Carga horária / Frequência', type: 'text' };
 const AL_IMP   = { key: 'descricao', label: 'Conquistas / Impacto', type: 'textarea' };
 const AL_LOCAL = { key: 'local', label: 'Local / Cidade', type: 'text' };
-const AL_ANO   = { key: 'ano', label: 'Ano', type: 'year' };
+const AL_ANO   = { key: 'ano', label: 'Ano', type: 'datebr' };
 const alNome = (label) => ({ key: 'titulo', label, type: 'text', required: true });
 
 /* ---- Definição global dos TIPOS (por chave) ---- */
 const TYPES = {
     // 01 Dados gerais
     IDENTIFICACAO: { label: 'Identificação', noEvidence: true, singleton: true, perfil: true, fields: [{ key: 'titulo', label: 'Nome completo', type: 'text', required: true }, { key: 'nomeSocial', label: 'Nome social', type: 'text' }, { key: 'citacoes', label: 'Nome em citações bibliográficas', type: 'text' }, { key: 'sexo', label: 'Sexo', type: 'select', options: ['Masculino', 'Feminino'], help: 'Exigido pelo Lattes na importação do XML.' }, { key: 'nacionalidade', label: 'Nacionalidade', type: 'text', placeholder: 'Brasileira' }, { key: 'pais', label: 'País de nascimento', type: 'text', placeholder: 'Brasil' }, { key: 'orcid', label: 'ORCID', type: 'text' }, F_URL] },
-    FOTO_PERFIL: { label: 'Foto de perfil', noExport: true, noEvidence: true, singleton: true, perfil: true, accept: 'image/jpeg,image/png', fields: [{ key: 'titulo', label: 'Descrição', type: 'text', placeholder: 'ex.: Foto oficial 2025' }, { key: 'ano', label: 'Ano', type: 'year' }] },
+    FOTO_PERFIL: { label: 'Foto de perfil', noExport: true, noEvidence: true, singleton: true, perfil: true, accept: 'image/jpeg,image/png', fields: [{ key: 'titulo', label: 'Descrição', type: 'text', placeholder: 'ex.: Foto oficial 2025' }, { key: 'ano', label: 'Ano', type: 'datebr' }] },
     DOCUMENTO_PESSOAL: { label: 'Documentos pessoais', noExport: true, accept: 'application/pdf,image/jpeg,image/png', fields: [
         { key: 'tipoDoc', label: 'Tipo de documento', type: 'select', required: true, options: ['RG', 'CPF', 'Título de eleitor', 'Certidão de nascimento', 'Certidão de casamento', 'Conselho de classe', 'Diploma / Certificado', 'Carteira profissional', 'CNH', 'Passaporte', 'Comprovante de residência', 'Reservista', 'PIS/PASEP', 'Outro'] },
         { key: 'titulo', label: 'Descrição / Nº do documento', type: 'text', required: true },
@@ -77,13 +79,13 @@ const TYPES = {
     FORMACAO_ACADEMICA: { label: 'Formação acadêmica/titulação', fields: [
         { key: 'nivel', label: 'Nível', type: 'select', required: true, options: ['Ensino fundamental', 'Ensino médio', 'Curso técnico', 'Graduação', 'Aperfeiçoamento', 'Especialização', 'Mestrado', 'Doutorado', 'Residência médica'] },
         { key: 'curso', label: 'Curso / Área', type: 'text', required: true }, { key: 'instituicao', label: 'Instituição', type: 'text', required: true },
-        F_AINI, { key: 'anoFim', label: 'Ano de conclusão', type: 'year' },
+        F_AINI, { key: 'anoFim', label: 'Ano de conclusão', type: 'datebr' },
         { key: 'titulo', label: 'Título do trabalho (TCC/dissertação/tese)', type: 'text' }, { key: 'orientador', label: 'Orientador(a)', type: 'text' },
         { key: 'coorientador', label: 'Coorientador(a)', type: 'text' },
         { key: 'bolsa', label: 'Bolsista / Agência financiadora', type: 'text' }] },
     POS_DOUTORADO: { label: 'Pós-doutorado e/ou livre-docência', fields: [
         { key: 'tipo', label: 'Tipo', type: 'select', required: true, options: ['Pós-Doutorado', 'Livre-docência'] },
-        { key: 'instituicao', label: 'Instituição', type: 'text', required: true }, F_AINI, { key: 'anoFim', label: 'Ano de conclusão', type: 'year' },
+        { key: 'instituicao', label: 'Instituição', type: 'text', required: true }, F_AINI, { key: 'anoFim', label: 'Ano de conclusão', type: 'datebr' },
         { key: 'titulo', label: 'Título do trabalho', type: 'text' },
         { key: 'bolsa', label: 'Bolsista / Agência financiadora', type: 'text' }] },
     FORMACAO_COMPLEMENTAR: { label: 'Formação complementar', fields: [F_TITULO, F_DINI, { key: 'anoFim', label: 'Data de conclusão', type: 'datebr' }, F_INST, { key: 'cargaHoraria', label: 'Carga horária (h)', type: 'number' }] },

@@ -66,6 +66,11 @@
     }
     function nowISO() { return new Date().toISOString(); }
 
+    // Extrai o ANO de um campo de data completa (dd/mm/aaaa, mm/aaaa ou aaaa).
+    // Usado em toda parte que precisa só do ano (dedup, ordenação, RSC) — o
+    // valor guardado pode ter dia/mês, mas eles nunca vão para o XML Lattes.
+    function anoDe(v) { const m = String(v == null ? '' : v).match(/\d{4}/); return m ? m[0] : ''; }
+
     // Extensão do anexo a partir do tipo MIME / nome do arquivo
     function fileExt(file) {
         const t = (file.type || '').toLowerCase();
@@ -644,6 +649,12 @@
         if (!s) return '';
         if (/^\d{2}\/\d{2}\/\d{4}$/.test(s)) return s;
         let m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/); if (m) return `${m[3]}/${m[2]}/${m[1]}`;
+        m = s.match(/^(\d{2})\/(\d{4})$/); // mm/aaaa
+        if (m) {
+            if (!endOfYear) return `01/${m[1]}/${m[2]}`;
+            const ultimoDia = new Date(Number(m[2]), Number(m[1]), 0).getDate();
+            return `${String(ultimoDia).padStart(2, '0')}/${m[1]}/${m[2]}`;
+        }
         m = s.match(/^(\d{4})$/); if (m) return endOfYear ? `31/12/${s}` : `01/01/${s}`;
         return '';
     }
@@ -947,20 +958,15 @@
                 <option value="">—</option>
                 ${f.options.map(o => `<option value="${esc(o)}" ${o === val ? 'selected' : ''}>${esc(o)}</option>`).join('')}
             </select>`;
-        } else if (f.type === 'year') {
-            // Campo de ano no mesmo formato do campo de horas (input numérico).
-            // Padrão: ano corrente quando ainda não há valor.
-            const anoAtual = new Date().getFullYear();
-            const v = (val === '' || val == null) ? anoAtual : val;
-            input = `<input type="number" name="${f.key}" value="${esc(v)}" ${req} min="1900" max="${anoAtual + 10}" step="1" inputmode="numeric" placeholder="AAAA" class="${base}">`;
         } else if (f.type === 'datebr') {
-            // Data dd/mm/aaaa OU mm/aaaa (texto com máscara). Guardada por extenso
-            // para controle interno; na exportação XML Lattes o ano é o que conta.
-            // Valor ISO (aaaa-mm-dd), herdado de importação/legado, vira dd/mm/aaaa.
+            // Data aaaa, mm/aaaa OU dd/mm/aaaa (texto com máscara). Guardada por
+            // extenso para controle interno; na exportação XML Lattes só o ano
+            // é mantido (o schema só aceita ANO). Valor ISO (aaaa-mm-dd), herdado
+            // de importação/legado, vira dd/mm/aaaa.
             let dv = val == null ? '' : String(val);
             const iso = dv.match(/^(\d{4})-(\d{2})-(\d{2})$/);
             if (iso) dv = `${iso[3]}/${iso[2]}/${iso[1]}`;
-            input = `<input type="text" name="${f.key}" value="${esc(dv)}" ${req} inputmode="numeric" maxlength="10" placeholder="dd/mm/aaaa ou mm/aaaa" data-datebr class="${base}">`;
+            input = `<input type="text" name="${f.key}" value="${esc(dv)}" ${req} inputmode="numeric" maxlength="10" placeholder="aaaa, mm/aaaa ou dd/mm/aaaa" data-datebr class="${base}">`;
         } else if (f.type === 'checkboxes') {
             const selected = String(val || '').split(/[;,]/).map(s => s.trim()).filter(Boolean);
             input = `<div class="flex flex-wrap gap-x-4 gap-y-1 pt-1">
@@ -1138,16 +1144,17 @@
             ta.addEventListener('input', upd);
         });
     }
-    // Máscara para campos 'datebr': aceita dd/mm/aaaa OU mm/aaaa. A 2ª barra só
-    // é inserida quando há mais de 6 dígitos (aí é dd/mm/aaaa); com até 6 dígitos
-    // fica mm/aaaa. Preserva valor só-ano (ex.: "2020") vindo da importação.
+    // Máscara para campos 'datebr': aceita aaaa, mm/aaaa OU dd/mm/aaaa. Até 4
+    // dígitos fica só o ano (sem barra); a 1ª barra só entra a partir do 5º
+    // dígito (aí é mm/aaaa) e a 2ª a partir do 7º (dd/mm/aaaa) — assim dá para
+    // digitar um ano puro sem ele virar "mm/aaaa" pela metade.
     function wireDateBr(container) {
         $$('[data-datebr]', container).forEach(el => {
             el.addEventListener('input', () => {
                 const d = el.value.replace(/\D/g, '').slice(0, 8);
                 let out = d;
                 if (d.length > 6) out = d.slice(0, 2) + '/' + d.slice(2, 4) + '/' + d.slice(4); // dd/mm/aaaa
-                else if (d.length > 2) out = d.slice(0, 2) + '/' + d.slice(2);                   // mm/aaaa (ou dd/mm em progresso)
+                else if (d.length > 4) out = d.slice(0, 2) + '/' + d.slice(2);                   // mm/aaaa (ou dd/mm em progresso)
                 el.value = out;
             });
         });
@@ -1278,7 +1285,7 @@
         fields = fields || {};
         const title = normNome(fields.titulo || fields.curso || fields.orientando || fields.candidato || fields.grandeArea || '');
         if (!title) return null;
-        const ano = String(fields.ano || fields.anoFim || fields.anoInicio || '').replace(/\D/g, '');
+        const ano = anoDe(fields.ano || fields.anoFim || fields.anoInicio || '');
         return typeKey + '|' + title + '|' + ano;
     }
 
@@ -1308,7 +1315,7 @@
 
         // 2) Coerência de anos: fim não pode ser anterior ao início. Extrai o
         //    ANO de qualquer formato (aaaa, aaaa-mm-dd ou dd/mm/aaaa — datebr).
-        const _yr = s => { const m = String(s || '').match(/\d{4}/); return m ? +m[0] : null; };
+        const _yr = s => { const y = anoDe(s); return y ? +y : null; };
         const ini = _yr(fields.anoInicio), fim = _yr(fields.anoFim);
         if (ini && fim && fim < ini) {
             const el = fieldControl(form, { key: 'anoFim' });
@@ -1527,7 +1534,7 @@
 
     function itemYear(i) {
         const y = (i.fields && (i.fields.ano || i.fields.anoFim || i.fields.anoInicio)) || '';
-        const n = parseInt(String(y).replace(/\D/g, '').slice(0, 4), 10);
+        const n = parseInt(anoDe(y), 10);
         return isNaN(n) ? null : n;
     }
 
