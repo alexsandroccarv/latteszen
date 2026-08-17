@@ -48,7 +48,7 @@ const CULTIVAR_FIELDS = [{ key: 'titulo', label: 'Denominação', type: 'text', 
     { key: 'registro', label: 'Nº do registro / solicitação', type: 'text' },
     { key: 'dataConcessao', label: 'Data da concessão / registro', type: 'date' }, F_PAIS];
 
-// Átomos para a categoria 99 (Atividades livres)
+// Átomos para a categoria 20 (Registros pessoais)
 const AL_ENT   = { key: 'entidade', label: 'Entidade', type: 'text' };
 const AL_PAPEL = { key: 'papel', label: 'Papel / Atuação', type: 'text' };
 const AL_FREQ  = { key: 'frequencia', label: 'Carga horária / Frequência', type: 'text' };
@@ -251,7 +251,7 @@ const TYPES = {
         { key: 'outrasInfo', label: 'Outras informações', type: 'textarea' },
     ] },
 
-    // 99 Atividades livres — Desenvolvimento Pessoal e Habilidades
+    // 20 Registros pessoais — Desenvolvimento Pessoal e Habilidades
     AL_CURSO_LIVRE: { label: 'Cursos livres', fields: [alNome('Nome do curso'), { key: 'entidade', label: 'Instituição', type: 'text' }, { key: 'frequencia', label: 'Carga horária', type: 'text' }, F_AINI, F_AFIM, AL_IMP, F_URL] },
     AL_IDIOMAS: { label: 'Idiomas e proficiências', fields: [alNome('Idioma'), { key: 'habilidades', label: 'Proficiência (nível por habilidade)', type: 'skilllevels', options: ['Leitura', 'Fala', 'Escrita', 'Compreensão'], levels: ['Bom', 'Razoável', 'Pouco'] }, { key: 'entidade', label: 'Onde estudou', type: 'text' }, F_AINI, F_AFIM, AL_IMP] },
     AL_TREINAMENTO: { label: 'Treinamentos e workshops', fields: [alNome('Nome'), AL_ENT, AL_PAPEL, AL_FREQ, F_AINI, F_AFIM, AL_IMP, F_URL] },
@@ -354,7 +354,8 @@ window.LATTES_CATEGORIES = [
     { num: '11', key: 'BANCAS', label: 'Bancas', icon: 'fa-gavel', types: ['BANCA_CONCLUSAO', 'BANCA_JULGADORA'] },
     { num: '97', key: 'RSC_ADMIN', label: 'RSC — Atividades administrativas', icon: 'fa-building-columns', naoLattes: true, rscOnly: true,
       types: ['RSC_COMISSAO', 'RSC_CONCURSO', 'RSC_CONTRATO', 'RSC_LICITACAO', 'RSC_SISTEMA', 'RSC_CARGO_FUNCAO', 'RSC_RESP_SETOR', 'RSC_APOIO_TECNICO', 'RSC_ADMIN_OUTRA'] },
-    { num: '99', key: 'ATIVIDADES_LIVRES', label: 'Atividades livres', icon: 'fa-person-hiking', naoLattes: true,
+    { num: '20', key: 'ATIVIDADES_LIVRES', label: 'Registros pessoais', icon: 'fa-person-hiking', naoLattes: true,
+      note: 'Os itens registrados nesta categoria não são vinculados ao Currículo Lattes e não serão exportados, mas serão exibidos na página pessoal do módulo Publicar na Web.',
       groups: [
           { label: 'Desenvolvimento Pessoal e Habilidades', types: ['AL_CURSO_LIVRE', 'AL_IDIOMAS', 'AL_TREINAMENTO', 'AL_PROJETO_PESSOAL'] },
           { label: 'Engajamento Comunitário e Cidadania', types: ['AL_VOLUNTARIADO', 'AL_LIDERANCA', 'AL_ORG_EVENTO_COM'] },
@@ -453,7 +454,7 @@ window.LattesTypes = (function () {
         categoryByKey(catKey) { return catByKey[catKey] || null; },
         categoryLabel(catKey) { const c = catByKey[catKey]; return c ? c.label : (catKey || ''); },
         categoryNumLabel(catKey) { const c = catByKey[catKey]; return c ? `${c.num ? c.num + '. ' : ''}${c.label}` : (catKey || ''); },
-        // Itens legados 'NAO_LATTES' vão para a pasta de Atividades livres (99)
+        // Itens legados 'NAO_LATTES' vão para a pasta de Registros pessoais (20)
         categoryFolder(catKey) {
             if (catKey === 'NAO_LATTES') return slugFolder(catByKey['ATIVIDADES_LIVRES']);
             const c = catByKey[catKey]; return c ? slugFolder(c) : '99 Outros';

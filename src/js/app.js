@@ -726,6 +726,7 @@
                     </div>
                 </div>
             </div>
+            <p id="catNote" class="hidden text-xs text-govbr-700 dark:text-unifesp-300 bg-govbr-50 dark:bg-gray-800 border border-govbr-100 dark:border-gray-700 rounded px-2 py-1.5"></p>
 
             <div id="dynFields" class="space-y-3"></div>
             <div id="rscBlock" class="space-y-3"></div>
@@ -787,6 +788,12 @@
             currentType = valid ? currentType : ((tipoOptions[0] && tipoOptions[0].key) || '');
             selectTipo(currentType, true);
             renderDynFields();
+            const catNote = $('#catNote');
+            if (catNote) {
+                const cat = LattesTypes.categoryByKey(selCat.value);
+                catNote.textContent = (cat && cat.note) || '';
+                catNote.classList.toggle('hidden', !(cat && cat.note));
+            }
         }
         function renderDynFields() {
             const def = LattesTypes.get($('#selTipo').value);
@@ -1799,7 +1806,7 @@
         return `
             <section class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
                 <h2 class="text-lg font-bold mb-2 flex items-center gap-2"><i class="fa-solid fa-file-code text-govbr-600 dark:text-unifesp-400"></i> Exportar para a Plataforma Lattes (XML)</h2>
-                <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">Gera o arquivo <strong>curriculo.xml</strong> no formato oficial do CNPq (schema <em>CurriculoLattes</em>, codificação ISO-8859-1). Inclui apenas os itens das categorias do Lattes — <strong>RSC, Conexões e Atividades livres não são exportados</strong>. As evidências (PDFs) não fazem parte do XML.</p>
+                <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">Gera o arquivo <strong>curriculo.xml</strong> no formato oficial do CNPq (schema <em>CurriculoLattes</em>, codificação ISO-8859-1). Inclui apenas os itens das categorias do Lattes — <strong>RSC, Conexões e Registros pessoais não são exportados</strong>. As evidências (PDFs) não fazem parte do XML.</p>
                 ${xmlConsistencyNoticeHtml()}
                 <div class="flex gap-2 flex-wrap">
                     <button id="btnXmlDownload" class="px-3 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm"><i class="fa-solid fa-download mr-1"></i> Baixar XML (.xml)</button>
@@ -2858,6 +2865,8 @@
     // Compatibiliza itens salvos antes da reestruturação de categorias
     // Pasta antiga da categoria Conexões (98), incorporada a Dados gerais (01).
     const PASTA_CONEXOES_ANTIGA = '98 Conexões';
+    // Pasta antiga de Atividades livres (99), renumerada para Registros pessoais (20).
+    const PASTA_ATIVIDADES_LIVRES_ANTIGA = '99 Atividades livres';
     function migrarItens() {
         let changed = false;
         const conexoesMigradas = [];
@@ -2947,6 +2956,16 @@
             for (const id of conexoesMigradas) {
                 try { await Storage.moveItemFiles(id, PASTA_CONEXOES_ANTIGA, destino); } catch (_) {}
             }
+        }
+        // Move os arquivos de Atividades livres da pasta antiga (99) p/ Registros pessoais (20)
+        if (!cfg.pastaRegistrosPessoaisMigrada && Storage.hasDirectory()) {
+            const destino = LattesTypes.categoryFolder('ATIVIDADES_LIVRES');
+            const idsRegistrosPessoais = state.items.filter(i => i.categoryKey === 'ATIVIDADES_LIVRES').map(i => i.id);
+            for (const id of idsRegistrosPessoais) {
+                try { await Storage.moveItemFiles(id, PASTA_ATIVIDADES_LIVRES_ANTIGA, destino); } catch (_) {}
+            }
+            cfg.pastaRegistrosPessoaisMigrada = true;
+            Storage.saveSettings(cfg);
         }
 
         // Aviso ao fechar/recarregar com edições não salvas
