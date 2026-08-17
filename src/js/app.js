@@ -1579,6 +1579,7 @@
                     <div class="flex gap-0.5 shrink-0 ml-auto">
                         ${i.hasPdf ? `<button data-act="pdf" data-id="${i.id}" title="Ver arquivo no painel (Catalogar)" class="w-7 h-7 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-green-600 dark:text-green-500"><i class="fa-solid ${isImageExt(i.fileExt) ? 'fa-image' : 'fa-file-pdf'}"></i></button>` : ''}
                         <button data-act="edit" data-id="${i.id}" title="Abrir / Editar" class="w-7 h-7 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-govbr-600 dark:text-unifesp-400"><i class="fa-solid fa-pen"></i></button>
+                        ${LattesTypes.isSingleton(i.typeKey) ? '' : `<button data-act="dup" data-id="${i.id}" title="Duplicar" class="w-7 h-7 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400"><i class="fa-solid fa-clone"></i></button>`}
                         <button data-act="del" data-id="${i.id}" title="Excluir" class="w-7 h-7 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-red-600"><i class="fa-solid fa-trash"></i></button>
                     </div>
                 </div>
@@ -1729,12 +1730,35 @@
             state.editReturnTab = (from && from !== 'catalogar') ? from : null;
             buildForm(item);
             window.scrollTo({ top: 0, behavior: 'smooth' });
+        } else if (btn.dataset.act === 'dup') {
+            await duplicateItem(id);
         } else if (btn.dataset.act === 'del') {
             if (!confirm(`Excluir "${LattesTypes.itemTitle(item)}"? Os arquivos ${id}.pdf/.json também serão removidos.`)) return;
             await deleteItem(id);
             toast('Item excluído.', 'ok');
             renderItemList();
         }
+    }
+
+    // Duplica um item: mesma categoria/tipo/campos, mas sem evidências (cada
+    // uma comprova um documento real específico, não faz sentido copiá-las)
+    // e sem lattesRef (evita colidir com a deduplicação de reimportação do
+    // XML). O campo-título do tipo ganha o sufixo " (cópia)".
+    async function duplicateItem(id) {
+        const orig = state.items.find(i => i.id === id);
+        if (!orig || LattesTypes.isSingleton(orig.typeKey)) return;
+        const fields = Object.assign({}, orig.fields);
+        const labelKey = ['titulo', 'orientando', 'candidato', 'especialidade', 'subarea', 'area', 'instituicao']
+            .find(k => fields[k] && String(fields[k]).trim());
+        if (labelKey) fields[labelKey] = `${fields[labelKey]} (cópia)`;
+        const copy = {
+            id: uid(), createdAt: nowISO(), updatedAt: nowISO(), source: 'local',
+            lattesItem: orig.lattesItem, typeKey: orig.typeKey, categoryKey: orig.categoryKey,
+            fields, evidencias: [], hasPdf: false, pdfName: null, fileExt: null, lattesRef: null,
+        };
+        await persistItem(copy);
+        toast('Item duplicado — revise os dados e anexe a evidência.', 'ok');
+        renderItemList();
     }
 
     /* =====================================================================
