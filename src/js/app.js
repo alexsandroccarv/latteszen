@@ -2957,6 +2957,13 @@
                 try { await Storage.moveItemFiles(id, PASTA_CONEXOES_ANTIGA, destino); } catch (_) {}
             }
         }
+        // Remove a pasta "98 Conexões" da estrutura de diretório: categoria
+        // extinta (itens migrados para Dados gerais); só apaga se já vazia.
+        if (!cfg.pastaConexoesAntigaRemovida && Storage.hasDirectory()) {
+            try { await Storage.removeSubdirIfEmpty(PASTA_CONEXOES_ANTIGA); } catch (_) {}
+            cfg.pastaConexoesAntigaRemovida = true;
+            Storage.saveSettings(cfg);
+        }
         // Move os arquivos de Atividades livres da pasta antiga (99) p/ Registros pessoais (20)
         if (!cfg.pastaRegistrosPessoaisMigrada && Storage.hasDirectory()) {
             const destino = LattesTypes.categoryFolder('ATIVIDADES_LIVRES');

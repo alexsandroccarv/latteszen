@@ -244,6 +244,17 @@ window.Storage = (function () {
         }
     }
 
+    // Remove um subdiretório obsoleto da raiz, só se estiver vazio (ex.: pasta
+    // de categoria removida/renomeada numa migração). Não apaga se houver
+    // qualquer arquivo restante, por segurança.
+    async function removeSubdirIfEmpty(name) {
+        if (!dirHandle) return false;
+        let sub;
+        try { sub = await dirHandle.getDirectoryHandle(name); } catch (_) { return false; }
+        for await (const _ of sub.values()) { return false; }
+        try { await dirHandle.removeEntry(name, { recursive: true }); return true; } catch (_) { return false; }
+    }
+
     async function readAttachmentUrl(basename, subdir, ext) {
         const dir = await ensureDirReady();
         let target = dir;
@@ -318,7 +329,7 @@ window.Storage = (function () {
         chooseDirectory, restoreDirectory, ensureDirReady, hasDirectory,
         directoryName, forgetDirectory, verifyPermission,
         // arquivos
-        writeJson, writeFile, writeAttachment, deleteEntry, deleteItemFiles, moveItemFiles, readAttachmentUrl, readAttachmentFile, scanDirectory, ensureSubdirs,
+        writeJson, writeFile, writeAttachment, deleteEntry, deleteItemFiles, moveItemFiles, removeSubdirIfEmpty, readAttachmentUrl, readAttachmentFile, scanDirectory, ensureSubdirs,
         // bandeja de entrada (inbox)
         ensureInbox, listInbox, readInboxFile, moveInboxToProcessed,
         // catálogo + settings
