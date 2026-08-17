@@ -1824,10 +1824,11 @@
             }
         }
 
-        // Tipos de perfil multi-instância (ex.: Áreas de atuação) são editados
-        // em Configurações e não aparecem na lista de Conformidade.
+        // Tipos de perfil (Identificação, Foto, Endereço, Texto inicial,
+        // Outras informações, Áreas de atuação, Documentos pessoais) são
+        // editados em Configurações e não aparecem na lista de Conformidade.
         let items = state.items.filter(VIEW_PREDICATE[view])
-            .filter(i => !(LattesTypes.isPerfilType(i.typeKey) && !LattesTypes.isSingleton(i.typeKey)));
+            .filter(i => !LattesTypes.isPerfilType(i.typeKey));
         if (q) items = items.filter(i => (LattesTypes.itemTitle(i) + ' ' + LattesTypes.label(i.typeKey) + ' ' + LattesTypes.categoryLabel(i.categoryKey)).toLowerCase().includes(q));
 
         const cnt = $('#itemCount');
@@ -2179,12 +2180,87 @@
     function perfilSectionHtml() {
         return `<section id="perfilSection" class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
             <h2 class="text-lg font-bold mb-2 flex items-center gap-2"><i class="fa-solid fa-id-card text-govbr-600 dark:text-unifesp-400"></i> Dados gerais (perfil)</h2>
-            <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">Informações autodeclaradas do Currículo Lattes (Identificação, Foto, Endereço, Texto inicial, Outras informações e Áreas de atuação). São itens <strong>do Lattes</strong> e <strong>não exigem evidência</strong>.</p>
+            <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">Informações autodeclaradas do Currículo Lattes (Identificação, Foto, Endereço, Texto inicial, Outras informações, Áreas de atuação e Documentos pessoais). São itens <strong>do Lattes</strong> — a maioria não exige evidência, exceto Documentos pessoais.</p>
             <div class="space-y-2">
-                ${LattesTypes.perfilTypes().filter(k => k !== 'AREA_ATUACAO').map(perfilCardHtml).join('')}
+                ${LattesTypes.perfilTypes().filter(k => k !== 'AREA_ATUACAO' && k !== 'DOCUMENTO_PESSOAL').map(perfilCardHtml).join('')}
                 ${areaAtuacaoSectionHtml()}
+                ${documentoPessoalSectionHtml()}
             </div>
         </section>`;
+    }
+
+    // Documentos pessoais: outro tipo de perfil com VÁRIAS instâncias, mas que
+    // (diferente de Áreas de atuação) usa evidência (o próprio anexo). Em vez
+    // de reconstruir a interface de anexo, a mini-lista aqui só lista/edita/
+    // remove; "Adicionar"/"Editar" abrem o formulário completo do Catalogar
+    // (com upload de arquivo) e voltam para Configurações ao salvar.
+    function documentoPessoalListHtml() {
+        const itens = state.items.filter(i => i.typeKey === 'DOCUMENTO_PESSOAL');
+        if (!itens.length) return `<p class="text-xs text-gray-400 dark:text-gray-500 italic">Nenhum documento cadastrado.</p>`;
+        return `<ul class="space-y-1 mb-2">${itens.map(i => `
+            <li class="flex items-center gap-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded px-2 py-1.5 text-sm">
+                <i aria-hidden="true" title="${evCount(i) ? 'Com evidência anexada' : 'Sem evidência anexada'}" class="fa-solid ${evCount(i) ? 'fa-paperclip text-green-600 dark:text-green-500' : 'fa-file-circle-xmark text-red-600 dark:text-red-500'} shrink-0"></i>
+                <span class="flex-1 min-w-0 truncate">${esc(LattesTypes.itemTitle(i))}</span>
+                <button type="button" data-doc-edit="${i.id}" title="Editar" class="w-7 h-7 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-govbr-600 dark:text-unifesp-400"><i class="fa-solid fa-pen"></i></button>
+                <button type="button" data-doc-del="${i.id}" title="Remover" class="w-7 h-7 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-red-600"><i class="fa-solid fa-trash"></i></button>
+            </li>`).join('')}</ul>`;
+    }
+    function documentoPessoalSectionHtml() {
+        const def = LattesTypes.get('DOCUMENTO_PESSOAL');
+        const n = state.items.filter(i => i.typeKey === 'DOCUMENTO_PESSOAL').length;
+        return `<details class="border border-gray-200 dark:border-gray-700 rounded bg-white dark:bg-gray-900">
+            <summary class="cursor-pointer select-none px-3 py-2 text-sm font-medium flex items-center gap-2">
+                <i aria-hidden="true" class="fa-solid fa-angle-right text-xs text-gray-400"></i>
+                ${esc(def.label)}
+                <span id="documentoPessoalCount" class="text-xs font-normal text-gray-400 truncate min-w-0">· ${n} cadastrado${n === 1 ? '' : 's'}</span>
+            </summary>
+            <div class="p-3 space-y-2 border-t border-gray-100 dark:border-gray-700">
+                <div id="documentoPessoalList">${documentoPessoalListHtml()}</div>
+                <button type="button" id="btnAddDocumentoPessoal" class="px-3 py-1.5 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm"><i class="fa-solid fa-plus mr-1"></i> Adicionar documento</button>
+            </div>
+        </details>`;
+    }
+    // Abre o item (novo ou existente) no formulário do Catalogar, forçando a
+    // categoria/tipo Documentos pessoais mesmo fora da lista de tipos visível
+    // (foi retirada de lá — só é alcançável por aqui). Ao salvar, volta a
+    // Configurações (state.editReturnTab).
+    function openDocumentoPessoalForm(item) {
+        switchTab('catalogar');
+        buildForm(item, { focus: false });
+        const selCat = $('#selCategoria'); if (selCat) selCat.value = 'DADOS_GERAIS';
+        if (state._selectTipo) state._selectTipo('DOCUMENTO_PESSOAL');
+        state.editReturnTab = 'config';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+    function wireDocumentoPessoalListActions(sec) {
+        const list = sec.querySelector('#documentoPessoalList');
+        if (!list) return;
+        $$('[data-doc-edit]', list).forEach(b => b.addEventListener('click', () => {
+            const item = state.items.find(i => i.id === b.dataset.docEdit);
+            if (item) openDocumentoPessoalForm(item);
+        }));
+        $$('[data-doc-del]', list).forEach(b => b.addEventListener('click', async () => {
+            const item = state.items.find(i => i.id === b.dataset.docDel);
+            if (!item) return;
+            if (!confirm(`Excluir "${LattesTypes.itemTitle(item)}"? Os arquivos também serão removidos.`)) return;
+            await deleteItem(item.id);
+            toast('Documento excluído.', 'ok');
+            refreshDocumentoPessoalList(sec);
+            renderItemList();
+        }));
+    }
+    function refreshDocumentoPessoalList(sec) {
+        const list = sec.querySelector('#documentoPessoalList');
+        if (list) list.innerHTML = documentoPessoalListHtml();
+        const n = state.items.filter(i => i.typeKey === 'DOCUMENTO_PESSOAL').length;
+        const count = sec.querySelector('#documentoPessoalCount');
+        if (count) count.textContent = `· ${n} cadastrado${n === 1 ? '' : 's'}`;
+        wireDocumentoPessoalListActions(sec);
+    }
+    function wireDocumentoPessoalSection(sec) {
+        const addBtn = sec.querySelector('#btnAddDocumentoPessoal');
+        if (addBtn) addBtn.addEventListener('click', () => openDocumentoPessoalForm(undefined));
+        wireDocumentoPessoalListActions(sec);
     }
 
     // Áreas de atuação: único tipo de perfil com VÁRIAS instâncias — em vez do
@@ -2366,6 +2442,7 @@
         })();
         $$('[data-perfil-form]', sec).forEach(form => form.addEventListener('submit', onPerfilSubmit));
         wireAreaAtuacaoSection(sec);
+        wireDocumentoPessoalSection(sec);
     }
     async function onPerfilSubmit(e) {
         e.preventDefault();

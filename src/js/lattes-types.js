@@ -62,7 +62,7 @@ const TYPES = {
     // 01 Dados gerais
     IDENTIFICACAO: { label: 'Identificação', noEvidence: true, singleton: true, perfil: true, fields: [{ key: 'titulo', label: 'Nome completo', type: 'text', required: true }, { key: 'nomeSocial', label: 'Nome social', type: 'text' }, { key: 'citacoes', label: 'Nome em citações bibliográficas', type: 'text' }, { key: 'sexo', label: 'Sexo', type: 'select', options: ['Masculino', 'Feminino'], help: 'Exigido pelo Lattes na importação do XML.' }, { key: 'nacionalidade', label: 'Nacionalidade', type: 'text', placeholder: 'Brasileira' }, { key: 'pais', label: 'País de nascimento', type: 'text', placeholder: 'Brasil' }, { key: 'orcid', label: 'ORCID', type: 'text' }, F_URL] },
     FOTO_PERFIL: { label: 'Foto de perfil', noExport: true, noEvidence: true, singleton: true, perfil: true, accept: 'image/jpeg,image/png', fields: [{ key: 'titulo', label: 'Descrição', type: 'text', placeholder: 'ex.: Foto oficial 2025' }, { key: 'ano', label: 'Ano de início', type: 'datebr' }, F_AFIM] },
-    DOCUMENTO_PESSOAL: { label: 'Documentos pessoais', noExport: true, accept: 'application/pdf,image/jpeg,image/png', fields: [
+    DOCUMENTO_PESSOAL: { label: 'Documentos pessoais', noExport: true, perfil: true, accept: 'application/pdf,image/jpeg,image/png', fields: [
         { key: 'tipoDoc', label: 'Tipo de documento', type: 'select', required: true, options: ['RG', 'CPF', 'Título de eleitor', 'Certidão de nascimento', 'Certidão de casamento', 'Conselho de classe', 'Diploma / Certificado', 'Carteira profissional', 'CNH', 'Passaporte', 'Comprovante de residência', 'Reservista', 'PIS/PASEP', 'Outro'] },
         { key: 'titulo', label: 'Descrição / Nº do documento', type: 'text', required: true },
         { key: 'orgao', label: 'Órgão emissor', type: 'text' },
@@ -328,10 +328,10 @@ const PI_TYPES = ['PATENTE', 'SOFTWARE_REGISTRADO', 'CULTIVAR_PROTEGIDA', 'CULTI
 
 window.LATTES_CATEGORIES = [
     { num: '01', key: 'DADOS_GERAIS', label: 'Dados gerais', icon: 'fa-id-card',
-      // Identificação, Foto, Endereço, Texto inicial e Outras informações são
-      // editados em Configurações (perfil); aqui ficam os demais itens de 01
-      // (Conexões — rede social/acadêmica/profissional — incluída no final).
-      types: ['DOCUMENTO_PESSOAL', 'LICENCA', 'IDIOMAS', 'PREMIO', 'CONEXAO_SOCIAL', 'CONEXAO_ACADEMICA', 'CONEXAO_PROFISSIONAL'] },
+      // Identificação, Foto, Endereço, Texto inicial, Outras informações e
+      // Documentos pessoais são editados em Configurações (perfil); aqui
+      // ficam os demais itens de 01 (Conexões incluída no final).
+      types: ['LICENCA', 'IDIOMAS', 'PREMIO', 'CONEXAO_SOCIAL', 'CONEXAO_ACADEMICA', 'CONEXAO_PROFISSIONAL'] },
     { num: '02', key: 'FORMACAO', label: 'Formação', icon: 'fa-user-graduate',
       types: ['FORMACAO_ACADEMICA', 'POS_DOUTORADO', 'FORMACAO_COMPLEMENTAR'] },
     { num: '03', key: 'ATUACAO', label: 'Atuação', icon: 'fa-briefcase',
