@@ -274,16 +274,16 @@ const TYPES = {
     AL_CULTURAL: { label: 'Experiências culturais', fields: [alNome('Experiência'), AL_LOCAL, AL_ANO, F_AFIM, AL_IMP] },
     AL_GASTRONOMIA: { label: 'Gastronomia e culinária', fields: [alNome('Atividade / Especialidade'), AL_PAPEL, { key: 'frequencia', label: 'Frequência', type: 'text' }, AL_IMP, F_URL] },
 
-    // 98 Conexões (somente link; sem comprovação; não-Lattes)
-    CONEXAO_SOCIAL: { label: 'Rede social', noExport: true, noEvidence: true, fields: [
+    // Conexões (dentro de Dados gerais; somente link; sem comprovação; não-Lattes)
+    CONEXAO_SOCIAL: { label: 'Rede social', noExport: true, noEvidence: true, naoLattes: true, fields: [
         { key: 'titulo', label: 'Rede / Plataforma', type: 'text', required: true, placeholder: 'ex.: Instagram, Facebook, X, YouTube, TikTok' },
         { key: 'url', label: 'Link (URL)', type: 'text', required: true, placeholder: 'https://...' },
         { key: 'usuario', label: 'Usuário / @', type: 'text' }] },
-    CONEXAO_ACADEMICA: { label: 'Perfil acadêmico', noExport: true, noEvidence: true, fields: [
+    CONEXAO_ACADEMICA: { label: 'Perfil acadêmico', noExport: true, noEvidence: true, naoLattes: true, fields: [
         { key: 'titulo', label: 'Plataforma', type: 'text', required: true, placeholder: 'ex.: ORCID, Lattes, Zotero, ResearchGate, Google Scholar' },
         { key: 'url', label: 'Link (URL)', type: 'text', required: true, placeholder: 'https://...' },
         { key: 'usuario', label: 'Identificador / ID', type: 'text' }] },
-    CONEXAO_PROFISSIONAL: { label: 'Rede / contato profissional', noExport: true, noEvidence: true, fields: [
+    CONEXAO_PROFISSIONAL: { label: 'Rede / contato profissional', noExport: true, noEvidence: true, naoLattes: true, fields: [
         { key: 'titulo', label: 'Plataforma / Tipo', type: 'text', required: true, placeholder: 'ex.: LinkedIn, E-mail profissional, Site pessoal' },
         { key: 'url', label: 'Link / URL (ou e-mail)', type: 'text', required: true, placeholder: 'https://...  ou  nome@dominio' },
         { key: 'usuario', label: 'Usuário / contato', type: 'text' }] },
@@ -329,8 +329,14 @@ const PI_TYPES = ['PATENTE', 'SOFTWARE_REGISTRADO', 'CULTIVAR_PROTEGIDA', 'CULTI
 window.LATTES_CATEGORIES = [
     { num: '01', key: 'DADOS_GERAIS', label: 'Dados gerais', icon: 'fa-id-card',
       // Identificação, Foto, Endereço, Texto inicial e Outras informações são
-      // editados em Configurações (perfil); aqui ficam os demais itens de 01.
-      types: ['DOCUMENTO_PESSOAL', 'LICENCA', 'IDIOMAS', 'PREMIO'] },
+      // editados em Configurações (perfil); aqui ficam os demais itens de 01,
+      // com Conexões (rede social/acadêmica/profissional) agrupada no final.
+      groups: [
+          { types: ['DOCUMENTO_PESSOAL', 'LICENCA', 'IDIOMAS', 'PREMIO'] },
+          { label: 'Conexões — Sociais', types: ['CONEXAO_SOCIAL'] },
+          { label: 'Conexões — Acadêmicas', types: ['CONEXAO_ACADEMICA'] },
+          { label: 'Conexões — Profissionais', types: ['CONEXAO_PROFISSIONAL'] },
+      ] },
     { num: '02', key: 'FORMACAO', label: 'Formação', icon: 'fa-user-graduate',
       types: ['FORMACAO_ACADEMICA', 'POS_DOUTORADO', 'FORMACAO_COMPLEMENTAR'] },
     { num: '03', key: 'ATUACAO', label: 'Atuação', icon: 'fa-briefcase',
@@ -353,12 +359,6 @@ window.LATTES_CATEGORIES = [
     { num: '11', key: 'BANCAS', label: 'Bancas', icon: 'fa-gavel', types: ['BANCA_CONCLUSAO', 'BANCA_JULGADORA'] },
     { num: '97', key: 'RSC_ADMIN', label: 'RSC — Atividades administrativas', icon: 'fa-building-columns', naoLattes: true, rscOnly: true,
       types: ['RSC_COMISSAO', 'RSC_CONCURSO', 'RSC_CONTRATO', 'RSC_LICITACAO', 'RSC_SISTEMA', 'RSC_CARGO_FUNCAO', 'RSC_RESP_SETOR', 'RSC_APOIO_TECNICO', 'RSC_ADMIN_OUTRA'] },
-    { num: '98', key: 'CONEXOES', label: 'Conexões', icon: 'fa-share-nodes', naoLattes: true,
-      groups: [
-          { label: 'Sociais', types: ['CONEXAO_SOCIAL'] },
-          { label: 'Acadêmicas', types: ['CONEXAO_ACADEMICA'] },
-          { label: 'Profissionais', types: ['CONEXAO_PROFISSIONAL'] },
-      ] },
     { num: '99', key: 'ATIVIDADES_LIVRES', label: 'Atividades livres', icon: 'fa-person-hiking', naoLattes: true,
       groups: [
           { label: 'Desenvolvimento Pessoal e Habilidades', types: ['AL_CURSO_LIVRE', 'AL_IDIOMAS', 'AL_TREINAMENTO', 'AL_PROJETO_PESSOAL'] },
@@ -388,7 +388,7 @@ const PRIMARY_CATEGORY = {
     LIVRO: 'PRODUCOES', CAPITULO_LIVRO: 'PRODUCOES', SOFTWARE: 'PRODUCOES', ORIENTACAO: 'ORIENTACOES', BANCA: 'BANCAS', PROJETO: 'PROJETOS',
 };
 AL_KEYS.forEach(k => { PRIMARY_CATEGORY[k] = 'ATIVIDADES_LIVRES'; });
-['CONEXAO_SOCIAL', 'CONEXAO_ACADEMICA', 'CONEXAO_PROFISSIONAL'].forEach(k => { PRIMARY_CATEGORY[k] = 'CONEXOES'; });
+['CONEXAO_SOCIAL', 'CONEXAO_ACADEMICA', 'CONEXAO_PROFISSIONAL'].forEach(k => { PRIMARY_CATEGORY[k] = 'DADOS_GERAIS'; });
 ['RSC_COMISSAO', 'RSC_CONCURSO', 'RSC_CONTRATO', 'RSC_LICITACAO', 'RSC_SISTEMA', 'RSC_CARGO_FUNCAO', 'RSC_RESP_SETOR', 'RSC_APOIO_TECNICO', 'RSC_ADMIN_OUTRA'].forEach(k => { PRIMARY_CATEGORY[k] = 'RSC_ADMIN'; });
 const LEGACY_TYPE = { LIVRO: 'LIVRO_CAPITULO', CAPITULO_LIVRO: 'LIVRO_CAPITULO', SOFTWARE: 'SOFTWARE_SEM_REGISTRO', ORIENTACAO: 'ORIENTACAO_ANDAMENTO', BANCA: 'BANCA_CONCLUSAO' };
 
@@ -466,6 +466,9 @@ window.LattesTypes = (function () {
         primaryCategory(typeKey) { return PRIMARY_CATEGORY[typeKey] || 'PRODUCOES'; },
         normalizeType(typeKey) { return LEGACY_TYPE[typeKey] || typeKey; },
         isNaoLattesCategory(catKey) { return catKey === 'NAO_LATTES' || !!(catByKey[catKey] && catByKey[catKey].naoLattes); },
+        // Tipos "não-Lattes" por si só (ex.: Conexões), mesmo dentro de uma
+        // categoria que normalmente é Lattes (Dados gerais).
+        isNaoLattesType(typeKey) { const t = this.getType(typeKey); return !!(t && t.naoLattes); },
         isSingleton(typeKey) { const t = this.getType(typeKey); return !!(t && t.singleton); },
         // Tipos de "perfil" (Dados gerais) editados em Configurações, não em Catalogar
         isPerfilType(typeKey) { const t = this.getType(typeKey); return !!(t && t.perfil); },

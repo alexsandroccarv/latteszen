@@ -588,8 +588,7 @@
     function renderRscBlock(item) {
         const box = $('#rscBlock'); if (!box) return;
         const typeKey = $('#selTipo') ? $('#selTipo').value : '';
-        const catKey = $('#selCategoria') ? $('#selCategoria').value : '';
-        const eligivel = state.rscEnabled && typeKey && !LattesTypes.isPerfilType(typeKey) && catKey !== 'CONEXOES';
+        const eligivel = state.rscEnabled && typeKey && !LattesTypes.isPerfilType(typeKey) && !LattesTypes.isNaoLattesType(typeKey);
         if (!eligivel) { box.innerHTML = ''; return; }
         const rsc = (item && item.rsc) || {};
         // Lista única com TODOS os critérios do decreto, agrupados por Requisito
@@ -1382,7 +1381,7 @@
         const form = e.target;
         const categoryKey = $('#selCategoria').value;
         const typeKey = $('#selTipo').value;
-        const naoLattes = LattesTypes.isNaoLattesCategory(categoryKey);
+        const naoLattes = LattesTypes.isNaoLattesCategory(categoryKey) || LattesTypes.isNaoLattesType(typeKey);
         const def = LattesTypes.get(typeKey);
 
         const fields = collectFields(form, def);
@@ -2857,8 +2856,11 @@
        Inicialização
        ===================================================================== */
     // Compatibiliza itens salvos antes da reestruturação de categorias
+    // Pasta antiga da categoria Conexões (98), incorporada a Dados gerais (01).
+    const PASTA_CONEXOES_ANTIGA = '98 Conexões';
     function migrarItens() {
         let changed = false;
+        const conexoesMigradas = [];
         state.items.forEach(i => {
             if (i.categoryKey === 'NAO_LATTES') { i.categoryKey = 'ATIVIDADES_LIVRES'; changed = true; }
             if (i.lattesItem === false && !i.categoryKey) { i.categoryKey = 'ATIVIDADES_LIVRES'; changed = true; }
@@ -2867,6 +2869,8 @@
                 if (norm !== i.typeKey) { i.typeKey = norm; changed = true; }
             }
             if (!i.categoryKey && i.typeKey) { i.categoryKey = LattesTypes.primaryCategory(i.typeKey); changed = true; }
+            // Conexões (98) foi incorporada a Dados gerais (01)
+            if (i.categoryKey === 'CONEXOES') { i.categoryKey = 'DADOS_GERAIS'; changed = true; conexoesMigradas.push(i.id); }
             // Migra evidência única (legado) para o novo array de evidências
             if (!Array.isArray(i.evidencias)) {
                 if (i.hasPdf) {
@@ -2881,6 +2885,7 @@
             if (i.schemaVersion !== SCHEMA_VERSION) { i.schemaVersion = SCHEMA_VERSION; changed = true; }
         });
         if (changed) saveCatalog();
+        return conexoesMigradas;
     }
 
     // Nome no cabeçalho e título da aba: "lattesZen | Nome completo" (vem do
@@ -2932,10 +2937,17 @@
         state.lastType = cfg.lastType || '';
         state.rscEnabled = !!cfg.rscEnabled;
         state.rscCfg = cfg.rsc || {};
-        migrarItens();
+        const conexoesMigradas = migrarItens();
         updateHeaderIdentity();
         applyRscVisibility();
         try { await Storage.restoreDirectory(); } catch (_) {}
+        // Move os arquivos das Conexões migradas da pasta antiga (98) p/ Dados gerais (01)
+        if (conexoesMigradas.length && Storage.hasDirectory()) {
+            const destino = LattesTypes.categoryFolder('DADOS_GERAIS');
+            for (const id of conexoesMigradas) {
+                try { await Storage.moveItemFiles(id, PASTA_CONEXOES_ANTIGA, destino); } catch (_) {}
+            }
+        }
 
         // Aviso ao fechar/recarregar com edições não salvas
         window.addEventListener('beforeunload', (e) => { if (state.formDirty) { e.preventDefault(); e.returnValue = ''; } });
