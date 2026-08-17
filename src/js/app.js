@@ -1631,7 +1631,20 @@
             return `<span title="Sem evidência anexada" class="inline-flex items-center justify-center w-6 h-6 text-red-600 dark:text-red-500"><i class="fa-solid fa-file-circle-xmark"></i></span>`;
         }
         const cor = evid.some(e => e.publica) ? 'text-green-600 dark:text-green-500' : 'text-amber-600 dark:text-amber-500';
-        return evid.map(e => `<button type="button" data-act="pdf" data-id="${item.id}" title="${esc(e.name || '')}${e.publica ? ' (pública)' : ''}" class="inline-flex items-center justify-center w-6 h-6 rounded hover:bg-gray-100 dark:hover:bg-gray-700 ${cor}"><i class="fa-solid ${evidenceExtIcon(e.ext)}"></i></button>`).join('');
+        // Agrupa por tipo de ícone (pdf/imagem/vídeo/zip-tar.gz/link): mesmo
+        // tipo não repete o ícone, só soma no badge de contagem.
+        const groups = new Map();
+        evid.forEach(e => {
+            const icon = evidenceExtIcon(e.ext);
+            if (!groups.has(icon)) groups.set(icon, { count: 0, names: [], publica: false });
+            const g = groups.get(icon);
+            g.count++; g.names.push(e.name || ''); if (e.publica) g.publica = true;
+        });
+        return Array.from(groups.entries()).map(([icon, g]) => {
+            const title = g.names.join(', ') + (g.publica ? ' (pública)' : '');
+            const badge = g.count > 1 ? `<span class="absolute -bottom-1 -right-1 min-w-[14px] h-3.5 px-0.5 bg-gray-700 dark:bg-gray-300 text-white dark:text-gray-900 text-[9px] leading-[14px] rounded-full text-center">${g.count}</span>` : '';
+            return `<button type="button" data-act="pdf" data-id="${item.id}" title="${esc(title)}" class="relative inline-flex items-center justify-center w-6 h-6 rounded hover:bg-gray-100 dark:hover:bg-gray-700 ${cor}"><i class="fa-solid ${icon}"></i>${badge}</button>`;
+        }).join('');
     }
     // Ícone do RSC: verde (marcado), âmbar (elegível, dentro do período de uso,
     // ainda não marcado) ou cinza (fora do período de uso). Some quando o
