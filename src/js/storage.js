@@ -289,14 +289,15 @@ window.Storage = (function () {
             }
         }
     }
-    // Renomeia uma pasta de sistema na raiz (ex.: "00 Inbox" -> "Caixa de
-    // Entrada"), movendo todo o conteúdo — a File System Access API não tem
-    // rename nativo. Não faz nada se a pasta antiga não existir.
-    async function renameRootFolder(oldName, newName) {
-        if (!dirHandle || oldName === newName) return false;
+    // Renomeia/move uma pasta de sistema da raiz para outro nome ou caminho
+    // (ex.: "00 Inbox" -> "Caixa de Entrada", ou "Exportar Lattes" ->
+    // "Exportação/Lattes XML"), movendo todo o conteúdo — a File System
+    // Access API não tem rename nativo. Não faz nada se a pasta antiga não existir.
+    async function renameRootFolder(oldName, newPath) {
+        if (!dirHandle || oldName === newPath) return false;
         let oldHandle;
         try { oldHandle = await dirHandle.getDirectoryHandle(oldName); } catch (_) { return false; }
-        const newHandle = await dirHandle.getDirectoryHandle(newName, { create: true });
+        const newHandle = await walkDir(dirHandle, newPath, true);
         await moveAllContents(oldHandle, newHandle);
         try { await dirHandle.removeEntry(oldName, { recursive: true }); } catch (_) {}
         return true;

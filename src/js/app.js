@@ -3359,6 +3359,13 @@
             cfg.estruturaV2Migrada = true;
             Storage.saveSettings(cfg);
         }
+        // Correção: "Exportar Lattes" (pasta solta na raiz) passa a ficar
+        // dentro de "Exportação" (Lattes XML), junto com as demais.
+        if (!cfg.exportarLattesMigrada && Storage.hasDirectory()) {
+            try { await Storage.renameRootFolder('Exportar Lattes', 'Exportação/Lattes XML'); } catch (_) {}
+            cfg.exportarLattesMigrada = true;
+            Storage.saveSettings(cfg);
+        }
 
         // Aviso ao fechar/recarregar com edições não salvas
         window.addEventListener('beforeunload', (e) => { if (state.formDirty) { e.preventDefault(); e.returnValue = ''; } });

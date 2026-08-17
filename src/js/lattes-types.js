@@ -468,8 +468,8 @@ window.LattesTypes = (function () {
 
     const BACKUP_FOLDER = 'Cópia de segurança';
     const EVIDENCIAS_FOLDER = 'Evidências';
-    const EXPORT_FOLDERS = ['Exportação/RSC-PCCTAE', 'Exportação/Progressão Docentes', 'Exportação/Súmula Curricular FAPESP'];
-    const EXTRA_FOLDERS = ['Publicação para Web', 'Relatórios', 'Exportar Lattes'];
+    const EXPORT_FOLDERS = ['Exportação/RSC-PCCTAE', 'Exportação/Progressão Docentes', 'Exportação/Súmula Curricular FAPESP', 'Exportação/Lattes XML'];
+    const EXTRA_FOLDERS = ['Publicação para Web', 'Relatórios'];
 
     function slugFolder(cat) {
         // Nome de pasta seguro para o sistema de arquivos, legível e ordenável
@@ -521,9 +521,10 @@ window.LattesTypes = (function () {
         perfilTypes() { return Object.keys(TYPES).filter(k => TYPES[k].perfil); },
         // Estrutura de pastas criada ao configurar o diretório: Caixa de
         // Entrada e Cópia de segurança na raiz (a Caixa é criada à parte, por
-        // Storage.ensureInbox); Exportação (com subpastas manuais);
-        // Evidências (uma subpasta por categoria); e Publicação para Web,
-        // Relatórios e Exportar Lattes — pastas de uso manual.
+        // Storage.ensureInbox); Exportação (RSC-PCCTAE, Progressão Docentes,
+        // Súmula Curricular FAPESP e Lattes XML); Evidências (uma subpasta
+        // por categoria); e Publicação para Web e Relatórios — todas de uso
+        // manual (o app não grava nelas automaticamente).
         allFolders() {
             return [BACKUP_FOLDER, ...EXPORT_FOLDERS, ...LATTES_CATEGORIES.map(slugFolder), ...EXTRA_FOLDERS];
         },
