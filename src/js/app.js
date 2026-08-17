@@ -1079,9 +1079,16 @@
         } else if (f.type === 'checkboxes') {
             const selected = String(val || '').split(/[;,]/).map(s => s.trim()).filter(Boolean);
             input = `<div class="flex flex-wrap gap-x-4 gap-y-1 pt-1">
-                ${f.options.map(o => `<label class="flex items-center gap-1.5 text-sm">
-                    <input type="checkbox" data-cbgroup="${f.key}" value="${esc(o)}" ${selected.includes(o) ? 'checked' : ''}> ${esc(o)}
-                </label>`).join('')}
+                ${f.options.map(o => {
+                    const desc = f.descriptions && f.descriptions[o];
+                    const cb = `<input type="checkbox" data-cbgroup="${f.key}" value="${esc(o)}" ${selected.includes(o) ? 'checked' : ''} class="mt-0.5">`;
+                    if (!desc) return `<label class="flex items-center gap-1.5 text-sm">${cb} ${esc(o)}</label>`;
+                    return `<label class="flex items-start gap-1.5 text-sm w-full">${cb}
+                        <span>${esc(o)}
+                            <details class="mt-0.5"><summary class="text-xs text-govbr-700 dark:text-unifesp-400 cursor-pointer select-none">Ver definição legal</summary>
+                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 max-w-2xl">${esc(desc)}</p></details>
+                        </span></label>`;
+                }).join('')}
             </div>`;
         } else if (f.type === 'skilllevels') {
             const levels = f.levels || ['Bom', 'Razoável', 'Pouco'];
@@ -1132,7 +1139,7 @@
                 : `maxlength="${f.maxlength || (t === 'url' ? 300 : 500)}"`;
             input = `<input type="${t}" name="${f.key}" value="${esc(val)}" ${req} ${listAttr} ${vAttr} ${extra} placeholder="${esc(ph)}" class="${base}">`;
         }
-        return `<div>
+        return `<div data-field="${f.key}">
             <label class="block text-xs font-semibold mb-1">${esc(f.label)}${reqMark}</label>
             ${input}
             ${f.help ? `<p class="text-xs text-gray-500 mt-0.5">${esc(f.help)}</p>` : ''}
@@ -1272,9 +1279,25 @@
     // controlador atinge o valor da condição (e reativa quando sai dela).
     function wireConditional(container, def) {
         (def && def.fields || []).filter(f => f.disabledWhen).forEach(f => {
-            const input = container.querySelector(`[name="${f.key}"]`);
             const ctrl = container.querySelector(`[name="${f.disabledWhen.field}"]`);
-            if (!input || !ctrl) return;
+            if (!ctrl) return;
+            // Campos "checkboxes" não têm um único input com `name` — some/reaparece
+            // o bloco inteiro (via data-field) e desmarca as opções ao esconder.
+            if (f.type === 'checkboxes') {
+                const wrap = container.querySelector(`[data-field="${f.key}"]`);
+                if (!wrap) return;
+                const applyCb = () => {
+                    const vals = {}; vals[f.disabledWhen.field] = ctrl.value;
+                    const off = isFieldDisabled(f, vals);
+                    wrap.classList.toggle('hidden', off);
+                    if (off) $$(`[data-cbgroup="${f.key}"]`, wrap).forEach(cb => { cb.checked = false; });
+                };
+                ctrl.addEventListener('change', applyCb);
+                applyCb();
+                return;
+            }
+            const input = container.querySelector(`[name="${f.key}"]`);
+            if (!input) return;
             const apply = () => {
                 const vals = {}; vals[f.disabledWhen.field] = ctrl.value;
                 const off = isFieldDisabled(f, vals);
@@ -2179,13 +2202,34 @@
     function perfilSectionHtml() {
         return `<section id="perfilSection" class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
             <h2 class="text-lg font-bold mb-2 flex items-center gap-2"><i class="fa-solid fa-id-card text-govbr-600 dark:text-unifesp-400"></i> Dados gerais (perfil)</h2>
-            <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">Informações autodeclaradas do Currículo Lattes (Identificação, Foto, Endereço, Texto inicial, Outras informações, Áreas de atuação e Documentos pessoais). São itens <strong>do Lattes</strong> — a maioria não exige evidência, exceto Documentos pessoais.</p>
+            <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">Informações autodeclaradas do Currículo Lattes (Identificação, Foto, Endereço, Texto inicial, Outras informações, Áreas de atuação, Identidade, Passaporte e Documentos pessoais). São itens <strong>do Lattes</strong> — a maioria não exige evidência, exceto Identidade, Passaporte e Documentos pessoais.</p>
             <div class="space-y-2">
-                ${LattesTypes.perfilTypes().filter(k => k !== 'AREA_ATUACAO' && k !== 'DOCUMENTO_PESSOAL').map(perfilCardHtml).join('')}
+                ${LattesTypes.perfilTypes().filter(k => k !== 'AREA_ATUACAO' && k !== 'DOCUMENTO_PESSOAL' && k !== 'DOC_IDENTIDADE' && k !== 'DOC_PASSAPORTE').map(perfilCardHtml).join('')}
                 ${areaAtuacaoSectionHtml()}
+                ${fixedDocCardHtml('DOC_IDENTIDADE')}
+                ${fixedDocCardHtml('DOC_PASSAPORTE')}
                 ${documentoPessoalSectionHtml()}
             </div>
         </section>`;
+    }
+
+    // Identidade (RG) / Passaporte: itens fixos (sempre presentes, não são
+    // removíveis) dentro de Documentos pessoais — diferente da lista livre de
+    // Documentos pessoais, cada um tem campos próprios e alimenta a
+    // exportação Lattes (NUMERO-IDENTIDADE/ORGAO-EMISSOR/... e
+    // NUMERO-DO-PASSAPORTE em DADOS-GERAIS). "Preencher"/"Editar" abrem o
+    // formulário completo do Catalogar (com upload de evidência) e voltam
+    // para Configurações ao salvar.
+    function fixedDocCardHtml(tk) {
+        const def = LattesTypes.get(tk);
+        const item = state.items.find(i => i.typeKey === tk);
+        const preenchido = !!item;
+        const resumo = item ? esc(LattesTypes.itemTitle(item)) : 'vazio';
+        return `<div class="flex items-center gap-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded px-3 py-2 text-sm">
+            <i aria-hidden="true" title="${item && evCount(item) ? 'Com evidência anexada' : 'Sem evidência anexada'}" class="fa-solid ${item && evCount(item) ? 'fa-paperclip text-green-600 dark:text-green-500' : 'fa-file-circle-xmark text-gray-400'} shrink-0"></i>
+            <span class="flex-1 min-w-0 truncate">${esc(def.label)} <span class="text-xs font-normal ${preenchido ? 'text-green-600 dark:text-green-400' : 'text-gray-400'} truncate">· ${resumo}</span></span>
+            <button type="button" data-fixed-doc="${tk}" class="px-2 py-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-govbr-600 dark:text-unifesp-400 text-xs font-semibold shrink-0"><i class="fa-solid fa-pen mr-1"></i> ${preenchido ? 'Editar' : 'Preencher'}</button>
+        </div>`;
     }
 
     // Documentos pessoais: outro tipo de perfil com VÁRIAS instâncias, mas que
@@ -2234,13 +2278,14 @@
         selCat.value = catKey;
     }
     // Abre o item (novo ou existente) no formulário do Catalogar, forçando a
-    // categoria/tipo Documentos pessoais mesmo fora da lista de tipos visível
-    // (foi retirada de lá — só é alcançável por aqui).
-    function openDocumentoPessoalForm(item) {
+    // categoria/tipo indicado mesmo fora da lista de tipos visível (Documentos
+    // pessoais/Identidade/Passaporte foram retirados de lá — só alcançáveis
+    // por aqui). Ao salvar, volta a Configurações.
+    function openPerfilDocForm(typeKey, item) {
         switchTab('catalogar');
         buildForm(item, { focus: false });
-        forceSelectCategoria(LattesTypes.primaryCategory('DOCUMENTO_PESSOAL'));
-        if (state._selectTipo) state._selectTipo('DOCUMENTO_PESSOAL');
+        forceSelectCategoria(LattesTypes.primaryCategory(typeKey));
+        if (state._selectTipo) state._selectTipo(typeKey);
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
     function wireDocumentoPessoalListActions(sec) {
@@ -2248,7 +2293,7 @@
         if (!list) return;
         $$('[data-doc-edit]', list).forEach(b => b.addEventListener('click', () => {
             const item = state.items.find(i => i.id === b.dataset.docEdit);
-            if (item) openDocumentoPessoalForm(item);
+            if (item) openPerfilDocForm('DOCUMENTO_PESSOAL', item);
         }));
         $$('[data-doc-del]', list).forEach(b => b.addEventListener('click', async () => {
             const item = state.items.find(i => i.id === b.dataset.docDel);
@@ -2270,8 +2315,15 @@
     }
     function wireDocumentoPessoalSection(sec) {
         const addBtn = sec.querySelector('#btnAddDocumentoPessoal');
-        if (addBtn) addBtn.addEventListener('click', () => openDocumentoPessoalForm(undefined));
+        if (addBtn) addBtn.addEventListener('click', () => openPerfilDocForm('DOCUMENTO_PESSOAL', undefined));
         wireDocumentoPessoalListActions(sec);
+    }
+    // Botões "Preencher"/"Editar" dos itens fixos (Identidade/Passaporte)
+    function wireFixedDocButtons(sec) {
+        $$('[data-fixed-doc]', sec).forEach(b => b.addEventListener('click', () => {
+            const tk = b.dataset.fixedDoc;
+            openPerfilDocForm(tk, state.items.find(i => i.typeKey === tk));
+        }));
     }
 
     // Áreas de atuação: único tipo de perfil com VÁRIAS instâncias — em vez do
@@ -2432,6 +2484,8 @@
         if (!sec) return;
         wireValidators(sec);
         wireCounters(sec);
+        wireDateBr(sec);
+        wireNA(sec);
         $$('[data-perfil-foto]', sec).forEach(inp => inp.addEventListener('change', (e) => {
             const f = e.target.files[0];
             if (!f) return;
@@ -2451,8 +2505,12 @@
                 if (url) { prev.src = url; prev.classList.remove('hidden'); }
             } catch (_) {}
         })();
-        $$('[data-perfil-form]', sec).forEach(form => form.addEventListener('submit', onPerfilSubmit));
+        $$('[data-perfil-form]', sec).forEach(form => {
+            form.addEventListener('submit', onPerfilSubmit);
+            wireConditional(form, LattesTypes.get(form.dataset.perfilForm));
+        });
         wireAreaAtuacaoSection(sec);
+        wireFixedDocButtons(sec);
         wireDocumentoPessoalSection(sec);
     }
     async function onPerfilSubmit(e) {

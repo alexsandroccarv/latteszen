@@ -188,18 +188,38 @@ window.LattesXMLExport = (function () {
     function buildDadosGerais(byType, all) {
         const ident = (byType('IDENTIFICACAO')[0] || { fields: {} }).fields;
         const nome = clean(ident.titulo) || 'Currículo';
-        const citacoes = clean(ident.citacoes) || nome;
+        // Nome em citações: uma variação por linha (textarea) — o schema só
+        // aceita um único atributo, então junta com "; " (quebra ANTES de
+        // limpar espaços — clean() colapsaria as quebras de linha).
+        const citacoesLinhas = String(ident.citacoes == null ? '' : ident.citacoes).split('\n').map(clean).filter(Boolean);
+        const citacoes = citacoesLinhas.length ? citacoesLinhas.join('; ') : nome;
         const nacionalidade = clean(ident.nacionalidade) || 'Brasileira';
 
         // SEXO é #REQUIRED no formato de importação do Lattes (MASCULINO|FEMININO).
         const sexo = (clean(ident.sexo).toUpperCase().indexOf('F') === 0) ? 'FEMININO' : 'MASCULINO';
+        // Identidade (RG) e Passaporte: itens fixos e próprios (categoria
+        // "Documentos pessoais"), não campos da Identificação — mas o schema
+        // exige seus dados aqui, junto com o resto de DADOS-GERAIS.
+        const rg = (byType('DOC_IDENTIDADE')[0] || {}).fields || {};
+        const passaporte = (byType('DOC_PASSAPORTE')[0] || {}).fields || {};
         const dgAttrs = {
             'NOME-COMPLETO': nome,
             'NOME-EM-CITACOES-BIBLIOGRAFICAS': citacoes,
             'NACIONALIDADE': nacionalidade,
             'SEXO': sexo,
+            'CPF': clean(ident.cpf),
+            'NUMERO-DO-PASSAPORTE': clean(passaporte.numero),
             'PAIS-DE-NASCIMENTO': clean(ident.pais),
+            'UF-NASCIMENTO': clean(ident.ufNascimento),
+            'CIDADE-NASCIMENTO': clean(ident.cidadeNascimento),
+            'DATA-NASCIMENTO': ddmmaaaa(ident.dataNascimento),
+            'NUMERO-IDENTIDADE': clean(rg.numero),
+            'ORGAO-EMISSOR': clean(rg.orgao),
+            'UF-ORGAO-EMISSOR': clean(rg.uf),
+            'DATA-DE-EMISSAO': ddmmaaaa(rg.dataEmissao),
             'PERMISSAO-DE-DIVULGACAO': 'NAO',
+            'PAIS-DE-NACIONALIDADE': clean(ident.paisNacionalidade),
+            'RACA-OU-COR': clean(ident.corRaca),
             'ORCID-ID': clean(ident.orcid),
         };
 

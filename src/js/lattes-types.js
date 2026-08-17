@@ -60,14 +60,49 @@ const alNome = (label) => ({ key: 'titulo', label, type: 'text', required: true 
 /* ---- Definição global dos TIPOS (por chave) ---- */
 const TYPES = {
     // 01 Dados gerais
-    IDENTIFICACAO: { label: 'Identificação', noEvidence: true, singleton: true, perfil: true, fields: [{ key: 'titulo', label: 'Nome completo', type: 'text', required: true }, { key: 'nomeSocial', label: 'Nome social', type: 'text' }, { key: 'citacoes', label: 'Nome em citações bibliográficas', type: 'text' }, { key: 'sexo', label: 'Sexo', type: 'select', options: ['Masculino', 'Feminino'], help: 'Exigido pelo Lattes na importação do XML.' }, { key: 'nacionalidade', label: 'Nacionalidade', type: 'text', placeholder: 'Brasileira' }, { key: 'pais', label: 'País de nascimento', type: 'text', placeholder: 'Brasil' }, { key: 'orcid', label: 'ORCID', type: 'text' }, F_URL] },
+    IDENTIFICACAO: { label: 'Identificação', noEvidence: true, singleton: true, perfil: true, fields: [
+        { key: 'titulo', label: 'Nome completo (nome civil)', type: 'text', required: true },
+        { key: 'usaNomeSocial', label: 'Deseja utilizar o nome social?', type: 'select', options: ['Não', 'Sim'], help: 'De acordo com o Decreto 8.727/2016, pessoa travesti ou transexual pode optar pela exibição apenas do nome social nas buscas públicas do Currículo Lattes.' },
+        { key: 'nomeSocial', label: 'Nome social', type: 'text', disabledWhen: { field: 'usaNomeSocial', in: ['', 'Não'] } },
+        { key: 'citacoes', label: 'Nome em citações bibliográficas', type: 'textarea', help: 'Uma variação por linha (ex.: CARVALHO, Alexsandro Cardoso / CARVALHO, Alexsandro / Carvalho, A. C.).' },
+        { key: 'cpf', label: 'CPF', type: 'text', placeholder: '000.000.000-00' },
+        { key: 'corRaca', label: 'Cor ou raça', type: 'select', options: ['Branca', 'Preta', 'Parda', 'Indígena', 'Não desejo declarar'] },
+        { key: 'sexo', label: 'Sexo', type: 'select', options: ['Masculino', 'Feminino'], help: 'Exigido pelo Lattes na importação do XML.' },
+        { key: 'nacionalidade', label: 'Nacionalidade', type: 'text', placeholder: 'Brasileira' },
+        { key: 'paisNacionalidade', label: 'País de nacionalidade', type: 'text', placeholder: 'Brasil' },
+        { key: 'pais', label: 'País de nascimento', type: 'text', placeholder: 'Brasil' },
+        { key: 'ufNascimento', label: 'UF de nascimento', type: 'text', placeholder: 'ex.: RS' },
+        { key: 'cidadeNascimento', label: 'Cidade de nascimento', type: 'text' },
+        { key: 'dataNascimento', label: 'Data de nascimento', type: 'datebr' },
+        { key: 'orcid', label: 'ORCID', type: 'text' },
+        F_URL,
+        { key: 'pcd', label: 'Você é uma pessoa com Deficiência?', type: 'select', options: ['Não', 'Sim'] },
+        { key: 'deficiencias', label: 'Deficiência(s)', type: 'checkboxes', disabledWhen: { field: 'pcd', in: ['', 'Não'] }, options: ['Auditiva', 'Física', 'Intelectual', 'Visual', 'Transtorno do Espectro Autista (TEA)', 'Múltipla'], descriptions: {
+            'Auditiva': 'Perda bilateral, parcial ou total, de quarenta e um decibéis (dB) ou mais, aferida por audiograma nas frequências de 500Hz, 1.000Hz, 2.000Hz e 3.000Hz (Decreto nº 3.298/1999); limitação de longo prazo da audição, uni ou bilateral, que, em interação com uma ou mais barreiras, obstrui a participação plena e efetiva da pessoa na sociedade em igualdade de condições com as demais pessoas (Lei nº 14.768/2023).',
+            'Física': 'Alteração completa ou parcial de um ou mais segmentos do corpo humano, acarretando o comprometimento da função física, apresentando-se sob a forma de paraplegia, paraparesia, monoplegia, monoparesia, tetraplegia, tetraparesia, triplegia, triparesia, hemiplegia, hemiparesia, ostomia, amputação ou ausência de membro, paralisia cerebral, nanismo, membros com deformidade congênita ou adquirida, exceto as deformidades estéticas e as que não produzam dificuldades para o desempenho de funções (Decreto nº 3.298/1999).',
+            'Intelectual': 'Funcionamento intelectual significativamente inferior à média, com manifestação antes dos dezoito anos e limitações associadas a duas ou mais áreas de habilidades adaptativas, tais como: comunicação; cuidado pessoal; habilidades sociais; utilização dos recursos da comunidade; saúde e segurança; habilidades acadêmicas; lazer; e trabalho (Decreto nº 3.298/1999).',
+            'Visual': 'Cegueira, na qual a acuidade visual é igual ou menor que 0,05 no melhor olho, com a melhor correção óptica; baixa visão, que significa acuidade visual entre 0,3 e 0,05 no melhor olho, com a melhor correção óptica; os casos nos quais a somatória da medida do campo visual em ambos os olhos for igual ou menor que 60°; ou a ocorrência simultânea de quaisquer das condições anteriores (Decreto nº 3.298/1999); visão monocular, classificada como deficiência sensorial do tipo visual (Lei nº 14.126/2021).',
+            'Transtorno do Espectro Autista (TEA)': 'Síndrome clínica caracterizada pela deficiência persistente e clinicamente significativa da comunicação e da interação sociais, manifestada por deficiência marcada de comunicação verbal e não verbal usada para interação social; ausência de reciprocidade social; falência em desenvolver e manter relações apropriadas ao seu nível de desenvolvimento; padrões restritivos e repetitivos de comportamentos, interesses e atividades; excessiva aderência a rotinas e padrões de comportamento ritualizados; e interesses restritos e fixos (Lei nº 12.764/2012).',
+            'Múltipla': 'Associação de duas ou mais deficiências (Decreto nº 3.298/1999).',
+        } },
+    ] },
     FOTO_PERFIL: { label: 'Foto de perfil', noExport: true, noEvidence: true, singleton: true, perfil: true, accept: 'image/jpeg,image/png', fields: [{ key: 'titulo', label: 'Descrição', type: 'text', placeholder: 'ex.: Foto oficial 2025' }, { key: 'ano', label: 'Ano de início', type: 'datebr' }, F_AFIM] },
     DOCUMENTO_PESSOAL: { label: 'Documentos pessoais', noExport: true, perfil: true, accept: 'application/pdf,image/jpeg,image/png', fields: [
-        { key: 'tipoDoc', label: 'Tipo de documento', type: 'select', required: true, options: ['RG', 'CPF', 'Título de eleitor', 'Certidão de nascimento', 'Certidão de casamento', 'Conselho de classe', 'Diploma / Certificado', 'Carteira profissional', 'CNH', 'Passaporte', 'Comprovante de residência', 'Reservista', 'PIS/PASEP', 'Outro'] },
+        { key: 'tipoDoc', label: 'Tipo de documento', type: 'select', required: true, options: ['Título de eleitor', 'Certidão de nascimento', 'Certidão de casamento', 'Conselho de classe', 'Diploma / Certificado', 'Carteira profissional', 'CNH', 'Comprovante de residência', 'Reservista', 'PIS/PASEP', 'Outro'] },
         { key: 'titulo', label: 'Descrição / Nº do documento', type: 'text', required: true },
         { key: 'orgao', label: 'Órgão emissor', type: 'text' },
         { key: 'data', label: 'Data de emissão / validade', type: 'datebr' },
         { key: 'observacoes', label: 'Observações', type: 'textarea' }] },
+    DOC_IDENTIDADE: { label: 'Identidade (RG)', singleton: true, perfil: true, accept: 'application/pdf,image/jpeg,image/png', fields: [
+        { key: 'numero', label: 'Número', type: 'text', required: true },
+        { key: 'orgao', label: 'Órgão emissor', type: 'text' },
+        { key: 'uf', label: 'Unidade Federativa (UF)', type: 'text', placeholder: 'ex.: RS' },
+        { key: 'dataEmissao', label: 'Data de emissão', type: 'datebr' }] },
+    DOC_PASSAPORTE: { label: 'Passaporte', singleton: true, perfil: true, accept: 'application/pdf,image/jpeg,image/png', fields: [
+        { key: 'numero', label: 'Número do passaporte', type: 'text', required: true },
+        { key: 'dataValidade', label: 'Data de validade', type: 'datebr' },
+        { key: 'dataEmissao', label: 'Data de emissão', type: 'datebr' },
+        { key: 'paisEmissao', label: 'País de emissão', type: 'text', placeholder: 'Brasil' }] },
     ENDERECO: { label: 'Endereço', singleton: true, noEvidence: true, perfil: true, fields: [{ key: 'titulo', label: 'Endereço', type: 'text', required: true }, { key: 'tipo', label: 'Tipo', type: 'select', options: ['Profissional', 'Residencial'] }, F_CIDADE, { key: 'uf', label: 'UF', type: 'text' }, { key: 'cep', label: 'CEP', type: 'text' }] },
     LICENCA: { label: 'Licença maternidade, paternidade e adoção', noExport: true, fields: [{ key: 'titulo', label: 'Descrição', type: 'text', required: true }, { key: 'tipo', label: 'Tipo', type: 'select', options: ['Maternidade', 'Paternidade', 'Adoção'] }, { key: 'dataInicio', label: 'Data de início', type: 'datebr' }, { key: 'dataFim', label: 'Data de fim', type: 'datebr' }] },
     IDIOMAS: { label: 'Idiomas', fields: [{ key: 'titulo', label: 'Idioma', type: 'text', required: true }, { key: 'habilidades', label: 'Proficiência (nível por habilidade)', type: 'skilllevels', options: ['Leitura', 'Fala', 'Escrita', 'Compreensão'], levels: ['Bom', 'Razoável', 'Pouco'] }] },
@@ -401,12 +436,12 @@ window.LATTES_CATEGORIES = [
     // (perfil), não em Catalogar — por isso `perfilOnly` (fora do seletor
     // de categoria do Catalogar), mas continuam vinculados ao Lattes.
     { num: '20', key: 'PERFIL_FOTOS', label: 'Fotos de Perfil', icon: 'fa-camera', perfilOnly: true, types: ['FOTO_PERFIL'] },
-    { num: '21', key: 'PERFIL_DOCS', label: 'Documentos pessoais', icon: 'fa-address-card', perfilOnly: true, types: ['DOCUMENTO_PESSOAL'] },
+    { num: '21', key: 'PERFIL_DOCS', label: 'Documentos pessoais', icon: 'fa-address-card', perfilOnly: true, types: ['DOCUMENTO_PESSOAL', 'DOC_IDENTIDADE', 'DOC_PASSAPORTE'] },
 ];
 
 // Categoria "primária" de cada tipo (usada pelo importador do XML)
 const PRIMARY_CATEGORY = {
-    IDENTIFICACAO: 'DADOS_GERAIS', FOTO_PERFIL: 'PERFIL_FOTOS', DOCUMENTO_PESSOAL: 'PERFIL_DOCS', ENDERECO: 'DADOS_GERAIS', LICENCA: 'DADOS_GERAIS', IDIOMAS: 'DADOS_GERAIS',
+    IDENTIFICACAO: 'DADOS_GERAIS', FOTO_PERFIL: 'PERFIL_FOTOS', DOCUMENTO_PESSOAL: 'PERFIL_DOCS', DOC_IDENTIDADE: 'PERFIL_DOCS', DOC_PASSAPORTE: 'PERFIL_DOCS', ENDERECO: 'DADOS_GERAIS', LICENCA: 'DADOS_GERAIS', IDIOMAS: 'DADOS_GERAIS',
     PREMIO: 'DADOS_GERAIS', RESUMO_CV: 'DADOS_GERAIS', OUTRAS_INFO: 'DADOS_GERAIS',
     FORMACAO_ACADEMICA: 'FORMACAO', POS_DOUTORADO: 'FORMACAO', FORMACAO_COMPLEMENTAR: 'FORMACAO',
     VINCULO_PROFISSIONAL: 'ATUACAO', LINHA_PESQUISA: 'ATUACAO', CORPO_EDITORIAL: 'ATUACAO', COMITE_ASSESSORAMENTO: 'ATUACAO', REVISOR_PERIODICO: 'ATUACAO', REVISOR_FOMENTO: 'ATUACAO', AREA_ATUACAO: 'ATUACAO',
@@ -551,6 +586,12 @@ window.LattesTypes = (function () {
                 const t = [f.tipoDoc, f.titulo].map(x => String(x || '').trim()).filter(Boolean).join(' · ');
                 if (t) return t;
             }
+            // Identidade (RG) / Passaporte: não têm campo "titulo" — usam "numero"
+            if (item.typeKey === 'DOC_IDENTIDADE') {
+                const t = [f.numero, f.orgao].map(x => String(x || '').trim()).filter(Boolean).join(' · ');
+                if (t) return t;
+            }
+            if (item.typeKey === 'DOC_PASSAPORTE' && String(f.numero || '').trim()) return String(f.numero).trim();
             return f.titulo || f.curso || f.orientando || f.candidato || f.instituicao || f.nome || '(sem título)';
         },
     };
