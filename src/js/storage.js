@@ -93,19 +93,31 @@ window.Storage = (function () {
     }
 
     /* -------------------------- Escrita de arquivos ---------------------- */
-    // Cria os subdiretórios (um por categoria) dentro da pasta escolhida
+    // Anda por um caminho de subdiretórios ("A/B/C"), criando cada segmento
+    // se `create` for true. Usado porque a File System Access API só resolve
+    // um nível por chamada — não aceita caminhos com "/" de uma vez.
+    async function walkDir(dir, subdirPath, create) {
+        if (!subdirPath) return dir;
+        let d = dir;
+        for (const seg of String(subdirPath).split('/').filter(Boolean)) {
+            d = await d.getDirectoryHandle(seg, { create: !!create });
+        }
+        return d;
+    }
+
+    // Cria os subdiretórios (um por categoria) dentro da pasta escolhida.
+    // Cada nome pode ser um caminho com "/" (ex.: "Evidências/01 Dados gerais").
     async function ensureSubdirs(names) {
         const dir = await ensureDirReady();
         for (const name of names) {
-            try { await dir.getDirectoryHandle(name, { create: true }); } catch (_) {}
+            try { await walkDir(dir, name, true); } catch (_) {}
         }
     }
 
-    // Resolve o diretório-alvo: a raiz ou um subdiretório (criado se necessário)
+    // Resolve o diretório-alvo: a raiz ou um subdiretório/caminho (criado se necessário)
     async function targetDir(subdir) {
         const dir = await ensureDirReady();
-        if (!subdir) return dir;
-        return dir.getDirectoryHandle(subdir, { create: true });
+        return walkDir(dir, subdir, true);
     }
 
     async function writeFile(filename, data, subdir) {
@@ -123,10 +135,10 @@ window.Storage = (function () {
     const ATTACH_EXTS = ['pdf', 'jpg', 'jpeg', 'png', 'gif', 'webp', 'mp4', 'webm', 'mov', 'avi', 'mkv', 'zip', 'tar', 'gz'];
 
     /* ------------------------- Bandeja de entrada ------------------------ */
-    // 00 Inbox: pasta onde o usuário deposita arquivos ainda não catalogados.
-    // 00 Processado: subpasta (dentro da Inbox) para onde o original é movido
-    // depois de catalogado.
-    const INBOX_FOLDER = '00 Inbox';
+    // Caixa de Entrada: pasta onde o usuário deposita arquivos ainda não
+    // catalogados. 00 Processado: subpasta (dentro dela) para onde o
+    // original é movido depois de catalogado.
+    const INBOX_FOLDER = 'Caixa de Entrada';
     const PROCESSED_FOLDER = '00 Processado';
 
     async function inboxDir(create) {
@@ -191,8 +203,8 @@ window.Storage = (function () {
     // Remove um anexo específico (todas as extensões daquele basename).
     async function deleteEntry(basename, subdir) {
         if (!dirHandle) return;
-        let dir = dirHandle;
-        if (subdir) { try { dir = await dirHandle.getDirectoryHandle(subdir); } catch (_) { return; } }
+        let dir;
+        try { dir = await walkDir(dirHandle, subdir, false); } catch (_) { return; }
         for (const ext of ATTACH_EXTS) {
             try { await dir.removeEntry(`${basename}.${ext}`); } catch (_) {}
         }
@@ -201,8 +213,8 @@ window.Storage = (function () {
     // Remove todos os arquivos de um item: <id>.json, <id>.<ext> e <id>-*.<ext>.
     async function deleteItemFiles(id, subdir) {
         if (!dirHandle) return;
-        let dir = dirHandle;
-        if (subdir) { try { dir = await dirHandle.getDirectoryHandle(subdir); } catch (_) { return; } }
+        let dir;
+        try { dir = await walkDir(dirHandle, subdir, false); } catch (_) { return; }
         const rm = [];
         for await (const [name, h] of dir.entries()) {
             if (h.kind !== 'file') continue;
@@ -219,8 +231,8 @@ window.Storage = (function () {
     // subdiretório para outro — usado quando a CATEGORIA do item muda.
     async function moveItemFiles(id, fromSubdir, toSubdir) {
         if (!dirHandle || fromSubdir === toSubdir) return;
-        let from = dirHandle;
-        if (fromSubdir) { try { from = await dirHandle.getDirectoryHandle(fromSubdir); } catch (_) { return; } }
+        let from;
+        try { from = await walkDir(dirHandle, fromSubdir, false); } catch (_) { return; }
         const to = await targetDir(toSubdir);
         const names = [];
         for await (const [name, h] of from.entries()) {
@@ -255,10 +267,45 @@ window.Storage = (function () {
         try { await dirHandle.removeEntry(name, { recursive: true }); return true; } catch (_) { return false; }
     }
 
+    // Move recursivamente TODO o conteúdo (arquivos e subpastas) de um
+    // diretório para outro, mantendo a estrutura interna.
+    async function moveAllContents(fromHandle, toHandle) {
+        for await (const [name, h] of fromHandle.entries()) {
+            if (h.kind === 'file') {
+                try {
+                    const file = await h.getFile();
+                    const nh = await toHandle.getFileHandle(name, { create: true });
+                    const w = await nh.createWritable();
+                    await w.write(file);
+                    await w.close();
+                    await fromHandle.removeEntry(name);
+                } catch (_) { /* se falhar um, segue os demais */ }
+            } else if (h.kind === 'directory') {
+                try {
+                    const subTo = await toHandle.getDirectoryHandle(name, { create: true });
+                    await moveAllContents(h, subTo);
+                    await fromHandle.removeEntry(name);
+                } catch (_) {}
+            }
+        }
+    }
+    // Renomeia uma pasta de sistema na raiz (ex.: "00 Inbox" -> "Caixa de
+    // Entrada"), movendo todo o conteúdo — a File System Access API não tem
+    // rename nativo. Não faz nada se a pasta antiga não existir.
+    async function renameRootFolder(oldName, newName) {
+        if (!dirHandle || oldName === newName) return false;
+        let oldHandle;
+        try { oldHandle = await dirHandle.getDirectoryHandle(oldName); } catch (_) { return false; }
+        const newHandle = await dirHandle.getDirectoryHandle(newName, { create: true });
+        await moveAllContents(oldHandle, newHandle);
+        try { await dirHandle.removeEntry(oldName, { recursive: true }); } catch (_) {}
+        return true;
+    }
+
     async function readAttachmentUrl(basename, subdir, ext) {
         const dir = await ensureDirReady();
-        let target = dir;
-        if (subdir) { try { target = await dir.getDirectoryHandle(subdir); } catch (_) { return null; } }
+        let target;
+        try { target = await walkDir(dir, subdir, false); } catch (_) { return null; }
         const tryExts = ext ? [ext.toLowerCase()] : ATTACH_EXTS;
         for (const e of tryExts) {
             try {
@@ -273,8 +320,8 @@ window.Storage = (function () {
     // Devolve o File de um anexo (para embutir em base64 na página pública).
     async function readAttachmentFile(basename, subdir, ext) {
         const dir = await ensureDirReady();
-        let target = dir;
-        if (subdir) { try { target = await dir.getDirectoryHandle(subdir); } catch (_) { return null; } }
+        let target;
+        try { target = await walkDir(dir, subdir, false); } catch (_) { return null; }
         const tryExts = ext ? [ext.toLowerCase()] : ATTACH_EXTS;
         for (const e of tryExts) {
             try { const fh = await target.getFileHandle(`${basename}.${e}`); return await fh.getFile(); }
@@ -329,7 +376,7 @@ window.Storage = (function () {
         chooseDirectory, restoreDirectory, ensureDirReady, hasDirectory,
         directoryName, forgetDirectory, verifyPermission,
         // arquivos
-        writeJson, writeFile, writeAttachment, deleteEntry, deleteItemFiles, moveItemFiles, removeSubdirIfEmpty, readAttachmentUrl, readAttachmentFile, scanDirectory, ensureSubdirs,
+        writeJson, writeFile, writeAttachment, deleteEntry, deleteItemFiles, moveItemFiles, removeSubdirIfEmpty, renameRootFolder, readAttachmentUrl, readAttachmentFile, scanDirectory, ensureSubdirs,
         // bandeja de entrada (inbox)
         ensureInbox, listInbox, readInboxFile, moveInboxToProcessed,
         // catálogo + settings

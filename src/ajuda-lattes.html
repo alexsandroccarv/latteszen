@@ -151,7 +151,7 @@
           <ol>
             <li><a href="#fluxo">Visão geral do fluxo</a></li>
             <li><a href="#diretorio">1. Criar/escolher o diretório</a></li>
-            <li><a href="#inbox">2. A pasta de entrada (00 Inbox)</a></li>
+            <li><a href="#inbox">2. A pasta de entrada (Caixa de Entrada)</a></li>
             <li><a href="#importar">3. Importar o XML do Lattes</a></li>
             <li><a href="#catalogar">4. Preencher os campos (Catalogar)</a></li>
             <li><a href="#conformidade">5. A aba Conformidade</a></li>
@@ -188,20 +188,29 @@
 
           <h3>O que é gravado na pasta</h3>
           <ul>
-            <li>Para cada item: <code>prefixo-XXX.json</code> (os dados) e, se você anexar uma evidência, <code>prefixo-XXX.pdf</code> (ou <code>.jpg</code>/<code>.png</code>).</li>
-            <li>Os arquivos são organizados em <strong>subpastas por categoria</strong> (ex.: <code>02 Formação</code>, <code>05 Produções</code>, <code>10 Orientações</code>…), o que mantém tudo navegável fora do app também.</li>
-            <li>Uma subpasta <code>00 Backup</code> guarda cópias automáticas do catálogo em JSON.</li>
+            <li>Para cada item: <code>prefixo-XXX.json</code> (os dados) e, se você anexar uma evidência, <code>prefixo-XXX.pdf</code> (ou <code>.jpg</code>/<code>.png</code>, entre outros).</li>
+            <li>Os arquivos ficam organizados em <strong>subpastas por categoria</strong> dentro de <code>Evidências</code> (ex.: <code>02 Formação</code>, <code>05 Produções</code>, <code>10 Orientações</code>…), o que mantém tudo navegável fora do app também.</li>
+            <li>Uma subpasta <code>Cópia de segurança</code> guarda cópias automáticas do catálogo em JSON.</li>
+            <li><code>Exportação</code>, <code>Publicação para Web</code>, <code>Relatórios</code> e <code>Exportar Lattes</code> são criadas vazias para você organizar seus próprios arquivos manualmente — o app não grava nelas automaticamente.</li>
           </ul>
           <div class="path">Meu-Lattes/
-├── 00 Inbox/            ← você deposita aqui os PDFs a catalogar
-│   └── 00 Processado/   ← originais já usados são movidos para cá
-├── 00 Backup/           ← backups automáticos (JSON)
-├── 01 Dados gerais/
-├── 02 Formação/
-├── 05 Produções/
-│   ├── lz-a3f.json
-│   └── lz-a3f.pdf
-└── … (uma subpasta por categoria)</div>
+├── Caixa de Entrada/         ← você deposita aqui os PDFs a catalogar
+│   └── 00 Processado/        ← originais já usados são movidos para cá
+├── Cópia de segurança/       ← backups automáticos (JSON)
+├── Exportação/
+│   ├── RSC-PCCTAE/
+│   ├── Progressão Docentes/
+│   └── Súmula Curricular FAPESP/
+├── Evidências/
+│   ├── 01 Dados gerais/
+│   ├── 02 Formação/
+│   ├── 05 Produções/
+│   │   ├── lz-a3f.json
+│   │   └── lz-a3f.pdf
+│   └── … (uma subpasta por categoria, 01–21)
+├── Publicação para Web/
+├── Relatórios/
+└── Exportar Lattes/</div>
 
           <h3>Prefixo do identificador</h3>
           <p>Em <strong>Configurações → Prefixo do identificador dos arquivos</strong> você define até 3 caracteres (ex.: suas iniciais) usados no nome dos arquivos: <code>abc-k7p.pdf</code>. Útil se você mantém currículos de mais de uma pessoa em pastas diferentes.</p>
@@ -215,15 +224,15 @@
         </section>
 
         <section class="card" id="inbox">
-          <h2><span class="step-num">2</span> A pasta de entrada — <code>00 Inbox</code></h2>
-          <p>A pasta <code>00 Inbox</code> é a sua <strong>bandeja de entrada</strong>: o lugar onde você joga os PDFs de comprovação <em>antes</em> de catalogá-los. Ela é criada automaticamente dentro do diretório.</p>
+          <h2><span class="step-num">2</span> A pasta de entrada — <code>Caixa de Entrada</code></h2>
+          <p>A pasta <code>Caixa de Entrada</code> é a sua <strong>bandeja de entrada</strong>: o lugar onde você joga os PDFs de comprovação <em>antes</em> de catalogá-los. Ela é criada automaticamente dentro do diretório.</p>
           <h3>Como usar</h3>
           <ol>
-            <li>Copie para <code>00 Inbox</code> todos os comprovantes que pretende anexar (certificados, declarações, primeiras páginas de artigos, atas de banca…).</li>
-            <li>Na aba <span class="pill">Catalogar</span>, a bandeja mostra os arquivos pendentes. Clique em <strong>“Próximo da bandeja”</strong> para carregar o próximo arquivo como evidência do item que está preenchendo.</li>
-            <li>Ao <strong>salvar</strong> o item, o arquivo original é movido para <code>00 Inbox/00 Processado</code> — assim você sempre vê na bandeja apenas o que ainda falta catalogar.</li>
+            <li>Copie para <code>Caixa de Entrada</code> todos os comprovantes que pretende anexar (certificados, declarações, primeiras páginas de artigos, atas de banca…).</li>
+            <li>Na aba <span class="pill">Catalogar</span>, a bandeja mostra os arquivos pendentes. Clique no ícone da bandeja para carregar o próximo arquivo como evidência do item que está preenchendo.</li>
+            <li>Ao <strong>salvar</strong> o item, o arquivo original é movido para <code>Caixa de Entrada/00 Processado</code> — assim você sempre vê na bandeja apenas o que ainda falta catalogar.</li>
           </ol>
-          <div class="note"><strong>Por que existe:</strong> ela separa “o que ainda preciso organizar” de “o que já está catalogado”, evitando anexar o mesmo documento duas vezes. Você também pode anexar evidências arrastando o arquivo direto para o formulário, sem passar pela Inbox.</div>
+          <div class="note"><strong>Por que existe:</strong> ela separa “o que ainda preciso organizar” de “o que já está catalogado”, evitando anexar o mesmo documento duas vezes. Você também pode anexar evidências arrastando o arquivo direto para o formulário, sem passar pela Caixa de Entrada.</div>
         </section>
 
         <section class="card" id="importar">
@@ -303,7 +312,7 @@
         <section class="card" id="backup">
           <h2>Backup e codificação</h2>
           <h3>Backup em JSON</h3>
-          <p>Em <strong>Configurações → Backup (JSON)</strong> você exporta/importa todo o catálogo (os metadados) num único arquivo. Com um diretório configurado, um backup também é salvo automaticamente em <code>00 Backup</code>. Guarde-o com regularidade — o app lembra você periodicamente.</p>
+          <p>Em <strong>Configurações → Backup (JSON)</strong> você exporta/importa todo o catálogo (os metadados) num único arquivo. Com um diretório configurado, um backup também é salvo automaticamente em <code>Cópia de segurança</code>. Guarde-o com regularidade — o app lembra você periodicamente.</p>
           <h3>Compatibilidade ISO-8859-1</h3>
           <p>Ainda em Configurações, a seção <strong>Compatibilidade com o Lattes</strong> aponta caracteres fora da tabela ISO-8859-1 (aspas “curvas”, travessão —, emoji…) que virariam entidades numéricas na exportação, e oferece <em>Normalizar pontuação</em> para deixar o texto limpo.</p>
           <div class="ok" style="margin-top:18px">Dúvidas sobre progressão por <strong>RSC-PCCTAE</strong>? Veja a <a href="ajuda-rsc.html">página de ajuda do RSC</a>.</div>

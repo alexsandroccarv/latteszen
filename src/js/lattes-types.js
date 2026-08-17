@@ -349,12 +349,14 @@ const PROD_BIBLIO = ['ARTIGO_PERIODICO', 'ARTIGO_ACEITO', 'LIVRO_CAPITULO', 'TEX
 const PROD_TECNICA = ['ASSESSORIA_CONSULTORIA', 'EXTENSAO_TECNOLOGICA', 'SOFTWARE_SEM_REGISTRO', 'PRODUTO_TECNOLOGICO', 'PROCESSO_TECNICA', 'TRABALHO_TECNICO', 'CARTA_MAPA', 'CURSO_MINISTRADO', 'MATERIAL_DIDATICO', 'EDITORACAO', 'MANUTENCAO_OBRA', 'MAQUETE', 'MIDIA', 'RELATORIO_PESQUISA', 'MIDIA_SOCIAL', 'OUTRA_TECNICA'];
 const PROD_ARTISTICA = ['ARTES_CENICAS', 'MUSICA', 'ARTES_VISUAIS', 'OUTRA_ARTISTICA'];
 const PI_TYPES = ['PATENTE', 'SOFTWARE_REGISTRADO', 'CULTIVAR_PROTEGIDA', 'CULTIVAR_REGISTRADA', 'DESENHO_INDUSTRIAL', 'MARCA', 'TOPOGRAFIA_CI'];
+const AL_NOTE = 'Os itens registrados nesta categoria não são vinculados ao Currículo Lattes e não serão exportados, mas serão exibidos na página pessoal do módulo Publicar na Web.';
 
 window.LATTES_CATEGORIES = [
     { num: '01', key: 'DADOS_GERAIS', label: 'Dados gerais', icon: 'fa-id-card',
-      // Identificação, Foto, Endereço, Texto inicial, Outras informações e
-      // Documentos pessoais são editados em Configurações (perfil); aqui
-      // ficam os demais itens de 01 (Conexões incluída no final).
+      // Identificação, Endereço, Texto inicial e Outras informações são
+      // editados em Configurações (perfil); Foto de perfil e Documentos
+      // pessoais têm categoria própria (20/21). Aqui ficam os demais itens
+      // de 01 (Conexões incluída no final).
       types: ['LICENCA', 'IDIOMAS', 'PREMIO', 'CONEXAO_SOCIAL', 'CONEXAO_ACADEMICA', 'CONEXAO_PROFISSIONAL'] },
     { num: '02', key: 'FORMACAO', label: 'Formação', icon: 'fa-user-graduate',
       types: ['FORMACAO_ACADEMICA', 'POS_DOUTORADO', 'FORMACAO_COMPLEMENTAR'] },
@@ -379,21 +381,32 @@ window.LATTES_CATEGORIES = [
     { num: '11', key: 'BANCAS', label: 'Bancas', icon: 'fa-gavel', types: ['BANCA_CONCLUSAO', 'BANCA_JULGADORA'] },
     { num: '97', key: 'RSC_ADMIN', label: 'RSC — Atividades administrativas', icon: 'fa-building-columns', naoLattes: true, rscOnly: true,
       types: ['RSC_COMISSAO', 'RSC_CONCURSO', 'RSC_CONTRATO', 'RSC_LICITACAO', 'RSC_SISTEMA', 'RSC_CARGO_FUNCAO', 'RSC_RESP_SETOR', 'RSC_APOIO_TECNICO', 'RSC_ADMIN_OUTRA'] },
-    { num: '20', key: 'ATIVIDADES_LIVRES', label: 'Registros pessoais', icon: 'fa-person-hiking', naoLattes: true,
-      note: 'Os itens registrados nesta categoria não são vinculados ao Currículo Lattes e não serão exportados, mas serão exibidos na página pessoal do módulo Publicar na Web.',
-      groups: [
-          { label: 'Desenvolvimento Pessoal e Habilidades', types: ['AL_CURSO_LIVRE', 'AL_IDIOMAS', 'AL_TREINAMENTO', 'AL_PROJETO_PESSOAL'] },
-          { label: 'Engajamento Comunitário e Cidadania', types: ['AL_VOLUNTARIADO', 'AL_LIDERANCA', 'AL_ORG_EVENTO_COM'] },
-          { label: 'Saúde, Esporte e Bem-Estar', types: ['AL_ESPORTE', 'AL_COMPETICAO', 'AL_EXPEDICAO', 'AL_BEMESTAR'] },
-          { label: 'Interesses, Cultura e Lazer', types: ['AL_HOBBY', 'AL_COLECIONISMO', 'AL_CULTURAL', 'AL_GASTRONOMIA'] },
-          { label: 'Registros e Reconhecimentos', types: ['AL_IMPRENSA', 'AL_CONCURSO', 'AL_FILIACAO', 'AL_CERTIFICACAO'] },
-      ] },
+    { num: '12', key: 'AL_DESENVOLVIMENTO', label: 'Desenvolvimento Pessoal e Habilidades', icon: 'fa-seedling', naoLattes: true,
+      note: AL_NOTE, types: ['AL_CURSO_LIVRE', 'AL_IDIOMAS', 'AL_TREINAMENTO', 'AL_PROJETO_PESSOAL'] },
+    { num: '13', key: 'AL_ENGAJAMENTO', label: 'Engajamento Comunitário e Cidadania', icon: 'fa-people-group', naoLattes: true,
+      note: AL_NOTE, types: ['AL_VOLUNTARIADO', 'AL_LIDERANCA', 'AL_ORG_EVENTO_COM'] },
+    { num: '14', key: 'AL_SAUDE_ESPORTE', label: 'Saúde, Esporte e Bem-Estar', icon: 'fa-heart-pulse', naoLattes: true,
+      note: AL_NOTE, types: ['AL_ESPORTE', 'AL_COMPETICAO', 'AL_EXPEDICAO', 'AL_BEMESTAR'] },
+    { num: '15', key: 'AL_INTERESSES', label: 'Interesses, Cultura e Lazer', icon: 'fa-palette', naoLattes: true,
+      note: AL_NOTE, types: ['AL_HOBBY', 'AL_COLECIONISMO', 'AL_CULTURAL', 'AL_GASTRONOMIA'] },
+    { num: '16', key: 'AL_CERTIFICACAO_CAT', label: 'Certificações', icon: 'fa-certificate', naoLattes: true,
+      note: AL_NOTE, types: ['AL_CERTIFICACAO'] },
+    { num: '17', key: 'AL_FILIACAO_CAT', label: 'Filiações', icon: 'fa-id-badge', naoLattes: true,
+      note: AL_NOTE, types: ['AL_FILIACAO'] },
+    { num: '18', key: 'AL_CONCURSO_CAT', label: 'Concursos e Processos seletivos', icon: 'fa-list-check', naoLattes: true,
+      note: AL_NOTE, types: ['AL_CONCURSO'] },
+    { num: '19', key: 'AL_IMPRENSA_CAT', label: 'Imprensa', icon: 'fa-newspaper', naoLattes: true,
+      note: AL_NOTE, types: ['AL_IMPRENSA'] },
+    // Fotos de Perfil e Documentos pessoais: editados em Configurações
+    // (perfil), não em Catalogar — por isso `perfilOnly` (fora do seletor
+    // de categoria do Catalogar), mas continuam vinculados ao Lattes.
+    { num: '20', key: 'PERFIL_FOTOS', label: 'Fotos de Perfil', icon: 'fa-camera', perfilOnly: true, types: ['FOTO_PERFIL'] },
+    { num: '21', key: 'PERFIL_DOCS', label: 'Documentos pessoais', icon: 'fa-address-card', perfilOnly: true, types: ['DOCUMENTO_PESSOAL'] },
 ];
-const AL_KEYS = ['AL_CURSO_LIVRE', 'AL_IDIOMAS', 'AL_TREINAMENTO', 'AL_PROJETO_PESSOAL', 'AL_VOLUNTARIADO', 'AL_LIDERANCA', 'AL_ORG_EVENTO_COM', 'AL_ESPORTE', 'AL_COMPETICAO', 'AL_EXPEDICAO', 'AL_BEMESTAR', 'AL_HOBBY', 'AL_COLECIONISMO', 'AL_CULTURAL', 'AL_GASTRONOMIA', 'AL_IMPRENSA', 'AL_CONCURSO', 'AL_FILIACAO', 'AL_CERTIFICACAO'];
 
 // Categoria "primária" de cada tipo (usada pelo importador do XML)
 const PRIMARY_CATEGORY = {
-    IDENTIFICACAO: 'DADOS_GERAIS', FOTO_PERFIL: 'DADOS_GERAIS', DOCUMENTO_PESSOAL: 'DADOS_GERAIS', ENDERECO: 'DADOS_GERAIS', LICENCA: 'DADOS_GERAIS', IDIOMAS: 'DADOS_GERAIS',
+    IDENTIFICACAO: 'DADOS_GERAIS', FOTO_PERFIL: 'PERFIL_FOTOS', DOCUMENTO_PESSOAL: 'PERFIL_DOCS', ENDERECO: 'DADOS_GERAIS', LICENCA: 'DADOS_GERAIS', IDIOMAS: 'DADOS_GERAIS',
     PREMIO: 'DADOS_GERAIS', RESUMO_CV: 'DADOS_GERAIS', OUTRAS_INFO: 'DADOS_GERAIS',
     FORMACAO_ACADEMICA: 'FORMACAO', POS_DOUTORADO: 'FORMACAO', FORMACAO_COMPLEMENTAR: 'FORMACAO',
     VINCULO_PROFISSIONAL: 'ATUACAO', LINHA_PESQUISA: 'ATUACAO', CORPO_EDITORIAL: 'ATUACAO', COMITE_ASSESSORAMENTO: 'ATUACAO', REVISOR_PERIODICO: 'ATUACAO', REVISOR_FOMENTO: 'ATUACAO', AREA_ATUACAO: 'ATUACAO',
@@ -409,7 +422,14 @@ const PRIMARY_CATEGORY = {
     // chaves legadas (compatibilidade com dados antigos)
     LIVRO: 'PRODUCOES', CAPITULO_LIVRO: 'PRODUCOES', SOFTWARE: 'PRODUCOES', ORIENTACAO: 'ORIENTACOES', BANCA: 'BANCAS', PROJETO: 'PROJETOS',
 };
-AL_KEYS.forEach(k => { PRIMARY_CATEGORY[k] = 'ATIVIDADES_LIVRES'; });
+['AL_CURSO_LIVRE', 'AL_IDIOMAS', 'AL_TREINAMENTO', 'AL_PROJETO_PESSOAL'].forEach(k => { PRIMARY_CATEGORY[k] = 'AL_DESENVOLVIMENTO'; });
+['AL_VOLUNTARIADO', 'AL_LIDERANCA', 'AL_ORG_EVENTO_COM'].forEach(k => { PRIMARY_CATEGORY[k] = 'AL_ENGAJAMENTO'; });
+['AL_ESPORTE', 'AL_COMPETICAO', 'AL_EXPEDICAO', 'AL_BEMESTAR'].forEach(k => { PRIMARY_CATEGORY[k] = 'AL_SAUDE_ESPORTE'; });
+['AL_HOBBY', 'AL_COLECIONISMO', 'AL_CULTURAL', 'AL_GASTRONOMIA'].forEach(k => { PRIMARY_CATEGORY[k] = 'AL_INTERESSES'; });
+PRIMARY_CATEGORY.AL_CERTIFICACAO = 'AL_CERTIFICACAO_CAT';
+PRIMARY_CATEGORY.AL_FILIACAO = 'AL_FILIACAO_CAT';
+PRIMARY_CATEGORY.AL_CONCURSO = 'AL_CONCURSO_CAT';
+PRIMARY_CATEGORY.AL_IMPRENSA = 'AL_IMPRENSA_CAT';
 ['CONEXAO_SOCIAL', 'CONEXAO_ACADEMICA', 'CONEXAO_PROFISSIONAL'].forEach(k => { PRIMARY_CATEGORY[k] = 'DADOS_GERAIS'; });
 ['RSC_COMISSAO', 'RSC_CONCURSO', 'RSC_CONTRATO', 'RSC_LICITACAO', 'RSC_SISTEMA', 'RSC_CARGO_FUNCAO', 'RSC_RESP_SETOR', 'RSC_APOIO_TECNICO', 'RSC_ADMIN_OUTRA'].forEach(k => { PRIMARY_CATEGORY[k] = 'RSC_ADMIN'; });
 const LEGACY_TYPE = { LIVRO: 'LIVRO_CAPITULO', CAPITULO_LIVRO: 'LIVRO_CAPITULO', SOFTWARE: 'SOFTWARE_SEM_REGISTRO', ORIENTACAO: 'ORIENTACAO_ANDAMENTO', BANCA: 'BANCA_CONCLUSAO' };
@@ -446,13 +466,16 @@ window.LattesTypes = (function () {
     LATTES_CATEGORIES.forEach(c => { catByKey[c.key] = c; });
     catByKey['NAO_LATTES'] = { num: '00', key: 'NAO_LATTES', label: 'Não-Lattes', icon: 'fa-heart' };
 
-    const BACKUP_FOLDER = '00 Backup';
+    const BACKUP_FOLDER = 'Cópia de segurança';
+    const EVIDENCIAS_FOLDER = 'Evidências';
+    const EXPORT_FOLDERS = ['Exportação/RSC-PCCTAE', 'Exportação/Progressão Docentes', 'Exportação/Súmula Curricular FAPESP'];
+    const EXTRA_FOLDERS = ['Publicação para Web', 'Relatórios', 'Exportar Lattes'];
 
     function slugFolder(cat) {
         // Nome de pasta seguro para o sistema de arquivos, legível e ordenável
-        // Padrão: "NN Nome" (número + espaço + nome, sem hífen)
+        // Padrão: "Evidências/NN Nome" (número + espaço + nome, sem hífen)
         const safe = (cat.label || cat.key).replace(/[\\/:*?"<>|]/g, '').trim();
-        return `${cat.num || '00'} ${safe}`;
+        return `${EVIDENCIAS_FOLDER}/${cat.num || '00'} ${safe}`;
     }
 
     // Title Case pt-BR (iniciais maiúsculas, conectores em minúsculas)
@@ -480,10 +503,11 @@ window.LattesTypes = (function () {
         categoryByKey(catKey) { return catByKey[catKey] || null; },
         categoryLabel(catKey) { const c = catByKey[catKey]; return c ? c.label : (catKey || ''); },
         categoryNumLabel(catKey) { const c = catByKey[catKey]; return c ? `${c.num ? c.num + '. ' : ''}${c.label}` : (catKey || ''); },
-        // Itens legados 'NAO_LATTES' vão para a pasta de Registros pessoais (20)
+        // Itens legados 'NAO_LATTES' (e a antiga categoria 'ATIVIDADES_LIVRES',
+        // dividida em categorias próprias) caem na primeira delas por padrão.
         categoryFolder(catKey) {
-            if (catKey === 'NAO_LATTES') return slugFolder(catByKey['ATIVIDADES_LIVRES']);
-            const c = catByKey[catKey]; return c ? slugFolder(c) : '99 Outros';
+            if (catKey === 'NAO_LATTES' || catKey === 'ATIVIDADES_LIVRES') return slugFolder(catByKey['AL_DESENVOLVIMENTO']);
+            const c = catByKey[catKey]; return c ? slugFolder(c) : `${EVIDENCIAS_FOLDER}/00 Outros`;
         },
         primaryCategory(typeKey) { return PRIMARY_CATEGORY[typeKey] || 'PRODUCOES'; },
         normalizeType(typeKey) { return LEGACY_TYPE[typeKey] || typeKey; },
@@ -495,8 +519,14 @@ window.LattesTypes = (function () {
         // Tipos de "perfil" (Dados gerais) editados em Configurações, não em Catalogar
         isPerfilType(typeKey) { const t = this.getType(typeKey); return !!(t && t.perfil); },
         perfilTypes() { return Object.keys(TYPES).filter(k => TYPES[k].perfil); },
-        // Pastas criadas no diretório: as 12 categorias + a pasta de Backup
-        allFolders() { return LATTES_CATEGORIES.map(slugFolder).concat(BACKUP_FOLDER); },
+        // Estrutura de pastas criada ao configurar o diretório: Caixa de
+        // Entrada e Cópia de segurança na raiz (a Caixa é criada à parte, por
+        // Storage.ensureInbox); Exportação (com subpastas manuais);
+        // Evidências (uma subpasta por categoria); e Publicação para Web,
+        // Relatórios e Exportar Lattes — pastas de uso manual.
+        allFolders() {
+            return [BACKUP_FOLDER, ...EXPORT_FOLDERS, ...LATTES_CATEGORIES.map(slugFolder), ...EXTRA_FOLDERS];
+        },
         itemTitle(item) {
             const f = item.fields || {};
             // Formação acadêmica/titulação: exibe "anoInicio-anoFim Nível · Curso"

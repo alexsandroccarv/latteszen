@@ -749,7 +749,7 @@
         let currentType = item ? LattesTypes.normalizeType(item.typeKey) : (state.lastType || '');
         let currentCat = item ? (item.categoryKey || LattesTypes.primaryCategory(currentType))
             : (state.lastCat || (LattesTypes.categories[0] && LattesTypes.categories[0].key));
-        if (currentCat === 'NAO_LATTES') currentCat = 'ATIVIDADES_LIVRES'; // legado
+        if (currentCat === 'NAO_LATTES' || currentCat === 'ATIVIDADES_LIVRES') currentCat = 'AL_DESENVOLVIMENTO'; // legado
 
         form.innerHTML = `
             <div id="evidenceBlock" class="bg-govbr-50 dark:bg-gray-900 border border-govbr-100 dark:border-gray-700 rounded px-3 py-2 transition-shadow">
@@ -814,6 +814,7 @@
         const selCat = $('#selCategoria');
         selCat.innerHTML = LattesTypes.categories
             .filter(c => !c.rscOnly || state.rscEnabled)   // categoria RSC só com o módulo ligado
+            .filter(c => !c.perfilOnly)                     // Fotos de Perfil/Documentos pessoais: só via Configurações
             .map(c => `<option value="${c.key}">${esc(c.num + '. ' + c.label)}</option>`).join('');
         if (currentCat) selCat.value = currentCat;
 
@@ -922,7 +923,7 @@
             if (files.length) { e.preventDefault(); addEvidenceFiles(files); }
         });
 
-        // Bandeja de entrada (00 Inbox) — botão com badge: clique anexa o próximo
+        // Bandeja de entrada (Caixa de Entrada) — botão com badge: clique anexa o próximo
         $('#btnEvInbox').addEventListener('click', useNextInbox);
         renderInbox();
         // Escolher arquivos: abre o seletor nativo (input file oculto)
@@ -1542,7 +1543,7 @@
                 }
             }
         }
-        // Move para "00 Inbox/00 Processado" os originais que vieram da bandeja
+        // Move para "Caixa de Entrada/00 Processado" os originais que vieram da bandeja
         let movidos = 0, falhasMove = 0;
         for (const nm of fromInbox) {
             try { await Storage.moveInboxToProcessed(nm); movidos++; }
@@ -2220,6 +2221,20 @@
             </div>
         </details>`;
     }
+    // Seleciona uma categoria no <select> do Catalogar mesmo quando ela foi
+    // filtrada da lista visível (ex.: perfilOnly) — injeta a <option> que
+    // falta antes de atribuir o valor (senão a atribuição é ignorada).
+    function forceSelectCategoria(catKey) {
+        const selCat = $('#selCategoria');
+        if (!selCat) return;
+        if (!selCat.querySelector(`option[value="${catKey}"]`)) {
+            const opt = document.createElement('option');
+            opt.value = catKey;
+            opt.textContent = LattesTypes.categoryNumLabel(catKey);
+            selCat.appendChild(opt);
+        }
+        selCat.value = catKey;
+    }
     // Abre o item (novo ou existente) no formulário do Catalogar, forçando a
     // categoria/tipo Documentos pessoais mesmo fora da lista de tipos visível
     // (foi retirada de lá — só é alcançável por aqui). Ao salvar, volta a
@@ -2227,7 +2242,7 @@
     function openDocumentoPessoalForm(item) {
         switchTab('catalogar');
         buildForm(item, { focus: false });
-        const selCat = $('#selCategoria'); if (selCat) selCat.value = 'DADOS_GERAIS';
+        forceSelectCategoria(LattesTypes.primaryCategory('DOCUMENTO_PESSOAL'));
         if (state._selectTipo) state._selectTipo('DOCUMENTO_PESSOAL');
         state.editReturnTab = 'config';
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -2436,7 +2451,7 @@
             if (!foto || !prev) return;
             const ev = evListFromItem(foto)[0];
             try {
-                const url = await Storage.readAttachmentUrl(ev.basename, LattesTypes.categoryFolder('DADOS_GERAIS'), ev.ext);
+                const url = await Storage.readAttachmentUrl(ev.basename, LattesTypes.categoryFolder('PERFIL_FOTOS'), ev.ext);
                 if (url) { prev.src = url; prev.classList.remove('hidden'); }
             } catch (_) {}
         })();
@@ -2458,7 +2473,7 @@
         };
         item.lattesItem = true;              // mantém relacionado ao Lattes
         item.typeKey = tk;
-        item.categoryKey = 'DADOS_GERAIS';
+        item.categoryKey = LattesTypes.primaryCategory(tk);
         item.fields = fields;
         item.updatedAt = nowISO();
 
@@ -2471,7 +2486,7 @@
                 item.evidencias = [{ basename: item.id, ext, name: file.name, publica: true }];
                 item.hasPdf = true; item.fileExt = ext; item.pdfName = file.name;
                 if (Storage.hasDirectory()) {
-                    try { await Storage.writeAttachment(item.id, file, LattesTypes.categoryFolder('DADOS_GERAIS'), ext); }
+                    try { await Storage.writeAttachment(item.id, file, LattesTypes.categoryFolder(item.categoryKey), ext); }
                     catch (err) { toast('Falha ao gravar a imagem: ' + err.message, 'aviso'); }
                 } else {
                     toast('Imagem não gravada: configure um diretório em Configurações.', 'aviso');
@@ -2525,7 +2540,7 @@
 
                 <section class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
                     <h2 class="text-lg font-bold mb-2 flex items-center gap-2"><i class="fa-solid fa-file-export text-govbr-600 dark:text-unifesp-400"></i> Backup (JSON)</h2>
-                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">Exporte ou importe todo o catálogo (metadados) e as configurações do sistema (prefixo do identificador, listas de autocomplete, RSC-PCCTAE) num único arquivo JSON — é o que permite restaurar tudo num navegador novo. Com um diretório configurado, o backup é salvo automaticamente na subpasta <code class="text-xs bg-gray-200 dark:bg-gray-700 px-1 rounded">00 Backup</code>.</p>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">Exporte ou importe todo o catálogo (metadados) e as configurações do sistema (prefixo do identificador, listas de autocomplete, RSC-PCCTAE) num único arquivo JSON — é o que permite restaurar tudo num navegador novo. Com um diretório configurado, o backup é salvo automaticamente na subpasta <code class="text-xs bg-gray-200 dark:bg-gray-700 px-1 rounded">Cópia de segurança</code>.</p>
                     <div class="flex flex-wrap gap-2">
                         <button id="btnExport" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-download mr-1"></i> Exportar catálogo</button>
                         <label class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm cursor-pointer"><i class="fa-solid fa-upload mr-1"></i> Importar catálogo
@@ -2623,9 +2638,9 @@
         $('#btnChooseDir').addEventListener('click', async () => {
             try {
                 await Storage.chooseDirectory();
-                await Storage.ensureSubdirs(LattesTypes.allFolders()); // cria as subpastas por categoria
-                try { await Storage.ensureInbox(); } catch (_) {}      // cria 00 Inbox / 00 Processado
-                toast('Diretório configurado (subpastas de categoria e “00 Inbox” criadas).', 'ok');
+                await Storage.ensureSubdirs(LattesTypes.allFolders()); // cria a estrutura de pastas
+                try { await Storage.ensureInbox(); } catch (_) {}      // cria "Caixa de Entrada" / "00 Processado"
+                toast('Diretório configurado (estrutura de pastas criada).', 'ok');
                 renderConfig();
             } catch (e) { if (e.name !== 'AbortError') toast(e.message, 'erro'); }
         });
@@ -2842,7 +2857,8 @@
         ['periodico', 'evento', 'instituicao', 'orgao', 'entidade', 'editora', 'cargo', 'tipo', 'financiador', 'autores'].forEach(k => add(f[k]));
         return parts.slice(0, 4).join(' · ');
     }
-    const PUB_ICON = { DADOS_GERAIS: '🪪', FORMACAO: '🎓', ATUACAO: '💼', PROJETOS: '🧩', PRODUCOES: '📚', PATENTES_REGISTROS: '📜', INOVACAO: '💡', EDUCACAO_CT: '📢', EVENTOS: '📅', ORIENTACOES: '👥', BANCAS: '⚖️', ATIVIDADES_LIVRES: '🎒' };
+    const PUB_ICON = { DADOS_GERAIS: '🪪', FORMACAO: '🎓', ATUACAO: '💼', PROJETOS: '🧩', PRODUCOES: '📚', PATENTES_REGISTROS: '📜', INOVACAO: '💡', EDUCACAO_CT: '📢', EVENTOS: '📅', ORIENTACOES: '👥', BANCAS: '⚖️',
+        AL_DESENVOLVIMENTO: '🌱', AL_ENGAJAMENTO: '🤝', AL_SAUDE_ESPORTE: '🏃', AL_INTERESSES: '🎨', AL_CERTIFICACAO_CAT: '📜', AL_FILIACAO_CAT: '🪪', AL_CONCURSO_CAT: '📋', AL_IMPRENSA_CAT: '📰' };
     const PUB_EXCLUDE_TYPES = new Set(['IDENTIFICACAO', 'FOTO_PERFIL', 'ENDERECO', 'RESUMO_CV', 'OUTRAS_INFO', 'DOCUMENTO_PESSOAL']);
 
     async function buildPublicModel() {
@@ -2862,7 +2878,7 @@
         let foto = null;
         if (fotoItem && Storage.hasDirectory()) {
             const ev = (Array.isArray(fotoItem.evidencias) && fotoItem.evidencias[0]) || (fotoItem.hasPdf ? { basename: fotoItem.id, ext: fotoItem.fileExt || 'jpg' } : null);
-            if (ev) { try { const f = await Storage.readAttachmentFile(ev.basename, LattesTypes.categoryFolder('DADOS_GERAIS'), ev.ext); if (f) foto = await fileToDataUrl(f); } catch (_) {} }
+            if (ev) { try { const f = await Storage.readAttachmentFile(ev.basename, LattesTypes.categoryFolder('PERFIL_FOTOS'), ev.ext); if (f) foto = await fileToDataUrl(f); } catch (_) {} }
         }
 
         const contatos = [];
@@ -3185,9 +3201,31 @@
     const PASTA_CONEXOES_ANTIGA = '98 Conexões';
     // Pasta antiga de Atividades livres (99), renumerada para Registros pessoais (20).
     const PASTA_ATIVIDADES_LIVRES_ANTIGA = '99 Atividades livres';
+    // Estrutura de pastas ANTERIOR à reorganização (tudo solto na raiz, sem
+    // "Evidências", com Registros pessoais numa única categoria). Usada só
+    // para calcular de onde mover os arquivos de cada item já catalogado.
+    const OLD_CAT_FOLDER = {
+        DADOS_GERAIS: '01 Dados gerais', FORMACAO: '02 Formação', ATUACAO: '03 Atuação',
+        PROJETOS: '04 Projetos', PRODUCOES: '05 Produções', PATENTES_REGISTROS: '06 Patentes e Registros',
+        INOVACAO: '07 Inovação', EDUCACAO_CT: '08 Educação e Popularização de C&T', EVENTOS: '09 Eventos',
+        ORIENTACOES: '10 Orientações', BANCAS: '11 Bancas', RSC_ADMIN: '97 RSC — Atividades administrativas',
+        ATIVIDADES_LIVRES: '20 Registros pessoais',
+    };
+    // Tipos cuja categoria muda nesta reorganização (ganham pasta própria):
+    // Foto de perfil e Documentos pessoais saem de Dados gerais; os 15 tipos
+    // de Registros pessoais se separam em 8 categorias (12–19).
+    const RECATEGORIZADOS = {
+        FOTO_PERFIL: 'PERFIL_FOTOS', DOCUMENTO_PESSOAL: 'PERFIL_DOCS',
+        AL_CURSO_LIVRE: 'AL_DESENVOLVIMENTO', AL_IDIOMAS: 'AL_DESENVOLVIMENTO', AL_TREINAMENTO: 'AL_DESENVOLVIMENTO', AL_PROJETO_PESSOAL: 'AL_DESENVOLVIMENTO',
+        AL_VOLUNTARIADO: 'AL_ENGAJAMENTO', AL_LIDERANCA: 'AL_ENGAJAMENTO', AL_ORG_EVENTO_COM: 'AL_ENGAJAMENTO',
+        AL_ESPORTE: 'AL_SAUDE_ESPORTE', AL_COMPETICAO: 'AL_SAUDE_ESPORTE', AL_EXPEDICAO: 'AL_SAUDE_ESPORTE', AL_BEMESTAR: 'AL_SAUDE_ESPORTE',
+        AL_HOBBY: 'AL_INTERESSES', AL_COLECIONISMO: 'AL_INTERESSES', AL_CULTURAL: 'AL_INTERESSES', AL_GASTRONOMIA: 'AL_INTERESSES',
+        AL_CERTIFICACAO: 'AL_CERTIFICACAO_CAT', AL_FILIACAO: 'AL_FILIACAO_CAT', AL_CONCURSO: 'AL_CONCURSO_CAT', AL_IMPRENSA: 'AL_IMPRENSA_CAT',
+    };
     function migrarItens() {
         let changed = false;
         const conexoesMigradas = [];
+        const pastasParaMover = []; // { id, oldFolder, newFolder } — nova estrutura ("Evidências" + recategorização)
         state.items.forEach(i => {
             if (i.categoryKey === 'NAO_LATTES') { i.categoryKey = 'ATIVIDADES_LIVRES'; changed = true; }
             if (i.lattesItem === false && !i.categoryKey) { i.categoryKey = 'ATIVIDADES_LIVRES'; changed = true; }
@@ -3198,6 +3236,19 @@
             if (!i.categoryKey && i.typeKey) { i.categoryKey = LattesTypes.primaryCategory(i.typeKey); changed = true; }
             // Conexões (98) foi incorporada a Dados gerais (01)
             if (i.categoryKey === 'CONEXOES') { i.categoryKey = 'DADOS_GERAIS'; changed = true; conexoesMigradas.push(i.id); }
+            // Pasta ANTIGA (antes de qualquer recategorização abaixo) — usada
+            // para calcular a origem do arquivo, se ele já existia.
+            const oldFolder = OLD_CAT_FOLDER[i.categoryKey] || null;
+            // Recategoriza (Foto/Documentos pessoais e os 15 tipos de Registros
+            // pessoais, que agora têm categoria/pasta própria).
+            if (i.typeKey && RECATEGORIZADOS[i.typeKey] && i.categoryKey !== RECATEGORIZADOS[i.typeKey]) {
+                i.categoryKey = RECATEGORIZADOS[i.typeKey];
+                changed = true;
+            }
+            if (oldFolder) {
+                const newFolder = LattesTypes.categoryFolder(i.categoryKey);
+                if (newFolder !== oldFolder) pastasParaMover.push({ id: i.id, oldFolder, newFolder });
+            }
             // Migra evidência única (legado) para o novo array de evidências
             if (!Array.isArray(i.evidencias)) {
                 if (i.hasPdf) {
@@ -3212,7 +3263,7 @@
             if (i.schemaVersion !== SCHEMA_VERSION) { i.schemaVersion = SCHEMA_VERSION; changed = true; }
         });
         if (changed) saveCatalog();
-        return conexoesMigradas;
+        return { conexoesMigradas, pastasParaMover };
     }
 
     // Nome no cabeçalho e título da aba: "lattesZen | Nome completo" (vem do
@@ -3264,7 +3315,7 @@
         state.lastType = cfg.lastType || '';
         state.rscEnabled = !!cfg.rscEnabled;
         state.rscCfg = cfg.rsc || {};
-        const conexoesMigradas = migrarItens();
+        const { conexoesMigradas, pastasParaMover } = migrarItens();
         updateHeaderIdentity();
         applyRscVisibility();
         try { await Storage.restoreDirectory(); } catch (_) {}
@@ -3290,6 +3341,22 @@
                 try { await Storage.moveItemFiles(id, PASTA_ATIVIDADES_LIVRES_ANTIGA, destino); } catch (_) {}
             }
             cfg.pastaRegistrosPessoaisMigrada = true;
+            Storage.saveSettings(cfg);
+        }
+        // Reorganização geral da estrutura de pastas: tudo passa a ficar
+        // dentro de "Evidências", Registros pessoais se separa em 8
+        // categorias, Foto de perfil/Documentos pessoais ganham pasta
+        // própria, e "00 Inbox"/"00 Backup" são renomeadas. Roda uma vez.
+        if (!cfg.estruturaV2Migrada && Storage.hasDirectory()) {
+            try { await Storage.renameRootFolder('00 Inbox', 'Caixa de Entrada'); } catch (_) {}
+            try { await Storage.renameRootFolder('00 Backup', 'Cópia de segurança'); } catch (_) {}
+            for (const { id, oldFolder, newFolder } of pastasParaMover) {
+                try { await Storage.moveItemFiles(id, oldFolder, newFolder); } catch (_) {}
+            }
+            for (const oldFolder of Object.values(OLD_CAT_FOLDER)) {
+                try { await Storage.removeSubdirIfEmpty(oldFolder); } catch (_) {}
+            }
+            cfg.estruturaV2Migrada = true;
             Storage.saveSettings(cfg);
         }
 
