@@ -1822,7 +1822,10 @@
             }
         }
 
-        let items = state.items.filter(VIEW_PREDICATE[view]);
+        // Tipos de perfil multi-instância (ex.: Áreas de atuação) são editados
+        // em Configurações e não aparecem na lista de Conformidade.
+        let items = state.items.filter(VIEW_PREDICATE[view])
+            .filter(i => !(LattesTypes.isPerfilType(i.typeKey) && !LattesTypes.isSingleton(i.typeKey)));
         if (q) items = items.filter(i => (LattesTypes.itemTitle(i) + ' ' + LattesTypes.label(i.typeKey) + ' ' + LattesTypes.categoryLabel(i.categoryKey)).toLowerCase().includes(q));
 
         const cnt = $('#itemCount');
@@ -2174,9 +2177,117 @@
     function perfilSectionHtml() {
         return `<section id="perfilSection" class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
             <h2 class="text-lg font-bold mb-2 flex items-center gap-2"><i class="fa-solid fa-id-card text-govbr-600 dark:text-unifesp-400"></i> Dados gerais (perfil)</h2>
-            <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">Informações autodeclaradas do Currículo Lattes (Identificação, Foto, Endereço, Texto inicial e Outras informações). São itens <strong>do Lattes</strong> e <strong>não exigem evidência</strong>.</p>
-            <div class="space-y-2">${LattesTypes.perfilTypes().map(perfilCardHtml).join('')}</div>
+            <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">Informações autodeclaradas do Currículo Lattes (Identificação, Foto, Endereço, Texto inicial, Outras informações e Áreas de atuação). São itens <strong>do Lattes</strong> e <strong>não exigem evidência</strong>.</p>
+            <div class="space-y-2">
+                ${LattesTypes.perfilTypes().filter(k => k !== 'AREA_ATUACAO').map(perfilCardHtml).join('')}
+                ${areaAtuacaoSectionHtml()}
+            </div>
         </section>`;
+    }
+
+    // Áreas de atuação: único tipo de perfil com VÁRIAS instâncias — em vez do
+    // cartão único (perfilCardHtml), mostra uma mini-lista com adicionar/
+    // editar/remover, dentro de Configurações > Dados gerais.
+    function areaAtuacaoListHtml() {
+        const itens = state.items.filter(i => i.typeKey === 'AREA_ATUACAO');
+        if (!itens.length) return `<p class="text-xs text-gray-400 dark:text-gray-500 italic">Nenhuma área cadastrada.</p>`;
+        return `<ul class="space-y-1 mb-2">${itens.map(i => `
+            <li class="flex items-center gap-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded px-2 py-1.5 text-sm">
+                <span class="flex-1 min-w-0 truncate">${esc(LattesTypes.itemTitle(i))}</span>
+                <button type="button" data-area-edit="${i.id}" title="Editar" class="w-7 h-7 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-govbr-600 dark:text-unifesp-400"><i class="fa-solid fa-pen"></i></button>
+                <button type="button" data-area-del="${i.id}" title="Remover" class="w-7 h-7 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-red-600"><i class="fa-solid fa-trash"></i></button>
+            </li>`).join('')}</ul>`;
+    }
+    function areaAtuacaoSectionHtml() {
+        const def = LattesTypes.get('AREA_ATUACAO');
+        const n = state.items.filter(i => i.typeKey === 'AREA_ATUACAO').length;
+        return `<details class="border border-gray-200 dark:border-gray-700 rounded bg-white dark:bg-gray-900">
+            <summary class="cursor-pointer select-none px-3 py-2 text-sm font-medium flex items-center gap-2">
+                <i aria-hidden="true" class="fa-solid fa-angle-right text-xs text-gray-400"></i>
+                ${esc(def.label)}
+                <span id="areaAtuacaoCount" class="text-xs font-normal text-gray-400 truncate min-w-0">· ${n} cadastrada${n === 1 ? '' : 's'}</span>
+            </summary>
+            <div class="p-3 space-y-2 border-t border-gray-100 dark:border-gray-700">
+                <div id="areaAtuacaoList">${areaAtuacaoListHtml()}</div>
+                <form id="areaAtuacaoForm" class="space-y-2 pt-2 border-t border-gray-100 dark:border-gray-700" data-editing-id="">
+                    ${def.fields.map(f => fieldHtml(f, '')).join('')}
+                    <div class="flex items-center gap-2">
+                        <button type="submit" class="px-3 py-1.5 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm"><i class="fa-solid fa-plus mr-1"></i> <span id="areaAtuacaoSubmitLabel">Adicionar área</span></button>
+                        <button type="button" id="areaAtuacaoCancel" class="hidden px-3 py-1.5 rounded border border-gray-300 dark:border-gray-600 text-sm">Cancelar edição</button>
+                    </div>
+                </form>
+            </div>
+        </details>`;
+    }
+    function areaAtuacaoResetForm(form) {
+        form.dataset.editingId = '';
+        wireAreaTree(form, {});
+        const lbl = $('#areaAtuacaoSubmitLabel'); if (lbl) lbl.textContent = 'Adicionar área';
+        const cancel = $('#areaAtuacaoCancel'); if (cancel) cancel.classList.add('hidden');
+    }
+    function refreshAreaAtuacaoList(sec) {
+        const list = sec.querySelector('#areaAtuacaoList');
+        if (list) list.innerHTML = areaAtuacaoListHtml();
+        const n = state.items.filter(i => i.typeKey === 'AREA_ATUACAO').length;
+        const count = sec.querySelector('#areaAtuacaoCount');
+        if (count) count.textContent = `· ${n} cadastrada${n === 1 ? '' : 's'}`;
+        wireAreaAtuacaoListActions(sec);
+    }
+    function wireAreaAtuacaoListActions(sec) {
+        const list = sec.querySelector('#areaAtuacaoList');
+        if (!list) return;
+        $$('[data-area-edit]', list).forEach(b => b.addEventListener('click', () => {
+            const item = state.items.find(i => i.id === b.dataset.areaEdit);
+            if (!item) return;
+            const form = sec.querySelector('#areaAtuacaoForm');
+            form.dataset.editingId = item.id;
+            wireAreaTree(form, item.fields || {});
+            $('#areaAtuacaoSubmitLabel').textContent = 'Salvar alterações';
+            $('#areaAtuacaoCancel').classList.remove('hidden');
+            form.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }));
+        $$('[data-area-del]', list).forEach(b => b.addEventListener('click', async () => {
+            const item = state.items.find(i => i.id === b.dataset.areaDel);
+            if (!item) return;
+            if (!confirm(`Remover "${LattesTypes.itemTitle(item)}"?`)) return;
+            await deleteItem(item.id);
+            const form = sec.querySelector('#areaAtuacaoForm');
+            if (form.dataset.editingId === item.id) areaAtuacaoResetForm(form);
+            refreshAreaAtuacaoList(sec);
+            renderItemList();
+        }));
+    }
+    function wireAreaAtuacaoSection(sec) {
+        const form = sec.querySelector('#areaAtuacaoForm');
+        if (!form) return;
+        wireAreaTree(form, {});
+        wireAreaAtuacaoListActions(sec);
+        const cancelBtn = sec.querySelector('#areaAtuacaoCancel');
+        if (cancelBtn) cancelBtn.addEventListener('click', () => areaAtuacaoResetForm(form));
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const def = LattesTypes.get('AREA_ATUACAO');
+            const fields = collectFields(form, def);
+            const encResid = normalizeEncoding(fields); // compatibilidade ISO-8859-1
+            if (!validateItemFields(def, fields, form)) return;
+
+            const editingId = form.dataset.editingId;
+            let item = editingId ? state.items.find(i => i.id === editingId) : null;
+            if (!item) item = { id: uid(), createdAt: nowISO(), source: 'local', hasPdf: false, evidencias: [], pdfName: null, lattesRef: null };
+            item.lattesItem = true;
+            item.typeKey = 'AREA_ATUACAO';
+            item.categoryKey = LattesTypes.primaryCategory('AREA_ATUACAO');
+            item.fields = fields;
+            item.updatedAt = nowISO();
+
+            await persistItem(item);
+            toast(editingId ? 'Área de atuação atualizada.' : 'Área de atuação adicionada.', 'ok');
+            if (encResid) toast(`Atenção: ${encResid} caractere(s) fora do ISO-8859-1 permanecem (ex.: emoji).`, 'aviso');
+            areaAtuacaoResetForm(form);
+            refreshAreaAtuacaoList(sec);
+            renderItemList();
+        });
     }
 
     /* ------------------------- Configuração do RSC ------------------------ */
@@ -2252,6 +2363,7 @@
             } catch (_) {}
         })();
         $$('[data-perfil-form]', sec).forEach(form => form.addEventListener('submit', onPerfilSubmit));
+        wireAreaAtuacaoSection(sec);
     }
     async function onPerfilSubmit(e) {
         e.preventDefault();
@@ -2664,6 +2776,9 @@
         const orcid = (ident && ident.fields.orcid || '').trim();
         const lattesUrl = (ident && ident.fields.url || '').trim();
         const local = endereco ? [endereco.fields.cidade, endereco.fields.uf].filter(Boolean).join(' / ') : '';
+        // Áreas de atuação: editadas em Configurações (perfil), não passam
+        // mais pelo laço de categorias abaixo — entram direto no cabeçalho.
+        const areasAtuacao = byType('AREA_ATUACAO').map(it => LattesTypes.itemTitle(it)).filter(Boolean);
 
         let foto = null;
         if (fotoItem && Storage.hasDirectory()) {
@@ -2711,7 +2826,7 @@
         }
         return {
             nome, iniciais, tagline: (ident && ident.fields.citacoes) || '', bio: (resumo && resumo.fields.descricao) || '',
-            foto, local, orcid, lattesUrl, contatos, outras: (outrasI && outrasI.fields.descricao) || '',
+            foto, local, areasAtuacao, orcid, lattesUrl, contatos, outras: (outrasI && outrasI.fields.descricao) || '',
             secoes, geradoEm: new Date().toLocaleString('pt-BR'), totalItens: items.length,
         };
     }

@@ -9,6 +9,7 @@
    Estrutura do model:
    {
      nome, tagline, bio, foto(dataUri|null), iniciais, local,
+     areasAtuacao: [string],
      orcid, orcidUrl, lattesUrl,
      contatos: [{ grupo, plataforma, url, usuario }],
      outras: string|null,
@@ -284,6 +285,7 @@ footer strong{color:var(--muted);font-weight:700}
       <hr class="rule">
       ${m.tagline ? `<p class="tagline">${esc(m.tagline)}</p>` : ''}
       ${m.local ? `<p class="local">${IC.pin} ${esc(m.local)}</p>` : ''}
+      ${(m.areasAtuacao && m.areasAtuacao.length) ? `<p class="local">${esc('Áreas de atuação: ' + m.areasAtuacao.join(' · '))}</p>` : ''}
       ${contatos ? `<div class="contatos">${contatos}</div>` : ''}
     </div>
   </div>

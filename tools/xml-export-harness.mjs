@@ -84,12 +84,17 @@ function buildSampleItems() {
         }
     }
     // Garante os singletons de perfil (Identificação etc.) mesmo que perfil:true
+    // — inclui Áreas de atuação, que também é perfil:true mas fora do laço de
+    // categorias (editada em Configurações, não em Catalogar).
     for (const tk of (LattesTypes.perfilTypes ? LattesTypes.perfilTypes() : [])) {
         if (items.some(it => it.typeKey === tk)) continue;
         const def = LattesTypes.getType(tk);
         if (!def || def.noExport) continue;
         const fields = {};
         (def.fields || []).forEach(f => { fields[f.key] = sampleValue(f, i); });
+        if (tk === 'AREA_ATUACAO') {
+            Object.assign(fields, { grandeArea: 'Ciências da Saúde', area: 'Medicina', subarea: 'Clínica Médica', especialidade: 'Cardiologia' });
+        }
         items.push({ id: 'id' + i, typeKey: tk, categoryKey: LattesTypes.primaryCategory(tk), fields, inLattes: true, lattesItem: true });
         i++;
     }

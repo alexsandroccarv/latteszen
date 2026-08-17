@@ -107,7 +107,7 @@ const TYPES = {
     COMITE_ASSESSORAMENTO: { label: 'Membro de comitê de assessoramento', noExport: true, fields: [{ key: 'titulo', label: 'Comitê / Órgão', type: 'text', required: true }, F_INST, F_DINI, F_DFIM] },
     REVISOR_PERIODICO: { label: 'Revisor de periódico', noExport: true, fields: [{ key: 'titulo', label: 'Periódico', type: 'text', required: true }, { key: 'issn', label: 'ISSN', type: 'text' }, F_DINI, F_DFIM] },
     REVISOR_FOMENTO: { label: 'Revisor de projeto de agência de fomento', noExport: true, fields: [{ key: 'titulo', label: 'Agência de fomento', type: 'text', required: true }, F_DINI, F_DFIM] },
-    AREA_ATUACAO: { label: 'Áreas de atuação', noEvidence: true, fields: [{ key: 'areaConhecimento', label: 'Área do conhecimento (CNPq/CAPES)', type: 'areatree', required: true, help: 'Selecione do mais geral ao mais específico: Grande área › Área › Subárea › Especialidade.' }] },
+    AREA_ATUACAO: { label: 'Áreas de atuação', noEvidence: true, perfil: true, fields: [{ key: 'areaConhecimento', label: 'Área do conhecimento (CNPq/CAPES)', type: 'areatree', required: true, help: 'Selecione do mais geral ao mais específico: Grande área › Área › Subárea › Especialidade.' }] },
     // Atividades da atuação profissional
     ATIV_ENSINO: { label: 'Ensino / Disciplinas ministradas', fields: [{ key: 'titulo', label: 'Curso / Nível', type: 'text', required: true }, F_INST, F_DINI, F_DFIM, { key: 'disciplinas', label: 'Disciplinas', type: 'textarea' }] },
     ATIV_DIRECAO: { label: 'Direção e administração', fields: [{ key: 'titulo', label: 'Cargo / Função', type: 'text', required: true }, { key: 'orgao', label: 'Órgão', type: 'text' }, F_INST, F_DINI, F_DFIM] },
@@ -335,7 +335,8 @@ window.LATTES_CATEGORIES = [
     { num: '02', key: 'FORMACAO', label: 'Formação', icon: 'fa-user-graduate',
       types: ['FORMACAO_ACADEMICA', 'POS_DOUTORADO', 'FORMACAO_COMPLEMENTAR'] },
     { num: '03', key: 'ATUACAO', label: 'Atuação', icon: 'fa-briefcase',
-      types: ['VINCULO_PROFISSIONAL', 'ATIV_ENSINO', 'ATIV_DIRECAO', 'ATIV_CONSELHO', 'ATIV_EXTENSAO', 'ATIV_SERVICO', 'ATIV_OUTRA', 'LINHA_PESQUISA', 'CORPO_EDITORIAL', 'COMITE_ASSESSORAMENTO', 'REVISOR_PERIODICO', 'REVISOR_FOMENTO', 'AREA_ATUACAO'] },
+      // Áreas de atuação é editada em Configurações (perfil), não aqui.
+      types: ['VINCULO_PROFISSIONAL', 'ATIV_ENSINO', 'ATIV_DIRECAO', 'ATIV_CONSELHO', 'ATIV_EXTENSAO', 'ATIV_SERVICO', 'ATIV_OUTRA', 'LINHA_PESQUISA', 'CORPO_EDITORIAL', 'COMITE_ASSESSORAMENTO', 'REVISOR_PERIODICO', 'REVISOR_FOMENTO'] },
     { num: '04', key: 'PROJETOS', label: 'Projetos', icon: 'fa-diagram-project',
       types: ['PROJETO_PESQUISA', 'PROJETO_DESENVOLVIMENTO', 'PROJETO_EXTENSAO', 'PROJETO_ENSINO', 'PROJETO_OUTRO'] },
     { num: '05', key: 'PRODUCOES', label: 'Produções', icon: 'fa-book',
