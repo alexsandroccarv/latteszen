@@ -373,7 +373,7 @@
                     Itens <span id="itemCount" class="text-sm font-normal text-gray-500"></span>
                     <span id="viewChip" class="hidden text-xs font-normal"></span>
                 </h2>
-                <div class="flex items-center gap-2 flex-wrap">
+                <div class="print:hidden flex items-center gap-2 flex-wrap">
                     <label class="text-xs text-gray-500 flex items-center gap-1">
                         <i aria-hidden="true" class="fa-solid fa-arrow-down-wide-short"></i> Ordenar por ano
                         <select id="sortOrder" class="text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900">
@@ -385,7 +385,7 @@
                            class="text-sm px-3 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 w-full sm:w-56">
                 </div>
             </div>
-            <div class="flex gap-2 mb-3 flex-wrap">
+            <div class="print:hidden flex gap-2 mb-3 flex-wrap">
                 <button id="btnExpandAll" class="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600">Expandir todas</button>
                 <button id="btnCollapseAll" class="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600">Recolher todas</button>
                 <button id="btnImprimir" class="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600 ml-auto"><i class="fa-solid fa-print mr-1"></i> Imprimir / PDF</button>
@@ -1705,10 +1705,12 @@
                         ${evidenceIconsHtml(i)}
                         ${sep}
                         ${rscIconHtml(i)}${lattesIconHtml(i)}${descIconHtml(i)}
-                        ${sep}
-                        <button data-act="edit" data-id="${i.id}" title="Abrir / Editar" class="w-7 h-7 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-govbr-600 dark:text-unifesp-400"><i class="fa-solid fa-pen"></i></button>
-                        ${LattesTypes.isSingleton(i.typeKey) ? '' : `<button data-act="dup" data-id="${i.id}" title="Duplicar" class="w-7 h-7 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400"><i class="fa-solid fa-clone"></i></button>`}
-                        <button data-act="del" data-id="${i.id}" title="Excluir" class="w-7 h-7 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-red-600"><i class="fa-solid fa-trash"></i></button>
+                        <span class="print:hidden contents">
+                            ${sep}
+                            <button data-act="edit" data-id="${i.id}" title="Abrir / Editar" class="w-7 h-7 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-govbr-600 dark:text-unifesp-400"><i class="fa-solid fa-pen"></i></button>
+                            ${LattesTypes.isSingleton(i.typeKey) ? '' : `<button data-act="dup" data-id="${i.id}" title="Duplicar" class="w-7 h-7 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400"><i class="fa-solid fa-clone"></i></button>`}
+                            <button data-act="del" data-id="${i.id}" title="Excluir" class="w-7 h-7 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-red-600"><i class="fa-solid fa-trash"></i></button>
+                        </span>
                     </div>
                 </div>
             </div>`;
