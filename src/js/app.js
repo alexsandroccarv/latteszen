@@ -755,16 +755,16 @@
             <div id="evidenceBlock" class="bg-govbr-50 dark:bg-gray-900 border border-govbr-100 dark:border-gray-700 rounded px-3 py-2 transition-shadow">
                 <label class="block text-xs font-semibold mb-2" for="pdfInput"><i aria-hidden="true" class="fa-solid fa-file-arrow-up text-govbr-600 dark:text-unifesp-400 mr-1"></i> <span id="pdfInputLabel">Evidências</span></label>
                 <div class="flex items-center gap-2">
-                    <button type="button" id="btnEvInbox" title="Bandeja de entrada: anexar próximo arquivo pendente" class="relative w-9 h-9 shrink-0 rounded border border-govbr-200 dark:border-gray-600 text-govbr-700 dark:text-unifesp-300 hover:bg-govbr-100 dark:hover:bg-gray-700 flex items-center justify-center disabled:opacity-40">
-                        <i aria-hidden="true" class="fa-solid fa-inbox"></i>
-                        <span id="inboxBadge" class="hidden absolute -top-1.5 -right-1.5 min-w-[16px] h-4 px-1 bg-govbr-600 dark:bg-unifesp-600 text-white text-[10px] leading-4 rounded-full text-center"></span>
+                    <button type="button" id="btnEvInbox" title="Bandeja de entrada: anexar próximo arquivo pendente" class="relative w-12 h-12 shrink-0 rounded border border-govbr-200 dark:border-gray-600 text-govbr-700 dark:text-unifesp-300 hover:bg-govbr-100 dark:hover:bg-gray-700 flex items-center justify-center disabled:opacity-40">
+                        <i aria-hidden="true" class="fa-solid fa-inbox text-[2em]"></i>
+                        <span id="inboxBadge" class="hidden absolute -bottom-1.5 -right-1.5 min-w-[16px] h-4 px-1 bg-govbr-600 dark:bg-unifesp-600 text-white text-[10px] leading-4 rounded-full text-center"></span>
                     </button>
-                    <button type="button" id="btnEvFiles" title="Escolher arquivos (PDF, imagem, vídeo ou zip/tar.gz)" class="relative w-9 h-9 shrink-0 rounded border border-govbr-200 dark:border-gray-600 text-govbr-700 dark:text-unifesp-300 hover:bg-govbr-100 dark:hover:bg-gray-700 flex items-center justify-center">
-                        <i aria-hidden="true" class="fa-solid fa-magnifying-glass"></i>
+                    <button type="button" id="btnEvFiles" title="Escolher arquivos (PDF, imagem, vídeo ou zip/tar.gz)" class="relative w-12 h-12 shrink-0 rounded border border-govbr-200 dark:border-gray-600 text-govbr-700 dark:text-unifesp-300 hover:bg-govbr-100 dark:hover:bg-gray-700 flex items-center justify-center">
+                        <i aria-hidden="true" class="fa-solid fa-magnifying-glass text-[2em]"></i>
                         <i aria-hidden="true" class="fa-solid fa-plus absolute -bottom-1 -right-1 w-3.5 h-3.5 text-[9px] leading-[14px] bg-govbr-600 dark:bg-unifesp-600 text-white rounded-full text-center"></i>
                     </button>
-                    <button type="button" id="btnEvUrl" title="Inserir evidência por link (URL)" class="relative w-9 h-9 shrink-0 rounded border border-govbr-200 dark:border-gray-600 text-govbr-700 dark:text-unifesp-300 hover:bg-govbr-100 dark:hover:bg-gray-700 flex items-center justify-center">
-                        <i aria-hidden="true" class="fa-solid fa-pen"></i>
+                    <button type="button" id="btnEvUrl" title="Inserir evidência por link (URL)" class="relative w-12 h-12 shrink-0 rounded border border-govbr-200 dark:border-gray-600 text-govbr-700 dark:text-unifesp-300 hover:bg-govbr-100 dark:hover:bg-gray-700 flex items-center justify-center">
+                        <i aria-hidden="true" class="fa-solid fa-pen text-[2em]"></i>
                         <span aria-hidden="true" class="absolute -bottom-1.5 -right-1.5 px-1 bg-govbr-600 dark:bg-unifesp-600 text-white text-[8px] leading-[13px] rounded">URL</span>
                     </button>
                 </div>
