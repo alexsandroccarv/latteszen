@@ -24,7 +24,6 @@
         formDirty: false,   // há edições não salvas no formulário de Catalogar?
         saveAndNew: false,  // flag do botão "Salvar e novo"
         activeTab: 'catalogar',
-        editReturnTab: null,// aba para onde voltar após salvar (ex.: veio de Conformidade)
         lastCat: '', lastType: '', // última categoria/tipo usados (agiliza cadastro em série)
         vocab: {},          // listas curadas de autocomplete (por chave de campo)
         idPrefix: 'lz',     // prefixo do ID dos arquivos (configurável, até 3 chars)
@@ -743,7 +742,6 @@
         opts = opts || {};
         const form = $('#itemForm');
         const editing = !!item;
-        if (!editing) state.editReturnTab = null;        // form novo não volta p/ lugar nenhum
         $('#formTitulo').textContent = editing ? 'Editar item' : 'Novo item';
 
         let currentType = item ? LattesTypes.normalizeType(item.typeKey) : (state.lastType || '');
@@ -1572,14 +1570,8 @@
         const st = Storage.loadSettings(); st.lastCat = state.lastCat; st.lastType = state.lastType; Storage.saveSettings(st);
 
         clearDraft(); // item salvo → descarta o rascunho automático
-        const saveNew = state.saveAndNew, returnTab = state.editReturnTab;
-        state.saveAndNew = false; state.editReturnTab = null; state.editingId = null; state.evEditing = []; state.formDirty = false;
-        // Vindo de outra aba (ex.: Conformidade) + "Salvar alterações"/"Salvar": volta para lá
-        if (!saveNew && returnTab) {
-            buildForm(undefined, { focus: false });      // deixa o formulário de Catalogar limpo
-            switchTab(returnTab);
-            return;
-        }
+        const saveNew = state.saveAndNew;
+        state.saveAndNew = false; state.editingId = null; state.evEditing = []; state.formDirty = false;
         // "Salvar" / "Salvar alterações": reabre o item recém-salvo (novo ou editado),
         // para revisar/anexar evidência. "Salvar e novo": abre um item em branco (mesma cat/tipo).
         if (!saveNew) buildForm(state.items.find(i => i.id === item.id), { focus: false });
@@ -1859,10 +1851,8 @@
                 if (sec) sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 return;
             }
-            // Abre o item na aba Catalogar; ao salvar, volta para a aba de origem
-            const from = state.activeTab;
+            // Abre o item na aba Catalogar
             switchTab('catalogar');
-            state.editReturnTab = (from && from !== 'catalogar') ? from : null;
             buildForm(item);
             window.scrollTo({ top: 0, behavior: 'smooth' });
         } else if (btn.dataset.act === 'dup') {
@@ -2237,14 +2227,12 @@
     }
     // Abre o item (novo ou existente) no formulário do Catalogar, forçando a
     // categoria/tipo Documentos pessoais mesmo fora da lista de tipos visível
-    // (foi retirada de lá — só é alcançável por aqui). Ao salvar, volta a
-    // Configurações (state.editReturnTab).
+    // (foi retirada de lá — só é alcançável por aqui).
     function openDocumentoPessoalForm(item) {
         switchTab('catalogar');
         buildForm(item, { focus: false });
         forceSelectCategoria(LattesTypes.primaryCategory('DOCUMENTO_PESSOAL'));
         if (state._selectTipo) state._selectTipo('DOCUMENTO_PESSOAL');
-        state.editReturnTab = 'config';
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
     function wireDocumentoPessoalListActions(sec) {
