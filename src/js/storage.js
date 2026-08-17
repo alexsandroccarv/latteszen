@@ -136,10 +136,10 @@ window.Storage = (function () {
 
     /* ------------------------- Bandeja de entrada ------------------------ */
     // Caixa de Entrada: pasta onde o usuário deposita arquivos ainda não
-    // catalogados. 00 Processado: subpasta (dentro dela) para onde o
+    // catalogados. Processados: subpasta (dentro dela) para onde o
     // original é movido depois de catalogado.
     const INBOX_FOLDER = 'Caixa de Entrada';
-    const PROCESSED_FOLDER = '00 Processado';
+    const PROCESSED_FOLDER = 'Processados';
 
     async function inboxDir(create) {
         const dir = await ensureDirReady();
@@ -170,7 +170,7 @@ window.Storage = (function () {
         const fh = await inbox.getFileHandle(name);
         return fh.getFile();
     }
-    // Move o original da Inbox para 00 - Processado; sufixa em caso de colisão.
+    // Move o original da Inbox para Processados; sufixa em caso de colisão.
     async function moveInboxToProcessed(name) {
         const inbox = await inboxDir(true);
         const proc = await inbox.getDirectoryHandle(PROCESSED_FOLDER, { create: true });
@@ -302,6 +302,20 @@ window.Storage = (function () {
         try { await dirHandle.removeEntry(oldName, { recursive: true }); } catch (_) {}
         return true;
     }
+    // Igual a renameRootFolder, mas a pasta antiga/nova fica DENTRO de um
+    // caminho pai (ex.: "00 Processado" -> "Processados" dentro de "Caixa
+    // de Entrada"), não na raiz do diretório.
+    async function renameNestedFolder(parentPath, oldName, newName) {
+        if (!dirHandle || oldName === newName) return false;
+        let parent;
+        try { parent = await walkDir(dirHandle, parentPath, false); } catch (_) { return false; }
+        let oldHandle;
+        try { oldHandle = await parent.getDirectoryHandle(oldName); } catch (_) { return false; }
+        const newHandle = await parent.getDirectoryHandle(newName, { create: true });
+        await moveAllContents(oldHandle, newHandle);
+        try { await parent.removeEntry(oldName, { recursive: true }); } catch (_) {}
+        return true;
+    }
 
     async function readAttachmentUrl(basename, subdir, ext) {
         const dir = await ensureDirReady();
@@ -377,7 +391,7 @@ window.Storage = (function () {
         chooseDirectory, restoreDirectory, ensureDirReady, hasDirectory,
         directoryName, forgetDirectory, verifyPermission,
         // arquivos
-        writeJson, writeFile, writeAttachment, deleteEntry, deleteItemFiles, moveItemFiles, removeSubdirIfEmpty, renameRootFolder, readAttachmentUrl, readAttachmentFile, scanDirectory, ensureSubdirs,
+        writeJson, writeFile, writeAttachment, deleteEntry, deleteItemFiles, moveItemFiles, removeSubdirIfEmpty, renameRootFolder, renameNestedFolder, readAttachmentUrl, readAttachmentFile, scanDirectory, ensureSubdirs,
         // bandeja de entrada (inbox)
         ensureInbox, listInbox, readInboxFile, moveInboxToProcessed,
         // catálogo + settings

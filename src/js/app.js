@@ -568,7 +568,7 @@
     }
 
     // Usa um arquivo da bandeja de entrada como evidência (marcando a origem,
-    // para mover o original a "00 - Processado" ao salvar o item).
+    // para mover o original a "Processados" ao salvar o item).
     async function useInboxFile(entry) {
         const inp = $('#pdfInput');
         const allowed = allowedExtsForAccept(inp ? inp.accept : '');
@@ -3364,6 +3364,14 @@
         if (!cfg.exportarLattesMigrada && Storage.hasDirectory()) {
             try { await Storage.renameRootFolder('Exportar Lattes', 'Exportação/Lattes XML'); } catch (_) {}
             cfg.exportarLattesMigrada = true;
+            Storage.saveSettings(cfg);
+        }
+
+        // Correção: subpasta "00 Processado" (dentro da Caixa de Entrada)
+        // passa a se chamar apenas "Processados".
+        if (!cfg.pastaProcessadosRenomeada && Storage.hasDirectory()) {
+            try { await Storage.renameNestedFolder('Caixa de Entrada', '00 Processado', 'Processados'); } catch (_) {}
+            cfg.pastaProcessadosRenomeada = true;
             Storage.saveSettings(cfg);
         }
 
