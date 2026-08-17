@@ -1606,50 +1606,75 @@
         if (campos.some(f => !filled(f))) return 'amber';
         return 'green';
     }
-    // Marcador de 2 estados: verde (ok) / vermelho (pendente)
-    function marker(ok, label, icon) {
-        return marker3(ok ? 'green' : 'red', label, icon);
-    }
-    // Marcador de até 3 estados: verde / amarelo / vermelho
-    function marker3(estado, label, icon) {
-        const cls = estado === 'green' ? 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300'
-            : estado === 'amber' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300'
-            : 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300';
-        return `<span class="badge ${cls}"><i class="fa-solid ${icon}"></i> ${label}</span>`;
-    }
-
-    function statusBadges(item) {
-        const b = [];
-        const def = LattesTypes.get(item.typeKey);
-        // Origem: item do universo Lattes (será exportado no XML) vs. item pessoal
-        if (item.lattesItem) {
-            b.push('<span class="badge bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300"><i class="fa-solid fa-graduation-cap"></i> Lattes</span>');
-        } else {
-            b.push('<span class="badge bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300"><i class="fa-solid fa-heart"></i> Não-Lattes</span>');
-        }
-        // Evidência: verde quando há anexo(s), vermelho quando falta (tipos que exigem)
-        if (!(def && def.noEvidence)) {
-            const n = evCount(item);
-            b.push(marker(n > 0, `evidência${n > 1 ? ` (${n})` : ''}`, 'fa-file-pdf'));
-        }
-        // Descrição: verde (tudo), amarelo (falta opcional), vermelho (falta obrigatório)
-        b.push(marker3(descState(item), 'descrição', 'fa-align-left'));
-        // RSC: marcador âmbar quando o item está habilitado para contagem no RSC-PCCTAE
-        if (state.rscEnabled && item.rsc && item.rsc.conta) {
-            const crit = item.rsc.criterio ? LzRSC.criterio(item.rsc.criterio) : null;
-            const pi = LzRSC.pontosItem(item.rsc);
-            const label = crit ? `RSC ${item.rsc.criterio}` : 'RSC';
-            const pts = (crit && pi.pontos) ? ` · ${String(pi.pontos).replace('.', ',')} pts` : '';
-            const title = crit ? esc(`Requisito ${crit.req} · Item ${crit.item} — ${crit.desc}`) : 'Habilitado para o RSC-PCCTAE (critério ainda não selecionado)';
-            b.push(`<span class="badge bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300" title="${title}"><i class="fa-solid fa-award"></i> ${esc(label)}${pts}</span>`);
-        }
-        return b.join(' ');
-    }
-
     function itemYear(i) {
         const y = (i.fields && (i.fields.ano || i.fields.anoFim || i.fields.anoInicio)) || '';
         const n = parseInt(anoDe(y), 10);
         return isNaN(n) ? null : n;
+    }
+
+    // Ícone de arquivo conforme o tipo de evidência (pdf/imagem/vídeo/zip-tar.gz/link)
+    function evidenceExtIcon(ext) {
+        if (ext === 'url') return 'fa-link';
+        if (isImageExt(ext)) return 'fa-image';
+        if (isVideoExt(ext)) return 'fa-file-video';
+        if (isArchiveExt(ext)) return 'fa-file-zipper';
+        return 'fa-file-pdf';
+    }
+    // Ícones de evidência do cartão: um por evidência anexada (cor única no
+    // conjunto — verde se há alguma pública, âmbar se há evidência mas nenhuma
+    // pública); sem evidência, mostra um único indicador vermelho.
+    function evidenceIconsHtml(item) {
+        const def = LattesTypes.get(item.typeKey);
+        if (def && def.noEvidence) return '';
+        const evid = Array.isArray(item.evidencias) ? item.evidencias : [];
+        if (!evid.length) {
+            return `<span title="Sem evidência anexada" class="inline-flex items-center justify-center w-6 h-6 text-red-600 dark:text-red-500"><i class="fa-solid fa-file-circle-xmark"></i></span>`;
+        }
+        const cor = evid.some(e => e.publica) ? 'text-green-600 dark:text-green-500' : 'text-amber-600 dark:text-amber-500';
+        return evid.map(e => `<button type="button" data-act="pdf" data-id="${item.id}" title="${esc(e.name || '')}${e.publica ? ' (pública)' : ''}" class="inline-flex items-center justify-center w-6 h-6 rounded hover:bg-gray-100 dark:hover:bg-gray-700 ${cor}"><i class="fa-solid ${evidenceExtIcon(e.ext)}"></i></button>`).join('');
+    }
+    // Ícone do RSC: verde (marcado), âmbar (elegível, dentro do período de uso,
+    // ainda não marcado) ou cinza (fora do período de uso). Some quando o
+    // módulo está desligado ou o tipo não é elegível ao RSC.
+    function rscIconHtml(item) {
+        if (!state.rscEnabled) return '';
+        const eligivel = item.typeKey && !LattesTypes.isPerfilType(item.typeKey) && !LattesTypes.isNaoLattesType(item.typeKey);
+        if (!eligivel) return '';
+        let estado, title;
+        if (item.rsc && item.rsc.conta) {
+            estado = 'green'; title = 'Marcado para uso no RSC';
+        } else {
+            const inicioAno = parseInt(anoDe((state.rscCfg && state.rscCfg.dataInicioContagem) || ''), 10);
+            const itemAno = itemYear(item);
+            const foraDoPeriodo = !isNaN(inicioAno) && itemAno != null && itemAno < inicioAno;
+            estado = foraDoPeriodo ? 'gray' : 'amber';
+            title = foraDoPeriodo ? 'Fora do período de uso do RSC' : 'Dentro do período de uso do RSC — ainda não marcado';
+        }
+        const cls = estado === 'green' ? 'text-green-600 dark:text-green-500' : estado === 'amber' ? 'text-amber-600 dark:text-amber-500' : 'text-gray-400 dark:text-gray-500';
+        return `<span title="${esc(title)}" class="inline-flex items-center justify-center w-6 h-6 ${cls}"><i class="fa-solid fa-award"></i></span>`;
+    }
+    // Ícone Lattes: vermelho (ainda não está no Lattes), âmbar (está no Lattes
+    // mas foi modificado localmente) ou verde (já está no Lattes, sem edições
+    // desde a importação/adoção). Some para itens Não-Lattes (nunca exportados).
+    function lattesIconHtml(item) {
+        if (!item.lattesItem) return '';
+        let estado, title;
+        if (!item.lattesRef) {
+            estado = 'red'; title = 'Ainda não está no Lattes';
+        } else if (item.updatedAt && item.createdAt && item.updatedAt !== item.createdAt) {
+            estado = 'amber'; title = 'Está no Lattes, mas sofreu modificação local';
+        } else {
+            estado = 'green'; title = 'Já está no Lattes';
+        }
+        const cls = estado === 'green' ? 'text-green-600 dark:text-green-500' : estado === 'amber' ? 'text-amber-600 dark:text-amber-500' : 'text-red-600 dark:text-red-500';
+        return `<span title="${esc(title)}" class="inline-flex items-center justify-center w-6 h-6 ${cls}"><i class="fa-solid fa-graduation-cap"></i></span>`;
+    }
+    // Ícone de descrição: reaproveita o estado de completude (descState).
+    function descIconHtml(item) {
+        const estado = descState(item);
+        const title = estado === 'green' ? 'Descrição completa' : estado === 'amber' ? 'Descrição incompleta (falta campo opcional)' : 'Sem descrição (falta campo obrigatório)';
+        const cls = estado === 'green' ? 'text-green-600 dark:text-green-500' : estado === 'amber' ? 'text-amber-600 dark:text-amber-500' : 'text-red-600 dark:text-red-500';
+        return `<span title="${esc(title)}" class="inline-flex items-center justify-center w-6 h-6 ${cls}"><i class="fa-solid fa-align-left"></i></span>`;
     }
 
     function itemCardHtml(i) {
@@ -1657,14 +1682,17 @@
         const ano = anoNum != null ? String(anoNum) : '—';
         const titulo = esc(LattesTypes.itemTitle(i));
         const tipo = esc(LattesTypes.label(i.typeKey));
+        const sep = `<span class="w-px h-5 bg-gray-200 dark:bg-gray-600 shrink-0 mx-0.5"></span>`;
         return `
             <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded px-2.5 py-1.5">
                 <div class="flex items-center gap-x-2 gap-y-1 flex-wrap">
                     <span class="text-xs font-mono text-gray-500 shrink-0 w-9 text-right tabular-nums">${ano}</span>
                     <span class="text-sm font-medium truncate flex-1 min-w-[8rem]" title="${tipo} · ${titulo}">${titulo}</span>
-                    <div class="flex flex-wrap gap-1 items-center">${statusBadges(i)}</div>
-                    <div class="flex gap-0.5 shrink-0 ml-auto">
-                        ${i.hasPdf ? `<button data-act="pdf" data-id="${i.id}" title="Ver arquivo no painel (Catalogar)" class="w-7 h-7 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-green-600 dark:text-green-500"><i class="fa-solid ${i.fileExt === 'url' ? 'fa-link' : isImageExt(i.fileExt) ? 'fa-image' : 'fa-file-pdf'}"></i></button>` : ''}
+                    <div class="flex items-center gap-0.5 shrink-0 ml-auto">
+                        ${evidenceIconsHtml(i)}
+                        ${sep}
+                        ${rscIconHtml(i)}${lattesIconHtml(i)}${descIconHtml(i)}
+                        ${sep}
                         <button data-act="edit" data-id="${i.id}" title="Abrir / Editar" class="w-7 h-7 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-govbr-600 dark:text-unifesp-400"><i class="fa-solid fa-pen"></i></button>
                         ${LattesTypes.isSingleton(i.typeKey) ? '' : `<button data-act="dup" data-id="${i.id}" title="Duplicar" class="w-7 h-7 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400"><i class="fa-solid fa-clone"></i></button>`}
                         <button data-act="del" data-id="${i.id}" title="Excluir" class="w-7 h-7 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-red-600"><i class="fa-solid fa-trash"></i></button>
