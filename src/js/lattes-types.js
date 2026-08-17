@@ -329,14 +329,9 @@ const PI_TYPES = ['PATENTE', 'SOFTWARE_REGISTRADO', 'CULTIVAR_PROTEGIDA', 'CULTI
 window.LATTES_CATEGORIES = [
     { num: '01', key: 'DADOS_GERAIS', label: 'Dados gerais', icon: 'fa-id-card',
       // Identificação, Foto, Endereço, Texto inicial e Outras informações são
-      // editados em Configurações (perfil); aqui ficam os demais itens de 01,
-      // com Conexões (rede social/acadêmica/profissional) agrupada no final.
-      groups: [
-          { types: ['DOCUMENTO_PESSOAL', 'LICENCA', 'IDIOMAS', 'PREMIO'] },
-          { label: 'Conexões — Sociais', types: ['CONEXAO_SOCIAL'] },
-          { label: 'Conexões — Acadêmicas', types: ['CONEXAO_ACADEMICA'] },
-          { label: 'Conexões — Profissionais', types: ['CONEXAO_PROFISSIONAL'] },
-      ] },
+      // editados em Configurações (perfil); aqui ficam os demais itens de 01
+      // (Conexões — rede social/acadêmica/profissional — incluída no final).
+      types: ['DOCUMENTO_PESSOAL', 'LICENCA', 'IDIOMAS', 'PREMIO', 'CONEXAO_SOCIAL', 'CONEXAO_ACADEMICA', 'CONEXAO_PROFISSIONAL'] },
     { num: '02', key: 'FORMACAO', label: 'Formação', icon: 'fa-user-graduate',
       types: ['FORMACAO_ACADEMICA', 'POS_DOUTORADO', 'FORMACAO_COMPLEMENTAR'] },
     { num: '03', key: 'ATUACAO', label: 'Atuação', icon: 'fa-briefcase',
