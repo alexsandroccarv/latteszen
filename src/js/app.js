@@ -2482,10 +2482,19 @@
     function wirePerfilSection() {
         const sec = $('#perfilSection');
         if (!sec) return;
-        wireValidators(sec);
-        wireCounters(sec);
-        wireDateBr(sec);
-        wireNA(sec);
+        // Vários cartões de perfil ficam abertos na mesma seção e vários tipos
+        // reaproveitam as mesmas chaves de campo (ex.: "descricao" em Texto
+        // inicial E em Outras informações) — por isso cada wiring roda
+        // isolado POR FORMULÁRIO, nunca na seção inteira (senão o contador/
+        // validador de um campo "vaza" para o campo de mesmo nome no outro
+        // cartão, já que querySelector pega só o primeiro do documento).
+        $$('[data-perfil-form]', sec).forEach(form => {
+            wireValidators(form);
+            wireCounters(form);
+            wireDateBr(form);
+            wireNA(form);
+            wireConditional(form, LattesTypes.get(form.dataset.perfilForm));
+        });
         $$('[data-perfil-foto]', sec).forEach(inp => inp.addEventListener('change', (e) => {
             const f = e.target.files[0];
             if (!f) return;
@@ -2505,10 +2514,7 @@
                 if (url) { prev.src = url; prev.classList.remove('hidden'); }
             } catch (_) {}
         })();
-        $$('[data-perfil-form]', sec).forEach(form => {
-            form.addEventListener('submit', onPerfilSubmit);
-            wireConditional(form, LattesTypes.get(form.dataset.perfilForm));
-        });
+        $$('[data-perfil-form]', sec).forEach(form => form.addEventListener('submit', onPerfilSubmit));
         wireAreaAtuacaoSection(sec);
         wireFixedDocButtons(sec);
         wireDocumentoPessoalSection(sec);
