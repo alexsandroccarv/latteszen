@@ -795,6 +795,11 @@
             <div id="dynFields" class="space-y-3"></div>
             <div id="rscBlock" class="space-y-3"></div>
 
+            <div class="space-y-1">
+                <label class="block text-xs font-semibold" for="notasGerais">Anotações gerais</label>
+                <textarea id="notasGerais" name="notasGerais" rows="3" maxlength="4000" placeholder="Escreva aqui suas conquistas, aprendizados ou impacto da atividade. Este é um campo livre e não será exportado para o Lattes ou publicado." class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900">${esc(item && item.notasGerais || '')}</textarea>
+            </div>
+
             <p id="idInfo" class="text-xs text-gray-500"></p>
 
             <div class="flex gap-2 pt-1 flex-wrap">
@@ -1496,6 +1501,9 @@
         item.categoryKey = categoryKey;
         item.fields = fields;
         item.updatedAt = nowISO();
+        // Anotações gerais: campo livre, fora de `fields` — não entra na
+        // exportação Lattes (XML) nem na página pública (Publicar na Web).
+        item.notasGerais = (form.elements['notasGerais'] ? form.elements['notasGerais'].value.trim() : '');
 
         // Camada RSC (se habilitado e o item é elegível)
         if (state.rscEnabled) { const rscData = collectRsc(form); if (rscData) item.rsc = rscData; }
