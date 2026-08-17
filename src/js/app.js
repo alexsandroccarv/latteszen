@@ -72,15 +72,31 @@
     function anoDe(v) { const m = String(v == null ? '' : v).match(/\d{4}/); return m ? m[0] : ''; }
 
     // Extensão do anexo a partir do tipo MIME / nome do arquivo
+    const MIME_EXT = {
+        'application/pdf': 'pdf', 'image/png': 'png', 'image/jpeg': 'jpg', 'image/gif': 'gif', 'image/webp': 'webp',
+        'video/mp4': 'mp4', 'video/webm': 'webm', 'video/quicktime': 'mov', 'video/x-msvideo': 'avi', 'video/x-matroska': 'mkv',
+        'application/zip': 'zip', 'application/x-zip-compressed': 'zip', 'application/gzip': 'gz', 'application/x-gzip': 'gz', 'application/x-tar': 'tar',
+    };
     function fileExt(file) {
         const t = (file.type || '').toLowerCase();
-        if (t === 'application/pdf') return 'pdf';
-        if (t === 'image/png') return 'png';
-        if (t === 'image/jpeg') return 'jpg';
+        if (MIME_EXT[t]) return MIME_EXT[t];
         const m = (file.name || '').match(/\.(\w+)$/);
         return m ? m[1].toLowerCase() : 'pdf';
     }
     function isImageExt(ext) { return /^(jpe?g|png|gif|webp)$/i.test(ext || ''); }
+    function isVideoExt(ext) { return /^(mp4|webm|mov|avi|mkv)$/i.test(ext || ''); }
+    function isArchiveExt(ext) { return /^(zip|tar|gz|tgz)$/i.test(ext || ''); }
+
+    // Extensões de evidência aceitas por tipo de item (accept do <input file>).
+    // Os dois tipos restritos a documento/foto continuam só PDF/imagem; os
+    // demais aceitam o conjunto amplo (PDF, imagem, vídeo, zip/tar.gz).
+    const EVID_EXTS_DEFAULT = ['pdf', 'jpg', 'jpeg', 'png', 'gif', 'webp', 'mp4', 'webm', 'mov', 'avi', 'mkv', 'zip', 'tar', 'gz'];
+    const EVID_ACCEPT_DEFAULT = 'application/pdf,image/jpeg,image/png,image/gif,image/webp,video/mp4,video/webm,video/quicktime,video/x-msvideo,video/x-matroska,application/zip,application/x-zip-compressed,application/gzip,application/x-gzip,application/x-tar';
+    function allowedExtsForAccept(acc) {
+        if (acc === 'image/jpeg,image/png') return ['jpg', 'jpeg', 'png'];
+        if (acc === 'application/pdf,image/jpeg,image/png') return ['pdf', 'jpg', 'jpeg', 'png'];
+        return EVID_EXTS_DEFAULT;
+    }
 
     // Validação do arquivo de evidência: vazio, tamanho e tipo permitido.
     // Retorna null se OK ou uma mensagem de erro.
@@ -209,10 +225,12 @@
     // Normaliza a lista de evidências de um item (converte formato legado).
     function evListFromItem(item) {
         if (item && Array.isArray(item.evidencias) && item.evidencias.length) {
-            return item.evidencias.map(e => ({
-                basename: e.basename, ext: e.ext,
-                name: e.name || `${e.basename}.${e.ext}`, publica: !!e.publica, tag: e.tag || '', file: null,
-            }));
+            return item.evidencias.map(e => e.kind === 'link'
+                ? { kind: 'link', basename: null, ext: 'url', url: e.url, name: e.name || e.url, publica: !!e.publica, tag: e.tag || '', file: null }
+                : {
+                    basename: e.basename, ext: e.ext,
+                    name: e.name || `${e.basename}.${e.ext}`, publica: !!e.publica, tag: e.tag || '', file: null,
+                });
         }
         if (item && item.hasPdf) { // legado: uma única evidência com id do item
             const ext = item.fileExt || 'pdf';
@@ -430,6 +448,7 @@
         const list = evListFromItem(item);
         if (!list.length) { clearPdf(); return; }
         const ev = list.find(e => e.publica) || list[0];
+        if (ev.kind === 'link') { clearPdf(); return; } // links abrem em nova aba, não pré-visualizam sozinhos
         try {
             const url = await Storage.readAttachmentUrl(ev.basename, LattesTypes.categoryFolder(item.categoryKey), ev.ext);
             if (url) setPdf(url, ev.name, ev.ext);
@@ -438,7 +457,9 @@
     }
 
     // Pré-visualiza uma evidência (nova ou já gravada) no painel lateral.
+    // Evidências do tipo "link" não têm arquivo — abrem direto numa nova aba.
     async function previewEvidence(ev) {
+        if (ev.kind === 'link') { window.open(ev.url, '_blank', 'noopener'); return; }
         if (ev.file) { setPdf(URL.createObjectURL(ev.file), ev.name, ev.ext); return; }
         try {
             // Arquivo já gravado: usar a categoria SALVA do item em edição
@@ -461,11 +482,17 @@
             return;
         }
         ul.innerHTML = state.evEditing.map((ev, idx) => {
-            const thumb = isImageExt(ev.ext)
-                ? (ev.file
-                    ? `<img src="${URL.createObjectURL(ev.file)}" class="w-8 h-8 object-cover rounded shrink-0" alt="">`
-                    : `<img data-evthumb="${idx}" class="w-8 h-8 object-cover rounded shrink-0 bg-gray-100 dark:bg-gray-700" alt="">`)
-                : `<i aria-hidden="true" class="fa-solid fa-file-pdf text-red-600 shrink-0 w-8 text-center"></i>`;
+            const thumb = ev.kind === 'link'
+                ? `<i aria-hidden="true" class="fa-solid fa-link text-govbr-600 dark:text-unifesp-400 shrink-0 w-8 text-center"></i>`
+                : isImageExt(ev.ext)
+                    ? (ev.file
+                        ? `<img src="${URL.createObjectURL(ev.file)}" class="w-8 h-8 object-cover rounded shrink-0" alt="">`
+                        : `<img data-evthumb="${idx}" class="w-8 h-8 object-cover rounded shrink-0 bg-gray-100 dark:bg-gray-700" alt="">`)
+                    : isVideoExt(ev.ext)
+                        ? `<i aria-hidden="true" class="fa-solid fa-file-video text-purple-600 shrink-0 w-8 text-center"></i>`
+                        : isArchiveExt(ev.ext)
+                            ? `<i aria-hidden="true" class="fa-solid fa-file-zipper text-amber-600 shrink-0 w-8 text-center"></i>`
+                            : `<i aria-hidden="true" class="fa-solid fa-file-pdf text-red-600 shrink-0 w-8 text-center"></i>`;
             return `
             <li class="flex items-center gap-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded px-2 py-1 text-sm">
                 ${thumb}
@@ -520,8 +547,7 @@
     // e colar). Valida cada arquivo e respeita os tipos aceitos pelo tipo atual.
     function addEvidenceFiles(files) {
         const inp = $('#pdfInput');
-        const acc = inp ? inp.accept : '';
-        const allowed = (acc.includes('application/pdf') || acc === '') ? ['pdf', 'jpg', 'jpeg', 'png'] : ['jpg', 'jpeg', 'png'];
+        const allowed = allowedExtsForAccept(inp ? inp.accept : '');
         // Casa o arquivo anexado com um da bandeja (por nome + tamanho) — assim,
         // mesmo anexando pelo seletor/arrastar, o original é movido p/ Processado.
         const inboxByKey = new Map((state._inbox || []).map(e => [`${e.name}|${e.size}`, e.name]));
@@ -545,8 +571,7 @@
     // para mover o original a "00 - Processado" ao salvar o item).
     async function useInboxFile(entry) {
         const inp = $('#pdfInput');
-        const acc = inp ? inp.accept : '';
-        const allowed = (acc.includes('application/pdf') || acc === '') ? ['pdf', 'jpg', 'jpeg', 'png'] : ['jpg', 'jpeg', 'png'];
+        const allowed = allowedExtsForAccept(inp ? inp.accept : '');
         let file;
         try { file = await Storage.readInboxFile(entry.name); }
         catch (e) { toast('Não foi possível ler o arquivo da bandeja: ' + e.message, 'aviso'); return; }
@@ -561,18 +586,26 @@
         previewPdfFile(file);
     }
 
-    // Bandeja de entrada: apenas um CONTADOR (sem listar os arquivos).
-    // "Anexar próximo" pega o próximo arquivo pendente ainda não anexado.
+    // Bandeja de entrada: botão com um badge de contagem (sem listar os
+    // arquivos). Clicar no botão anexa o próximo arquivo pendente ainda não
+    // usado neste item.
     async function renderInbox() {
-        const box = $('#inboxBox'), count = $('#inboxCount'), next = $('#inboxNext');
-        if (!box) return;
-        if (!Storage.hasDirectory()) { box.classList.add('hidden'); return; }
-        box.classList.remove('hidden');
+        const btn = $('#btnEvInbox'), badge = $('#inboxBadge');
+        if (!btn) return;
+        if (!Storage.hasDirectory()) {
+            btn.disabled = true; btn.classList.add('opacity-40');
+            if (badge) badge.classList.add('hidden');
+            return;
+        }
         let itens = [];
         try { itens = await Storage.listInbox(); } catch (_) { itens = []; }
         state._inbox = itens;
-        count.textContent = itens.length ? `— ${itens.length} pendente(s)` : '— vazia';
-        if (next) { next.disabled = !itens.length; next.classList.toggle('opacity-40', !itens.length); }
+        btn.disabled = !itens.length;
+        btn.classList.toggle('opacity-40', !itens.length);
+        if (badge) {
+            badge.textContent = itens.length ? String(itens.length) : '';
+            badge.classList.toggle('hidden', !itens.length);
+        }
     }
     // Anexa o próximo arquivo da bandeja que ainda não foi anexado a este item
     async function useNextInbox() {
@@ -582,6 +615,28 @@
         if (!prox) { toast('Bandeja vazia ou já anexada a este item.', 'info'); return; }
         await useInboxFile(prox);
         await renderInbox();
+    }
+
+    // Evidência do tipo "link": não tem arquivo, só uma URL. Aceita o texto
+    // sem esquema (adiciona "https://") e valida com o construtor URL.
+    function normalizeUrl(raw) {
+        let s = String(raw || '').trim();
+        if (!s) return null;
+        if (!/^[a-z][a-z0-9+.-]*:\/\//i.test(s)) s = 'https://' + s;
+        try { new URL(s); return s; } catch (_) { return null; }
+    }
+    function addUrlEvidence() {
+        const inp = $('#evUrlInput');
+        const url = normalizeUrl(inp.value);
+        if (!url) { toast('Informe um link (URL) válido.', 'aviso'); return; }
+        state.evEditing.push({
+            kind: 'link', basename: null, ext: 'url', file: null,
+            name: url, url, publica: state.evEditing.length === 0, tag: '',
+        });
+        state.formDirty = true;
+        inp.value = '';
+        $('#evUrlRow').classList.add('hidden');
+        renderEvList();
     }
 
     // Camada RSC no formulário (abaixo dos campos do item), quando habilitado
@@ -698,18 +753,29 @@
 
         form.innerHTML = `
             <div id="evidenceBlock" class="bg-govbr-50 dark:bg-gray-900 border border-govbr-100 dark:border-gray-700 rounded px-3 py-2 transition-shadow">
-                <label class="block text-xs font-semibold mb-1" for="pdfInput"><i aria-hidden="true" class="fa-solid fa-file-arrow-up text-govbr-600 dark:text-unifesp-400 mr-1"></i> <span id="pdfInputLabel">Evidências (PDF ou imagem)</span></label>
-                <input type="file" id="pdfInput" multiple accept="application/pdf,image/jpeg,image/png"
-                       class="w-full text-sm text-gray-600 dark:text-gray-300 file:mr-2 file:px-3 file:py-1.5 file:rounded file:border-0 file:bg-govbr-600 dark:file:bg-unifesp-700 file:text-white">
-                <p class="text-xs text-gray-500 mt-1">Arraste e solte, cole (Ctrl+V) ou selecione. Marque <strong>“pública”</strong> em <em>quantas</em> evidências quiser (0 ou mais). Use ↑ ↓ para reordenar. A <strong>tag</strong> categoriza o documento (ex.: Certificado, Declaração…).</p>
-                <ul id="evList" class="mt-2 space-y-1"></ul>
-                <div id="inboxBox" class="mt-2 pt-2 border-t border-govbr-100 dark:border-gray-700 flex items-center justify-between gap-2">
-                    <span class="text-xs font-semibold"><i aria-hidden="true" class="fa-solid fa-inbox text-govbr-600 dark:text-unifesp-400 mr-1"></i> Bandeja de entrada <span id="inboxCount" class="font-normal text-gray-400"></span></span>
-                    <span class="flex gap-1 shrink-0">
-                        <button type="button" id="inboxNext" class="text-xs px-2 py-0.5 rounded bg-govbr-600 dark:bg-unifesp-700 text-white">Anexar próximo</button>
-                        <button type="button" id="inboxRefresh" class="text-xs px-2 py-0.5 rounded border border-gray-300 dark:border-gray-600">atualizar</button>
-                    </span>
+                <label class="block text-xs font-semibold mb-2" for="pdfInput"><i aria-hidden="true" class="fa-solid fa-file-arrow-up text-govbr-600 dark:text-unifesp-400 mr-1"></i> <span id="pdfInputLabel">Evidências</span></label>
+                <div class="flex items-center gap-2">
+                    <button type="button" id="btnEvInbox" title="Bandeja de entrada: anexar próximo arquivo pendente" class="relative w-9 h-9 shrink-0 rounded border border-govbr-200 dark:border-gray-600 text-govbr-700 dark:text-unifesp-300 hover:bg-govbr-100 dark:hover:bg-gray-700 flex items-center justify-center disabled:opacity-40">
+                        <i aria-hidden="true" class="fa-solid fa-inbox"></i>
+                        <span id="inboxBadge" class="hidden absolute -top-1.5 -right-1.5 min-w-[16px] h-4 px-1 bg-govbr-600 dark:bg-unifesp-600 text-white text-[10px] leading-4 rounded-full text-center"></span>
+                    </button>
+                    <button type="button" id="btnEvFiles" title="Escolher arquivos (PDF, imagem, vídeo ou zip/tar.gz)" class="relative w-9 h-9 shrink-0 rounded border border-govbr-200 dark:border-gray-600 text-govbr-700 dark:text-unifesp-300 hover:bg-govbr-100 dark:hover:bg-gray-700 flex items-center justify-center">
+                        <i aria-hidden="true" class="fa-solid fa-magnifying-glass"></i>
+                        <i aria-hidden="true" class="fa-solid fa-plus absolute -bottom-1 -right-1 w-3.5 h-3.5 text-[9px] leading-[14px] bg-govbr-600 dark:bg-unifesp-600 text-white rounded-full text-center"></i>
+                    </button>
+                    <button type="button" id="btnEvUrl" title="Inserir evidência por link (URL)" class="relative w-9 h-9 shrink-0 rounded border border-govbr-200 dark:border-gray-600 text-govbr-700 dark:text-unifesp-300 hover:bg-govbr-100 dark:hover:bg-gray-700 flex items-center justify-center">
+                        <i aria-hidden="true" class="fa-solid fa-pen"></i>
+                        <span aria-hidden="true" class="absolute -bottom-1.5 -right-1.5 px-1 bg-govbr-600 dark:bg-unifesp-600 text-white text-[8px] leading-[13px] rounded">URL</span>
+                    </button>
                 </div>
+                <input type="file" id="pdfInput" multiple accept="application/pdf,image/jpeg,image/png,image/gif,image/webp,video/mp4,video/webm,video/quicktime,video/x-msvideo,video/x-matroska,application/zip,application/x-zip-compressed,application/gzip,application/x-gzip,application/x-tar" class="hidden">
+                <div id="evUrlRow" class="hidden mt-2 flex gap-1.5">
+                    <input type="url" id="evUrlInput" placeholder="https://…" class="flex-1 text-sm px-2 py-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900">
+                    <button type="button" id="evUrlAdd" class="text-xs px-2 py-1 rounded bg-govbr-600 dark:bg-unifesp-700 text-white">Adicionar</button>
+                    <button type="button" id="evUrlCancel" class="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600">Cancelar</button>
+                </div>
+                <p class="text-xs text-gray-500 mt-2">Arraste e solte, cole (Ctrl+V) ou use os botões acima — PDF, imagem, vídeo, link ou zip/tar.gz. Marque <strong>“pública”</strong> em <em>quantas</em> evidências quiser (0 ou mais). Use ↑ ↓ para reordenar. A <strong>tag</strong> categoriza o documento (ex.: Certificado, Declaração…).</p>
+                <ul id="evList" class="mt-2 space-y-1"></ul>
             </div>
 
             <div class="grid grid-cols-2 gap-2">
@@ -810,11 +876,11 @@
             const semEvidencia = !!(def && def.noEvidence);
             $('#evidenceBlock').style.display = semEvidencia ? 'none' : '';
             if (semEvidencia) { state.evEditing = []; renderEvList(); clearPdf(); }
-            const accept = (def && def.accept) || 'application/pdf,image/jpeg,image/png';
+            const accept = (def && def.accept) || EVID_ACCEPT_DEFAULT;
             const inp = $('#pdfInput'); if (inp) inp.accept = accept;
             const lbl = $('#pdfInputLabel');
             if (lbl) lbl.textContent = accept === 'image/jpeg,image/png' ? 'Foto (JPEG ou PNG)'
-                : (def && def.key === 'DOCUMENTO_PESSOAL' ? 'Documento (PDF ou imagem)' : 'Evidência (PDF ou imagem)');
+                : (def && def.key === 'DOCUMENTO_PESSOAL' ? 'Documento (PDF ou imagem)' : 'Evidências (PDF, imagem, vídeo, link ou zip/tar.gz)');
         }
 
         // Combobox: eventos
@@ -856,10 +922,20 @@
             if (files.length) { e.preventDefault(); addEvidenceFiles(files); }
         });
 
-        // Bandeja de entrada (00 Inbox) — apenas contador + "anexar próximo"
-        $('#inboxRefresh').addEventListener('click', renderInbox);
-        $('#inboxNext').addEventListener('click', useNextInbox);
+        // Bandeja de entrada (00 Inbox) — botão com badge: clique anexa o próximo
+        $('#btnEvInbox').addEventListener('click', useNextInbox);
         renderInbox();
+        // Escolher arquivos: abre o seletor nativo (input file oculto)
+        $('#btnEvFiles').addEventListener('click', () => $('#pdfInput').click());
+        // Inserir link (URL): abre/fecha a linha de entrada da URL
+        $('#btnEvUrl').addEventListener('click', () => {
+            const row = $('#evUrlRow');
+            row.classList.toggle('hidden');
+            if (!row.classList.contains('hidden')) $('#evUrlInput').focus();
+        });
+        $('#evUrlCancel').addEventListener('click', () => { $('#evUrlRow').classList.add('hidden'); $('#evUrlInput').value = ''; });
+        $('#evUrlAdd').addEventListener('click', addUrlEvidence);
+        $('#evUrlInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); addUrlEvidence(); } });
 
         // Marca "não salvo" a cada digitação e atualiza o rascunho automático
         form.addEventListener('input', () => { state.formDirty = true; saveDraftDebounced(); });
@@ -1439,6 +1515,11 @@
         const evOut = [];
         const fromInbox = new Set();                 // originais da Inbox a mover p/ Processado
         for (const ev of state.evEditing) {
+            if (ev.kind === 'link') {
+                // Evidência por link: sem arquivo, guarda a URL direto no item.
+                evOut.push({ kind: 'link', url: ev.url, ext: 'url', name: ev.name || ev.url, publica: !!ev.publica, tag: ev.tag || '' });
+                continue;
+            }
             if (ev.file) {
                 // Sem diretório configurado NÃO registramos a evidência (o arquivo
                 // não seria gravado — evita metadado apontando p/ arquivo inexistente).
@@ -1583,7 +1664,7 @@
                     <span class="text-sm font-medium truncate flex-1 min-w-[8rem]" title="${tipo} · ${titulo}">${titulo}</span>
                     <div class="flex flex-wrap gap-1 items-center">${statusBadges(i)}</div>
                     <div class="flex gap-0.5 shrink-0 ml-auto">
-                        ${i.hasPdf ? `<button data-act="pdf" data-id="${i.id}" title="Ver arquivo no painel (Catalogar)" class="w-7 h-7 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-green-600 dark:text-green-500"><i class="fa-solid ${isImageExt(i.fileExt) ? 'fa-image' : 'fa-file-pdf'}"></i></button>` : ''}
+                        ${i.hasPdf ? `<button data-act="pdf" data-id="${i.id}" title="Ver arquivo no painel (Catalogar)" class="w-7 h-7 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-green-600 dark:text-green-500"><i class="fa-solid ${i.fileExt === 'url' ? 'fa-link' : isImageExt(i.fileExt) ? 'fa-image' : 'fa-file-pdf'}"></i></button>` : ''}
                         <button data-act="edit" data-id="${i.id}" title="Abrir / Editar" class="w-7 h-7 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-govbr-600 dark:text-unifesp-400"><i class="fa-solid fa-pen"></i></button>
                         ${LattesTypes.isSingleton(i.typeKey) ? '' : `<button data-act="dup" data-id="${i.id}" title="Duplicar" class="w-7 h-7 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400"><i class="fa-solid fa-clone"></i></button>`}
                         <button data-act="del" data-id="${i.id}" title="Excluir" class="w-7 h-7 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-red-600"><i class="fa-solid fa-trash"></i></button>
@@ -2572,9 +2653,11 @@
                 const itens = [];
                 for (const it of its) {
                     const anexos = [];
-                    if (Storage.hasDirectory() && Array.isArray(it.evidencias)) {
+                    if (Array.isArray(it.evidencias)) {
                         for (const ev of it.evidencias) {
                             if (!ev.publica) continue;
+                            if (ev.kind === 'link') { anexos.push({ name: ev.name || ev.url, ext: 'url', url: ev.url }); continue; }
+                            if (!Storage.hasDirectory()) continue;
                             try { const f = await Storage.readAttachmentFile(ev.basename, LattesTypes.categoryFolder(it.categoryKey), ev.ext); if (f) { const du = await fileToDataUrl(f); if (du) anexos.push({ name: ev.name || `${ev.basename}.${ev.ext}`, ext: ev.ext, dataUri: du }); } } catch (_) {}
                         }
                     }

@@ -120,7 +120,7 @@ window.Storage = (function () {
         await writeFile(`${id}.json`, JSON.stringify(obj, null, 2), subdir);
     }
 
-    const ATTACH_EXTS = ['pdf', 'jpg', 'jpeg', 'png'];
+    const ATTACH_EXTS = ['pdf', 'jpg', 'jpeg', 'png', 'gif', 'webp', 'mp4', 'webm', 'mov', 'avi', 'mkv', 'zip', 'tar', 'gz'];
 
     /* ------------------------- Bandeja de entrada ------------------------ */
     // 00 Inbox: pasta onde o usuário deposita arquivos ainda não catalogados.
