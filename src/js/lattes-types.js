@@ -275,15 +275,15 @@ const TYPES = {
     AL_GASTRONOMIA: { label: 'Gastronomia e culinária', fields: [alNome('Atividade / Especialidade'), AL_PAPEL, { key: 'frequencia', label: 'Frequência', type: 'text' }, AL_IMP, F_URL] },
 
     // Conexões (dentro de Dados gerais; somente link; sem comprovação; não-Lattes)
-    CONEXAO_SOCIAL: { label: 'Rede social', noExport: true, noEvidence: true, naoLattes: true, fields: [
+    CONEXAO_SOCIAL: { label: 'Redes sociais', noExport: true, noEvidence: true, naoLattes: true, fields: [
         { key: 'titulo', label: 'Rede / Plataforma', type: 'text', required: true, placeholder: 'ex.: Instagram, Facebook, X, YouTube, TikTok' },
         { key: 'url', label: 'Link (URL)', type: 'text', required: true, placeholder: 'https://...' },
         { key: 'usuario', label: 'Usuário / @', type: 'text' }] },
-    CONEXAO_ACADEMICA: { label: 'Perfil acadêmico', noExport: true, noEvidence: true, naoLattes: true, fields: [
+    CONEXAO_ACADEMICA: { label: 'Redes acadêmicas', noExport: true, noEvidence: true, naoLattes: true, fields: [
         { key: 'titulo', label: 'Plataforma', type: 'text', required: true, placeholder: 'ex.: ORCID, Lattes, Zotero, ResearchGate, Google Scholar' },
         { key: 'url', label: 'Link (URL)', type: 'text', required: true, placeholder: 'https://...' },
         { key: 'usuario', label: 'Identificador / ID', type: 'text' }] },
-    CONEXAO_PROFISSIONAL: { label: 'Rede / contato profissional', noExport: true, noEvidence: true, naoLattes: true, fields: [
+    CONEXAO_PROFISSIONAL: { label: 'Redes profissionais', noExport: true, noEvidence: true, naoLattes: true, fields: [
         { key: 'titulo', label: 'Plataforma / Tipo', type: 'text', required: true, placeholder: 'ex.: LinkedIn, E-mail profissional, Site pessoal' },
         { key: 'url', label: 'Link / URL (ou e-mail)', type: 'text', required: true, placeholder: 'https://...  ou  nome@dominio' },
         { key: 'usuario', label: 'Usuário / contato', type: 'text' }] },
