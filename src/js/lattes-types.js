@@ -274,6 +274,30 @@ const TYPES = {
     AL_CULTURAL: { label: 'Experiências culturais', fields: [alNome('Experiência'), AL_LOCAL, AL_ANO, F_AFIM, AL_IMP] },
     AL_GASTRONOMIA: { label: 'Gastronomia e culinária', fields: [alNome('Atividade / Especialidade'), AL_PAPEL, { key: 'frequencia', label: 'Frequência', type: 'text' }, AL_IMP, F_URL] },
 
+    // 20 — Registros e Reconhecimentos
+    AL_IMPRENSA: { label: 'Imprensa', fields: [
+        alNome('Título da matéria'),
+        { key: 'entidade', label: 'Nome do veículo', type: 'text', required: true },
+        { key: 'ano', label: 'Data de veiculação', type: 'datebr', required: true }] },
+    AL_CONCURSO: { label: 'Concursos e processos seletivos', fields: [
+        alNome('Nome do concurso / processo seletivo'),
+        { key: 'local', label: 'Local', type: 'text' },
+        { key: 'banca', label: 'Banca', type: 'text' },
+        { key: 'cargo', label: 'Cargo', type: 'text' },
+        F_AINI, F_AFIM,
+        { key: 'colocacao', label: 'Colocação', type: 'text' },
+        { key: 'situacao', label: 'Situação final', type: 'select', options: ['Em andamento', 'Aprovado', 'Reprovado'] }] },
+    AL_FILIACAO: { label: 'Filiações', fields: [
+        alNome('Entidade'),
+        { key: 'categoria', label: 'Categoria', type: 'text' },
+        { key: 'numeroSocio', label: 'Número de sócio', type: 'text' },
+        F_AINI, F_AFIM] },
+    AL_CERTIFICACAO: { label: 'Certificações', fields: [
+        alNome('Nome da certificação'),
+        { key: 'entidade', label: 'Instituto certificador', type: 'text' },
+        { key: 'anoInicio', label: 'Data da certificação', type: 'datebr' },
+        { key: 'anoFim', label: 'Validade até', type: 'datebr' }] },
+
     // Conexões (dentro de Dados gerais; somente link; sem comprovação; não-Lattes)
     CONEXAO_SOCIAL: { label: 'Redes sociais', noExport: true, noEvidence: true, naoLattes: true, fields: [
         { key: 'titulo', label: 'Rede / Plataforma', type: 'text', required: true, placeholder: 'ex.: Instagram, Facebook, X, YouTube, TikTok' },
@@ -362,9 +386,10 @@ window.LATTES_CATEGORIES = [
           { label: 'Engajamento Comunitário e Cidadania', types: ['AL_VOLUNTARIADO', 'AL_LIDERANCA', 'AL_ORG_EVENTO_COM'] },
           { label: 'Saúde, Esporte e Bem-Estar', types: ['AL_ESPORTE', 'AL_COMPETICAO', 'AL_EXPEDICAO', 'AL_BEMESTAR'] },
           { label: 'Interesses, Cultura e Lazer', types: ['AL_HOBBY', 'AL_COLECIONISMO', 'AL_CULTURAL', 'AL_GASTRONOMIA'] },
+          { label: 'Registros e Reconhecimentos', types: ['AL_IMPRENSA', 'AL_CONCURSO', 'AL_FILIACAO', 'AL_CERTIFICACAO'] },
       ] },
 ];
-const AL_KEYS = ['AL_CURSO_LIVRE', 'AL_IDIOMAS', 'AL_TREINAMENTO', 'AL_PROJETO_PESSOAL', 'AL_VOLUNTARIADO', 'AL_LIDERANCA', 'AL_ORG_EVENTO_COM', 'AL_ESPORTE', 'AL_COMPETICAO', 'AL_EXPEDICAO', 'AL_BEMESTAR', 'AL_HOBBY', 'AL_COLECIONISMO', 'AL_CULTURAL', 'AL_GASTRONOMIA'];
+const AL_KEYS = ['AL_CURSO_LIVRE', 'AL_IDIOMAS', 'AL_TREINAMENTO', 'AL_PROJETO_PESSOAL', 'AL_VOLUNTARIADO', 'AL_LIDERANCA', 'AL_ORG_EVENTO_COM', 'AL_ESPORTE', 'AL_COMPETICAO', 'AL_EXPEDICAO', 'AL_BEMESTAR', 'AL_HOBBY', 'AL_COLECIONISMO', 'AL_CULTURAL', 'AL_GASTRONOMIA', 'AL_IMPRENSA', 'AL_CONCURSO', 'AL_FILIACAO', 'AL_CERTIFICACAO'];
 
 // Categoria "primária" de cada tipo (usada pelo importador do XML)
 const PRIMARY_CATEGORY = {
