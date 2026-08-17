@@ -490,6 +490,11 @@ window.LattesTypes = (function () {
                 if (partes.length) return partes.map(titleCasePt).join(' › ');
                 if (f.areaConhecimento) return titleCasePt(f.areaConhecimento);
             }
+            // Documentos pessoais: "Tipo de documento · Descrição/Nº do documento"
+            if (item.typeKey === 'DOCUMENTO_PESSOAL') {
+                const t = [f.tipoDoc, f.titulo].map(x => String(x || '').trim()).filter(Boolean).join(' · ');
+                if (t) return t;
+            }
             return f.titulo || f.curso || f.orientando || f.candidato || f.instituicao || f.nome || '(sem título)';
         },
     };
