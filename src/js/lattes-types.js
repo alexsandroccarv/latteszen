@@ -49,12 +49,92 @@ const NIVEIS_FORMACAO = ['Ensino fundamental', 'Ensino médio', 'Curso técnico'
 const nivelExcept = (...keep) => [...NIVEIS_FORMACAO.filter(n => !keep.includes(n)), ''];
 
 // Conjuntos de campos reutilizáveis
-const PROJETO_FIELDS = [F_TITULO,
-    { key: 'anoInicio', label: 'Ano de início', type: 'datebr', required: true }, F_AFIM,
-    { key: 'situacao', label: 'Situação', type: 'select', options: ['Em andamento', 'Concluído', 'Desativado'] },
-    { key: 'financiador', label: 'Financiador / Agência', type: 'text' },
-    { key: 'coordenador', label: 'Coordenador(a)', type: 'text' },
-    { key: 'descricao', label: 'Descrição', type: 'textarea' }];
+// Projetos (Dados gerais + Equipe/Financiadores/Produção C&T/Orientações, na
+// ordem e com os campos das telas reais do Lattes). Os blocos em tabela
+// (Equipe, Instituições envolvidas, Financiamento, Produção C&T, Orientações)
+// usam o tipo `repeater` (lista com adicionar/editar/remover linha).
+const NATUREZA_PROJETO_OPTIONS = ['Desenvolvimento', 'Extensão', 'Pesquisa', 'Ensino', 'Outra'];
+const SITUACAO_PROJETO_OPTIONS = ['Em andamento', 'Concluído', 'Desativado'];
+const FINANCIADOR_NATUREZA_OPTIONS = ['Bolsa', 'Auxílio financeiro', 'Remuneração', 'Outro', 'Cooperação', 'Não informado'];
+const QTD_ALUNOS_BASE = [
+    { key: 'qtdGraduacao', label: 'Graduação', type: 'number' },
+    { key: 'qtdEspecializacao', label: 'Especialização', type: 'number' },
+    { key: 'qtdMestradoAcademico', label: 'Mestrado acadêmico', type: 'number' },
+    { key: 'qtdMestradoProfissional', label: 'Mestrado profissionalizante', type: 'number' },
+    { key: 'qtdDoutorado', label: 'Doutorado', type: 'number' },
+];
+const QTD_TECNICO = { key: 'qtdTecnicoNivelMedio', label: 'Técnico de nível médio', type: 'number' };
+const QTD_FUNDAMENTAL = { key: 'qtdEnsinoFundamental', label: 'Ensino Fundamental (1º grau)', type: 'number' };
+const QTD_MEDIO = { key: 'qtdEnsinoMedio', label: 'Ensino Médio (2º grau)', type: 'number' };
+
+const projetoEquipeField = (label, addLabel) => ({ key: 'equipe', label: label || 'Equipe', type: 'repeater',
+    addLabel: addLabel || 'Adicionar pesquisador', columns: [
+        { key: 'nome', label: 'Nome', type: 'text', required: true },
+        { key: 'coordenador', label: 'Coordenador(a)', type: 'checkbox' }] });
+const projetoInstituicoesEnvolvidasField = () => ({ key: 'instituicoesEnvolvidas', label: 'Instituições envolvidas no projeto', type: 'repeater',
+    addLabel: 'Adicionar instituição', columns: [{ key: 'nome', label: 'Instituição', type: 'text', required: true }] });
+const projetoFinanciadoresField = () => ({ key: 'financiadores', label: 'Instituição de financiamento', type: 'repeater',
+    addLabel: 'Adicionar financiador', help: 'O valor financiado não será exibido na internet.', columns: [
+        { key: 'instituicao', label: 'Instituição', type: 'text', required: true },
+        { key: 'codigoProjeto', label: 'Código do projeto', type: 'text' },
+        { key: 'valor', label: 'Valor financiado', type: 'number' },
+        { key: 'natureza', label: 'Natureza', type: 'select', options: FINANCIADOR_NATUREZA_OPTIONS }] });
+const projetoProducoesField = () => ({ key: 'producoesCT', label: 'Produção C&T', type: 'repeater',
+    addLabel: 'Adicionar produção', columns: [
+        { key: 'titulo', label: 'Título da produção', type: 'text', required: true },
+        { key: 'ano', label: 'Ano', type: 'datebr' },
+        { key: 'tipo', label: 'Tipo', type: 'text' }] });
+const projetoOrientacoesField = () => ({ key: 'orientacoesProjeto', label: 'Orientações', type: 'repeater',
+    addLabel: 'Adicionar orientação', columns: [
+        { key: 'titulo', label: 'Título da orientação', type: 'text', required: true },
+        { key: 'ano', label: 'Ano', type: 'datebr' },
+        { key: 'tipo', label: 'Tipo', type: 'text' }] });
+
+// Bloco comum de Dados gerais + rodapé (Equipe...Orientações), usado pelas
+// 4 naturezas "simples" de projeto (Pesquisa, Desenvolvimento, Extensão, Outro).
+// `extraQtd` insere campos extras na "Quantidade de alunos envolvidos" (ex.:
+// Técnico de nível médio, só em Desenvolvimento).
+const projetoFieldsPadrao = (extraQtdAntes) => [
+    F_TITULO,
+    { key: 'descricao', label: 'Descrição', type: 'textarea' },
+    F_NATUREZA(NATUREZA_PROJETO_OPTIONS),
+    { key: 'situacao', label: 'Situação', type: 'select', options: SITUACAO_PROJETO_OPTIONS },
+    { key: 'anoInicio', label: 'Ano início', type: 'datebr', required: true }, F_AFIM,
+    { key: 'cooperacaoEmpresa', label: 'É um projeto de cooperação entre uma instituição de pesquisa e uma empresa?', type: 'select', options: ['Sim', 'Não'] },
+    { key: 'potencialInovacao', label: 'O projeto possui potencial de inovação de produtos, processos ou serviços?', type: 'select', options: ['Sim', 'Não'] },
+    { key: 'instituicaoExecucao', label: 'Instituição de execução', type: 'text' },
+    { key: 'orgaoUnidade', label: 'Órgão/Unidade', type: 'text' },
+    projetoEquipeField('Equipe', 'Adicionar pesquisador'),
+    projetoInstituicoesEnvolvidasField(),
+    ...(extraQtdAntes || []), ...QTD_ALUNOS_BASE,
+    projetoFinanciadoresField(), projetoProducoesField(), projetoOrientacoesField(),
+];
+// Projeto de ensino: cooperação/inovação/temática são específicos dessa
+// natureza na tela do Lattes e não têm atributo correspondente no schema
+// (ficam só na interface — ver comentário em buildAtuacoes).
+const ACOES_INOVADORAS_NIVEIS = ['Ensino Fundamental (1º grau)', 'Ensino Médio (2º grau)', 'Graduação', 'Especialização', 'Mestrado', 'Mestrado Profissional', 'Doutorado'];
+const TEMATICA_PROJETO_ENSINO = ['Ensino e aprendizagem', 'Aprendizagem por projetos', 'Projetos de curso', 'Formação inicial ou continuada de professores',
+    'Inserção de tecnologias no ensino', 'Ação inclusiva', 'Integração social (escola, família, comunidade)', 'Projeto de intervenção',
+    'Mobilidade e internacionalização', 'Avaliação', 'Gestão', 'Outra'];
+const PROJETO_ENSINO_FIELDS = [
+    F_TITULO,
+    { key: 'descricao', label: 'Descrição', type: 'textarea' },
+    F_NATUREZA(NATUREZA_PROJETO_OPTIONS),
+    { key: 'situacao', label: 'Situação', type: 'select', options: SITUACAO_PROJETO_OPTIONS },
+    { key: 'anoInicio', label: 'Ano início', type: 'datebr', required: true }, F_AFIM,
+    { key: 'cooperacaoTipos', label: 'É um projeto em cooperação com', type: 'checkboxes', options: ['Instituição de ensino', 'Agência de fomento', 'Empresa'] },
+    { key: 'acoesInovadoras', label: 'O projeto possui ações inovadoras e produtos, processos ou serviços?', type: 'select', options: ['Sim', 'Não'] },
+    { key: 'acoesInovadorasNiveis', label: 'O projeto possui ações inovadoras na', type: 'checkboxes', options: ACOES_INOVADORAS_NIVEIS, disabledWhen: { field: 'acoesInovadoras', in: ['', 'Não'] } },
+    { key: 'tematica', label: 'Em relação à temática', type: 'checkboxes', options: TEMATICA_PROJETO_ENSINO },
+    { key: 'tematicaOutra', label: 'Especifique (se marcou "Outra" na temática)', type: 'text' },
+    { key: 'objetivosMetas', label: 'Objetivos e metas', type: 'textarea' },
+    { key: 'instituicaoExecucao', label: 'Instituição de execução', type: 'text' },
+    { key: 'orgaoUnidade', label: 'Órgão/Unidade', type: 'text' },
+    projetoEquipeField('Participantes', 'Adicionar participante'),
+    projetoInstituicoesEnvolvidasField(),
+    QTD_FUNDAMENTAL, QTD_MEDIO, ...QTD_ALUNOS_BASE,
+    projetoFinanciadoresField(), projetoProducoesField(), projetoOrientacoesField(),
+];
 const PI_FIELDS = [F_TITULO, F_ANO, F_AFIM, F_AUTORES, F_FINAL,
     { key: 'registro', label: 'Nº do registro / depósito', type: 'text' },
     { key: 'dataDeposito', label: 'Data do depósito', type: 'date' },
@@ -281,11 +361,11 @@ const TYPES = {
         { key: 'titulo', label: 'Cargo ou função', type: 'text', required: true, placeholder: 'Separe por ponto e vírgula (;)' }] },
 
     // 04 Projetos
-    PROJETO_PESQUISA: { label: 'Projetos de pesquisa', fields: PROJETO_FIELDS },
-    PROJETO_DESENVOLVIMENTO: { label: 'Projeto de desenvolvimento tecnológico', fields: PROJETO_FIELDS },
-    PROJETO_EXTENSAO: { label: 'Projeto de extensão', fields: PROJETO_FIELDS },
-    PROJETO_ENSINO: { label: 'Projeto de ensino', fields: PROJETO_FIELDS },
-    PROJETO_OUTRO: { label: 'Outros tipos de projetos', fields: PROJETO_FIELDS },
+    PROJETO_PESQUISA: { label: 'Projetos de pesquisa', fields: projetoFieldsPadrao() },
+    PROJETO_DESENVOLVIMENTO: { label: 'Projeto de desenvolvimento tecnológico', fields: projetoFieldsPadrao([QTD_TECNICO]) },
+    PROJETO_EXTENSAO: { label: 'Projeto de extensão', fields: projetoFieldsPadrao() },
+    PROJETO_ENSINO: { label: 'Projeto de ensino', fields: PROJETO_ENSINO_FIELDS },
+    PROJETO_OUTRO: { label: 'Outros tipos de projetos', fields: projetoFieldsPadrao() },
 
     // 05.1 Produção bibliográfica
     ARTIGO_PERIODICO: { label: 'Artigos completos publicados em periódicos', fields: [F_TITULO, F_ANO, F_AFIM, F_AUTORES,

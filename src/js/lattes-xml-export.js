@@ -297,6 +297,19 @@ window.LattesXMLExport = (function () {
     // Mapeia o campo "Situação" (Atual/Anterior) das atividades de Atuação
     // profissional para o token FLAG-PERIODO do Lattes.
     const FLAG_PERIODO = { 'Atual (não finalizado)': 'ATUAL', 'Anterior (finalizado)': 'ANTERIOR' };
+    // NATUREZA do financiador de projeto (enum do FINANCIADOR-DO-PROJETO).
+    const FINANCIADOR_NATUREZA_TOKEN = {
+        'Bolsa': 'BOLSA', 'Auxílio financeiro': 'AUXILIO_FINANCEIRO', 'Remuneração': 'REMUNERACAO',
+        'Outro': 'OUTRO', 'Cooperação': 'COOPERACAO', 'Não informado': 'NAO_INFORMADO',
+    };
+    // NATUREZA do projeto (DESENVOLVIMENTO|EXTENSAO|PESQUISA|OUTRA no DTD — o
+    // XSD mais novo também aceita ENSINO, mas o DTD (validado nesta suíte) não;
+    // por isso "Ensino" mapeia para OUTRA, como já era feito antes de existir
+    // o campo "Natureza" na interface (então derivado só do tipo do item).
+    function naturezaProjetoToken(v) {
+        if (v === 'Ensino') return 'OUTRA';
+        return window.LattesEnums ? LattesEnums.token(v) : '';
+    }
     // Setores de atividade (até 3, atributos SETOR-DE-ATIVIDADE-1..3) a partir de "saúde; educação"
     function setoresAtividadeEl(str) {
         const arr = String(str == null ? '' : str).split(';').map(clean).filter(Boolean).slice(0, 3);
@@ -493,16 +506,43 @@ window.LattesXMLExport = (function () {
             if (inner) blocos.push(el('ATUACAO-PROFISSIONAL', { 'NOME-INSTITUICAO': g.nome }, inner));
         }
         // Projetos (não têm instituição no modelo) → bloco próprio de atuação.
+        // "É um projeto de cooperação..." e os campos específicos de Projeto de
+        // ensino (cooperação por tipo, ações inovadoras, temática) não têm
+        // atributo no schema — ficam só na interface, fora do XML.
         if (projetos.length) {
             const parts = projetos.map(it => {
                 const f = it.fields;
-                const equipe = clean(f.coordenador) ? el('EQUIPE-DO-PROJETO', {}, el('INTEGRANTES-DO-PROJETO', { 'NOME-COMPLETO': f.coordenador, 'NOME-PARA-CITACAO': f.coordenador, 'ORDEM-DE-INTEGRACAO': '1', 'FLAG-RESPONSAVEL': 'SIM' })) : '';
-                const fin = clean(f.financiador) ? el('FINANCIADORES-DO-PROJETO', {}, el('FINANCIADOR-DO-PROJETO', { 'NOME-INSTITUICAO': f.financiador })) : '';
+                const equipeRows = Array.isArray(f.equipe) ? f.equipe : [];
+                const equipe = equipeRows.length ? el('EQUIPE-DO-PROJETO', {}, equipeRows.map((r, i) => clean(r.nome) ? el('INTEGRANTES-DO-PROJETO', {
+                    'NOME-COMPLETO': r.nome, 'NOME-PARA-CITACAO': r.nome, 'ORDEM-DE-INTEGRACAO': String(i + 1),
+                    'FLAG-RESPONSAVEL': r.coordenador ? 'SIM' : 'NAO',
+                }) : '').join('')) : '';
+                const finRows = Array.isArray(f.financiadores) ? f.financiadores : [];
+                const fin = finRows.length ? el('FINANCIADORES-DO-PROJETO', {}, finRows.map((r, i) => clean(r.instituicao) ? el('FINANCIADOR-DO-PROJETO', {
+                    'SEQUENCIA-FINANCIADOR': String(i + 1), 'NOME-INSTITUICAO': r.instituicao, 'NATUREZA': FINANCIADOR_NATUREZA_TOKEN[r.natureza] || '',
+                }) : '').join('')) : '';
+                const prodRows = Array.isArray(f.producoesCT) ? f.producoesCT : [];
+                const prod = prodRows.length ? el('PRODUCOES-CT-DO-PROJETO', {}, prodRows.map((r, i) => clean(r.titulo) ? el('PRODUCAO-CT-DO-PROJETO', {
+                    'SEQUENCIA-PRODUCAO-CT': String(i + 1), 'TITULO-DA-PRODUCAO-CT': r.titulo, 'TIPO-PRODUCAO-CT': r.tipo,
+                }) : '').join('')) : '';
+                const orientRows = Array.isArray(f.orientacoesProjeto) ? f.orientacoesProjeto : [];
+                const orient = orientRows.length ? el('ORIENTACOES', {}, orientRows.map((r, i) => clean(r.titulo) ? el('ORIENTACAO', {
+                    'SEQUENCIA-ORIENTACAO': String(i + 1), 'TITULO-ORIENTACAO': r.titulo, 'TIPO-ORIENTACAO': r.tipo,
+                }) : '').join('')) : '';
+                // "Código do projeto" é por financiador na tela, mas o schema só tem
+                // 1 IDENTIFICADOR-PROJETO por projeto — usa o do 1º financiador.
+                const identificador = (finRows[0] && finRows[0].codigoProjeto) || '';
                 return el('PARTICIPACAO-EM-PROJETO', {}, el('PROJETO-DE-PESQUISA', {
                     'ANO-INICIO': year(f.anoInicio), 'ANO-FIM': year(f.anoFim), 'NOME-DO-PROJETO': f.titulo,
-                    'SITUACAO': (window.LattesEnums ? LattesEnums.token(f.situacao) : ''), 'NATUREZA': NAT_PROJ[it.typeKey],
+                    'SITUACAO': (window.LattesEnums ? LattesEnums.token(f.situacao) : ''),
+                    'NATUREZA': naturezaProjetoToken(f.natureza) || NAT_PROJ[it.typeKey],
                     'DESCRICAO-DO-PROJETO': f.descricao,
-                }, equipe + fin));
+                    'FLAG-POTENCIAL-INOVACAO': FLAG_SIM_NAO[f.potencialInovacao || f.acoesInovadoras] || '',
+                    'IDENTIFICADOR-PROJETO': identificador,
+                    'NUMERO-GRADUACAO': f.qtdGraduacao, 'NUMERO-ESPECIALIZACAO': f.qtdEspecializacao,
+                    'NUMERO-MESTRADO-ACADEMICO': f.qtdMestradoAcademico, 'NUMERO-MESTRADO-PROF': f.qtdMestradoProfissional,
+                    'NUMERO-DOUTORADO': f.qtdDoutorado, 'NUMERO_TECNICO_NIVEL_MEDIO': f.qtdTecnicoNivelMedio,
+                }, equipe + fin + prod + orient));
             }).join('');
             blocos.push(el('ATUACAO-PROFISSIONAL', {}, wrap('ATIVIDADES-DE-PARTICIPACAO-EM-PROJETO', parts)));
         }

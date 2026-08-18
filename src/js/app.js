@@ -877,6 +877,7 @@
             wireDateBr($('#dynFields'));                 // máscara dd/mm/aaaa (campos datebr)
             wireConditional($('#dynFields'), def);       // campos bloqueados por condição
             wireDynamicLabels($('#dynFields'), def);     // rótulos que mudam conforme outro campo
+            wireRepeater($('#dynFields'), def);          // listas (Equipe, Financiadores, Produção C&T...)
             renderRscBlock(item);                        // camada RSC (se habilitado)
             const semEvidencia = !!(def && def.noEvidence);
             $('#evidenceBlock').style.display = semEvidencia ? 'none' : '';
@@ -1053,6 +1054,35 @@
         else toast(`"${f}" → "${t}" aplicado a ${alvo.length} item(ns).`, 'ok');
     }
 
+    // Campo "repeater": lista de linhas com colunas próprias (ex.: Equipe do
+    // projeto, Financiadores, Produção C&T) — cada linha é um objeto guardado
+    // num array em item.fields[chave] (o app já serializa fields inteiro como
+    // JSON, então não precisamos achatar em texto). O valor "ao vivo" fica num
+    // <input type="hidden"> com o array em JSON; collectFields() faz o parse.
+    function repeaterRowLabel(f, row) {
+        return f.columns.map(c => {
+            const v = row[c.key];
+            if (c.type === 'checkbox') return v ? c.label : '';
+            return v;
+        }).filter(Boolean).join(' · ');
+    }
+    function repeaterListHtml(f, rows) {
+        if (!rows.length) return `<li class="text-xs text-gray-400 dark:text-gray-500 italic">Nenhum item adicionado.</li>`;
+        return rows.map((row, i) => `<li class="flex items-center gap-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded px-2 py-1 text-sm" data-repeater-row="${i}">
+            <span class="flex-1 min-w-0 truncate">${esc(repeaterRowLabel(f, row) || '(sem descrição)')}</span>
+            <button type="button" data-repeater-del="${f.key}" data-idx="${i}" title="Remover" class="w-6 h-6 shrink-0 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-red-600"><i aria-hidden="true" class="fa-solid fa-trash"></i></button>
+        </li>`).join('');
+    }
+    function repeaterColInput(fkey, c) {
+        const base = 'text-sm px-2 py-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900';
+        const tag = `data-repeater-input="${fkey}:${c.key}"`;
+        if (c.type === 'checkbox') return `<label class="flex items-center gap-1 text-xs whitespace-nowrap"><input type="checkbox" ${tag}> ${esc(c.label)}</label>`;
+        if (c.type === 'select') return `<select ${tag} class="${base}"><option value="">${esc(c.label)}</option>${(c.options || []).map(o => `<option value="${esc(o)}">${esc(o)}</option>`).join('')}</select>`;
+        if (c.type === 'datebr') return `<input type="text" ${tag} inputmode="numeric" maxlength="10" placeholder="${esc(c.label)}" data-datebr class="${base}" style="min-width:7rem">`;
+        const t = c.type === 'number' ? 'number' : 'text';
+        return `<input type="${t}" ${tag} placeholder="${esc(c.label)}" class="${base}" style="min-width:9rem">`;
+    }
+
     function fieldHtml(f, val) {
         val = val == null ? '' : val;
         const req = f.required ? 'required' : '';
@@ -1126,6 +1156,16 @@
                 ${opts.map(o => `<option value="${esc(o)}" ${chosen[i - 1] === o ? 'selected' : ''}>${esc(o)}</option>`).join('')}
             </select>`;
             input = `<div class="space-y-1.5">${[1, 2, 3].map(sel).join('')}</div>`;
+        } else if (f.type === 'repeater') {
+            const rows = Array.isArray(val) ? val : [];
+            input = `<div data-repeater-wrap="${f.key}">
+                <input type="hidden" name="${f.key}" data-repeater="${f.key}" value='${esc(JSON.stringify(rows))}'>
+                <ul data-repeater-list="${f.key}" class="space-y-1 mb-1.5">${repeaterListHtml(f, rows)}</ul>
+                <div class="flex flex-wrap items-center gap-1.5">
+                    ${f.columns.map(c => repeaterColInput(f.key, c)).join('')}
+                    <button type="button" data-repeater-add="${f.key}" class="px-2 py-1.5 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-xs whitespace-nowrap"><i aria-hidden="true" class="fa-solid fa-plus"></i> ${esc(f.addLabel || 'Adicionar')}</button>
+                </div>
+            </div>`;
         } else if (f.type === 'url') {
             // URL + "N/A" (Não se aplica): conta como preenchido; vai em branco no XML
             const na = String(val) === NA_VALUE;
@@ -1333,6 +1373,45 @@
             apply();
         });
     }
+    // Campos "repeater" (Equipe do projeto, Financiadores, Produção C&T,
+    // Orientações...): lista + mini-formulário de adicionar linha. O array de
+    // linhas vive no <input type="hidden"> (JSON) — collectFields() lê de lá.
+    function wireRepeater(container, def) {
+        (def && def.fields || []).filter(f => f.type === 'repeater').forEach(f => {
+            const wrap = container.querySelector(`[data-repeater-wrap="${f.key}"]`);
+            if (!wrap) return;
+            const hidden = wrap.querySelector(`[data-repeater="${f.key}"]`);
+            const list = wrap.querySelector(`[data-repeater-list="${f.key}"]`);
+            const getRows = () => { try { return JSON.parse(hidden.value || '[]'); } catch (_) { return []; } };
+            const wireRowRemove = () => {
+                $$(`[data-repeater-del="${f.key}"]`, list).forEach(b => b.addEventListener('click', () => {
+                    const rows = getRows(); rows.splice(Number(b.dataset.idx), 1); setRows(rows);
+                }));
+            };
+            const setRows = (rows) => { hidden.value = JSON.stringify(rows); list.innerHTML = repeaterListHtml(f, rows); wireRowRemove(); };
+            wireRowRemove();
+            const addBtn = wrap.querySelector(`[data-repeater-add="${f.key}"]`);
+            if (!addBtn) return;
+            addBtn.addEventListener('click', () => {
+                const row = {}; let ok = true;
+                f.columns.forEach(c => {
+                    const el = wrap.querySelector(`[data-repeater-input="${f.key}:${c.key}"]`);
+                    if (!el) return;
+                    if (c.type === 'checkbox') { row[c.key] = el.checked; return; }
+                    const v = el.value.trim();
+                    if (c.required && !v) ok = false;
+                    row[c.key] = v;
+                });
+                if (!ok) { toast('Preencha os campos obrigatórios do item antes de adicionar.', 'aviso'); return; }
+                const rows = getRows(); rows.push(row); setRows(rows);
+                f.columns.forEach(c => {
+                    const el = wrap.querySelector(`[data-repeater-input="${f.key}:${c.key}"]`);
+                    if (!el) return;
+                    if (c.type === 'checkbox') el.checked = false; else el.value = '';
+                });
+            });
+        });
+    }
     // Checkbox "N/A" (Não se aplica) dos campos URL: bloqueia/limpa o input
     function wireNA(container) {
         $$('[data-na]', container).forEach(cb => cb.addEventListener('change', () => {
@@ -1412,6 +1491,9 @@
                 fields[f.key] = (G && A) ? [G, A, S, E].filter(Boolean).join(' › ') : '';
             } else if (f.type === 'cnaeSetores') {
                 fields[f.key] = [1, 2, 3].map(i => { const el = form.querySelector(`[data-setor="${i}"]`); return el ? el.value.trim() : ''; }).filter(Boolean).join('; ');
+            } else if (f.type === 'repeater') {
+                const el = form.querySelector(`[data-repeater="${f.key}"]`);
+                try { fields[f.key] = el ? JSON.parse(el.value || '[]') : []; } catch (_) { fields[f.key] = []; }
             } else if (f.type === 'url') {
                 const na = form.querySelector(`[data-na="${f.key}"]`);
                 if (na && na.checked) fields[f.key] = NA_VALUE;
@@ -1430,14 +1512,23 @@
     // ainda ficaram fora do Latin-1 (ex.: emoji) — que viram entidades no XML.
     function normalizeEncoding(fields) {
         let residual = 0;
-        Object.keys(fields).forEach(k => {
-            if (typeof fields[k] !== 'string' || !fields[k]) return;
+        const normStr = (s) => {
             // Remove caracteres de controle (preserva \t e \n) — integridade
-            fields[k] = fields[k].replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, '');
+            s = s.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, '');
             if (window.LzEncoding) {
-                try { fields[k] = LzEncoding.normalizePunctuation(fields[k]); } catch (_) {}
-                try { residual += (LzEncoding.findNonLatin1(fields[k]) || []).length; } catch (_) {}
+                try { s = LzEncoding.normalizePunctuation(s); } catch (_) {}
+                try { residual += (LzEncoding.findNonLatin1(s) || []).length; } catch (_) {}
             }
+            return s;
+        };
+        Object.keys(fields).forEach(k => {
+            if (Array.isArray(fields[k])) {
+                // Campo "repeater" (Equipe, Financiadores...): normaliza os textos de cada linha.
+                fields[k].forEach(row => { Object.keys(row || {}).forEach(rk => { if (typeof row[rk] === 'string' && row[rk]) row[rk] = normStr(row[rk]); }); });
+                return;
+            }
+            if (typeof fields[k] !== 'string' || !fields[k]) return;
+            fields[k] = normStr(fields[k]);
         });
         return residual;
     }

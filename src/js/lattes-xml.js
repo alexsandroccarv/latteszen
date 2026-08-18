@@ -661,23 +661,47 @@ window.LattesXML = (function () {
         } catch (e) { errors.push('Atividades da atuação: ' + e.message); }
 
         // 6c) Projetos de pesquisa (PROJETO-DE-PESQUISA, aninhado na atuação)
+        const NATUREZA_PROJETO_HUMANO = { DESENVOLVIMENTO: 'Desenvolvimento', EXTENSAO: 'Extensão', PESQUISA: 'Pesquisa', OUTRA: 'Outra' };
+        const FINANCIADOR_NATUREZA_HUMANO = {
+            BOLSA: 'Bolsa', AUXILIO_FINANCEIRO: 'Auxílio financeiro', REMUNERACAO: 'Remuneração',
+            OUTRO: 'Outro', COOPERACAO: 'Cooperação', NAO_INFORMADO: 'Não informado',
+        };
         try {
         for (const el of doc.getElementsByTagName('PROJETO-DE-PESQUISA')) {
             const a = attrs(el);
-            const fin = attrs(firstTag(el, 'FINANCIADOR-DO-PROJETO'))['NOME-INSTITUICAO'] || '';
-            let coord = '';
-            for (const it of el.getElementsByTagName('INTEGRANTES-DO-PROJETO')) {
+            const equipe = Array.from(el.getElementsByTagName('INTEGRANTES-DO-PROJETO')).map(it => {
                 const ia = attrs(it);
-                if (String(ia['FLAG-RESPONSAVEL'] || '').toUpperCase() === 'SIM') { coord = ia['NOME-COMPLETO'] || ''; break; }
-            }
+                return { nome: ia['NOME-COMPLETO'] || '', coordenador: String(ia['FLAG-RESPONSAVEL'] || '').toUpperCase() === 'SIM' };
+            });
+            const financiadores = Array.from(el.getElementsByTagName('FINANCIADOR-DO-PROJETO')).map(it => {
+                const fa = attrs(it);
+                return { instituicao: fa['NOME-INSTITUICAO'] || '', codigoProjeto: '', valor: '', natureza: FINANCIADOR_NATUREZA_HUMANO[fa['NATUREZA']] || '' };
+            });
+            // "Código do projeto" não existe em FINANCIADOR-DO-PROJETO no schema —
+            // na exportação usamos IDENTIFICADOR-PROJETO (1 por projeto) como o
+            // código do 1º financiador; na importação devolve para lá.
+            if (financiadores[0] && a['IDENTIFICADOR-PROJETO']) financiadores[0].codigoProjeto = a['IDENTIFICADOR-PROJETO'];
+            const producoesCT = Array.from(el.getElementsByTagName('PRODUCAO-CT-DO-PROJETO')).map(it => {
+                const pa = attrs(it);
+                return { titulo: pa['TITULO-DA-PRODUCAO-CT'] || '', ano: '', tipo: pa['TIPO-PRODUCAO-CT'] || '' };
+            });
+            const orientacoesProjeto = Array.from(el.getElementsByTagName('ORIENTACAO')).map(it => {
+                const oa = attrs(it);
+                return { titulo: oa['TITULO-ORIENTACAO'] || '', ano: '', tipo: oa['TIPO-ORIENTACAO'] || '' };
+            });
             const NAT2TIPO = { PESQUISA: 'PROJETO_PESQUISA', DESENVOLVIMENTO: 'PROJETO_DESENVOLVIMENTO', EXTENSAO: 'PROJETO_EXTENSAO', ENSINO: 'PROJETO_ENSINO', OUTRA: 'PROJETO_OUTRO' };
             const projTipo = NAT2TIPO[window.LattesEnums ? LattesEnums.tok(a['NATUREZA']) : ''] || 'PROJETO_PESQUISA';
             add(projTipo, {
                 titulo: a['NOME-DO-PROJETO'] || '',
-                anoInicio: a['ANO-INICIO'] || '', anoFim: a['ANO-FIM'] || '',
-                situacao: PROJ_SITUACAO[a['SITUACAO']] || humanize(a['SITUACAO']),
-                financiador: fin, coordenador: coord,
                 descricao: a['DESCRICAO-DO-PROJETO'] || '',
+                natureza: NATUREZA_PROJETO_HUMANO[a['NATUREZA']] || humanize(a['NATUREZA']),
+                situacao: PROJ_SITUACAO[a['SITUACAO']] || humanize(a['SITUACAO']),
+                anoInicio: a['ANO-INICIO'] || '', anoFim: a['ANO-FIM'] || '',
+                potencialInovacao: simNao(a['FLAG-POTENCIAL-INOVACAO']),
+                equipe, financiadores, producoesCT, orientacoesProjeto,
+                qtdGraduacao: a['NUMERO-GRADUACAO'] || '', qtdEspecializacao: a['NUMERO-ESPECIALIZACAO'] || '',
+                qtdMestradoAcademico: a['NUMERO-MESTRADO-ACADEMICO'] || '', qtdMestradoProfissional: a['NUMERO-MESTRADO-PROF'] || '',
+                qtdDoutorado: a['NUMERO-DOUTORADO'] || '', qtdTecnicoNivelMedio: a['NUMERO_TECNICO_NIVEL_MEDIO'] || '',
             }, el);
         }
         } catch (e) { errors.push('Projetos: ' + e.message); }

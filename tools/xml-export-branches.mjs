@@ -86,6 +86,34 @@ items.push(mk('ATIV_PESQUISA', 'ATUACAO', { instituicao: 'UNIFESP', orgao: 'Labo
 items.push(mk('ATIV_ESTAGIO', 'ATUACAO', { instituicao: 'UNIFESP', orgao: 'Ambulatório', anoInicio: '2012', situacao: 'Anterior (finalizado)', anoFim: '2013', titulo: 'Estágio em Clínica Médica' }));
 items.push(mk('ATIV_TREINAMENTO', 'ATUACAO', { instituicao: 'UNIFESP', orgao: 'Núcleo de Ensino', anoInicio: '2019', situacao: 'Atual (não finalizado)', anoFim: '', titulo: 'Treinamento em Bioestatística; Treinamento em Metodologia Científica' }));
 items.push(mk('ATIV_TREINAMENTO', 'ATUACAO', { instituicao: 'UNIFESP', orgao: 'Sem tags', anoInicio: '2019', titulo: '' }));
+// Projetos com blocos "repeater" (Equipe, Instituições envolvidas, Financiadores, Produção C&T, Orientações)
+items.push(mk('PROJETO_PESQUISA', 'PROJETOS', {
+    titulo: 'Genômica aplicada', descricao: 'Estudo X', natureza: 'Pesquisa', situacao: 'Em andamento',
+    anoInicio: '2020', anoFim: '', cooperacaoEmpresa: 'Sim', potencialInovacao: 'Sim',
+    instituicaoExecucao: 'UNIFESP', orgaoUnidade: 'Depto. de Genética',
+    equipe: [{ nome: 'Fulano de Tal', coordenador: true }, { nome: 'Beltrano', coordenador: false }],
+    instituicoesEnvolvidas: [{ nome: 'USP' }, { nome: 'Fiocruz' }],
+    qtdGraduacao: '3', qtdEspecializacao: '0', qtdMestradoAcademico: '2', qtdMestradoProfissional: '0', qtdDoutorado: '1',
+    financiadores: [{ instituicao: 'CNPq', codigoProjeto: 'ABC-123', valor: '50000', natureza: 'Bolsa' }, { instituicao: 'FAPESP', codigoProjeto: '', valor: '', natureza: 'Auxílio financeiro' }],
+    producoesCT: [{ titulo: 'Protocolo de sequenciamento', ano: '2022', tipo: 'Produto técnico' }],
+    orientacoesProjeto: [{ titulo: 'Estudo de caso em genômica', ano: '2023', tipo: 'Mestrado' }],
+}));
+items.push(mk('PROJETO_DESENVOLVIMENTO', 'PROJETOS', {
+    titulo: 'Sensor de baixo custo', natureza: 'Desenvolvimento', situacao: 'Concluído', anoInicio: '2018', anoFim: '2019',
+    qtdTecnicoNivelMedio: '2', qtdGraduacao: '1',
+    equipe: [{ nome: 'Cicrano', coordenador: true }],
+    financiadores: [], producoesCT: [], orientacoesProjeto: [],
+}));
+items.push(mk('PROJETO_ENSINO', 'PROJETOS', {
+    titulo: 'Ensino híbrido', natureza: 'Ensino', situacao: 'Em andamento', anoInicio: '2021',
+    cooperacaoTipos: 'Instituição de ensino; Empresa', acoesInovadoras: 'Sim',
+    acoesInovadorasNiveis: 'Graduação; Especialização', tematica: 'Ensino e aprendizagem; Outra', tematicaOutra: 'Gamificação',
+    objetivosMetas: 'Melhorar engajamento', equipe: [{ nome: 'Fulana', coordenador: true }],
+    qtdEnsinoFundamental: '0', qtdEnsinoMedio: '0', qtdGraduacao: '5',
+}));
+// Sem nenhuma linha nos repeaters (equipe/financiadores/produções/orientações
+// vazios) — não deve gerar EQUIPE-DO-PROJETO/FINANCIADORES-DO-PROJETO/etc.
+items.push(mk('PROJETO_OUTRO', 'PROJETOS', { titulo: 'Projeto mínimo', anoInicio: '2024' }));
 
 const xml = LattesXMLExport.build(items, { numeroIdentificador: '1234567890123456' });
 const bytes = LzEncoding.encodeLatin1Xml(xml);
