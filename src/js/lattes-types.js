@@ -92,7 +92,7 @@ const projetoFinanciadoresField = () => ({ key: 'financiadores', label: 'Institu
 // valor único (não é uma lista) — UF via disabledWhen.notEquals (só habilita
 // quando País = Brasil).
 const projetoInstituicaoExecucaoFields = () => [
-    { key: 'instituicaoExecucaoNome', label: 'Nome da instituição', type: 'text' },
+    { key: 'instituicaoExecucaoNome', label: 'Instituição de execução', type: 'text' },
     { key: 'instituicaoExecucaoSigla', label: 'Sigla', type: 'text', row: 'instExecucao' },
     { key: 'instituicaoExecucaoPais', label: 'País', type: 'select', options: window.PAISES_LATTES || [], row: 'instExecucao' },
     { key: 'instituicaoExecucaoUf', label: 'UF', type: 'text', row: 'instExecucao', disabledWhen: { field: 'instituicaoExecucaoPais', notEquals: 'Brasil' } },
