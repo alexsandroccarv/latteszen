@@ -34,9 +34,11 @@ const F_IDIOMA = { key: 'idioma', label: 'Idioma', type: 'text', placeholder: 'P
 // Níveis de Formação acadêmica/titulação (espelha FORMACAO-ACADEMICA-TITULACAO
 // do schema Lattes) e um atalho para "todos os níveis, exceto os informados"
 // — usado nos `disabledWhen` dos campos específicos de cada nível abaixo.
+// Inclui '' (nenhum Nível escolhido ainda) na lista de exclusão: assim, antes
+// de escolher o Nível, nenhum campo específico de um nível aparece.
 const NIVEIS_FORMACAO = ['Ensino fundamental', 'Ensino médio', 'Curso técnico', 'Graduação', 'Aperfeiçoamento',
     'Especialização', 'Mestrado', 'Mestrado profissional', 'Doutorado', 'Residência médica'];
-const nivelExcept = (...keep) => NIVEIS_FORMACAO.filter(n => !keep.includes(n));
+const nivelExcept = (...keep) => [...NIVEIS_FORMACAO.filter(n => !keep.includes(n)), ''];
 
 // Conjuntos de campos reutilizáveis
 const PROJETO_FIELDS = [F_TITULO,

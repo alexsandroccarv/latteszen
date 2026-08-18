@@ -1286,41 +1286,29 @@
             });
         });
     }
-    // Campos com `disabledWhen`: bloqueia e limpa o input quando o campo
-    // controlador atinge o valor da condição (e reativa quando sai dela).
+    // Campos com `disabledWhen`: esconde o campo inteiro (bloco data-field) e
+    // limpa o valor quando o campo controlador atinge o valor da condição
+    // (e reaparece quando sai dela) — em vez de só desabilitar/acinzentar,
+    // para telas com muitos campos condicionais (ex.: Formação acadêmica,
+    // onde cada Nível usa um subconjunto bem diferente de campos).
     function wireConditional(container, def) {
         (def && def.fields || []).filter(f => f.disabledWhen).forEach(f => {
             const ctrl = container.querySelector(`[name="${f.disabledWhen.field}"]`);
-            if (!ctrl) return;
+            const wrap = container.querySelector(`[data-field="${f.key}"]`);
+            if (!ctrl || !wrap) return;
             const input = container.querySelector(`[name="${f.key}"]`);
-            // Tipos complexos sem um único input com `name` (checkboxes, areatree,
-            // skilllevels...) — some/reaparece o bloco inteiro (via data-field) e
-            // limpa a seleção ao esconder.
-            if (!input) {
-                const wrap = container.querySelector(`[data-field="${f.key}"]`);
-                if (!wrap) return;
-                const applyBlock = () => {
-                    const vals = {}; vals[f.disabledWhen.field] = ctrl.value;
-                    const off = isFieldDisabled(f, vals);
-                    wrap.classList.toggle('hidden', off);
-                    if (off) {
-                        $$(`[data-cbgroup="${f.key}"]`, wrap).forEach(cb => { cb.checked = false; });
-                        $$(`[data-areatree]`, wrap).forEach(sel => { sel.value = ''; });
-                        $$(`[data-setor]`, wrap).forEach(sel => { sel.value = ''; });
-                    }
-                };
-                ctrl.addEventListener('change', applyBlock);
-                applyBlock();
-                return;
-            }
             const apply = () => {
                 const vals = {}; vals[f.disabledWhen.field] = ctrl.value;
                 const off = isFieldDisabled(f, vals);
-                input.disabled = off;
-                input.classList.toggle('opacity-50', off);
-                input.classList.toggle('cursor-not-allowed', off);
-                if (off) { input.value = ''; input.dispatchEvent(new Event('change')); } // propaga p/ campos encadeados (ex.: comBolsa → bolsa)
-                input.placeholder = off ? 'Não se aplica' : (f.placeholder || '');
+                wrap.classList.toggle('hidden', off);
+                if (off) {
+                    if (input) { input.value = ''; input.removeAttribute('required'); input.dispatchEvent(new Event('change')); } // propaga p/ campos encadeados (ex.: comBolsa → bolsa)
+                    $$(`[data-cbgroup="${f.key}"]`, wrap).forEach(cb => { cb.checked = false; });
+                    $$(`[data-areatree]`, wrap).forEach(sel => { sel.value = ''; });
+                    $$(`[data-setor]`, wrap).forEach(sel => { sel.value = ''; });
+                } else if (input && f.required) {
+                    input.required = true;
+                }
             };
             ctrl.addEventListener('change', apply);
             apply(); // estado inicial
