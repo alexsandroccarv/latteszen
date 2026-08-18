@@ -518,8 +518,8 @@ window.LattesXMLExport = (function () {
                     'FLAG-RESPONSAVEL': r.coordenador ? 'SIM' : 'NAO',
                 }) : '').join('')) : '';
                 const finRows = Array.isArray(f.financiadores) ? f.financiadores : [];
-                const fin = finRows.length ? el('FINANCIADORES-DO-PROJETO', {}, finRows.map((r, i) => clean(r.instituicao) ? el('FINANCIADOR-DO-PROJETO', {
-                    'SEQUENCIA-FINANCIADOR': String(i + 1), 'NOME-INSTITUICAO': r.instituicao, 'NATUREZA': FINANCIADOR_NATUREZA_TOKEN[r.natureza] || '',
+                const fin = finRows.length ? el('FINANCIADORES-DO-PROJETO', {}, finRows.map((r, i) => clean(r.nome) ? el('FINANCIADOR-DO-PROJETO', {
+                    'SEQUENCIA-FINANCIADOR': String(i + 1), 'NOME-INSTITUICAO': r.nome, 'NATUREZA': FINANCIADOR_NATUREZA_TOKEN[r.natureza] || '',
                 }) : '').join('')) : '';
                 const prodRows = Array.isArray(f.producoesCT) ? f.producoesCT : [];
                 const prod = prodRows.length ? el('PRODUCOES-CT-DO-PROJETO', {}, prodRows.map((r, i) => clean(r.titulo) ? el('PRODUCAO-CT-DO-PROJETO', {

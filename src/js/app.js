@@ -1388,7 +1388,9 @@
                     input.required = true;
                 }
             };
-            ctrls.forEach(ctrl => ctrl.addEventListener('change', apply));
+            // 'input' garante reação imediata em controladores de texto livre
+            // (ex.: País) — 'change' sozinho só dispara ao perder o foco.
+            ctrls.forEach(ctrl => { ctrl.addEventListener('change', apply); ctrl.addEventListener('input', apply); });
             apply(); // estado inicial
         });
     }
@@ -1427,6 +1429,23 @@
             };
             const setRows = (rows) => { hidden.value = JSON.stringify(rows); list.innerHTML = repeaterListHtml(f, rows); wireRowRemove(); };
             wireRowRemove();
+            // Coluna com `enabledWhenCol: { key, equals }`: só habilita (e limpa
+            // ao desabilitar) quando OUTRA coluna do mesmo formulário de
+            // adicionar-linha tiver exatamente esse valor (ex.: UF só habilita
+            // quando País = Brasil).
+            f.columns.filter(c => c.enabledWhenCol).forEach(c => {
+                const dep = wrap.querySelector(`[data-repeater-input="${f.key}:${c.key}"]`);
+                const ctrl = wrap.querySelector(`[data-repeater-input="${f.key}:${c.enabledWhenCol.key}"]`);
+                if (!dep || !ctrl) return;
+                const apply = () => {
+                    const on = normNome(ctrl.value) === normNome(c.enabledWhenCol.equals);
+                    dep.disabled = !on;
+                    if (!on) dep.value = '';
+                };
+                ctrl.addEventListener('input', apply);
+                ctrl.addEventListener('change', apply);
+                apply();
+            });
             const addBtn = wrap.querySelector(`[data-repeater-add="${f.key}"]`);
             if (!addBtn) return;
             addBtn.addEventListener('click', () => {
@@ -1511,6 +1530,10 @@
             const v = (fields || {})[cond.field];
             if (cond.equals != null) return v === cond.equals;
             if (Array.isArray(cond.in)) return cond.in.indexOf(v) >= 0;
+            // `notEquals`: desabilitado enquanto o campo controlador NÃO for
+            // exatamente esse valor (ex.: UF só habilita quando País = Brasil).
+            // Comparação normalizada (acento/maiúscula/espaço) — País é texto livre.
+            if (cond.notEquals != null) return normNome(v) !== normNome(cond.notEquals);
             return false;
         });
     }

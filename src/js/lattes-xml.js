@@ -675,7 +675,7 @@ window.LattesXML = (function () {
             });
             const financiadores = Array.from(el.getElementsByTagName('FINANCIADOR-DO-PROJETO')).map(it => {
                 const fa = attrs(it);
-                return { instituicao: fa['NOME-INSTITUICAO'] || '', codigoProjeto: '', valor: '', natureza: FINANCIADOR_NATUREZA_HUMANO[fa['NATUREZA']] || '' };
+                return { nome: fa['NOME-INSTITUICAO'] || '', sigla: '', pais: '', uf: '', codigoProjeto: '', valor: '', natureza: FINANCIADOR_NATUREZA_HUMANO[fa['NATUREZA']] || '' };
             });
             // "Código do projeto" não existe em FINANCIADOR-DO-PROJETO no schema —
             // na exportação usamos IDENTIFICADOR-PROJETO (1 por projeto) como o

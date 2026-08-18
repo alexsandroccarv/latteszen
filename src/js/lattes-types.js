@@ -71,14 +71,32 @@ const projetoEquipeField = (label, addLabel) => ({ key: 'equipe', label: label |
     addLabel: addLabel || 'Adicionar pesquisador', columns: [
         { key: 'nome', label: 'Nome', type: 'text', required: true },
         { key: 'coordenador', label: 'Coordenador(a)', type: 'checkbox' }] });
+// "Informe os dados da instituição": Nome, Sigla, País, UF — UF só habilita
+// quando País = Brasil (comparação sem acento/maiúscula, via enabledWhenCol).
+// Reutilizado em toda coluna/campo "instituição" da categoria Projetos.
+const institucaoColumns = () => [
+    { key: 'nome', label: 'Nome da instituição', type: 'text', required: true },
+    { key: 'sigla', label: 'Sigla', type: 'text' },
+    { key: 'pais', label: 'País', type: 'text', placeholder: 'Brasil' },
+    { key: 'uf', label: 'UF', type: 'text', enabledWhenCol: { key: 'pais', equals: 'Brasil' } },
+];
 const projetoInstituicoesEnvolvidasField = () => ({ key: 'instituicoesEnvolvidas', label: 'Instituições envolvidas no projeto', type: 'repeater',
-    addLabel: 'Adicionar instituição', columns: [{ key: 'nome', label: 'Instituição', type: 'text', required: true }] });
+    addLabel: 'Adicionar instituição', columns: institucaoColumns() });
 const projetoFinanciadoresField = () => ({ key: 'financiadores', label: 'Instituição de financiamento', type: 'repeater',
     addLabel: 'Adicionar financiador', help: 'O valor financiado não será exibido na internet.', columns: [
-        { key: 'instituicao', label: 'Instituição', type: 'text', required: true },
+        ...institucaoColumns(),
         { key: 'codigoProjeto', label: 'Código do projeto', type: 'text' },
         { key: 'valor', label: 'Valor financiado', type: 'number' },
         { key: 'natureza', label: 'Natureza', type: 'select', options: FINANCIADOR_NATUREZA_OPTIONS }] });
+// "Instituição de execução": mesmos 4 campos (Nome/Sigla/País/UF), mas como
+// valor único (não é uma lista) — UF via disabledWhen.notEquals (só habilita
+// quando País = Brasil).
+const projetoInstituicaoExecucaoFields = () => [
+    { key: 'instituicaoExecucaoNome', label: 'Nome da instituição', type: 'text' },
+    { key: 'instituicaoExecucaoSigla', label: 'Sigla', type: 'text', row: 'instExecucao' },
+    { key: 'instituicaoExecucaoPais', label: 'País', type: 'text', placeholder: 'Brasil', row: 'instExecucao' },
+    { key: 'instituicaoExecucaoUf', label: 'UF', type: 'text', row: 'instExecucao', disabledWhen: { field: 'instituicaoExecucaoPais', notEquals: 'Brasil' } },
+];
 const projetoProducoesField = () => ({ key: 'producoesCT', label: 'Produção C&T', type: 'repeater',
     addLabel: 'Adicionar produção', columns: [
         { key: 'titulo', label: 'Título da produção', type: 'text', required: true },
@@ -103,7 +121,7 @@ const projetoFieldsPadrao = (extraQtdAntes) => [
     { ...F_AFIM, label: 'Ano fim', row: 'periodo' },
     { key: 'cooperacaoEmpresa', label: 'É um projeto de cooperação entre uma instituição de pesquisa e uma empresa?', type: 'checkbox' },
     { key: 'potencialInovacao', label: 'O projeto possui potencial de inovação de produtos, processos ou serviços?', type: 'checkbox' },
-    { key: 'instituicaoExecucao', label: 'Instituição de execução', type: 'text' },
+    ...projetoInstituicaoExecucaoFields(),
     { key: 'orgaoUnidade', label: 'Órgão/Unidade', type: 'text' },
     projetoEquipeField('Equipe', 'Adicionar pesquisador'),
     projetoInstituicoesEnvolvidasField(),
@@ -130,7 +148,7 @@ const PROJETO_ENSINO_FIELDS = [
     { key: 'tematica', label: 'Em relação à temática', type: 'checkboxes', options: TEMATICA_PROJETO_ENSINO },
     { key: 'tematicaOutra', label: 'Especifique (se marcou "Outra" na temática)', type: 'text' },
     { key: 'objetivosMetas', label: 'Objetivos e metas', type: 'textarea' },
-    { key: 'instituicaoExecucao', label: 'Instituição de execução', type: 'text' },
+    ...projetoInstituicaoExecucaoFields(),
     { key: 'orgaoUnidade', label: 'Órgão/Unidade', type: 'text' },
     projetoEquipeField('Participantes', 'Adicionar participante'),
     projetoInstituicoesEnvolvidasField(),

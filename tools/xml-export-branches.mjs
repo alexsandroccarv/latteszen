@@ -90,11 +90,12 @@ items.push(mk('ATIV_TREINAMENTO', 'ATUACAO', { instituicao: 'UNIFESP', orgao: 'S
 items.push(mk('PROJETO_PESQUISA', 'PROJETOS', {
     titulo: 'Genômica aplicada', descricao: 'Estudo X', natureza: 'Pesquisa', situacao: 'Em andamento',
     anoInicio: '2020', anoFim: '', cooperacaoEmpresa: 'Sim', potencialInovacao: 'Sim',
-    instituicaoExecucao: 'UNIFESP', orgaoUnidade: 'Depto. de Genética',
+    instituicaoExecucaoNome: 'UNIFESP', instituicaoExecucaoSigla: 'UNIFESP', instituicaoExecucaoPais: 'Brasil', instituicaoExecucaoUf: 'SP',
+    orgaoUnidade: 'Depto. de Genética',
     equipe: [{ nome: 'Fulano de Tal', coordenador: true }, { nome: 'Beltrano', coordenador: false }],
-    instituicoesEnvolvidas: [{ nome: 'USP' }, { nome: 'Fiocruz' }],
+    instituicoesEnvolvidas: [{ nome: 'USP', sigla: 'USP', pais: 'Brasil', uf: 'SP' }, { nome: 'Fiocruz', sigla: '', pais: 'Brasil', uf: 'RJ' }],
     qtdGraduacao: '3', qtdEspecializacao: '0', qtdMestradoAcademico: '2', qtdMestradoProfissional: '0', qtdDoutorado: '1',
-    financiadores: [{ instituicao: 'CNPq', codigoProjeto: 'ABC-123', valor: '50000', natureza: 'Bolsa' }, { instituicao: 'FAPESP', codigoProjeto: '', valor: '', natureza: 'Auxílio financeiro' }],
+    financiadores: [{ nome: 'CNPq', sigla: '', pais: 'Brasil', uf: 'DF', codigoProjeto: 'ABC-123', valor: '50000', natureza: 'Bolsa' }, { nome: 'FAPESP', sigla: '', pais: 'Brasil', uf: 'SP', codigoProjeto: '', valor: '', natureza: 'Auxílio financeiro' }],
     producoesCT: [{ titulo: 'Protocolo de sequenciamento', ano: '2022', tipo: 'Produto técnico' }],
     orientacoesProjeto: [{ titulo: 'Estudo de caso em genômica', ano: '2023', tipo: 'Mestrado' }],
 }));
