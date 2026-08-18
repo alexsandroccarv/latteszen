@@ -31,6 +31,13 @@ const F_DFIM = { key: 'anoFim', label: 'Data de fim (vazio = atual)', type: 'dat
 const F_PAIS = { key: 'pais', label: 'País', type: 'text', placeholder: 'Brasil' };
 const F_IDIOMA = { key: 'idioma', label: 'Idioma', type: 'text', placeholder: 'Português' };
 
+// Níveis de Formação acadêmica/titulação (espelha FORMACAO-ACADEMICA-TITULACAO
+// do schema Lattes) e um atalho para "todos os níveis, exceto os informados"
+// — usado nos `disabledWhen` dos campos específicos de cada nível abaixo.
+const NIVEIS_FORMACAO = ['Ensino fundamental', 'Ensino médio', 'Curso técnico', 'Graduação', 'Aperfeiçoamento',
+    'Especialização', 'Mestrado', 'Mestrado profissional', 'Doutorado', 'Residência médica'];
+const nivelExcept = (...keep) => NIVEIS_FORMACAO.filter(n => !keep.includes(n));
+
 // Conjuntos de campos reutilizáveis
 const PROJETO_FIELDS = [F_TITULO,
     { key: 'anoInicio', label: 'Ano de início', type: 'datebr', required: true }, F_AFIM,
@@ -112,12 +119,31 @@ const TYPES = {
 
     // 02 Formação
     FORMACAO_ACADEMICA: { label: 'Formação acadêmica/titulação', fields: [
-        { key: 'nivel', label: 'Nível', type: 'select', required: true, options: ['Ensino fundamental', 'Ensino médio', 'Curso técnico', 'Graduação', 'Aperfeiçoamento', 'Especialização', 'Mestrado', 'Doutorado', 'Residência médica'] },
+        { key: 'nivel', label: 'Nível', type: 'select', required: true, options: NIVEIS_FORMACAO },
         { key: 'curso', label: 'Curso / Área', type: 'text', required: true }, { key: 'instituicao', label: 'Instituição', type: 'text', required: true },
+        { key: 'statusCurso', label: 'Status do curso', type: 'select', options: ['Em andamento', 'Concluído', 'Incompleto'] },
         F_AINI, { key: 'anoFim', label: 'Ano de conclusão', type: 'datebr' },
-        { key: 'titulo', label: 'Título do trabalho (TCC/dissertação/tese)', type: 'text' }, { key: 'orientador', label: 'Orientador(a)', type: 'text' },
-        { key: 'coorientador', label: 'Coorientador(a)', type: 'text' },
-        { key: 'bolsa', label: 'Bolsista / Agência financiadora', type: 'text' }] },
+        { key: 'anoObtencaoTitulo', label: 'Data de obtenção do título', type: 'datebr',
+          disabledWhen: { field: 'nivel', in: nivelExcept('Mestrado', 'Mestrado profissional', 'Doutorado') } },
+        { key: 'tipoMestrado', label: 'Tipo de mestrado', type: 'select', options: ['Normal', 'Sanduíche'],
+          disabledWhen: { field: 'nivel', in: nivelExcept('Mestrado') } },
+        { key: 'tipoDoutorado', label: 'Tipo de doutorado', type: 'select', options: ['Normal', 'Sanduíche', 'Cotutela', 'Cotutela-Sanduíche'],
+          disabledWhen: { field: 'nivel', in: nivelExcept('Doutorado') } },
+        { key: 'titulo', label: 'Título do trabalho (TCC/monografia/dissertação/tese)', type: 'text',
+          disabledWhen: { field: 'nivel', in: ['Ensino fundamental', 'Ensino médio', 'Curso técnico'] } },
+        { key: 'orientador', label: 'Orientador(a)', type: 'text',
+          disabledWhen: { field: 'nivel', in: ['Ensino fundamental', 'Ensino médio', 'Curso técnico', 'Residência médica'] } },
+        { key: 'coorientador', label: 'Coorientador(a)', type: 'text',
+          disabledWhen: { field: 'nivel', in: nivelExcept('Mestrado', 'Mestrado profissional', 'Doutorado') } },
+        { key: 'bolsa', label: 'Bolsista / Agência financiadora', type: 'text',
+          disabledWhen: { field: 'nivel', in: ['Ensino fundamental', 'Ensino médio'] } },
+        { key: 'palavrasChave', label: 'Palavras-chave', type: 'textarea', placeholder: 'Separe por ponto e vírgula (;)', help: 'Até 6 palavras-chave (limite da Plataforma Lattes).',
+          disabledWhen: { field: 'nivel', in: nivelExcept('Mestrado', 'Mestrado profissional', 'Doutorado', 'Residência médica') } },
+        { key: 'areaConhecimento', label: 'Área do conhecimento (CNPq/CAPES)', type: 'areatree', help: 'Selecione do mais geral ao mais específico: Grande área › Área › Subárea › Especialidade.',
+          disabledWhen: { field: 'nivel', in: nivelExcept('Mestrado', 'Mestrado profissional', 'Doutorado', 'Residência médica') } },
+        { key: 'setores', label: 'Setores de atividade', type: 'text', placeholder: 'Separe por ponto e vírgula (;)', help: 'Até 3 setores.',
+          disabledWhen: { field: 'nivel', in: nivelExcept('Mestrado', 'Mestrado profissional', 'Doutorado', 'Residência médica') } },
+    ] },
     POS_DOUTORADO: { label: 'Pós-doutorado e/ou livre-docência', fields: [
         { key: 'tipo', label: 'Tipo', type: 'select', required: true, options: ['Pós-Doutorado', 'Livre-docência'] },
         { key: 'instituicao', label: 'Instituição', type: 'text', required: true }, F_AINI, { key: 'anoFim', label: 'Ano de conclusão', type: 'datebr' },

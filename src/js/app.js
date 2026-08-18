@@ -1281,23 +1281,26 @@
         (def && def.fields || []).filter(f => f.disabledWhen).forEach(f => {
             const ctrl = container.querySelector(`[name="${f.disabledWhen.field}"]`);
             if (!ctrl) return;
-            // Campos "checkboxes" não têm um único input com `name` — some/reaparece
-            // o bloco inteiro (via data-field) e desmarca as opções ao esconder.
-            if (f.type === 'checkboxes') {
+            const input = container.querySelector(`[name="${f.key}"]`);
+            // Tipos complexos sem um único input com `name` (checkboxes, areatree,
+            // skilllevels...) — some/reaparece o bloco inteiro (via data-field) e
+            // limpa a seleção ao esconder.
+            if (!input) {
                 const wrap = container.querySelector(`[data-field="${f.key}"]`);
                 if (!wrap) return;
-                const applyCb = () => {
+                const applyBlock = () => {
                     const vals = {}; vals[f.disabledWhen.field] = ctrl.value;
                     const off = isFieldDisabled(f, vals);
                     wrap.classList.toggle('hidden', off);
-                    if (off) $$(`[data-cbgroup="${f.key}"]`, wrap).forEach(cb => { cb.checked = false; });
+                    if (off) {
+                        $$(`[data-cbgroup="${f.key}"]`, wrap).forEach(cb => { cb.checked = false; });
+                        $$(`[data-areatree]`, wrap).forEach(sel => { sel.value = ''; });
+                    }
                 };
-                ctrl.addEventListener('change', applyCb);
-                applyCb();
+                ctrl.addEventListener('change', applyBlock);
+                applyBlock();
                 return;
             }
-            const input = container.querySelector(`[name="${f.key}"]`);
-            if (!input) return;
             const apply = () => {
                 const vals = {}; vals[f.disabledWhen.field] = ctrl.value;
                 const off = isFieldDisabled(f, vals);
