@@ -57,15 +57,15 @@ const NATUREZA_PROJETO_OPTIONS = ['Desenvolvimento', 'Extensão', 'Pesquisa', 'E
 const SITUACAO_PROJETO_OPTIONS = ['Em andamento', 'Concluído', 'Desativado'];
 const FINANCIADOR_NATUREZA_OPTIONS = ['Bolsa', 'Auxílio financeiro', 'Remuneração', 'Outro', 'Cooperação', 'Não informado'];
 const QTD_ALUNOS_BASE = [
-    { key: 'qtdGraduacao', label: 'Graduação', type: 'number' },
-    { key: 'qtdEspecializacao', label: 'Especialização', type: 'number' },
-    { key: 'qtdMestradoAcademico', label: 'Mestrado acadêmico', type: 'number' },
-    { key: 'qtdMestradoProfissional', label: 'Mestrado profissionalizante', type: 'number' },
-    { key: 'qtdDoutorado', label: 'Doutorado', type: 'number' },
+    { key: 'qtdGraduacao', label: 'Graduação', type: 'number', row: 'qtdAlunos' },
+    { key: 'qtdEspecializacao', label: 'Especialização', type: 'number', row: 'qtdAlunos' },
+    { key: 'qtdMestradoAcademico', label: 'Mestrado acadêmico', type: 'number', row: 'qtdAlunos' },
+    { key: 'qtdMestradoProfissional', label: 'Mestrado profissionalizante', type: 'number', row: 'qtdAlunos' },
+    { key: 'qtdDoutorado', label: 'Doutorado', type: 'number', row: 'qtdAlunos' },
 ];
-const QTD_TECNICO = { key: 'qtdTecnicoNivelMedio', label: 'Técnico de nível médio', type: 'number' };
-const QTD_FUNDAMENTAL = { key: 'qtdEnsinoFundamental', label: 'Ensino Fundamental (1º grau)', type: 'number' };
-const QTD_MEDIO = { key: 'qtdEnsinoMedio', label: 'Ensino Médio (2º grau)', type: 'number' };
+const QTD_TECNICO = { key: 'qtdTecnicoNivelMedio', label: 'Técnico de nível médio', type: 'number', row: 'qtdAlunos' };
+const QTD_FUNDAMENTAL = { key: 'qtdEnsinoFundamental', label: 'Ensino Fundamental (1º grau)', type: 'number', row: 'qtdAlunos' };
+const QTD_MEDIO = { key: 'qtdEnsinoMedio', label: 'Ensino Médio (2º grau)', type: 'number', row: 'qtdAlunos' };
 
 const projetoEquipeField = (label, addLabel) => ({ key: 'equipe', label: label || 'Equipe', type: 'repeater',
     addLabel: addLabel || 'Adicionar pesquisador', columns: [
@@ -99,9 +99,10 @@ const projetoFieldsPadrao = (extraQtdAntes) => [
     { key: 'descricao', label: 'Descrição', type: 'textarea' },
     F_NATUREZA(NATUREZA_PROJETO_OPTIONS),
     { key: 'situacao', label: 'Situação', type: 'select', options: SITUACAO_PROJETO_OPTIONS },
-    { key: 'anoInicio', label: 'Ano início', type: 'datebr', required: true }, F_AFIM,
-    { key: 'cooperacaoEmpresa', label: 'É um projeto de cooperação entre uma instituição de pesquisa e uma empresa?', type: 'select', options: ['Sim', 'Não'] },
-    { key: 'potencialInovacao', label: 'O projeto possui potencial de inovação de produtos, processos ou serviços?', type: 'select', options: ['Sim', 'Não'] },
+    { key: 'anoInicio', label: 'Ano início', type: 'datebr', required: true, row: 'periodo' },
+    { ...F_AFIM, label: 'Ano fim', row: 'periodo' },
+    { key: 'cooperacaoEmpresa', label: 'É um projeto de cooperação entre uma instituição de pesquisa e uma empresa?', type: 'checkbox' },
+    { key: 'potencialInovacao', label: 'O projeto possui potencial de inovação de produtos, processos ou serviços?', type: 'checkbox' },
     { key: 'instituicaoExecucao', label: 'Instituição de execução', type: 'text' },
     { key: 'orgaoUnidade', label: 'Órgão/Unidade', type: 'text' },
     projetoEquipeField('Equipe', 'Adicionar pesquisador'),
@@ -121,9 +122,10 @@ const PROJETO_ENSINO_FIELDS = [
     { key: 'descricao', label: 'Descrição', type: 'textarea' },
     F_NATUREZA(NATUREZA_PROJETO_OPTIONS),
     { key: 'situacao', label: 'Situação', type: 'select', options: SITUACAO_PROJETO_OPTIONS },
-    { key: 'anoInicio', label: 'Ano início', type: 'datebr', required: true }, F_AFIM,
+    { key: 'anoInicio', label: 'Ano início', type: 'datebr', required: true, row: 'periodo' },
+    { ...F_AFIM, label: 'Ano fim', row: 'periodo' },
     { key: 'cooperacaoTipos', label: 'É um projeto em cooperação com', type: 'checkboxes', options: ['Instituição de ensino', 'Agência de fomento', 'Empresa'] },
-    { key: 'acoesInovadoras', label: 'O projeto possui ações inovadoras e produtos, processos ou serviços?', type: 'select', options: ['Sim', 'Não'] },
+    { key: 'acoesInovadoras', label: 'O projeto possui ações inovadoras e produtos, processos ou serviços?', type: 'checkbox' },
     { key: 'acoesInovadorasNiveis', label: 'O projeto possui ações inovadoras na', type: 'checkboxes', options: ACOES_INOVADORAS_NIVEIS, disabledWhen: { field: 'acoesInovadoras', in: ['', 'Não'] } },
     { key: 'tematica', label: 'Em relação à temática', type: 'checkboxes', options: TEMATICA_PROJETO_ENSINO },
     { key: 'tematicaOutra', label: 'Especifique (se marcou "Outra" na temática)', type: 'text' },

@@ -868,7 +868,7 @@
         function renderDynFields() {
             const def = LattesTypes.get($('#selTipo').value);
             const vals = item ? (item.fields || {}) : {};
-            $('#dynFields').innerHTML = (def ? def.fields : []).map(f => fieldHtml(f, vals[f.key])).join('');
+            $('#dynFields').innerHTML = dynFieldsHtml(def ? def.fields : [], vals);
             associateLabels($('#dynFields'));           // a11y: label for/id + aria-required
             if (def && def.fields.some(f => f.type === 'areatree')) wireAreaTree($('#dynFields'), vals);
             wireValidators($('#dynFields'));             // ISSN/ISBN/DOI/URL
@@ -1083,7 +1083,7 @@
         return `<input type="${t}" ${tag} placeholder="${esc(c.label)}" class="${base}" style="min-width:9rem">`;
     }
 
-    function fieldHtml(f, val) {
+    function fieldHtml(f, val, compact) {
         val = val == null ? '' : val;
         const req = f.required ? 'required' : '';
         const reqMark = f.required ? ' <span class="text-red-500">*</span>' : '';
@@ -1106,7 +1106,8 @@
             let dv = val == null ? '' : String(val);
             const iso = dv.match(/^(\d{4})-(\d{2})-(\d{2})$/);
             if (iso) dv = `${iso[3]}/${iso[2]}/${iso[1]}`;
-            input = `<input type="text" name="${f.key}" value="${esc(dv)}" ${req} inputmode="numeric" maxlength="10" placeholder="aaaa, mm/aaaa ou dd/mm/aaaa" data-datebr class="${base}">`;
+            const dph = compact ? 'aaaa' : 'aaaa, mm/aaaa ou dd/mm/aaaa';
+            input = `<input type="text" name="${f.key}" value="${esc(dv)}" ${req} inputmode="numeric" maxlength="10" placeholder="${dph}" data-datebr class="${base}">`;
         } else if (f.type === 'checkboxes') {
             const selected = String(val || '').split(/[;,]/).map(s => s.trim()).filter(Boolean);
             input = `<div class="flex flex-wrap gap-x-4 gap-y-1 pt-1">
@@ -1166,6 +1167,10 @@
                     <button type="button" data-repeater-add="${f.key}" class="px-2 py-1.5 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-xs whitespace-nowrap"><i aria-hidden="true" class="fa-solid fa-plus"></i> ${esc(f.addLabel || 'Adicionar')}</button>
                 </div>
             </div>`;
+        } else if (f.type === 'checkbox') {
+            // Pergunta Sim/Não como caixa de seleção única (marcado = Sim,
+            // desmarcado = Não — nunca fica em branco, como o padrão do Lattes).
+            input = `<label class="flex items-center gap-2 text-sm"><input type="checkbox" name="${f.key}" ${val === 'Sim' ? 'checked' : ''}> Sim</label>`;
         } else if (f.type === 'url') {
             // URL + "N/A" (Não se aplica): conta como preenchido; vai em branco no XML
             const na = String(val) === NA_VALUE;
@@ -1190,11 +1195,33 @@
                 : `maxlength="${f.maxlength || (t === 'url' ? 300 : 500)}"`;
             input = `<input type="${t}" name="${f.key}" value="${esc(val)}" ${req} ${listAttr} ${vAttr} ${extra} placeholder="${esc(ph)}" class="${base}">`;
         }
-        return `<div data-field="${f.key}">
+        return `<div data-field="${f.key}" class="${compact ? 'w-24 shrink-0' : ''}">
             <label class="block text-xs font-semibold mb-1">${esc(f.label)}${reqMark}</label>
             ${input}
             ${f.help ? `<p class="text-xs text-gray-500 mt-0.5">${esc(f.help)}</p>` : ''}
         </div>`;
+    }
+    // Monta o HTML dos campos dinâmicos, agrupando na mesma linha os campos
+    // consecutivos que compartilham `f.row` (ex.: Ano início/Ano fim, ou a
+    // "Quantidade de alunos" de Projetos) — cada um renderizado compacto
+    // (`fieldHtml(f, val, true)`), lado a lado num flex-wrap. `def.fields`
+    // continua uma lista plana — collectFields/validateItemFields/
+    // wireConditional não precisam saber desse agrupamento visual.
+    function dynFieldsHtml(fields, vals) {
+        const list = fields || [];
+        let html = '', i = 0;
+        while (i < list.length) {
+            const f = list[i];
+            if (f.row) {
+                const group = [f]; i++;
+                while (i < list.length && list[i].row === f.row) { group.push(list[i]); i++; }
+                html += `<div class="flex flex-wrap items-end gap-3">${group.map(sf => fieldHtml(sf, vals[sf.key], true)).join('')}</div>`;
+            } else {
+                html += fieldHtml(f, vals[f.key]);
+                i++;
+            }
+        }
+        return html;
     }
 
     // Normaliza um nome para comparação (sem acentos, maiúsculas, espaços)
@@ -1277,16 +1304,23 @@
             p.textContent = msg;
         } else if (p) p.remove();
     }
-    // Associa <label> aos controles (for/id) e marca aria-required — a11y
+    // Associa <label> aos controles (for/id) e marca aria-required — a11y.
+    // Campos agrupados na mesma linha (dynFieldsHtml/`f.row`) ficam num
+    // wrapper flex sem <label> próprio — desce um nível para achar cada
+    // [data-field] real dentro dele.
     function associateLabels(container) {
         let n = 0;
-        container.querySelectorAll(':scope > div').forEach(wrap => {
+        const wireOne = (wrap) => {
             const label = wrap.querySelector(':scope > label');
             const ctrl = wrap.querySelector('input, select, textarea');
             if (!label || !ctrl) return;
             if (!ctrl.id) ctrl.id = `fld-${++n}-${ctrl.name || 'x'}`;
             label.setAttribute('for', ctrl.id);
             if (ctrl.required) ctrl.setAttribute('aria-required', 'true');
+        };
+        container.querySelectorAll(':scope > div').forEach(wrap => {
+            if (wrap.hasAttribute('data-field')) { wireOne(wrap); return; }
+            wrap.querySelectorAll(':scope > [data-field]').forEach(wireOne);
         });
     }
     function wireValidators(container) {
@@ -1331,6 +1365,9 @@
     // (e reaparece quando sai dela) — em vez de só desabilitar/acinzentar,
     // para telas com muitos campos condicionais (ex.: Formação acadêmica,
     // onde cada Nível usa um subconjunto bem diferente de campos).
+    // Lê o valor "lógico" de um controlador (checkbox Sim/Não vira 'Sim'/'Não';
+    // os demais controles usam .value normalmente).
+    const controlValue = (el) => el.type === 'checkbox' ? (el.checked ? 'Sim' : 'Não') : el.value;
     function wireConditional(container, def) {
         (def && def.fields || []).filter(f => f.disabledWhen).forEach(f => {
             const conds = Array.isArray(f.disabledWhen) ? f.disabledWhen : [f.disabledWhen];
@@ -1339,7 +1376,7 @@
             if (!ctrls.length || !wrap) return;
             const input = container.querySelector(`[name="${f.key}"]`);
             const apply = () => {
-                const vals = {}; conds.forEach(c => { const el = container.querySelector(`[name="${c.field}"]`); if (el) vals[c.field] = el.value; });
+                const vals = {}; conds.forEach(c => { const el = container.querySelector(`[name="${c.field}"]`); if (el) vals[c.field] = controlValue(el); });
                 const off = isFieldDisabled(f, vals);
                 wrap.classList.toggle('hidden', off);
                 if (off) {
@@ -1494,6 +1531,9 @@
             } else if (f.type === 'repeater') {
                 const el = form.querySelector(`[data-repeater="${f.key}"]`);
                 try { fields[f.key] = el ? JSON.parse(el.value || '[]') : []; } catch (_) { fields[f.key] = []; }
+            } else if (f.type === 'checkbox') {
+                const el = form.querySelector(`[name="${f.key}"]`);
+                fields[f.key] = el && el.checked ? 'Sim' : 'Não';
             } else if (f.type === 'url') {
                 const na = form.querySelector(`[data-na="${f.key}"]`);
                 if (na && na.checked) fields[f.key] = NA_VALUE;
