@@ -587,6 +587,14 @@ window.LattesTypes = (function () {
             // repete em várias atuações na mesma entidade e não diferencia
             // uma da outra).
             if (item.typeKey === 'VINCULO_PROFISSIONAL' && String(f.cargo || '').trim()) return String(f.cargo).trim();
+            // Concursos e processos seletivos: "Cargo (Colocação)" (o ano já
+            // aparece à parte no card; o campo "titulo" é o nome do concurso,
+            // que se repete pouco mas não diz qual foi o cargo/resultado).
+            if (item.typeKey === 'AL_CONCURSO') {
+                const cargo = String(f.cargo || '').trim(), coloc = String(f.colocacao || '').trim();
+                const t = coloc ? `${cargo || f.titulo || ''} (${coloc})`.trim() : cargo;
+                if (t) return t;
+            }
             // Documentos pessoais: "Tipo de documento · Descrição/Nº do documento"
             if (item.typeKey === 'DOCUMENTO_PESSOAL') {
                 const t = [f.tipoDoc, f.titulo].map(x => String(x || '').trim()).filter(Boolean).join(' · ');
