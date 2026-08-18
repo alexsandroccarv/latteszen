@@ -77,7 +77,7 @@ const projetoEquipeField = (label, addLabel) => ({ key: 'equipe', label: label |
 const institucaoColumns = () => [
     { key: 'nome', label: 'Nome da instituição', type: 'text', required: true },
     { key: 'sigla', label: 'Sigla', type: 'text' },
-    { key: 'pais', label: 'País', type: 'text', placeholder: 'Brasil' },
+    { key: 'pais', label: 'País', type: 'select', options: window.PAISES_LATTES || [] },
     { key: 'uf', label: 'UF', type: 'text', enabledWhenCol: { key: 'pais', equals: 'Brasil' } },
 ];
 const projetoInstituicoesEnvolvidasField = () => ({ key: 'instituicoesEnvolvidas', label: 'Instituições envolvidas no projeto', type: 'repeater',
@@ -94,7 +94,7 @@ const projetoFinanciadoresField = () => ({ key: 'financiadores', label: 'Institu
 const projetoInstituicaoExecucaoFields = () => [
     { key: 'instituicaoExecucaoNome', label: 'Nome da instituição', type: 'text' },
     { key: 'instituicaoExecucaoSigla', label: 'Sigla', type: 'text', row: 'instExecucao' },
-    { key: 'instituicaoExecucaoPais', label: 'País', type: 'text', placeholder: 'Brasil', row: 'instExecucao' },
+    { key: 'instituicaoExecucaoPais', label: 'País', type: 'select', options: window.PAISES_LATTES || [], row: 'instExecucao' },
     { key: 'instituicaoExecucaoUf', label: 'UF', type: 'text', row: 'instExecucao', disabledWhen: { field: 'instituicaoExecucaoPais', notEquals: 'Brasil' } },
 ];
 const projetoProducoesField = () => ({ key: 'producoesCT', label: 'Produção C&T', type: 'repeater',
