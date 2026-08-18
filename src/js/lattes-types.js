@@ -141,7 +141,7 @@ const TYPES = {
           disabledWhen: { field: 'nivel', in: nivelExcept('Mestrado', 'Mestrado profissional', 'Doutorado', 'Residência médica') } },
         { key: 'areaConhecimento', label: 'Área do conhecimento (CNPq/CAPES)', type: 'areatree', help: 'Selecione do mais geral ao mais específico: Grande área › Área › Subárea › Especialidade.',
           disabledWhen: { field: 'nivel', in: nivelExcept('Mestrado', 'Mestrado profissional', 'Doutorado', 'Residência médica') } },
-        { key: 'setores', label: 'Setores de atividade', type: 'text', placeholder: 'Separe por ponto e vírgula (;)', help: 'Até 3 setores.',
+        { key: 'setores', label: 'Setores de atividade', type: 'cnaeSetores', help: 'Até 3 setores (lista CNAE).',
           disabledWhen: { field: 'nivel', in: nivelExcept('Mestrado', 'Mestrado profissional', 'Doutorado', 'Residência médica') } },
     ] },
     POS_DOUTORADO: { label: 'Pós-doutorado e/ou livre-docência', fields: [

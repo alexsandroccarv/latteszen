@@ -1115,6 +1115,16 @@
                 ${sel('s', '— Subárea —')}
                 ${sel('e', '— Especialidade —')}
             </div>`;
+        } else if (f.type === 'cnaeSetores') {
+            // Até 3 setores (lista CNAE fixa) — schema Lattes tem 3 atributos
+            // nomeados (SETOR-DE-ATIVIDADE-1..3), por isso 3 selects fixos.
+            const chosen = String(val || '').split(';').map(s => s.trim()).filter(Boolean);
+            const opts = window.CNAE_SETORES || [];
+            const sel = (i) => `<select data-setor="${i}" class="${base}">
+                <option value="">— Setor ${i} —</option>
+                ${opts.map(o => `<option value="${esc(o)}" ${chosen[i - 1] === o ? 'selected' : ''}>${esc(o)}</option>`).join('')}
+            </select>`;
+            input = `<div class="space-y-1.5">${[1, 2, 3].map(sel).join('')}</div>`;
         } else if (f.type === 'url') {
             // URL + "N/A" (Não se aplica): conta como preenchido; vai em branco no XML
             const na = String(val) === NA_VALUE;
@@ -1295,6 +1305,7 @@
                     if (off) {
                         $$(`[data-cbgroup="${f.key}"]`, wrap).forEach(cb => { cb.checked = false; });
                         $$(`[data-areatree]`, wrap).forEach(sel => { sel.value = ''; });
+                        $$(`[data-setor]`, wrap).forEach(sel => { sel.value = ''; });
                     }
                 };
                 ctrl.addEventListener('change', applyBlock);
@@ -1384,6 +1395,8 @@
                 const G = gv('g'), A = gv('a'), S = gv('s'), E = gv('e');
                 fields.grandeArea = G; fields.area = A; fields.subarea = S; fields.especialidade = E;
                 fields[f.key] = (G && A) ? [G, A, S, E].filter(Boolean).join(' › ') : '';
+            } else if (f.type === 'cnaeSetores') {
+                fields[f.key] = [1, 2, 3].map(i => { const el = form.querySelector(`[data-setor="${i}"]`); return el ? el.value.trim() : ''; }).filter(Boolean).join('; ');
             } else if (f.type === 'url') {
                 const na = form.querySelector(`[data-na="${f.key}"]`);
                 if (na && na.checked) fields[f.key] = NA_VALUE;
