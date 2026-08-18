@@ -581,14 +581,12 @@ window.LattesTypes = (function () {
                 if (partes.length) return partes.map(titleCasePt).join(' › ');
                 if (f.areaConhecimento) return titleCasePt(f.areaConhecimento);
             }
-            // Atuação profissional: "Tipo de vínculo · Cargo/Função" (o campo
-            // "titulo" é só "outras informações", raramente preenchido — sem
-            // isso o fallback caía em "instituicao", que se repete em várias
-            // atuações na mesma entidade e não diferencia uma da outra).
-            if (item.typeKey === 'VINCULO_PROFISSIONAL') {
-                const t = [f.vinculo, f.cargo].map(x => String(x || '').trim()).filter(Boolean).join(' · ');
-                if (t) return t;
-            }
+            // Atuação profissional: "Cargo/Função" (o ano já aparece à parte no
+            // card; o campo "titulo" é só "outras informações", raramente
+            // preenchido — sem isso o fallback caía em "instituicao", que se
+            // repete em várias atuações na mesma entidade e não diferencia
+            // uma da outra).
+            if (item.typeKey === 'VINCULO_PROFISSIONAL' && String(f.cargo || '').trim()) return String(f.cargo).trim();
             // Documentos pessoais: "Tipo de documento · Descrição/Nº do documento"
             if (item.typeKey === 'DOCUMENTO_PESSOAL') {
                 const t = [f.tipoDoc, f.titulo].map(x => String(x || '').trim()).filter(Boolean).join(' · ');
