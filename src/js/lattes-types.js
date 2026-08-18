@@ -237,13 +237,48 @@ const TYPES = {
         ...periodoComSituacao(),
         { key: 'outrasInfo', label: 'Outras informações', type: 'textarea' }] },
     AREA_ATUACAO: { label: 'Áreas de atuação', noEvidence: true, perfil: true, fields: [{ key: 'areaConhecimento', label: 'Área do conhecimento (CNPq/CAPES)', type: 'areatree', required: true, help: 'Selecione do mais geral ao mais específico: Grande área › Área › Subárea › Especialidade.' }] },
-    // Atividades da atuação profissional
-    ATIV_ENSINO: { label: 'Ensino / Disciplinas ministradas', fields: [{ key: 'titulo', label: 'Curso / Nível', type: 'text', required: true }, F_INST, F_DINI, F_DFIM, { key: 'disciplinas', label: 'Disciplinas', type: 'textarea' }] },
-    ATIV_DIRECAO: { label: 'Direção e administração', fields: [{ key: 'titulo', label: 'Cargo / Função', type: 'text', required: true }, { key: 'orgao', label: 'Órgão', type: 'text' }, F_INST, F_DINI, F_DFIM] },
-    ATIV_CONSELHO: { label: 'Conselho, comissão e consultoria', fields: [{ key: 'titulo', label: 'Órgão / Comissão', type: 'text', required: true }, { key: 'papel', label: 'Atuação', type: 'text' }, F_INST, F_DINI, F_DFIM] },
-    ATIV_EXTENSAO: { label: 'Atividade de extensão universitária', fields: [{ key: 'titulo', label: 'Atividade realizada', type: 'text', required: true }, { key: 'orgao', label: 'Órgão', type: 'text' }, F_INST, F_DINI, F_DFIM] },
-    ATIV_SERVICO: { label: 'Serviço técnico especializado', fields: [{ key: 'titulo', label: 'Serviço realizado', type: 'text', required: true }, { key: 'orgao', label: 'Órgão', type: 'text' }, F_INST, F_DINI, F_DFIM] },
-    ATIV_OUTRA: { label: 'Outra atividade técnico-científica', fields: [{ key: 'titulo', label: 'Atividade realizada', type: 'text', required: true }, { key: 'orgao', label: 'Órgão', type: 'text' }, F_INST, F_DINI, F_DFIM] },
+    // Atividades da atuação profissional (subitens de "Atuação profissional",
+    // na ordem e com os campos das telas reais do Lattes). O campo com "Digite
+    // e pressione ENTER" (cargo, linha de pesquisa, treinamento…) é um texto
+    // livre — separe múltiplos valores por ponto e vírgula (;).
+    ATIV_DIRECAO: { label: 'Direção e administração', fields: [
+        F_INST, { key: 'orgao', label: 'Órgão/Unidade', type: 'text' }, ...periodoComSituacao(),
+        { key: 'outrasInfo', label: 'Outras informações', type: 'textarea' },
+        { key: 'titulo', label: 'Cargo ou função', type: 'text', required: true, placeholder: 'Separe por ponto e vírgula (;)' }] },
+    ATIV_PESQUISA: { label: 'Pesquisa e desenvolvimento', fields: [
+        F_INST, { key: 'orgao', label: 'Órgão/Unidade', type: 'text' }, ...periodoComSituacao(),
+        { key: 'outrasInfo', label: 'Outras informações', type: 'textarea' },
+        { key: 'titulo', label: 'Linhas de pesquisa', type: 'text', required: true, placeholder: 'Separe por ponto e vírgula (;)' }] },
+    ATIV_ENSINO: { label: 'Ensino', fields: [
+        F_INST,
+        { key: 'nivel', label: 'Nível', type: 'select', required: true, options: ['Graduação', 'Pós-graduação', 'Especialização', 'Aperfeiçoamento', 'Ensino fundamental', 'Ensino médio', 'Outros'] },
+        { key: 'curso', label: 'Curso', type: 'text', required: true }, ...periodoComSituacao(),
+        { key: 'outrasInfo', label: 'Outras informações', type: 'textarea' },
+        { key: 'disciplinas', label: 'Disciplinas ministradas', type: 'textarea', placeholder: 'Separe por ponto e vírgula (;)' }] },
+    ATIV_ESTAGIO: { label: 'Estágio', fields: [
+        F_INST, { key: 'orgao', label: 'Órgão/Unidade', type: 'text' }, ...periodoComSituacao(),
+        { key: 'outrasInfo', label: 'Outras informações', type: 'textarea' },
+        { key: 'titulo', label: 'Estágio realizado', type: 'text', required: true, placeholder: 'Separe por ponto e vírgula (;)' }] },
+    ATIV_SERVICO: { label: 'Serviço técnico especializado', fields: [
+        F_INST, { key: 'orgao', label: 'Órgão/Unidade', type: 'text' }, ...periodoComSituacao(),
+        { key: 'outrasInfo', label: 'Outras informações', type: 'textarea' },
+        { key: 'titulo', label: 'Serviço realizado', type: 'text', required: true, placeholder: 'Separe por ponto e vírgula (;)' }] },
+    ATIV_EXTENSAO: { label: 'Extensão universitária', fields: [
+        F_INST, { key: 'orgao', label: 'Órgão/Unidade', type: 'text' }, ...periodoComSituacao(),
+        { key: 'outrasInfo', label: 'Outras informações', type: 'textarea' },
+        { key: 'titulo', label: 'Atividade de extensão realizada', type: 'text', required: true, placeholder: 'Separe por ponto e vírgula (;)' }] },
+    ATIV_TREINAMENTO: { label: 'Treinamento', fields: [
+        F_INST, { key: 'orgao', label: 'Órgão/Unidade', type: 'text' }, ...periodoComSituacao(),
+        { key: 'outrasInfo', label: 'Outras informações', type: 'textarea' },
+        { key: 'titulo', label: 'Treinamento ministrado', type: 'text', required: true, placeholder: 'Separe por ponto e vírgula (;)' }] },
+    ATIV_OUTRA: { label: 'Outra atividade técnico-científica', fields: [
+        F_INST, { key: 'orgao', label: 'Órgão/Unidade', type: 'text' }, ...periodoComSituacao(),
+        { key: 'outrasInfo', label: 'Outras informações', type: 'textarea' },
+        { key: 'titulo', label: 'Outra atividade técnico-científica', type: 'text', required: true, placeholder: 'Separe por ponto e vírgula (;)' }] },
+    ATIV_CONSELHO: { label: 'Conselhos, comissões e consultoria', fields: [
+        F_INST, { key: 'orgao', label: 'Órgão/Unidade', type: 'text' }, ...periodoComSituacao(),
+        { key: 'outrasInfo', label: 'Outras informações', type: 'textarea' },
+        { key: 'titulo', label: 'Cargo ou função', type: 'text', required: true, placeholder: 'Separe por ponto e vírgula (;)' }] },
 
     // 04 Projetos
     PROJETO_PESQUISA: { label: 'Projetos de pesquisa', fields: PROJETO_FIELDS },
@@ -493,7 +528,7 @@ window.LATTES_CATEGORIES = [
       // Áreas de atuação é editada em Configurações (perfil), não aqui.
       groups: [
           { label: null, types: ['VINCULO_PROFISSIONAL', 'LINHA_PESQUISA', 'CORPO_EDITORIAL', 'COMITE_ASSESSORAMENTO', 'REVISOR_PERIODICO', 'REVISOR_FOMENTO'] },
-          { label: 'Outras atividades', types: ['ATIV_ENSINO', 'ATIV_DIRECAO', 'ATIV_CONSELHO', 'ATIV_EXTENSAO', 'ATIV_SERVICO', 'ATIV_OUTRA'] },
+          { label: 'Atividades de Atuação profissional', types: ['ATIV_DIRECAO', 'ATIV_PESQUISA', 'ATIV_ENSINO', 'ATIV_ESTAGIO', 'ATIV_SERVICO', 'ATIV_EXTENSAO', 'ATIV_TREINAMENTO', 'ATIV_OUTRA', 'ATIV_CONSELHO'] },
       ] },
     { num: '04', key: 'PROJETOS', label: 'Projetos', icon: 'fa-diagram-project',
       types: ['PROJETO_PESQUISA', 'PROJETO_DESENVOLVIMENTO', 'PROJETO_EXTENSAO', 'PROJETO_ENSINO', 'PROJETO_OUTRO'] },
@@ -543,6 +578,7 @@ const PRIMARY_CATEGORY = {
     FORMACAO_ACADEMICA: 'FORMACAO', POS_DOUTORADO: 'FORMACAO', FORMACAO_COMPLEMENTAR: 'FORMACAO',
     VINCULO_PROFISSIONAL: 'ATUACAO', LINHA_PESQUISA: 'ATUACAO', CORPO_EDITORIAL: 'ATUACAO', COMITE_ASSESSORAMENTO: 'ATUACAO', REVISOR_PERIODICO: 'ATUACAO', REVISOR_FOMENTO: 'ATUACAO', AREA_ATUACAO: 'ATUACAO',
     ATIV_ENSINO: 'ATUACAO', ATIV_DIRECAO: 'ATUACAO', ATIV_CONSELHO: 'ATUACAO', ATIV_EXTENSAO: 'ATUACAO', ATIV_SERVICO: 'ATUACAO', ATIV_OUTRA: 'ATUACAO',
+    ATIV_PESQUISA: 'ATUACAO', ATIV_ESTAGIO: 'ATUACAO', ATIV_TREINAMENTO: 'ATUACAO',
     PROJETO_PESQUISA: 'PROJETOS', PROJETO_DESENVOLVIMENTO: 'PROJETOS', PROJETO_EXTENSAO: 'PROJETOS', PROJETO_ENSINO: 'PROJETOS', PROJETO_OUTRO: 'PROJETOS',
     ARTIGO_PERIODICO: 'PRODUCOES', ARTIGO_ACEITO: 'PRODUCOES', LIVRO_CAPITULO: 'PRODUCOES', TEXTO_JORNAL: 'PRODUCOES', TRABALHO_EVENTO: 'PRODUCOES', APRESENTACAO: 'PRODUCOES', PARTITURA: 'PRODUCOES', TRADUCAO: 'PRODUCOES', PREFACIO: 'PRODUCOES', OUTRA_BIBLIOGRAFICA: 'PRODUCOES',
     ASSESSORIA_CONSULTORIA: 'PRODUCOES', EXTENSAO_TECNOLOGICA: 'PRODUCOES', SOFTWARE_SEM_REGISTRO: 'PRODUCOES', PRODUTO_TECNOLOGICO: 'PRODUCOES', PROCESSO_TECNICA: 'PRODUCOES', TRABALHO_TECNICO: 'PRODUCOES', CARTA_MAPA: 'PRODUCOES', CURSO_MINISTRADO: 'PRODUCOES', MATERIAL_DIDATICO: 'PRODUCOES', EDITORACAO: 'PRODUCOES', MANUTENCAO_OBRA: 'PRODUCOES', MAQUETE: 'PRODUCOES', MIDIA: 'PRODUCOES', RELATORIO_PESQUISA: 'PRODUCOES', MIDIA_SOCIAL: 'PRODUCOES', OUTRA_TECNICA: 'PRODUCOES',

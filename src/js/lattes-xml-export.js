@@ -294,6 +294,9 @@ window.LattesXMLExport = (function () {
     // Mapeia campos "Sim"/"Não" da interface p/ os tokens SIM/NAO do Lattes
     // (usado em qualquer atributo FLAG-* — bolsa, dedicação exclusiva, etc.).
     const FLAG_SIM_NAO = { 'Sim': 'SIM', 'Não': 'NAO' };
+    // Mapeia o campo "Situação" (Atual/Anterior) das atividades de Atuação
+    // profissional para o token FLAG-PERIODO do Lattes.
+    const FLAG_PERIODO = { 'Atual (não finalizado)': 'ATUAL', 'Anterior (finalizado)': 'ANTERIOR' };
     // Setores de atividade (até 3, atributos SETOR-DE-ATIVIDADE-1..3) a partir de "saúde; educação"
     function setoresAtividadeEl(str) {
         const arr = String(str == null ? '' : str).split(';').map(clean).filter(Boolean).slice(0, 3);
@@ -379,18 +382,35 @@ window.LattesXMLExport = (function () {
         return inner ? el('FORMACAO-ACADEMICA-TITULACAO', {}, inner) : '';
     }
 
+    // TIPO-ENSINO: enum do Lattes p/ o "Nível" do item Ensino.
+    const TIPO_ENSINO_TOKEN = {
+        'Graduação': 'GRADUACAO', 'Pós-graduação': 'POS-GRADUACAO', 'Especialização': 'ESPECIALIZACAO',
+        'Aperfeiçoamento': 'APERFEICOAMENTO', 'Ensino fundamental': 'ENSINO-FUNDAMENTAL', 'Ensino médio': 'ENSINO-MEDIO', 'Outros': 'OUTRO',
+    };
+    // Atributos comuns a toda "atividade" de Atuação profissional (Direção,
+    // Pesquisa e desenvolvimento, Ensino, Estágio, Serviço técnico, Extensão,
+    // Treinamento, Outra atividade, Conselho): período + situação Atual/Anterior.
+    const atividadeBase = (f) => ({ 'ANO-INICIO': year(f.anoInicio), 'ANO-FIM': year(f.anoFim), 'FLAG-PERIODO': FLAG_PERIODO[f.situacao] || '' });
+    // "Digite e pressione ENTER" (cargo, linha de pesquisa, treinamento…) — guardado
+    // como texto separado por ";" e virando um elemento por valor na exportação.
+    const tagsEl = (str, tag) => String(str == null ? '' : str).split(';').map(clean).filter(Boolean).map(v => el(tag, {}, esc(v))).join('');
+    const linhaTagsEl = (str) => String(str == null ? '' : str).split(';').map(clean).filter(Boolean).map(v => el('LINHA-DE-PESQUISA', { 'TITULO-DA-LINHA-DE-PESQUISA': v })).join('');
+
     // ATUACOES-PROFISSIONAIS — agrupa vínculos e atividades por instituição.
     function buildAtuacoes(all) {
         const vincs = all.filter(i => i.typeKey === 'VINCULO_PROFISSIONAL');
         const ATIV = {
             ATIV_DIRECAO: { wrap: 'ATIVIDADES-DE-DIRECAO-E-ADMINISTRACAO', leaf: 'DIRECAO-E-ADMINISTRACAO', extra: (f) => ({ 'CARGO-OU-FUNCAO': f.titulo, 'NOME-ORGAO': f.orgao }) },
-            ATIV_CONSELHO: { wrap: 'ATIVIDADES-DE-CONSELHO-COMISSAO-E-CONSULTORIA', leaf: 'CONSELHO-COMISSAO-E-CONSULTORIA', extra: (f) => ({ 'ESPECIFICACAO': f.papel, 'NOME-ORGAO': f.titulo || f.orgao }) },
-            ATIV_EXTENSAO: { wrap: 'ATIVIDADES-DE-EXTENSAO-UNIVERSITARIA', leaf: 'EXTENSAO-UNIVERSITARIA', extra: (f) => ({ 'ATIVIDADE-DE-EXTENSAO-REALIZADA': f.titulo, 'NOME-ORGAO': f.orgao }) },
+            ATIV_ESTAGIO: { wrap: 'ATIVIDADES-DE-ESTAGIO', leaf: 'ESTAGIO', extra: (f) => ({ 'ESTAGIO-REALIZADO': f.titulo, 'NOME-ORGAO': f.orgao }) },
             ATIV_SERVICO: { wrap: 'ATIVIDADES-DE-SERVICO-TECNICO-ESPECIALIZADO', leaf: 'SERVICO-TECNICO-ESPECIALIZADO', extra: (f) => ({ 'SERVICO-REALIZADO': f.titulo, 'NOME-ORGAO': f.orgao }) },
+            ATIV_EXTENSAO: { wrap: 'ATIVIDADES-DE-EXTENSAO-UNIVERSITARIA', leaf: 'EXTENSAO-UNIVERSITARIA', extra: (f) => ({ 'ATIVIDADE-DE-EXTENSAO-REALIZADA': f.titulo, 'NOME-ORGAO': f.orgao }) },
             ATIV_OUTRA: { wrap: 'OUTRAS-ATIVIDADES-TECNICO-CIENTIFICA', leaf: 'OUTRA-ATIVIDADE-TECNICO-CIENTIFICA', extra: (f) => ({ 'ATIVIDADE-REALIZADA': f.titulo, 'NOME-ORGAO': f.orgao }) },
+            ATIV_CONSELHO: { wrap: 'ATIVIDADES-DE-CONSELHO-COMISSAO-E-CONSULTORIA', leaf: 'CONSELHO-COMISSAO-E-CONSULTORIA', extra: (f) => ({ 'ESPECIFICACAO': f.titulo, 'NOME-ORGAO': f.orgao }) },
         };
         const ensino = all.filter(i => i.typeKey === 'ATIV_ENSINO');
         const linhas = all.filter(i => i.typeKey === 'LINHA_PESQUISA');
+        const pesquisaAtiv = all.filter(i => i.typeKey === 'ATIV_PESQUISA');
+        const treinamentoAtiv = all.filter(i => i.typeKey === 'ATIV_TREINAMENTO');
         // NATUREZA do projeto: enum do Lattes = (DESENVOLVIMENTO|EXTENSAO|PESQUISA|OUTRA).
         // "Ensino" não existe no enum → mapeia para OUTRA.
         const NAT_PROJ = { PROJETO_PESQUISA: 'PESQUISA', PROJETO_DESENVOLVIMENTO: 'DESENVOLVIMENTO', PROJETO_EXTENSAO: 'EXTENSAO', PROJETO_ENSINO: 'OUTRA', PROJETO_OUTRO: 'OUTRA' };
@@ -398,10 +418,12 @@ window.LattesXMLExport = (function () {
 
         // agrupa por instituição
         const instMap = new Map();
-        const getInst = (nome) => { const k = nome || '(sem instituição)'; if (!instMap.has(k)) instMap.set(k, { nome, vincs: [], ensino: [], linhas: [], ativ: {} }); return instMap.get(k); };
+        const getInst = (nome) => { const k = nome || '(sem instituição)'; if (!instMap.has(k)) instMap.set(k, { nome, vincs: [], ensino: [], linhas: [], pesquisaAtiv: [], treinamentoAtiv: [], ativ: {} }); return instMap.get(k); };
         vincs.forEach(it => getInst(it.fields.instituicao).vincs.push(it));
         ensino.forEach(it => getInst(it.fields.instituicao).ensino.push(it));
         linhas.forEach(it => getInst(it.fields.instituicao).linhas.push(it));
+        pesquisaAtiv.forEach(it => getInst(it.fields.instituicao).pesquisaAtiv.push(it));
+        treinamentoAtiv.forEach(it => getInst(it.fields.instituicao).treinamentoAtiv.push(it));
         all.forEach(it => { if (ATIV[it.typeKey]) { const g = getInst(it.fields.instituicao); (g.ativ[it.typeKey] = g.ativ[it.typeKey] || []).push(it); } });
 
         const blocos = [];
@@ -420,30 +442,52 @@ window.LattesXMLExport = (function () {
             });
             // 2) ATIVIDADES-DE-DIRECAO-E-ADMINISTRACAO (na ordem do XSD)
             (g.ativ.ATIV_DIRECAO || []).length && seq.push(wrap('ATIVIDADES-DE-DIRECAO-E-ADMINISTRACAO',
-                g.ativ.ATIV_DIRECAO.map(it => el('DIRECAO-E-ADMINISTRACAO', Object.assign({ 'ANO-INICIO': year(it.fields.anoInicio), 'ANO-FIM': year(it.fields.anoFim) }, ATIV.ATIV_DIRECAO.extra(it.fields)))).join('')));
-            // 2b) ATIVIDADES-DE-PESQUISA-E-DESENVOLVIMENTO (linhas de pesquisa)
-            g.linhas.length && seq.push(wrap('ATIVIDADES-DE-PESQUISA-E-DESENVOLVIMENTO',
-                el('PESQUISA-E-DESENVOLVIMENTO', {}, g.linhas.map(it => el('LINHA-DE-PESQUISA', {
+                g.ativ.ATIV_DIRECAO.map(it => el('DIRECAO-E-ADMINISTRACAO', Object.assign(atividadeBase(it.fields), ATIV.ATIV_DIRECAO.extra(it.fields)))).join('')));
+            // 2b) ATIVIDADES-DE-PESQUISA-E-DESENVOLVIMENTO: linhas "soltas" (sem
+            // período, tipo LINHA_PESQUISA) + atividades com período/órgão que
+            // agrupam suas próprias linhas de pesquisa (tipo ATIV_PESQUISA).
+            {
+                const linhasFlat = g.linhas.length ? el('PESQUISA-E-DESENVOLVIMENTO', {}, g.linhas.map(it => el('LINHA-DE-PESQUISA', {
                     'TITULO-DA-LINHA-DE-PESQUISA': it.fields.titulo, 'OBJETIVOS-LINHA-DE-PESQUISA': it.fields.descricao,
-                })).join(''))));
+                })).join('')) : '';
+                const pesquisaComPeriodo = g.pesquisaAtiv.map(it => {
+                    const f = it.fields;
+                    return el('PESQUISA-E-DESENVOLVIMENTO', Object.assign(atividadeBase(f), { 'NOME-ORGAO': f.orgao }), linhaTagsEl(f.titulo));
+                }).join('');
+                const inner2b = linhasFlat + pesquisaComPeriodo;
+                inner2b && seq.push(wrap('ATIVIDADES-DE-PESQUISA-E-DESENVOLVIMENTO', inner2b));
+            }
             // 3) ATIVIDADES-DE-ENSINO
             g.ensino.length && seq.push(wrap('ATIVIDADES-DE-ENSINO', g.ensino.map(it => {
                 const f = it.fields;
-                const disc = String(f.disciplinas || '').split(';').map(clean).filter(Boolean).map(d => el('DISCIPLINA', {}, esc(d))).join('');
-                return el('ENSINO', { 'ANO-INICIO': year(f.anoInicio), 'ANO-FIM': year(f.anoFim), 'NOME-CURSO': f.titulo }, disc);
+                const disc = tagsEl(f.disciplinas, 'DISCIPLINA');
+                return el('ENSINO', Object.assign(atividadeBase(f), { 'NOME-CURSO': f.curso, 'TIPO-ENSINO': TIPO_ENSINO_TOKEN[f.nivel] || '' }), disc);
             }).join('')));
+            // 3b) ATIVIDADES-DE-ESTAGIO
+            (g.ativ.ATIV_ESTAGIO || []).length && seq.push(wrap('ATIVIDADES-DE-ESTAGIO',
+                g.ativ.ATIV_ESTAGIO.map(it => el('ESTAGIO', Object.assign(atividadeBase(it.fields), ATIV.ATIV_ESTAGIO.extra(it.fields)))).join('')));
             // 4) ATIVIDADES-DE-SERVICO-TECNICO-ESPECIALIZADO
             (g.ativ.ATIV_SERVICO || []).length && seq.push(wrap('ATIVIDADES-DE-SERVICO-TECNICO-ESPECIALIZADO',
-                g.ativ.ATIV_SERVICO.map(it => el('SERVICO-TECNICO-ESPECIALIZADO', Object.assign({ 'ANO-INICIO': year(it.fields.anoInicio), 'ANO-FIM': year(it.fields.anoFim) }, ATIV.ATIV_SERVICO.extra(it.fields)))).join('')));
+                g.ativ.ATIV_SERVICO.map(it => el('SERVICO-TECNICO-ESPECIALIZADO', Object.assign(atividadeBase(it.fields), ATIV.ATIV_SERVICO.extra(it.fields)))).join('')));
             // 5) ATIVIDADES-DE-EXTENSAO-UNIVERSITARIA
             (g.ativ.ATIV_EXTENSAO || []).length && seq.push(wrap('ATIVIDADES-DE-EXTENSAO-UNIVERSITARIA',
-                g.ativ.ATIV_EXTENSAO.map(it => el('EXTENSAO-UNIVERSITARIA', Object.assign({ 'ANO-INICIO': year(it.fields.anoInicio), 'ANO-FIM': year(it.fields.anoFim) }, ATIV.ATIV_EXTENSAO.extra(it.fields)))).join('')));
+                g.ativ.ATIV_EXTENSAO.map(it => el('EXTENSAO-UNIVERSITARIA', Object.assign(atividadeBase(it.fields), ATIV.ATIV_EXTENSAO.extra(it.fields)))).join('')));
+            // 5b) ATIVIDADES-DE-TREINAMENTO-MINISTRADO (TREINAMENTO-MINISTRADO exige
+            // ≥1 filho TREINAMENTO — só emite quando há pelo menos uma tag).
+            {
+                const treinamentoNodes = g.treinamentoAtiv.map(it => {
+                    const f = it.fields;
+                    const tags = tagsEl(f.titulo, 'TREINAMENTO');
+                    return tags ? el('TREINAMENTO-MINISTRADO', Object.assign(atividadeBase(f), { 'NOME-ORGAO': f.orgao }), tags) : '';
+                }).filter(Boolean).join('');
+                treinamentoNodes && seq.push(wrap('ATIVIDADES-DE-TREINAMENTO-MINISTRADO', treinamentoNodes));
+            }
             // 6) OUTRAS-ATIVIDADES-TECNICO-CIENTIFICA
             (g.ativ.ATIV_OUTRA || []).length && seq.push(wrap('OUTRAS-ATIVIDADES-TECNICO-CIENTIFICA',
-                g.ativ.ATIV_OUTRA.map(it => el('OUTRA-ATIVIDADE-TECNICO-CIENTIFICA', Object.assign({ 'ANO-INICIO': year(it.fields.anoInicio), 'ANO-FIM': year(it.fields.anoFim) }, ATIV.ATIV_OUTRA.extra(it.fields)))).join('')));
+                g.ativ.ATIV_OUTRA.map(it => el('OUTRA-ATIVIDADE-TECNICO-CIENTIFICA', Object.assign(atividadeBase(it.fields), ATIV.ATIV_OUTRA.extra(it.fields)))).join('')));
             // 7) ATIVIDADES-DE-CONSELHO-COMISSAO-E-CONSULTORIA
             (g.ativ.ATIV_CONSELHO || []).length && seq.push(wrap('ATIVIDADES-DE-CONSELHO-COMISSAO-E-CONSULTORIA',
-                g.ativ.ATIV_CONSELHO.map(it => el('CONSELHO-COMISSAO-E-CONSULTORIA', Object.assign({ 'ANO-INICIO': year(it.fields.anoInicio), 'ANO-FIM': year(it.fields.anoFim) }, ATIV.ATIV_CONSELHO.extra(it.fields)))).join('')));
+                g.ativ.ATIV_CONSELHO.map(it => el('CONSELHO-COMISSAO-E-CONSULTORIA', Object.assign(atividadeBase(it.fields), ATIV.ATIV_CONSELHO.extra(it.fields)))).join('')));
 
             const inner = seq.filter(Boolean).join('');
             if (inner) blocos.push(el('ATUACAO-PROFISSIONAL', { 'NOME-INSTITUICAO': g.nome }, inner));

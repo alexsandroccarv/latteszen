@@ -551,6 +551,10 @@ window.LattesXML = (function () {
         }
 
         // 6) Atuação profissional → vínculos
+        // FLAG-PERIODO não existe em VINCULOS — infere a "Situação" pela
+        // presença de ANO-FIM (mesma regra usada na exportação).
+        const situacaoDe = (a) => a['ANO-FIM'] ? 'Anterior (finalizado)' : (a['ANO-INICIO'] ? 'Atual (não finalizado)' : '');
+        const situacaoDeFlag = (a) => a['FLAG-PERIODO'] === 'ANTERIOR' ? 'Anterior (finalizado)' : (a['FLAG-PERIODO'] === 'ATUAL' ? 'Atual (não finalizado)' : situacaoDe(a));
         for (const atu of doc.getElementsByTagName('ATUACAO-PROFISSIONAL')) {
             const nomeInst = attrs(atu)['NOME-INSTITUICAO'] || '';
             for (const v of atu.children) {
@@ -560,39 +564,44 @@ window.LattesXML = (function () {
                 add('VINCULO_PROFISSIONAL', {
                     instituicao: nomeInst,
                     vinculo: a['OUTRO-VINCULO-INFORMADO'] || enumOuVazio(a['TIPO-DE-VINCULO']),
+                    vinculoEmpregaticio: simNao(a['FLAG-VINCULO-EMPREGATICIO']),
                     cargo: a['OUTRO-ENQUADRAMENTO-FUNCIONAL-INFORMADO'] || enumOuVazio(a['ENQUADRAMENTO-FUNCIONAL']),
-                    regime: (String(a['FLAG-DEDICACAO-EXCLUSIVA'] || '').toUpperCase() === 'SIM') ? 'Dedicação exclusiva' : '',
                     cargaHoraria: a['CARGA-HORARIA-SEMANAL'] || '',
+                    dedicacaoExclusiva: simNao(a['FLAG-DEDICACAO-EXCLUSIVA']),
                     anoInicio: a['ANO-INICIO'] || '',
+                    situacao: situacaoDe(a),
                     anoFim: a['ANO-FIM'] || '',
                     titulo: a['OUTRAS-INFORMACOES'] || '',
                 }, v);
             }
         }
 
-        // 6b) Atuação profissional → atividades (ensino, direção, conselho, extensão, serviço, outras)
+        // 6b) Atuação profissional → atividades (direção, ensino, estágio,
+        // serviço, extensão, outra, conselho — subitens de Atuação profissional)
         const ATIV = [
-            { tag: 'ENSINO', typeKey: 'ATIV_ENSINO', map: (a, el) => ({
-                titulo: a['NOME-CURSO'] || humanize(a['TIPO-ENSINO']) || 'Ensino',
-                anoInicio: a['ANO-INICIO'] || '', anoFim: a['ANO-FIM'] || '',
-                disciplinas: Array.from(el.getElementsByTagName('DISCIPLINA')).map(d => (d.textContent || '').trim()).filter(Boolean).join('; '),
-            }) },
             { tag: 'DIRECAO-E-ADMINISTRACAO', typeKey: 'ATIV_DIRECAO', map: (a) => ({
                 titulo: a['CARGO-OU-FUNCAO'] || 'Direção/administração', orgao: a['NOME-ORGAO'] || '',
-                anoInicio: a['ANO-INICIO'] || '', anoFim: a['ANO-FIM'] || '' }) },
+                anoInicio: a['ANO-INICIO'] || '', situacao: situacaoDeFlag(a), anoFim: a['ANO-FIM'] || '' }) },
+            { tag: 'ESTAGIO', typeKey: 'ATIV_ESTAGIO', map: (a) => ({
+                titulo: a['ESTAGIO-REALIZADO'] || 'Estágio', orgao: a['NOME-ORGAO'] || '',
+                anoInicio: a['ANO-INICIO'] || '', situacao: situacaoDeFlag(a), anoFim: a['ANO-FIM'] || '' }) },
             { tag: 'CONSELHO-COMISSAO-E-CONSULTORIA', typeKey: 'ATIV_CONSELHO', map: (a) => ({
-                titulo: a['NOME-ORGAO'] || 'Conselho/comissão', papel: a['ESPECIFICACAO'] || '',
-                anoInicio: a['ANO-INICIO'] || '', anoFim: a['ANO-FIM'] || '' }) },
+                titulo: a['ESPECIFICACAO'] || 'Conselho/comissão', orgao: a['NOME-ORGAO'] || '',
+                anoInicio: a['ANO-INICIO'] || '', situacao: situacaoDeFlag(a), anoFim: a['ANO-FIM'] || '' }) },
             { tag: 'EXTENSAO-UNIVERSITARIA', typeKey: 'ATIV_EXTENSAO', map: (a) => ({
                 titulo: a['ATIVIDADE-DE-EXTENSAO-REALIZADA'] || 'Extensão universitária', orgao: a['NOME-ORGAO'] || '',
-                anoInicio: a['ANO-INICIO'] || '', anoFim: a['ANO-FIM'] || '' }) },
+                anoInicio: a['ANO-INICIO'] || '', situacao: situacaoDeFlag(a), anoFim: a['ANO-FIM'] || '' }) },
             { tag: 'SERVICO-TECNICO-ESPECIALIZADO', typeKey: 'ATIV_SERVICO', map: (a) => ({
                 titulo: a['SERVICO-REALIZADO'] || 'Serviço técnico', orgao: a['NOME-ORGAO'] || '',
-                anoInicio: a['ANO-INICIO'] || '', anoFim: a['ANO-FIM'] || '' }) },
+                anoInicio: a['ANO-INICIO'] || '', situacao: situacaoDeFlag(a), anoFim: a['ANO-FIM'] || '' }) },
             { tag: 'OUTRA-ATIVIDADE-TECNICO-CIENTIFICA', typeKey: 'ATIV_OUTRA', map: (a) => ({
                 titulo: a['ATIVIDADE-REALIZADA'] || 'Atividade técnico-científica', orgao: a['NOME-ORGAO'] || '',
-                anoInicio: a['ANO-INICIO'] || '', anoFim: a['ANO-FIM'] || '' }) },
+                anoInicio: a['ANO-INICIO'] || '', situacao: situacaoDeFlag(a), anoFim: a['ANO-FIM'] || '' }) },
         ];
+        const TIPO_ENSINO_HUMANO = {
+            GRADUACAO: 'Graduação', 'POS-GRADUACAO': 'Pós-graduação', ESPECIALIZACAO: 'Especialização',
+            APERFEICOAMENTO: 'Aperfeiçoamento', 'ENSINO-FUNDAMENTAL': 'Ensino fundamental', 'ENSINO-MEDIO': 'Ensino médio', OUTRO: 'Outros',
+        };
         try {
         for (const atu of doc.getElementsByTagName('ATUACAO-PROFISSIONAL')) {
             const nomeInst = attrs(atu)['NOME-INSTITUICAO'] || '';
@@ -603,14 +612,50 @@ window.LattesXML = (function () {
                     add(h.typeKey, f, el);
                 }
             });
-            // Linhas de pesquisa (dentro de PESQUISA-E-DESENVOLVIMENTO)
-            for (const el of atu.getElementsByTagName('LINHA-DE-PESQUISA')) {
+            // Ensino (Nível + Curso + Disciplinas ministradas)
+            for (const el of atu.getElementsByTagName('ENSINO')) {
                 const a = attrs(el);
-                add('LINHA_PESQUISA', {
-                    titulo: a['TITULO-DA-LINHA-DE-PESQUISA'] || '',
+                add('ATIV_ENSINO', {
                     instituicao: nomeInst,
-                    descricao: a['OBJETIVOS-LINHA-DE-PESQUISA'] || '',
+                    nivel: TIPO_ENSINO_HUMANO[a['TIPO-ENSINO']] || '',
+                    curso: a['NOME-CURSO'] || '',
+                    anoInicio: a['ANO-INICIO'] || '', situacao: situacaoDeFlag(a), anoFim: a['ANO-FIM'] || '',
+                    disciplinas: Array.from(el.getElementsByTagName('DISCIPLINA')).map(d => (d.textContent || '').trim()).filter(Boolean).join('; '),
                 }, el);
+            }
+            // Treinamento ministrado (TREINAMENTO-MINISTRADO > TREINAMENTO*)
+            for (const el of atu.getElementsByTagName('TREINAMENTO-MINISTRADO')) {
+                const a = attrs(el);
+                const tags = Array.from(el.getElementsByTagName('TREINAMENTO')).map(d => (d.textContent || '').trim()).filter(Boolean).join('; ');
+                if (!tags) continue;
+                add('ATIV_TREINAMENTO', {
+                    instituicao: nomeInst, orgao: a['NOME-ORGAO'] || '',
+                    anoInicio: a['ANO-INICIO'] || '', situacao: situacaoDeFlag(a), anoFim: a['ANO-FIM'] || '',
+                    titulo: tags,
+                }, el);
+            }
+            // Pesquisa e desenvolvimento: PESQUISA-E-DESENVOLVIMENTO com período/órgão
+            // vira ATIV_PESQUISA; sem período (linhas "soltas") vira LINHA_PESQUISA.
+            for (const el of atu.getElementsByTagName('PESQUISA-E-DESENVOLVIMENTO')) {
+                const a = attrs(el);
+                const linhaEls = Array.from(el.getElementsByTagName('LINHA-DE-PESQUISA'));
+                if (a['NOME-ORGAO'] || a['ANO-INICIO'] || a['ANO-FIM'] || a['FLAG-PERIODO']) {
+                    const linhas = linhaEls.map(l => (attrs(l)['TITULO-DA-LINHA-DE-PESQUISA'] || '').trim()).filter(Boolean).join('; ');
+                    add('ATIV_PESQUISA', {
+                        instituicao: nomeInst, orgao: a['NOME-ORGAO'] || '',
+                        anoInicio: a['ANO-INICIO'] || '', situacao: situacaoDeFlag(a), anoFim: a['ANO-FIM'] || '',
+                        titulo: linhas,
+                    }, el);
+                } else {
+                    for (const l of linhaEls) {
+                        const la = attrs(l);
+                        add('LINHA_PESQUISA', {
+                            titulo: la['TITULO-DA-LINHA-DE-PESQUISA'] || '',
+                            instituicao: nomeInst,
+                            descricao: la['OBJETIVOS-LINHA-DE-PESQUISA'] || '',
+                        }, l);
+                    }
+                }
             }
         }
         } catch (e) { errors.push('Atividades da atuação: ' + e.message); }
