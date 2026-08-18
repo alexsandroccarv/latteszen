@@ -491,7 +491,10 @@ window.LATTES_CATEGORIES = [
       types: ['FORMACAO_ACADEMICA', 'POS_DOUTORADO', 'FORMACAO_COMPLEMENTAR'] },
     { num: '03', key: 'ATUACAO', label: 'Atuação', icon: 'fa-briefcase',
       // Áreas de atuação é editada em Configurações (perfil), não aqui.
-      types: ['VINCULO_PROFISSIONAL', 'ATIV_ENSINO', 'ATIV_DIRECAO', 'ATIV_CONSELHO', 'ATIV_EXTENSAO', 'ATIV_SERVICO', 'ATIV_OUTRA', 'LINHA_PESQUISA', 'CORPO_EDITORIAL', 'COMITE_ASSESSORAMENTO', 'REVISOR_PERIODICO', 'REVISOR_FOMENTO'] },
+      groups: [
+          { label: null, types: ['VINCULO_PROFISSIONAL', 'LINHA_PESQUISA', 'CORPO_EDITORIAL', 'COMITE_ASSESSORAMENTO', 'REVISOR_PERIODICO', 'REVISOR_FOMENTO'] },
+          { label: 'Outras atividades', types: ['ATIV_ENSINO', 'ATIV_DIRECAO', 'ATIV_CONSELHO', 'ATIV_EXTENSAO', 'ATIV_SERVICO', 'ATIV_OUTRA'] },
+      ] },
     { num: '04', key: 'PROJETOS', label: 'Projetos', icon: 'fa-diagram-project',
       types: ['PROJETO_PESQUISA', 'PROJETO_DESENVOLVIMENTO', 'PROJETO_EXTENSAO', 'PROJETO_ENSINO', 'PROJETO_OUTRO'] },
     { num: '05', key: 'PRODUCOES', label: 'Produções', icon: 'fa-book',
