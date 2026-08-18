@@ -113,7 +113,7 @@ const projetoOrientacoesField = () => ({ key: 'orientacoesProjeto', label: 'Orie
 // `extraQtd` insere campos extras na "Quantidade de alunos envolvidos" (ex.:
 // Técnico de nível médio, só em Desenvolvimento).
 const projetoFieldsPadrao = (extraQtdAntes) => [
-    F_TITULO,
+    { ...F_TITULO, label: 'Nome do projeto' },
     { key: 'descricao', label: 'Descrição', type: 'textarea' },
     F_NATUREZA(NATUREZA_PROJETO_OPTIONS),
     { key: 'situacao', label: 'Situação', type: 'select', options: SITUACAO_PROJETO_OPTIONS },
@@ -136,7 +136,7 @@ const TEMATICA_PROJETO_ENSINO = ['Ensino e aprendizagem', 'Aprendizagem por proj
     'Inserção de tecnologias no ensino', 'Ação inclusiva', 'Integração social (escola, família, comunidade)', 'Projeto de intervenção',
     'Mobilidade e internacionalização', 'Avaliação', 'Gestão', 'Outra'];
 const PROJETO_ENSINO_FIELDS = [
-    F_TITULO,
+    { ...F_TITULO, label: 'Nome do projeto' },
     { key: 'descricao', label: 'Descrição', type: 'textarea' },
     F_NATUREZA(NATUREZA_PROJETO_OPTIONS),
     { key: 'situacao', label: 'Situação', type: 'select', options: SITUACAO_PROJETO_OPTIONS },
