@@ -252,14 +252,7 @@
         const panel = $('#tab-catalogar');
         panel.innerHTML = `
             <div class="grid lg:grid-cols-5 gap-6 items-start">
-                <section class="lg:col-span-2 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-                    <h2 class="text-lg font-bold mb-3 flex items-center gap-2">
-                        <i aria-hidden="true" class="fa-solid fa-file-circle-plus text-govbr-600 dark:text-unifesp-400"></i>
-                        <span id="formTitulo">Novo item</span>
-                    </h2>
-                    <div id="draftBanner"></div>
-                    <form id="itemForm" class="space-y-3" novalidate></form>
-                </section>
+                <form id="itemForm" novalidate class="contents"></form>
                 <section class="lg:col-span-3 lg:sticky lg:top-4">
                     <div class="flex items-center justify-between mb-3">
                         <h2 class="text-lg font-bold flex items-center gap-2">
@@ -742,74 +735,87 @@
         opts = opts || {};
         const form = $('#itemForm');
         const editing = !!item;
-        $('#formTitulo').textContent = editing ? 'Editar item' : 'Novo item';
 
         let currentType = item ? LattesTypes.normalizeType(item.typeKey) : (state.lastType || '');
         let currentCat = item ? (item.categoryKey || LattesTypes.primaryCategory(currentType))
             : (state.lastCat || (LattesTypes.categories[0] && LattesTypes.categories[0].key));
         if (currentCat === 'NAO_LATTES' || currentCat === 'ATIVIDADES_LIVRES') currentCat = 'AL_DESENVOLVIMENTO'; // legado
 
+        // Layout em T: `form` tem display:contents (ver renderCatalogar) — os 2
+        // wrappers abaixo é que viram os itens do grid de 5 colunas. Topo
+        // (span 5): título, evidências, categoria/tipo. Esquerda (span 2,
+        // oculta até um Tipo ser escolhido — updateCamposPanel): os campos do
+        // item. A pré-visualização do PDF (direita, span 3) é outra section,
+        // fora deste form.
         form.innerHTML = `
-            <div id="evidenceBlock" class="bg-govbr-50 dark:bg-gray-900 border border-govbr-100 dark:border-gray-700 rounded px-3 py-2 transition-shadow">
-                <label class="block text-xs font-semibold mb-2" for="pdfInput"><i aria-hidden="true" class="fa-solid fa-file-arrow-up text-govbr-600 dark:text-unifesp-400 mr-1"></i> <span id="pdfInputLabel">Evidências</span></label>
-                <div class="flex items-center gap-2">
-                    <button type="button" id="btnEvInbox" title="Bandeja de entrada: anexar próximo arquivo pendente" class="relative w-12 h-12 shrink-0 rounded border border-govbr-200 dark:border-gray-600 text-govbr-700 dark:text-unifesp-300 hover:bg-govbr-100 dark:hover:bg-gray-700 flex items-center justify-center disabled:opacity-40">
-                        <i aria-hidden="true" class="fa-solid fa-inbox text-[2em]"></i>
-                        <span id="inboxBadge" class="hidden absolute -bottom-1.5 -right-1.5 min-w-[16px] h-4 px-1 bg-govbr-600 dark:bg-unifesp-600 text-white text-[10px] leading-4 rounded-full text-center"></span>
-                    </button>
-                    <button type="button" id="btnEvFiles" title="Escolher arquivos (PDF, imagem, vídeo ou zip/tar.gz)" class="relative w-12 h-12 shrink-0 rounded border border-govbr-200 dark:border-gray-600 text-govbr-700 dark:text-unifesp-300 hover:bg-govbr-100 dark:hover:bg-gray-700 flex items-center justify-center">
-                        <i aria-hidden="true" class="fa-solid fa-magnifying-glass text-[2em]"></i>
-                        <i aria-hidden="true" class="fa-solid fa-plus absolute -bottom-1 -right-1 w-3.5 h-3.5 text-[9px] leading-[14px] bg-govbr-600 dark:bg-unifesp-600 text-white rounded-full text-center"></i>
-                    </button>
-                    <button type="button" id="btnEvUrl" title="Inserir evidência por link (URL)" class="relative w-12 h-12 shrink-0 rounded border border-govbr-200 dark:border-gray-600 text-govbr-700 dark:text-unifesp-300 hover:bg-govbr-100 dark:hover:bg-gray-700 flex items-center justify-center">
-                        <i aria-hidden="true" class="fa-solid fa-pen text-[2em]"></i>
-                        <span aria-hidden="true" class="absolute -bottom-1.5 -right-1.5 px-1 bg-govbr-600 dark:bg-unifesp-600 text-white text-[8px] leading-[13px] rounded">URL</span>
-                    </button>
-                </div>
-                <input type="file" id="pdfInput" multiple accept="application/pdf,image/jpeg,image/png,image/gif,image/webp,video/mp4,video/webm,video/quicktime,video/x-msvideo,video/x-matroska,application/zip,application/x-zip-compressed,application/gzip,application/x-gzip,application/x-tar" class="hidden">
-                <div id="evUrlRow" class="hidden mt-2 flex gap-1.5">
-                    <input type="url" id="evUrlInput" placeholder="https://…" class="flex-1 text-sm px-2 py-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900">
-                    <button type="button" id="evUrlAdd" class="text-xs px-2 py-1 rounded bg-govbr-600 dark:bg-unifesp-700 text-white">Adicionar</button>
-                    <button type="button" id="evUrlCancel" class="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600">Cancelar</button>
-                </div>
-                <p class="text-xs text-gray-500 mt-2">Arraste e solte, cole (Ctrl+V) ou use os botões acima — PDF, imagem, vídeo, link ou zip/tar.gz. Marque <strong>“pública”</strong> em <em>quantas</em> evidências quiser (0 ou mais). Use ↑ ↓ para reordenar. A <strong>tag</strong> categoriza o documento (ex.: Certificado, Declaração…).</p>
-                <ul id="evList" class="mt-2 space-y-1"></ul>
-            </div>
-
-            <div class="grid grid-cols-2 gap-2">
-                <div>
-                    <label class="block text-xs font-semibold mb-1" for="selCategoria">Categoria</label>
-                    <select id="selCategoria" class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900"></select>
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold mb-1" for="selTipoSearch">Tipo do item</label>
-                    <div class="relative">
-                        <input type="text" id="selTipoSearch" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="selTipoList" autocomplete="off" placeholder="Buscar tipo…" class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900">
-                        <input type="hidden" id="selTipo">
-                        <ul id="selTipoList" role="listbox" class="hidden absolute z-30 mt-1 max-h-64 w-full overflow-auto rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 shadow-lg"></ul>
+            <div class="lg:col-span-5 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 space-y-3">
+                <h2 class="text-lg font-bold flex items-center gap-2">
+                    <i aria-hidden="true" class="fa-solid fa-file-circle-plus text-govbr-600 dark:text-unifesp-400"></i>
+                    <span id="formTitulo">${editing ? 'Editar item' : 'Novo item'}</span>
+                </h2>
+                <div id="draftBanner"></div>
+                <div class="grid md:grid-cols-3 gap-3">
+                    <div id="evidenceBlock" class="bg-govbr-50 dark:bg-gray-900 border border-govbr-100 dark:border-gray-700 rounded px-3 py-2 transition-shadow">
+                        <label class="block text-xs font-semibold mb-2" for="pdfInput"><i aria-hidden="true" class="fa-solid fa-file-arrow-up text-govbr-600 dark:text-unifesp-400 mr-1"></i> <span id="pdfInputLabel">Evidências</span></label>
+                        <div class="flex items-center gap-2">
+                            <button type="button" id="btnEvInbox" title="Bandeja de entrada: anexar próximo arquivo pendente" class="relative w-12 h-12 shrink-0 rounded border border-govbr-200 dark:border-gray-600 text-govbr-700 dark:text-unifesp-300 hover:bg-govbr-100 dark:hover:bg-gray-700 flex items-center justify-center disabled:opacity-40">
+                                <i aria-hidden="true" class="fa-solid fa-inbox text-[2em]"></i>
+                                <span id="inboxBadge" class="hidden absolute -bottom-1.5 -right-1.5 min-w-[16px] h-4 px-1 bg-govbr-600 dark:bg-unifesp-600 text-white text-[10px] leading-4 rounded-full text-center"></span>
+                            </button>
+                            <button type="button" id="btnEvFiles" title="Escolher arquivos (PDF, imagem, vídeo ou zip/tar.gz)" class="relative w-12 h-12 shrink-0 rounded border border-govbr-200 dark:border-gray-600 text-govbr-700 dark:text-unifesp-300 hover:bg-govbr-100 dark:hover:bg-gray-700 flex items-center justify-center">
+                                <i aria-hidden="true" class="fa-solid fa-magnifying-glass text-[2em]"></i>
+                                <i aria-hidden="true" class="fa-solid fa-plus absolute -bottom-1 -right-1 w-3.5 h-3.5 text-[9px] leading-[14px] bg-govbr-600 dark:bg-unifesp-600 text-white rounded-full text-center"></i>
+                            </button>
+                            <button type="button" id="btnEvUrl" title="Inserir evidência por link (URL)" class="relative w-12 h-12 shrink-0 rounded border border-govbr-200 dark:border-gray-600 text-govbr-700 dark:text-unifesp-300 hover:bg-govbr-100 dark:hover:bg-gray-700 flex items-center justify-center">
+                                <i aria-hidden="true" class="fa-solid fa-pen text-[2em]"></i>
+                                <span aria-hidden="true" class="absolute -bottom-1.5 -right-1.5 px-1 bg-govbr-600 dark:bg-unifesp-600 text-white text-[8px] leading-[13px] rounded">URL</span>
+                            </button>
+                        </div>
+                        <input type="file" id="pdfInput" multiple accept="application/pdf,image/jpeg,image/png,image/gif,image/webp,video/mp4,video/webm,video/quicktime,video/x-msvideo,video/x-matroska,application/zip,application/x-zip-compressed,application/gzip,application/x-gzip,application/x-tar" class="hidden">
+                        <div id="evUrlRow" class="hidden mt-2 flex gap-1.5">
+                            <input type="url" id="evUrlInput" placeholder="https://…" class="flex-1 text-sm px-2 py-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900">
+                            <button type="button" id="evUrlAdd" class="text-xs px-2 py-1 rounded bg-govbr-600 dark:bg-unifesp-700 text-white">Adicionar</button>
+                            <button type="button" id="evUrlCancel" class="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600">Cancelar</button>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-2">Arraste e solte, cole (Ctrl+V) ou use os botões acima — PDF, imagem, vídeo, link ou zip/tar.gz. Marque <strong>“pública”</strong> em <em>quantas</em> evidências quiser (0 ou mais). Use ↑ ↓ para reordenar. A <strong>tag</strong> categoriza o documento (ex.: Certificado, Declaração…).</p>
+                        <ul id="evList" class="mt-2 space-y-1"></ul>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold mb-1" for="selCategoria">Categoria</label>
+                        <select id="selCategoria" class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900"></select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold mb-1" for="selTipoSearch">Tipo do item</label>
+                        <div class="relative">
+                            <input type="text" id="selTipoSearch" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="selTipoList" autocomplete="off" placeholder="Buscar tipo…" class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900">
+                            <input type="hidden" id="selTipo">
+                            <ul id="selTipoList" role="listbox" class="hidden absolute z-30 mt-1 max-h-64 w-full overflow-auto rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 shadow-lg"></ul>
+                        </div>
                     </div>
                 </div>
-            </div>
-            <p id="catNote" class="hidden text-xs text-govbr-700 dark:text-unifesp-300 bg-govbr-50 dark:bg-gray-800 border border-govbr-100 dark:border-gray-700 rounded px-2 py-1.5"></p>
-
-            <div id="dynFields" class="space-y-3"></div>
-            <div id="rscBlock" class="space-y-3"></div>
-
-            <div class="space-y-1">
-                <label class="block text-xs font-semibold" for="notasGerais">Anotações gerais</label>
-                <textarea id="notasGerais" name="notasGerais" rows="3" maxlength="4000" placeholder="Escreva aqui suas conquistas, aprendizados ou impacto da atividade. Este é um campo livre e não será exportado para o Lattes ou publicado." class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900">${esc(item && item.notasGerais || '')}</textarea>
+                <p id="catNote" class="hidden text-xs text-govbr-700 dark:text-unifesp-300 bg-govbr-50 dark:bg-gray-800 border border-govbr-100 dark:border-gray-700 rounded px-2 py-1.5"></p>
             </div>
 
-            <p id="idInfo" class="text-xs text-gray-500"></p>
+            <div id="camposPanel" class="hidden lg:col-span-2 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 space-y-3">
+                <div id="dynFields" class="space-y-3"></div>
+                <div id="rscBlock" class="space-y-3"></div>
 
-            <div class="flex gap-2 pt-1 flex-wrap">
-                <button type="submit" class="px-4 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm font-semibold hover:opacity-90">
-                    <i aria-hidden="true" class="fa-solid fa-floppy-disk mr-1"></i> ${editing ? 'Salvar alterações' : 'Salvar'}
-                </button>
-                <button type="button" id="btnSalvarNovo" class="px-4 py-2 rounded border border-govbr-600 dark:border-unifesp-500 text-govbr-700 dark:text-unifesp-300 text-sm font-semibold hover:bg-govbr-50 dark:hover:bg-gray-800" title="Salva e abre um novo item na mesma categoria/tipo">
-                    <i aria-hidden="true" class="fa-solid fa-plus mr-1"></i> Salvar e novo
-                </button>
-                <button type="button" id="btnCancelar" class="px-4 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm ${editing ? '' : 'hidden'}">Cancelar</button>
+                <div class="space-y-1">
+                    <label class="block text-xs font-semibold" for="notasGerais">Anotações gerais</label>
+                    <textarea id="notasGerais" name="notasGerais" rows="3" maxlength="4000" placeholder="Escreva aqui suas conquistas, aprendizados ou impacto da atividade. Este é um campo livre e não será exportado para o Lattes ou publicado." class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900">${esc(item && item.notasGerais || '')}</textarea>
+                </div>
+
+                <p id="idInfo" class="text-xs text-gray-500"></p>
+
+                <div class="flex gap-2 pt-1 flex-wrap">
+                    <button type="submit" class="px-4 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm font-semibold hover:opacity-90">
+                        <i aria-hidden="true" class="fa-solid fa-floppy-disk mr-1"></i> ${editing ? 'Salvar alterações' : 'Salvar'}
+                    </button>
+                    <button type="button" id="btnSalvarNovo" class="px-4 py-2 rounded border border-govbr-600 dark:border-unifesp-500 text-govbr-700 dark:text-unifesp-300 text-sm font-semibold hover:bg-govbr-50 dark:hover:bg-gray-800" title="Salva e abre um novo item na mesma categoria/tipo">
+                        <i aria-hidden="true" class="fa-solid fa-plus mr-1"></i> Salvar e novo
+                    </button>
+                    <button type="button" id="btnCancelar" class="px-4 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm ${editing ? '' : 'hidden'}">Cancelar</button>
+                </div>
             </div>
             ${datalistsHtml()}`;
 
@@ -866,6 +872,11 @@
             }
         }
         function renderDynFields() {
+            // Painel de campos (coluna esquerda) só aparece depois de um Tipo
+            // do item escolhido — layout em T (topo: evidências/categoria/
+            // tipo; esquerda: campos; direita: prévia do PDF).
+            const camposPanel = $('#camposPanel');
+            if (camposPanel) camposPanel.classList.toggle('hidden', !$('#selTipo').value);
             const def = LattesTypes.get($('#selTipo').value);
             const vals = item ? (item.fields || {}) : {};
             $('#dynFields').innerHTML = dynFieldsHtml(def ? def.fields : [], vals);
