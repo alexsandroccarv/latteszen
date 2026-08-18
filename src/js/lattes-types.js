@@ -595,6 +595,12 @@ window.LattesTypes = (function () {
                 const t = coloc ? `${cargo || f.titulo || ''} (${coloc})`.trim() : cargo;
                 if (t) return t;
             }
+            // Orientações: "Nome do orientando | Título do trabalho" (o ano já
+            // aparece à parte no card).
+            if (item.typeKey === 'ORIENTACAO_CONCLUIDA' || item.typeKey === 'ORIENTACAO_ANDAMENTO') {
+                const t = [f.orientando, f.titulo].map(x => String(x || '').trim()).filter(Boolean).join(' | ');
+                if (t) return t;
+            }
             // Documentos pessoais: "Tipo de documento · Descrição/Nº do documento"
             if (item.typeKey === 'DOCUMENTO_PESSOAL') {
                 const t = [f.tipoDoc, f.titulo].map(x => String(x || '').trim()).filter(Boolean).join(' · ');
