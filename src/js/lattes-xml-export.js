@@ -291,7 +291,9 @@ window.LattesXMLExport = (function () {
 
     // FORMACAO-ACADEMICA-TITULACAO — agrupa por nível, na ordem do XSD.
     const STATUS_CURSO_TOKEN = { 'Em andamento': 'EM_ANDAMENTO', 'Concluído': 'CONCLUIDO', 'Incompleto': 'INCOMPLETO' };
-    const FLAG_BOLSA_TOKEN = { 'Sim': 'SIM', 'Não': 'NAO' };
+    // Mapeia campos "Sim"/"Não" da interface p/ os tokens SIM/NAO do Lattes
+    // (usado em qualquer atributo FLAG-* — bolsa, dedicação exclusiva, etc.).
+    const FLAG_SIM_NAO = { 'Sim': 'SIM', 'Não': 'NAO' };
     // Setores de atividade (até 3, atributos SETOR-DE-ATIVIDADE-1..3) a partir de "saúde; educação"
     function setoresAtividadeEl(str) {
         const arr = String(str == null ? '' : str).split(';').map(clean).filter(Boolean).slice(0, 3);
@@ -329,7 +331,7 @@ window.LattesXMLExport = (function () {
                 'STATUS-DO-CURSO': STATUS_CURSO_TOKEN[f.statusCurso] || statusCurso(f.anoFim),
                 'ANO-DE-INICIO': year(f.anoInicio), 'ANO-DE-CONCLUSAO': year(f.anoFim),
             };
-            if (!SEM_BOLSA.has(elname)) { base['FLAG-BOLSA'] = FLAG_BOLSA_TOKEN[f.comBolsa] || ''; base['NOME-AGENCIA'] = f.bolsa; }
+            if (!SEM_BOLSA.has(elname)) { base['FLAG-BOLSA'] = FLAG_SIM_NAO[f.comBolsa] || ''; base['NOME-AGENCIA'] = f.bolsa; }
             const anoTitulo = year(f.anoObtencaoTitulo) || year(f.anoFim);
             // Ensino fundamental/médio/Residência médica não têm NOME-CURSO.
             if (elname === 'GRADUACAO') { base['NOME-CURSO'] = f.curso; base['TIPO-GRADUACAO'] = f.tipoGraduacao; base['TITULO-DO-TRABALHO-DE-CONCLUSAO-DE-CURSO'] = f.titulo; base['NOME-DO-ORIENTADOR'] = f.orientador; }
@@ -366,7 +368,7 @@ window.LattesXMLExport = (function () {
                     'SEQUENCIA-FORMACAO': String(i + 1), 'NIVEL': 'POS-DOUTORADO', 'NOME-INSTITUICAO': f.instituicao,
                     'STATUS-DO-CURSO': STATUS_CURSO_TOKEN[f.statusCurso] || '',
                     'ANO-DE-INICIO': year(f.anoInicio), 'ANO-DE-CONCLUSAO': year(f.anoFim),
-                    'TITULO-DO-TRABALHO': f.titulo, 'FLAG-BOLSA': FLAG_BOLSA_TOKEN[f.comBolsa] || '', 'NOME-AGENCIA': f.bolsa,
+                    'TITULO-DO-TRABALHO': f.titulo, 'FLAG-BOLSA': FLAG_SIM_NAO[f.comBolsa] || '', 'NOME-AGENCIA': f.bolsa,
                 }, extra));
             }
         });
@@ -408,11 +410,11 @@ window.LattesXMLExport = (function () {
             // 1) VINCULOS*
             g.vincs.forEach(it => {
                 const f = it.fields;
-                const de = /exclusiv/i.test(f.regime || '') ? 'SIM' : '';
                 seq.push(el('VINCULOS', {
                     'TIPO-DE-VINCULO': 'LIVRE', 'ENQUADRAMENTO-FUNCIONAL': 'LIVRE',
                     'OUTRO-VINCULO-INFORMADO': f.vinculo, 'OUTRO-ENQUADRAMENTO-FUNCIONAL-INFORMADO': f.cargo,
-                    'CARGA-HORARIA-SEMANAL': f.cargaHoraria, 'FLAG-DEDICACAO-EXCLUSIVA': de,
+                    'CARGA-HORARIA-SEMANAL': f.cargaHoraria, 'FLAG-DEDICACAO-EXCLUSIVA': FLAG_SIM_NAO[f.dedicacaoExclusiva] || '',
+                    'FLAG-VINCULO-EMPREGATICIO': FLAG_SIM_NAO[f.vinculoEmpregaticio] || '',
                     'ANO-INICIO': year(f.anoInicio), 'ANO-FIM': year(f.anoFim), 'OUTRAS-INFORMACOES': f.titulo,
                 }));
             });

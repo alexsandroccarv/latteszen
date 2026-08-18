@@ -30,6 +30,14 @@ const F_DINI = { key: 'anoInicio', label: 'Data de início', type: 'datebr' };
 const F_DFIM = { key: 'anoFim', label: 'Data de fim (vazio = atual)', type: 'datebr' };
 const F_PAIS = { key: 'pais', label: 'País', type: 'text', placeholder: 'Brasil' };
 const F_IDIOMA = { key: 'idioma', label: 'Idioma', type: 'text', placeholder: 'Português' };
+// Período usado nos itens de Atuação (Vínculo, Corpo editorial, Comitê,
+// Revisor...): Início, Situação (Atual/Anterior) e Fim — o Fim só aparece
+// quando a Situação é "Anterior (finalizado)", como na tela real do Lattes.
+const periodoComSituacao = () => [
+    { key: 'anoInicio', label: 'Início (mês/ano)', type: 'datebr' },
+    { key: 'situacao', label: 'Situação', type: 'select', options: ['Atual (não finalizado)', 'Anterior (finalizado)'] },
+    { key: 'anoFim', label: 'Fim (mês/ano)', type: 'datebr', disabledWhen: { field: 'situacao', in: ['', 'Atual (não finalizado)'] } },
+];
 
 // Níveis de Formação acadêmica/titulação (espelha FORMACAO-ACADEMICA-TITULACAO
 // do schema Lattes) e um atalho para "todos os níveis, exceto os informados"
@@ -199,21 +207,35 @@ const TYPES = {
 
     // 03 Atuação
     VINCULO_PROFISSIONAL: { label: 'Atuação profissional', fields: [
-        { key: 'instituicao', label: 'Instituição / Empresa', type: 'text', required: true }, { key: 'vinculo', label: 'Tipo de vínculo', type: 'text' },
-        { key: 'cargo', label: 'Cargo / Função (enquadramento)', type: 'text' },
-        { key: 'regime', label: 'Regime de trabalho', type: 'select', options: ['Dedicação exclusiva', 'Integral', 'Parcial'] },
-        { key: 'cargaHoraria', label: 'Carga horária semanal (h)', type: 'number' },
-        F_DINI, F_DFIM,
-        { key: 'titulo', label: 'Outras informações / atividades', type: 'textarea' }] },
+        { key: 'instituicao', label: 'Nome da instituição', type: 'text', required: true },
+        { key: 'vinculo', label: 'Tipo do vínculo', type: 'text' },
+        { key: 'vinculoEmpregaticio', label: 'Possui vínculo empregatício?', type: 'select', options: ['Sim', 'Não'] },
+        { key: 'cargo', label: 'Enquadramento funcional', type: 'text' },
+        { key: 'cargaHoraria', label: 'Carga horária semanal', type: 'number' },
+        { key: 'dedicacaoExclusiva', label: 'Dedicação exclusiva', type: 'select', options: ['Sim', 'Não'] },
+        ...periodoComSituacao(),
+        { key: 'titulo', label: 'Outras informações', type: 'textarea' }] },
     LINHA_PESQUISA: { label: 'Linhas de pesquisa', fields: [{ key: 'titulo', label: 'Linha de pesquisa', type: 'text', required: true }, F_INST, { key: 'descricao', label: 'Objetivos', type: 'textarea' }] },
     // noExport: o schema oficial CurriculoLattes.xsd NÃO possui elemento para
     // corpo editorial, comitê de assessoramento nem revisor (periódico/fomento)
     // — só há ATIVIDADES-DE-CONSELHO-COMISSAO-E-CONSULTORIA (=ATIV_CONSELHO).
     // Ficam catalogáveis localmente e na página pública, mas fora do XML Lattes.
-    CORPO_EDITORIAL: { label: 'Membro de corpo editorial', noExport: true, fields: [{ key: 'titulo', label: 'Periódico', type: 'text', required: true }, { key: 'issn', label: 'ISSN', type: 'text' }, F_DINI, F_DFIM] },
-    COMITE_ASSESSORAMENTO: { label: 'Membro de comitê de assessoramento', noExport: true, fields: [{ key: 'titulo', label: 'Comitê / Órgão', type: 'text', required: true }, F_INST, F_DINI, F_DFIM] },
-    REVISOR_PERIODICO: { label: 'Revisor de periódico', noExport: true, fields: [{ key: 'titulo', label: 'Periódico', type: 'text', required: true }, { key: 'issn', label: 'ISSN', type: 'text' }, F_DINI, F_DFIM] },
-    REVISOR_FOMENTO: { label: 'Revisor de projeto de agência de fomento', noExport: true, fields: [{ key: 'titulo', label: 'Agência de fomento', type: 'text', required: true }, F_DINI, F_DFIM] },
+    CORPO_EDITORIAL: { label: 'Membro de corpo editorial', noExport: true, fields: [
+        { key: 'titulo', label: 'Periódico', type: 'text', required: true },
+        ...periodoComSituacao()] },
+    COMITE_ASSESSORAMENTO: { label: 'Membro de comitê de assessoramento', noExport: true, fields: [
+        { key: 'instituicao', label: 'Agência de fomento', type: 'text' },
+        { key: 'titulo', label: 'Comitê', type: 'text', required: true },
+        ...periodoComSituacao(),
+        { key: 'outrasInfo', label: 'Outras informações', type: 'textarea' }] },
+    REVISOR_PERIODICO: { label: 'Revisor de periódico', noExport: true, fields: [
+        { key: 'titulo', label: 'Periódico', type: 'text', required: true },
+        ...periodoComSituacao(),
+        { key: 'outrasInfo', label: 'Outras informações', type: 'textarea' }] },
+    REVISOR_FOMENTO: { label: 'Revisor de projeto de agência de fomento', noExport: true, fields: [
+        { key: 'titulo', label: 'Agência de fomento', type: 'text', required: true },
+        ...periodoComSituacao(),
+        { key: 'outrasInfo', label: 'Outras informações', type: 'textarea' }] },
     AREA_ATUACAO: { label: 'Áreas de atuação', noEvidence: true, perfil: true, fields: [{ key: 'areaConhecimento', label: 'Área do conhecimento (CNPq/CAPES)', type: 'areatree', required: true, help: 'Selecione do mais geral ao mais específico: Grande área › Área › Subárea › Especialidade.' }] },
     // Atividades da atuação profissional
     ATIV_ENSINO: { label: 'Ensino / Disciplinas ministradas', fields: [{ key: 'titulo', label: 'Curso / Nível', type: 'text', required: true }, F_INST, F_DINI, F_DFIM, { key: 'disciplinas', label: 'Disciplinas', type: 'textarea' }] },

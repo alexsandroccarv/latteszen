@@ -77,7 +77,8 @@ items.push(mk('LICENCA', 'DADOS_GERAIS', { titulo: 'Licença', tipo: 'Paternidad
 // Patente com datas
 items.push(mk('PATENTE', 'PATENTES_REGISTROS', { titulo: 'Invento', ano: '2020', autores: 'TAL, F.', categoria: 'Nacional', finalidade: 'X', registro: 'BR123', dataDeposito: '2019-05-10', dataConcessao: '2022-08-01', situacao: 'Concedida', instituicao: 'UNIFESP', pais: 'Brasil' }));
 // Atuação com atividades
-items.push(mk('VINCULO_PROFISSIONAL', 'ATUACAO', { instituicao: 'UNIFESP', vinculo: 'Servidor', cargo: 'Professor', regime: 'Dedicação exclusiva', cargaHoraria: '40', anoInicio: '2010', anoFim: '' }));
+items.push(mk('VINCULO_PROFISSIONAL', 'ATUACAO', { instituicao: 'UNIFESP', vinculo: 'Servidor', vinculoEmpregaticio: 'Sim', cargo: 'Professor', dedicacaoExclusiva: 'Sim', cargaHoraria: '40', anoInicio: '2010', situacao: 'Atual (não finalizado)', anoFim: '' }));
+items.push(mk('VINCULO_PROFISSIONAL', 'ATUACAO', { instituicao: 'UNIFESP', vinculo: 'Colaborador', vinculoEmpregaticio: 'Não', cargo: 'Pesquisador visitante', dedicacaoExclusiva: 'Não', cargaHoraria: '10', anoInicio: '2005', situacao: 'Anterior (finalizado)', anoFim: '2009' }));
 items.push(mk('ATIV_ENSINO', 'ATUACAO', { titulo: 'Graduação em Medicina', instituicao: 'UNIFESP', anoInicio: '2011', anoFim: '2020', disciplinas: 'Anatomia; Fisiologia' }));
 items.push(mk('ATIV_DIRECAO', 'ATUACAO', { titulo: 'Coordenador', orgao: 'Departamento', instituicao: 'UNIFESP', anoInicio: '2015', anoFim: '2017' }));
 items.push(mk('ATIV_CONSELHO', 'ATUACAO', { titulo: 'Conselho X', papel: 'Membro', instituicao: 'UNIFESP', anoInicio: '2016', anoFim: '2018' }));
