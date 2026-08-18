@@ -188,7 +188,7 @@ const TYPES = {
         { key: 'nacionalidade', label: 'Nacionalidade', type: 'text', placeholder: 'Brasileira' },
         { key: 'paisNacionalidade', label: 'País de nacionalidade', type: 'select', options: window.PAISES_LATTES || [] },
         { key: 'pais', label: 'País de nascimento', type: 'select', options: window.PAISES_LATTES || [] },
-        { key: 'ufNascimento', label: 'UF de nascimento', type: 'text', placeholder: 'ex.: RS' },
+        { key: 'ufNascimento', label: 'UF de nascimento', type: 'text', placeholder: 'ex.: RS', disabledWhen: { field: 'pais', notEquals: 'Brasil' } },
         { key: 'cidadeNascimento', label: 'Cidade de nascimento', type: 'text' },
         { key: 'dataNascimento', label: 'Data de nascimento', type: 'datebr' },
         { key: 'orcid', label: 'ORCID', type: 'text' },
