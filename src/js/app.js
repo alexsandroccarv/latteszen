@@ -876,6 +876,7 @@
             wireNA($('#dynFields'));                     // checkbox "N/A" dos campos URL
             wireDateBr($('#dynFields'));                 // máscara dd/mm/aaaa (campos datebr)
             wireConditional($('#dynFields'), def);       // campos bloqueados por condição
+            wireDynamicLabels($('#dynFields'), def);     // rótulos que mudam conforme outro campo
             renderRscBlock(item);                        // camada RSC (se habilitado)
             const semEvidencia = !!(def && def.noEvidence);
             $('#evidenceBlock').style.display = semEvidencia ? 'none' : '';
@@ -1323,6 +1324,24 @@
             };
             ctrl.addEventListener('change', apply);
             apply(); // estado inicial
+        });
+    }
+    // Campos com `labelWhen`: troca o texto do <label> conforme o valor do
+    // campo controlador (ex.: "Título da dissertação/tese" vira "Título
+    // monografia" quando o Nível é Graduação) — o campo em si (chave/valor)
+    // continua único; só o rótulo muda.
+    function wireDynamicLabels(container, def) {
+        (def && def.fields || []).filter(f => f.labelWhen).forEach(f => {
+            const ctrl = container.querySelector(`[name="${f.labelWhen.field}"]`);
+            const wrap = container.querySelector(`[data-field="${f.key}"]`);
+            const label = wrap && wrap.querySelector(':scope > label');
+            if (!ctrl || !label) return;
+            const apply = () => {
+                const text = f.labelWhen.map[ctrl.value] || f.label;
+                label.innerHTML = esc(text) + (f.required ? ' <span class="text-red-500">*</span>' : '');
+            };
+            ctrl.addEventListener('change', apply);
+            apply();
         });
     }
     // Checkbox "N/A" (Não se aplica) dos campos URL: bloqueia/limpa o input

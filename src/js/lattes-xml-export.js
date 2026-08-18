@@ -291,6 +291,7 @@ window.LattesXMLExport = (function () {
 
     // FORMACAO-ACADEMICA-TITULACAO — agrupa por nível, na ordem do XSD.
     const STATUS_CURSO_TOKEN = { 'Em andamento': 'EM_ANDAMENTO', 'Concluído': 'CONCLUIDO', 'Incompleto': 'INCOMPLETO' };
+    const FLAG_BOLSA_TOKEN = { 'Sim': 'SIM', 'Não': 'NAO' };
     // Setores de atividade (até 3, atributos SETOR-DE-ATIVIDADE-1..3) a partir de "saúde; educação"
     function setoresAtividadeEl(str) {
         const arr = String(str == null ? '' : str).split(';').map(clean).filter(Boolean).slice(0, 3);
@@ -317,6 +318,8 @@ window.LattesXMLExport = (function () {
         };
         // Níveis com PALAVRAS-CHAVE/AREAS-DO-CONHECIMENTO/SETORES-DE-ATIVIDADE (filhos, nessa ordem)
         const COM_PALAVRAS_AREAS = new Set(['MESTRADO', 'MESTRADO-PROFISSIONALIZANTE', 'DOUTORADO', 'RESIDENCIA-MEDICA']);
+        // Ensino fundamental/médio não têm bolsa (nem os demais campos abaixo).
+        const SEM_BOLSA = new Set(['ENSINO-FUNDAMENTAL-PRIMEIRO-GRAU', 'ENSINO-MEDIO-SEGUNDO-GRAU']);
         fa.forEach((it, i) => {
             const f = it.fields; const elname = NIVEL_EL[f.nivel] || 'GRADUACAO';
             // Atributos comuns a todos os níveis
@@ -326,24 +329,27 @@ window.LattesXMLExport = (function () {
                 'STATUS-DO-CURSO': STATUS_CURSO_TOKEN[f.statusCurso] || statusCurso(f.anoFim),
                 'ANO-DE-INICIO': year(f.anoInicio), 'ANO-DE-CONCLUSAO': year(f.anoFim),
             };
+            if (!SEM_BOLSA.has(elname)) { base['FLAG-BOLSA'] = FLAG_BOLSA_TOKEN[f.comBolsa] || ''; base['NOME-AGENCIA'] = f.bolsa; }
             const anoTitulo = year(f.anoObtencaoTitulo) || year(f.anoFim);
-            // Ensino fundamental/médio não têm NOME-CURSO nem agência/título.
-            if (elname === 'GRADUACAO') { base['NOME-CURSO'] = f.curso; base['NOME-AGENCIA'] = f.bolsa; base['TITULO-DO-TRABALHO-DE-CONCLUSAO-DE-CURSO'] = f.titulo; base['NOME-DO-ORIENTADOR'] = f.orientador; }
-            else if (elname === 'ESPECIALIZACAO' || elname === 'APERFEICOAMENTO') { base['NOME-CURSO'] = f.curso; base['NOME-AGENCIA'] = f.bolsa; base['TITULO-DA-MONOGRAFIA'] = f.titulo; base['NOME-DO-ORIENTADOR'] = f.orientador; }
+            // Ensino fundamental/médio/Residência médica não têm NOME-CURSO.
+            if (elname === 'GRADUACAO') { base['NOME-CURSO'] = f.curso; base['TIPO-GRADUACAO'] = f.tipoGraduacao; base['TITULO-DO-TRABALHO-DE-CONCLUSAO-DE-CURSO'] = f.titulo; base['NOME-DO-ORIENTADOR'] = f.orientador; }
+            else if (elname === 'ESPECIALIZACAO' || elname === 'APERFEICOAMENTO') { base['NOME-CURSO'] = f.curso; base['CARGA-HORARIA'] = f.cargaHoraria; base['TITULO-DA-MONOGRAFIA'] = f.titulo; base['NOME-DO-ORIENTADOR'] = f.orientador; }
             else if (elname === 'MESTRADO' || elname === 'MESTRADO-PROFISSIONALIZANTE' || elname === 'DOUTORADO') {
-                base['NOME-CURSO'] = f.curso; base['NOME-AGENCIA'] = f.bolsa; base['ANO-DE-OBTENCAO-DO-TITULO'] = anoTitulo;
+                base['NOME-CURSO'] = f.curso; base['ANO-DE-OBTENCAO-DO-TITULO'] = anoTitulo;
                 base['TITULO-DA-DISSERTACAO-TESE'] = f.titulo; base['NOME-COMPLETO-DO-ORIENTADOR'] = f.orientador; base['NOME-DO-CO-ORIENTADOR'] = f.coorientador;
                 if (elname === 'MESTRADO') base['TIPO-MESTRADO'] = f.tipoMestrado;
                 if (elname === 'DOUTORADO') base['TIPO-DOUTORADO'] = f.tipoDoutorado;
+                // Mestrado profissional (MESTRADO-PROFISSIONALIZANTE) não tem
+                // atributo TIPO- no schema oficial; "Tipo de mestrado
+                // profissional" fica só de uso local (não é exportado).
             }
-            else if (elname === 'CURSO-TECNICO-PROFISSIONALIZANTE') { base['NOME-CURSO'] = f.curso; base['NOME-AGENCIA'] = f.bolsa; }
-            else if (elname === 'RESIDENCIA-MEDICA') { base['NOME-AGENCIA'] = f.bolsa; base['TITULO-DA-RESIDENCIA-MEDICA'] = f.titulo; }
+            else if (elname === 'CURSO-TECNICO-PROFISSIONALIZANTE') { base['NOME-CURSO'] = f.curso; }
+            else if (elname === 'RESIDENCIA-MEDICA') { base['TITULO-DA-RESIDENCIA-MEDICA'] = f.residenciaEm; base['NUMERO-DO-REGISTRO'] = f.numeroRegistro; }
             const extra = COM_PALAVRAS_AREAS.has(elname)
                 ? palavrasChaveEl(f.palavrasChave) + areaDoConhecimentoEl(f) + setoresAtividadeEl(f.setores)
                 : '';
             buckets[elname].push(el(elname, base, extra));
         });
-        const FLAG_BOLSA_TOKEN = { 'Sim': 'SIM', 'Não': 'NAO' };
         pd.forEach((it, i) => {
             const f = it.fields;
             // Áreas do conhecimento: comum a Pós-Doutorado e Livre-docência.
