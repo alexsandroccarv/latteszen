@@ -1293,12 +1293,13 @@
     // onde cada Nível usa um subconjunto bem diferente de campos).
     function wireConditional(container, def) {
         (def && def.fields || []).filter(f => f.disabledWhen).forEach(f => {
-            const ctrl = container.querySelector(`[name="${f.disabledWhen.field}"]`);
+            const conds = Array.isArray(f.disabledWhen) ? f.disabledWhen : [f.disabledWhen];
+            const ctrls = conds.map(c => container.querySelector(`[name="${c.field}"]`)).filter(Boolean);
             const wrap = container.querySelector(`[data-field="${f.key}"]`);
-            if (!ctrl || !wrap) return;
+            if (!ctrls.length || !wrap) return;
             const input = container.querySelector(`[name="${f.key}"]`);
             const apply = () => {
-                const vals = {}; vals[f.disabledWhen.field] = ctrl.value;
+                const vals = {}; conds.forEach(c => { const el = container.querySelector(`[name="${c.field}"]`); if (el) vals[c.field] = el.value; });
                 const off = isFieldDisabled(f, vals);
                 wrap.classList.toggle('hidden', off);
                 if (off) {
@@ -1310,7 +1311,7 @@
                     input.required = true;
                 }
             };
-            ctrl.addEventListener('change', apply);
+            ctrls.forEach(ctrl => ctrl.addEventListener('change', apply));
             apply(); // estado inicial
         });
     }
@@ -1382,13 +1383,20 @@
     // campo controlador tem o valor indicado (ex.: Título da apresentação some
     // quando a Forma de participação é "Ouvinte"). Nesse estado não é preenchido
     // nem contado na completude da descrição.
+    // `disabledWhen` aceita uma condição única ou uma lista — desabilitado se
+    // QUALQUER uma bater (ex.: Obtenção do título de Formação acadêmica some
+    // se o Nível não for de pós-graduação OU se o Status do curso não for
+    // "Concluído").
     function isFieldDisabled(f, fields) {
         const c = f && f.disabledWhen;
         if (!c) return false;
-        const v = (fields || {})[c.field];
-        if (c.equals != null) return v === c.equals;
-        if (Array.isArray(c.in)) return c.in.indexOf(v) >= 0;
-        return false;
+        const conds = Array.isArray(c) ? c : [c];
+        return conds.some(cond => {
+            const v = (fields || {})[cond.field];
+            if (cond.equals != null) return v === cond.equals;
+            if (Array.isArray(cond.in)) return cond.in.indexOf(v) >= 0;
+            return false;
+        });
     }
     function collectFields(form, def) {
         const fields = {};

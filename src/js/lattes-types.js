@@ -140,7 +140,10 @@ const TYPES = {
         F_AINI, { key: 'anoFim', label: 'Conclusão (ano)', type: 'datebr',
           disabledWhen: { field: 'statusCurso', in: ['', 'Em andamento', 'Incompleto'] } },
         { key: 'anoObtencaoTitulo', label: 'Obtenção do título (mês/ano)', type: 'datebr',
-          disabledWhen: { field: 'nivel', in: nivelExcept('Mestrado', 'Mestrado profissional', 'Doutorado') } },
+          disabledWhen: [
+              { field: 'nivel', in: nivelExcept('Mestrado', 'Mestrado profissional', 'Doutorado') },
+              { field: 'statusCurso', in: ['', 'Em andamento', 'Incompleto'] },
+          ] },
         { key: 'comBolsa', label: 'Com bolsa?', type: 'select', options: ['Sim', 'Não'],
           disabledWhen: { field: 'nivel', in: ['Ensino fundamental', 'Ensino médio'] } },
         { key: 'bolsa', label: 'Agência financiadora', type: 'text', disabledWhen: { field: 'comBolsa', in: ['', 'Não'] } },
