@@ -111,12 +111,13 @@ const projetoOrientacoesField = () => ({ key: 'orientacoesProjeto', label: 'Orie
 // Bloco comum de Dados gerais + rodapé (Equipe...Orientações), usado pelas
 // 4 naturezas "simples" de projeto (Pesquisa, Desenvolvimento, Extensão, Outro).
 // `extraQtd` insere campos extras na "Quantidade de alunos envolvidos" (ex.:
-// Técnico de nível médio, só em Desenvolvimento).
-const projetoFieldsPadrao = (extraQtdAntes) => [
-    { ...F_TITULO, label: 'Nome do projeto' },
+// Técnico de nível médio, só em Desenvolvimento). `tituloLabel`/`natSitRow`
+// são particularidades só de Projetos de pesquisa (ver PROJETO_PESQUISA).
+const projetoFieldsPadrao = (extraQtdAntes, tituloLabel, natSitRow) => [
+    { ...F_TITULO, label: tituloLabel || 'Título' },
     { key: 'descricao', label: 'Descrição', type: 'textarea' },
-    F_NATUREZA(NATUREZA_PROJETO_OPTIONS),
-    { key: 'situacao', label: 'Situação', type: 'select', options: SITUACAO_PROJETO_OPTIONS },
+    { ...F_NATUREZA(NATUREZA_PROJETO_OPTIONS), row: natSitRow ? 'naturezaSituacao' : undefined },
+    { key: 'situacao', label: 'Situação', type: 'select', options: SITUACAO_PROJETO_OPTIONS, row: natSitRow ? 'naturezaSituacao' : undefined },
     { key: 'anoInicio', label: 'Ano início', type: 'datebr', required: true, row: 'periodo' },
     { ...F_AFIM, label: 'Ano fim', row: 'periodo' },
     { key: 'cooperacaoEmpresa', label: 'É um projeto de cooperação entre uma instituição de pesquisa e uma empresa?', type: 'checkbox' },
@@ -136,7 +137,7 @@ const TEMATICA_PROJETO_ENSINO = ['Ensino e aprendizagem', 'Aprendizagem por proj
     'Inserção de tecnologias no ensino', 'Ação inclusiva', 'Integração social (escola, família, comunidade)', 'Projeto de intervenção',
     'Mobilidade e internacionalização', 'Avaliação', 'Gestão', 'Outra'];
 const PROJETO_ENSINO_FIELDS = [
-    { ...F_TITULO, label: 'Nome do projeto' },
+    F_TITULO,
     { key: 'descricao', label: 'Descrição', type: 'textarea' },
     F_NATUREZA(NATUREZA_PROJETO_OPTIONS),
     { key: 'situacao', label: 'Situação', type: 'select', options: SITUACAO_PROJETO_OPTIONS },
@@ -381,7 +382,7 @@ const TYPES = {
         { key: 'titulo', label: 'Cargo ou função', type: 'text', required: true, placeholder: 'Separe por ponto e vírgula (;)' }] },
 
     // 04 Projetos
-    PROJETO_PESQUISA: { label: 'Projetos de pesquisa', fields: projetoFieldsPadrao() },
+    PROJETO_PESQUISA: { label: 'Projetos de pesquisa', fields: projetoFieldsPadrao(null, 'Nome do projeto', true) },
     PROJETO_DESENVOLVIMENTO: { label: 'Projeto de desenvolvimento tecnológico', fields: projetoFieldsPadrao([QTD_TECNICO]) },
     PROJETO_EXTENSAO: { label: 'Projeto de extensão', fields: projetoFieldsPadrao() },
     PROJETO_ENSINO: { label: 'Projeto de ensino', fields: PROJETO_ENSINO_FIELDS },
