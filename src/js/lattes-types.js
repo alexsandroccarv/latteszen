@@ -166,7 +166,17 @@ const TYPES = {
         { key: 'setores', label: 'Setores de atividade', type: 'cnaeSetores', help: 'Até 3 setores (lista CNAE).',
           disabledWhen: { field: 'tipo', equals: 'Pós-Doutorado' } },
     ] },
-    FORMACAO_COMPLEMENTAR: { label: 'Formação complementar', fields: [F_TITULO, F_DINI, { key: 'anoFim', label: 'Data de conclusão', type: 'datebr' }, F_INST, { key: 'cargaHoraria', label: 'Carga horária (h)', type: 'number' }] },
+    FORMACAO_COMPLEMENTAR: { label: 'Formação complementar', fields: [
+        { key: 'titulo', label: 'Curso', type: 'text', required: true },
+        F_INST,
+        { key: 'cargaHoraria', label: 'Carga horária (h)', type: 'number' },
+        { key: 'statusCurso', label: 'Status do curso', type: 'select', options: ['Em andamento', 'Concluído', 'Incompleto'] },
+        { key: 'anoInicio', label: 'Início (ano)', type: 'datebr' },
+        { key: 'anoFim', label: 'Conclusão (ano)', type: 'datebr' },
+        { key: 'comBolsa', label: 'Com bolsa?', type: 'select', options: ['Sim', 'Não'] },
+        { key: 'bolsa', label: 'Agência financiadora', type: 'text', disabledWhen: { field: 'comBolsa', in: ['', 'Não'] } },
+        { key: 'palavrasChave', label: 'Palavras-chave', type: 'textarea', placeholder: 'Separe por ponto e vírgula (;)', help: 'Até 6 palavras-chave (limite da Plataforma Lattes).' },
+    ] },
 
     // 03 Atuação
     VINCULO_PROFISSIONAL: { label: 'Atuação profissional', fields: [

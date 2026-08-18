@@ -703,7 +703,7 @@ window.LattesXMLExport = (function () {
             return el('OUTROS', {
                 'SEQUENCIA-FORMACAO': String(++sf), 'NIVEL': 'OUTROS', 'CARGA-HORARIA': f.cargaHoraria,
                 'NOME-INSTITUICAO': f.instituicao, 'NOME-CURSO': f.titulo,
-                'STATUS-DO-CURSO': statusCurso(f.anoFim),
+                'STATUS-DO-CURSO': STATUS_CURSO_TOKEN[f.statusCurso] || statusCurso(f.anoFim),
                 'ANO-DE-INICIO': year(f.anoInicio), 'ANO-DE-CONCLUSAO': year(f.anoFim),
             });
         }).join('');
