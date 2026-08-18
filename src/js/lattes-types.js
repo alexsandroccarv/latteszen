@@ -145,10 +145,27 @@ const TYPES = {
           disabledWhen: { field: 'nivel', in: nivelExcept('Mestrado', 'Mestrado profissional', 'Doutorado', 'Residência médica') } },
     ] },
     POS_DOUTORADO: { label: 'Pós-doutorado e/ou livre-docência', fields: [
-        { key: 'tipo', label: 'Tipo', type: 'select', required: true, options: ['Pós-Doutorado', 'Livre-docência'] },
-        { key: 'instituicao', label: 'Instituição', type: 'text', required: true }, F_AINI, { key: 'anoFim', label: 'Ano de conclusão', type: 'datebr' },
-        { key: 'titulo', label: 'Título do trabalho', type: 'text' },
-        { key: 'bolsa', label: 'Bolsista / Agência financiadora', type: 'text' }] },
+        { key: 'tipo', label: 'Nível', type: 'select', required: true, options: ['Pós-Doutorado', 'Livre-docência'] },
+        { key: 'instituicao', label: 'Instituição', type: 'text', required: true },
+        // Pós-Doutorado: Status do curso, Período (início/conclusão) e Bolsa.
+        { key: 'statusCurso', label: 'Status do curso', type: 'select', options: ['Em andamento', 'Concluído', 'Incompleto'],
+          disabledWhen: { field: 'tipo', equals: 'Livre-docência' } },
+        { ...F_AINI, disabledWhen: { field: 'tipo', equals: 'Livre-docência' } },
+        { key: 'anoFim', label: 'Ano de conclusão', type: 'datebr', disabledWhen: { field: 'tipo', equals: 'Livre-docência' } },
+        { key: 'comBolsa', label: 'Com bolsa?', type: 'select', options: ['Sim', 'Não'],
+          disabledWhen: { field: 'tipo', equals: 'Livre-docência' } },
+        { key: 'bolsa', label: 'Agência financiadora', type: 'text', disabledWhen: { field: 'comBolsa', in: ['', 'Não'] } },
+        // Livre-docência: Período (obtenção do título), Detalhamento (título),
+        // Palavras-chave e Setores.
+        { key: 'anoObtencaoTitulo', label: 'Obtenção do título', type: 'datebr', disabledWhen: { field: 'tipo', equals: 'Pós-Doutorado' } },
+        { key: 'titulo', label: 'Título do trabalho', type: 'text', disabledWhen: { field: 'tipo', equals: 'Pós-Doutorado' } },
+        { key: 'palavrasChave', label: 'Palavras-chave', type: 'textarea', placeholder: 'Separe por ponto e vírgula (;)', help: 'Até 6 palavras-chave (limite da Plataforma Lattes).',
+          disabledWhen: { field: 'tipo', equals: 'Pós-Doutorado' } },
+        // Áreas: comum aos dois níveis.
+        { key: 'areaConhecimento', label: 'Área do conhecimento (CNPq/CAPES)', type: 'areatree', help: 'Selecione do mais geral ao mais específico: Grande área › Área › Subárea › Especialidade.' },
+        { key: 'setores', label: 'Setores de atividade', type: 'cnaeSetores', help: 'Até 3 setores (lista CNAE).',
+          disabledWhen: { field: 'tipo', equals: 'Pós-Doutorado' } },
+    ] },
     FORMACAO_COMPLEMENTAR: { label: 'Formação complementar', fields: [F_TITULO, F_DINI, { key: 'anoFim', label: 'Data de conclusão', type: 'datebr' }, F_INST, { key: 'cargaHoraria', label: 'Carga horária (h)', type: 'number' }] },
 
     // 03 Atuação

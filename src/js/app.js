@@ -1318,7 +1318,7 @@
                 input.disabled = off;
                 input.classList.toggle('opacity-50', off);
                 input.classList.toggle('cursor-not-allowed', off);
-                if (off) input.value = '';
+                if (off) { input.value = ''; input.dispatchEvent(new Event('change')); } // propaga p/ campos encadeados (ex.: comBolsa → bolsa)
                 input.placeholder = off ? 'Não se aplica' : (f.placeholder || '');
             };
             ctrl.addEventListener('change', apply);

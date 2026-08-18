@@ -343,19 +343,25 @@ window.LattesXMLExport = (function () {
                 : '';
             buckets[elname].push(el(elname, base, extra));
         });
+        const FLAG_BOLSA_TOKEN = { 'Sim': 'SIM', 'Não': 'NAO' };
         pd.forEach((it, i) => {
             const f = it.fields;
+            // Áreas do conhecimento: comum a Pós-Doutorado e Livre-docência.
+            // Palavras-chave/Setores só existem no formulário de Livre-docência
+            // (ficam '' e são omitidos para Pós-Doutorado).
+            const extra = palavrasChaveEl(f.palavrasChave) + areaDoConhecimentoEl(f) + setoresAtividadeEl(f.setores);
             if (/livre/i.test(f.tipo || '')) {
                 buckets['LIVRE-DOCENCIA'].push(el('LIVRE-DOCENCIA', {
                     'SEQUENCIA-FORMACAO': String(i + 1), 'NIVEL': 'LIVRE-DOCENCIA', 'NOME-INSTITUICAO': f.instituicao,
-                    'ANO-DE-OBTENCAO-DO-TITULO': year(f.anoFim), 'TITULO-DO-TRABALHO': f.titulo,
-                }));
+                    'ANO-DE-OBTENCAO-DO-TITULO': year(f.anoObtencaoTitulo), 'TITULO-DO-TRABALHO': f.titulo,
+                }, extra));
             } else {
                 buckets['POS-DOUTORADO'].push(el('POS-DOUTORADO', {
                     'SEQUENCIA-FORMACAO': String(i + 1), 'NIVEL': 'POS-DOUTORADO', 'NOME-INSTITUICAO': f.instituicao,
+                    'STATUS-DO-CURSO': STATUS_CURSO_TOKEN[f.statusCurso] || '',
                     'ANO-DE-INICIO': year(f.anoInicio), 'ANO-DE-CONCLUSAO': year(f.anoFim),
-                    'TITULO-DO-TRABALHO': f.titulo, 'NOME-AGENCIA': f.bolsa,
-                }));
+                    'TITULO-DO-TRABALHO': f.titulo, 'FLAG-BOLSA': FLAG_BOLSA_TOKEN[f.comBolsa] || '', 'NOME-AGENCIA': f.bolsa,
+                }, extra));
             }
         });
         const order = ['GRADUACAO', 'ESPECIALIZACAO', 'MESTRADO', 'DOUTORADO', 'POS-DOUTORADO', 'LIVRE-DOCENCIA',
