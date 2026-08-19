@@ -655,6 +655,7 @@ const TYPES = {
         { key: 'pais', label: 'País', type: 'select', options: window.PAISES_LATTES || [], default: 'Brasil' },
         F_CIDADE,
         { key: 'divulgacaoCT', label: 'É uma produção para educação e popularização de C&T?', type: 'select', options: ['Sim', 'Não'] },
+        { key: 'cargaHoraria', label: 'Carga horária', type: 'text', placeholder: 'ex.: 8h', help: 'Campo interno do lattesZen — não existe no Currículo Lattes e não é exportado no XML.' },
         { key: 'url', label: 'Home page do trabalho (URL)', type: 'url' }] },
     ORGANIZACAO_EVENTO: { label: 'Organização de eventos, congressos, exposições, feiras e olimpíadas', fields: [F_TITULO, F_ANO, F_AFIM, { key: 'tipoEvento', label: 'Tipo', type: 'select', options: ['Concerto', 'Concurso', 'Congresso', 'Exposição', 'Festival', 'Feira', 'Olimpíada', 'Outro'] }, { key: 'instituicao', label: 'Instituição promotora', type: 'text' }, { key: 'pais', label: 'País', type: 'select', options: window.PAISES_LATTES || [], default: 'Brasil' }, F_CIDADE, F_URL] },
 
