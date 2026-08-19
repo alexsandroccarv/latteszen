@@ -315,6 +315,8 @@ window.LattesXMLExport = (function () {
         'Coletânea': 'COLETANEA', 'Texto Integral': 'TEXTO_INTEGRAL', 'Verbete': 'VERBETE', 'Outro': 'OUTRA',
         'Periódico': 'PERIODICO', 'Livro': 'LIVRO', 'Anais': 'ANAIS', 'Catálogo': 'CATALOGO', 'Enciclopédia': 'ENCICLOPEDIA',
     };
+    // NATUREZA de Texto em jornal ou revista (DADOS-BASICOS-DO-TEXTO).
+    const TEXTO_NATUREZA_TOKEN = { 'Jornal de notícias': 'JORNAL_DE_NOTICIAS', 'Revista (Magazine)': 'REVISTA_MAGAZINE' };
     // NATUREZA do financiador de projeto (enum do FINANCIADOR-DO-PROJETO).
     const FINANCIADOR_NATUREZA_TOKEN = {
         'Bolsa': 'BOLSA', 'Auxílio financeiro': 'AUXILIO_FINANCEIRO', 'Remuneração': 'REMUNERACAO',
@@ -653,11 +655,18 @@ window.LattesXMLExport = (function () {
         const livrosCaps = wrap('LIVROS-E-CAPITULOS', [wrap('LIVROS-PUBLICADOS-OU-ORGANIZADOS', livrosArr.join('')), wrap('CAPITULOS-DE-LIVROS-PUBLICADOS', capsArr.join(''))].join(''));
 
         const textos = pick('TEXTO_JORNAL').map(f => {
-            const p = paginas(f.paginas);
-            return producao('TEXTO-EM-JORNAL-OU-REVISTA', S(),
-                'DADOS-BASICOS-DO-TEXTO', { 'TITULO-DO-TEXTO': f.titulo, 'ANO-DO-TEXTO': year(f.ano), 'PAIS-DE-PUBLICACAO': f.pais, 'IDIOMA': f.idioma, 'HOME-PAGE-DO-TRABALHO': f.url },
-                'DETALHAMENTO-DO-TEXTO', { 'TITULO-DO-JORNAL-OU-REVISTA': f.veiculo, 'DATA-DE-PUBLICACAO': ddmmaaaa(f.data), 'VOLUME': f.volume, 'PAGINA-INICIAL': p.ini, 'PAGINA-FINAL': p.fim, 'LOCAL-DE-PUBLICACAO': f.cidade },
-                f.autores);
+            // Compat.: itens antigos guardavam só "paginas" (ex.: "120-135").
+            const pLegado = paginas(f.paginas);
+            const pIni = f.paginaInicial || pLegado.ini, pFim = f.paginaFinal || pLegado.fim;
+            const db = el('DADOS-BASICOS-DO-TEXTO', {
+                'NATUREZA': TEXTO_NATUREZA_TOKEN[f.natureza] || '', 'TITULO-DO-TEXTO': f.titulo, 'ANO-DO-TEXTO': year(f.ano), 'PAIS-DE-PUBLICACAO': f.pais, 'IDIOMA': f.idioma,
+                'MEIO-DE-DIVULGACAO': MEIO_DIVULGACAO_TOKEN[f.meioDivulgacao] || '', 'HOME-PAGE-DO-TRABALHO': f.url,
+                'FLAG-RELEVANCIA': FLAG_SIM_NAO[f.relevante] || '', 'FLAG-DIVULGACAO-CIENTIFICA': FLAG_SIM_NAO[f.divulgacaoCT] || '',
+            });
+            const det = el('DETALHAMENTO-DO-TEXTO', { 'TITULO-DO-JORNAL-OU-REVISTA': f.veiculo, 'ISSN': f.issn, 'DATA-DE-PUBLICACAO': ddmmaaaa(f.data), 'VOLUME': f.volume, 'PAGINA-INICIAL': pIni, 'PAGINA-FINAL': pFim, 'LOCAL-DE-PUBLICACAO': f.cidade });
+            const autoresXml = (Array.isArray(f.autoresLista) && f.autoresLista.length) ? autoresListaEls(f.autoresLista) : autoresEls(f.autores);
+            const extra = palavrasChaveEl(f.palavrasChave) + areaDoConhecimentoEl(f) + setoresAtividadeEl(f.setores) + informacoesAdicionaisEl(f.outrasInfo);
+            return el('TEXTO-EM-JORNAL-OU-REVISTA', { 'SEQUENCIA-PRODUCAO': S() }, db + det + autoresXml + extra);
         }).join('');
 
         // DEMAIS: outra biblio, partitura, prefácio, tradução
