@@ -317,6 +317,8 @@ window.LattesXMLExport = (function () {
     };
     // NATUREZA de Texto em jornal ou revista (DADOS-BASICOS-DO-TEXTO).
     const TEXTO_NATUREZA_TOKEN = { 'Jornal de notícias': 'JORNAL_DE_NOTICIAS', 'Revista (Magazine)': 'REVISTA_MAGAZINE' };
+    // CLASSIFICACAO-DO-EVENTO (Trabalhos publicados em anais de eventos).
+    const CLASSIFICACAO_EVENTO_TOKEN = { 'Internacional': 'INTERNACIONAL', 'Nacional': 'NACIONAL', 'Regional': 'REGIONAL', 'Local': 'LOCAL' };
     // NATUREZA do financiador de projeto (enum do FINANCIADOR-DO-PROJETO).
     const FINANCIADOR_NATUREZA_TOKEN = {
         'Bolsa': 'BOLSA', 'Auxílio financeiro': 'AUXILIO_FINANCEIRO', 'Remuneração': 'REMUNERACAO',
@@ -574,11 +576,22 @@ window.LattesXMLExport = (function () {
         let seq = 0; const S = () => String(++seq);
 
         const trabalhos = pick('TRABALHO_EVENTO').map(f => {
-            const p = paginas(f.paginas);
-            return producao('TRABALHO-EM-EVENTOS', S(),
-                'DADOS-BASICOS-DO-TRABALHO', { 'NATUREZA': tok('DADOS-BASICOS-DO-TRABALHO', 'NATUREZA', f.natureza), 'TITULO-DO-TRABALHO': f.titulo, 'ANO-DO-TRABALHO': year(f.ano), 'PAIS-DO-EVENTO': f.pais, 'IDIOMA': f.idioma, 'DOI': f.doi, 'HOME-PAGE-DO-TRABALHO': f.url },
-                'DETALHAMENTO-DO-TRABALHO', { 'NOME-DO-EVENTO': f.evento, 'CIDADE-DO-EVENTO': f.cidade, 'TITULO-DOS-ANAIS-OU-PROCEEDINGS': f.anais, 'ISBN': f.isbn, 'PAGINA-INICIAL': p.ini, 'PAGINA-FINAL': p.fim },
-                f.autores);
+            // Compat.: itens antigos guardavam só "paginas" (ex.: "120-135").
+            const pLegado = paginas(f.paginas);
+            const pIni = f.paginaInicial || pLegado.ini, pFim = f.paginaFinal || pLegado.fim;
+            const db = el('DADOS-BASICOS-DO-TRABALHO', {
+                'NATUREZA': tok('DADOS-BASICOS-DO-TRABALHO', 'NATUREZA', f.natureza), 'TITULO-DO-TRABALHO': f.titulo, 'ANO-DO-TRABALHO': year(f.ano), 'PAIS-DO-EVENTO': f.pais, 'IDIOMA': f.idioma,
+                'MEIO-DE-DIVULGACAO': MEIO_DIVULGACAO_TOKEN[f.meioDivulgacao] || '', 'HOME-PAGE-DO-TRABALHO': f.url,
+                'FLAG-RELEVANCIA': FLAG_SIM_NAO[f.relevante] || '', 'DOI': f.doi, 'FLAG-DIVULGACAO-CIENTIFICA': FLAG_SIM_NAO[f.divulgacaoCT] || '',
+            });
+            const det = el('DETALHAMENTO-DO-TRABALHO', {
+                'CLASSIFICACAO-DO-EVENTO': CLASSIFICACAO_EVENTO_TOKEN[f.classificacaoEvento] || '', 'NOME-DO-EVENTO': f.evento, 'CIDADE-DO-EVENTO': f.cidade, 'ANO-DE-REALIZACAO': year(f.anoEvento),
+                'TITULO-DOS-ANAIS-OU-PROCEEDINGS': f.anais, 'VOLUME': f.volume, 'FASCICULO': f.fasciculo, 'SERIE': f.serie, 'PAGINA-INICIAL': pIni, 'PAGINA-FINAL': pFim,
+                'ISBN': f.isbn, 'NOME-DA-EDITORA': f.editora, 'CIDADE-DA-EDITORA': f.cidadeEditora,
+            });
+            const autoresXml = (Array.isArray(f.autoresLista) && f.autoresLista.length) ? autoresListaEls(f.autoresLista) : autoresEls(f.autores);
+            const extra = palavrasChaveEl(f.palavrasChave) + areaDoConhecimentoEl(f) + setoresAtividadeEl(f.setores) + informacoesAdicionaisEl(f.outrasInfo);
+            return el('TRABALHO-EM-EVENTOS', { 'SEQUENCIA-PRODUCAO': S() }, db + det + autoresXml + extra);
         }).join('');
 
         const artigos = pick('ARTIGO_PERIODICO').map(f => {
@@ -749,9 +762,18 @@ window.LattesXMLExport = (function () {
             'DETALHAMENTO-DO-TRABALHO-TECNICO', { 'FINALIDADE': f.finalidade, 'INSTITUICAO-FINANCIADORA': f.instituicao, 'CIDADE-DO-TRABALHO': f.cidade }, f.autores)).join('');
 
         // DEMAIS-TIPOS-DE-PRODUCAO-TECNICA (na ordem do XSD)
-        const apres = pick('APRESENTACAO').map(f => producao('APRESENTACAO-DE-TRABALHO', S(),
-            'DADOS-BASICOS-DA-APRESENTACAO-DE-TRABALHO', { 'NATUREZA': tok('DADOS-BASICOS-DA-APRESENTACAO-DE-TRABALHO', 'NATUREZA', f.natureza), 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma },
-            'DETALHAMENTO-DA-APRESENTACAO-DE-TRABALHO', { 'NOME-DO-EVENTO': f.evento, 'INSTITUICAO-PROMOTORA': f.instituicao, 'CIDADE-DA-APRESENTACAO': f.cidade }, f.autores)).join('');
+        const apres = pick('APRESENTACAO').map(f => {
+            // Meio de divulgação/Home page não têm atributo em DADOS-BASICOS-DA-
+            // APRESENTACAO-DE-TRABALHO neste schema — ficam só na interface.
+            const db = el('DADOS-BASICOS-DA-APRESENTACAO-DE-TRABALHO', {
+                'NATUREZA': tok('DADOS-BASICOS-DA-APRESENTACAO-DE-TRABALHO', 'NATUREZA', f.natureza), 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma,
+                'FLAG-RELEVANCIA': FLAG_SIM_NAO[f.relevante] || '', 'DOI': f.doi, 'FLAG-DIVULGACAO-CIENTIFICA': FLAG_SIM_NAO[f.divulgacaoCT] || '',
+            });
+            const det = el('DETALHAMENTO-DA-APRESENTACAO-DE-TRABALHO', { 'NOME-DO-EVENTO': f.evento, 'INSTITUICAO-PROMOTORA': f.instituicao, 'LOCAL-DA-APRESENTACAO': f.local, 'CIDADE-DA-APRESENTACAO': f.cidade });
+            const autoresXml = (Array.isArray(f.autoresLista) && f.autoresLista.length) ? autoresListaEls(f.autoresLista) : autoresEls(f.autores);
+            const extra = palavrasChaveEl(f.palavrasChave) + areaDoConhecimentoEl(f) + setoresAtividadeEl(f.setores) + informacoesAdicionaisEl(f.outrasInfo);
+            return el('APRESENTACAO-DE-TRABALHO', { 'SEQUENCIA-PRODUCAO': S() }, db + det + autoresXml + extra);
+        }).join('');
         const cartas = pick('CARTA_MAPA').map(f => producao('CARTA-MAPA-OU-SIMILAR', S(),
             'DADOS-BASICOS-DE-CARTA-MAPA-OU-SIMILAR', { 'NATUREZA': tok('DADOS-BASICOS-DE-CARTA-MAPA-OU-SIMILAR', 'NATUREZA', f.natureza), 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma, 'HOME-PAGE-DO-TRABALHO': f.url },
             'DETALHAMENTO-DE-CARTA-MAPA-OU-SIMILAR', { 'FINALIDADE': f.finalidade }, f.autores)).join('');
