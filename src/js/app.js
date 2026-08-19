@@ -879,10 +879,13 @@
         state._selectTipo = selectTipo;                  // ponte p/ restaurar rascunho
         function fillTipos() {
             tipoOptions = tipoOptionsFor(selCat.value);
-            const valid = currentType && tipoOptions.some(o => o.key === currentType);
-            // Nunca escolhe o 1º tipo automaticamente — só mantém se já era um
-            // tipo válido (edição/"Salvar e novo"); senão fica vazio, exigindo
-            // clique explícito na caixa de seleção de Tipo do item.
+            // Editando um item existente, o tipo gravado é sempre respeitado
+            // mesmo que não conste mais na lista da categoria (ex.: tipo
+            // legado após uma reorganização) — selectTipo() injeta a option
+            // que faltar. Para item novo (ou "Salvar e novo"), só mantém se
+            // for um tipo realmente válido nessa categoria; senão fica vazio,
+            // exigindo clique explícito na caixa de seleção de Tipo do item.
+            const valid = currentType && (editing || tipoOptions.some(o => o.key === currentType));
             currentType = valid ? currentType : '';
             renderTipoOptions();
             selectTipo(currentType, true);

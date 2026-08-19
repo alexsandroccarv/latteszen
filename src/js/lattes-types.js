@@ -179,6 +179,18 @@ const AL_IMP   = { key: 'descricao', label: 'Conquistas / Impacto', type: 'texta
 const AL_LOCAL = { key: 'local', label: 'Local / Cidade', type: 'text' };
 const AL_ANO   = { key: 'ano', label: 'Ano de início', type: 'datebr' };
 const alNome = (label) => ({ key: 'titulo', label, type: 'text', required: true });
+// Campos padrão de uma certificação (nome+sigla, instituição emissora,
+// obtenção/validade, código/link de verificação) — usados pelos 4 tipos de
+// Certificações abaixo.
+const alCertificacaoFields = () => [
+    alNome('Nome completo da certificação'),
+    { key: 'sigla', label: 'Sigla', type: 'text', row: 'certSiglaEnt' },
+    { key: 'entidade', label: 'Instituição emissora', type: 'text', placeholder: 'ex.: PMI, ANBIMA, Scrum.org', row: 'certSiglaEnt' },
+    { key: 'anoInicio', label: 'Ano de obtenção', type: 'datebr', row: 'certAnoVal' },
+    { key: 'anoFim', label: 'Validade até', type: 'datebr', row: 'certAnoVal' },
+    { key: 'codigoVerificacao', label: 'Código de verificação', type: 'text', row: 'certCodLink' },
+    { key: 'url', label: 'Link de verificação', type: 'url', row: 'certCodLink' },
+];
 
 /* ---- Definição global dos TIPOS (por chave) ---- */
 const TYPES = {
@@ -562,11 +574,17 @@ const TYPES = {
         { key: 'categoria', label: 'Categoria', type: 'text' },
         { key: 'numeroSocio', label: 'Número de sócio', type: 'text' },
         F_AINI, F_AFIM] },
+    // Mantido apenas para compatibilidade com itens já catalogados (chave
+    // legada); novos itens usam os 4 tipos específicos abaixo.
     AL_CERTIFICACAO: { label: 'Certificações', fields: [
         alNome('Nome da certificação'),
         { key: 'entidade', label: 'Instituto certificador', type: 'text' },
         { key: 'anoInicio', label: 'Data da certificação', type: 'datebr' },
         { key: 'anoFim', label: 'Validade até', type: 'datebr' }] },
+    AL_CERT_PROF_GESTAO: { label: 'Certificações Profissionais e de Gestão', fields: alCertificacaoFields() },
+    AL_CERT_TI: { label: 'Certificações de TI', fields: alCertificacaoFields() },
+    AL_CERT_FINANCEIRA: { label: 'Certificações Financeiras', fields: alCertificacaoFields() },
+    AL_CERT_OUTRA: { label: 'Outras certificações', fields: alCertificacaoFields() },
 
     // Conexões (dentro de Dados gerais; somente link; sem comprovação; não-Lattes)
     CONEXAO_SOCIAL: { label: 'Redes sociais', noExport: true, noEvidence: true, naoLattes: true, fields: [
@@ -663,7 +681,7 @@ window.LATTES_CATEGORIES = [
     { num: '15', key: 'AL_INTERESSES', label: 'Interesses, Cultura e Lazer', icon: 'fa-palette', naoLattes: true,
       note: AL_NOTE, types: ['AL_HOBBY', 'AL_COLECIONISMO', 'AL_CULTURAL', 'AL_GASTRONOMIA'] },
     { num: '16', key: 'AL_CERTIFICACAO_CAT', label: 'Certificações', icon: 'fa-certificate', naoLattes: true,
-      note: AL_NOTE, types: ['AL_CERTIFICACAO'] },
+      note: AL_NOTE, types: ['AL_CERT_PROF_GESTAO', 'AL_CERT_TI', 'AL_CERT_FINANCEIRA', 'AL_CERT_OUTRA'] },
     { num: '17', key: 'AL_FILIACAO_CAT', label: 'Filiações', icon: 'fa-id-badge', naoLattes: true,
       note: AL_NOTE, types: ['AL_FILIACAO'] },
     { num: '18', key: 'AL_CONCURSO_CAT', label: 'Concursos e Processos seletivos', icon: 'fa-list-check', naoLattes: true,
@@ -701,6 +719,7 @@ const PRIMARY_CATEGORY = {
 ['AL_ESPORTE', 'AL_COMPETICAO', 'AL_EXPEDICAO', 'AL_BEMESTAR'].forEach(k => { PRIMARY_CATEGORY[k] = 'AL_SAUDE_ESPORTE'; });
 ['AL_HOBBY', 'AL_COLECIONISMO', 'AL_CULTURAL', 'AL_GASTRONOMIA'].forEach(k => { PRIMARY_CATEGORY[k] = 'AL_INTERESSES'; });
 PRIMARY_CATEGORY.AL_CERTIFICACAO = 'AL_CERTIFICACAO_CAT';
+['AL_CERT_PROF_GESTAO', 'AL_CERT_TI', 'AL_CERT_FINANCEIRA', 'AL_CERT_OUTRA'].forEach(k => { PRIMARY_CATEGORY[k] = 'AL_CERTIFICACAO_CAT'; });
 PRIMARY_CATEGORY.AL_FILIACAO = 'AL_FILIACAO_CAT';
 PRIMARY_CATEGORY.AL_CONCURSO = 'AL_CONCURSO_CAT';
 PRIMARY_CATEGORY.AL_IMPRENSA = 'AL_IMPRENSA_CAT';
