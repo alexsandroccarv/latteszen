@@ -191,6 +191,14 @@ const alCertificacaoFields = () => [
     { key: 'codigoVerificacao', label: 'Código de verificação', type: 'text', row: 'certCodLink' },
     { key: 'url', label: 'Link de verificação', type: 'url', row: 'certCodLink' },
 ];
+// Campos padrão de uma filiação (entidade, categoria/cargo, nº de sócio,
+// período) — usados pelos 5 tipos de Filiações abaixo.
+const alFiliacaoFields = () => [
+    alNome('Entidade'),
+    { key: 'categoria', label: 'Categoria', type: 'text', row: 'filCatSocio' },
+    { key: 'numeroSocio', label: 'Número de sócio', type: 'text', row: 'filCatSocio' },
+    F_AINI, F_AFIM,
+];
 
 /* ---- Definição global dos TIPOS (por chave) ---- */
 const TYPES = {
@@ -569,11 +577,18 @@ const TYPES = {
         F_AINI, F_AFIM,
         { key: 'colocacao', label: 'Colocação', type: 'text' },
         { key: 'situacao', label: 'Situação final', type: 'select', options: ['Em andamento', 'Aprovado', 'Reprovado'] }] },
+    // Mantido apenas para compatibilidade com itens já catalogados (chave
+    // legada); novos itens usam os 5 tipos específicos abaixo.
     AL_FILIACAO: { label: 'Filiações', fields: [
         alNome('Entidade'),
         { key: 'categoria', label: 'Categoria', type: 'text' },
         { key: 'numeroSocio', label: 'Número de sócio', type: 'text' },
         F_AINI, F_AFIM] },
+    AL_FILIACAO_CONSELHO: { label: 'Conselhos de Classe', fields: alFiliacaoFields() },
+    AL_FILIACAO_CIENTIFICA: { label: 'Entidades Científicas e de Pesquisa', fields: alFiliacaoFields() },
+    AL_FILIACAO_ASSOC_PROF: { label: 'Associações Profissionais Internacionais ou Nacionais', fields: alFiliacaoFields() },
+    AL_FILIACAO_SINDICATO: { label: 'Sindicatos e Associações de Categoria', fields: alFiliacaoFields() },
+    AL_FILIACAO_OUTRA: { label: 'Outras', fields: alFiliacaoFields() },
     // Mantido apenas para compatibilidade com itens já catalogados (chave
     // legada); novos itens usam os 4 tipos específicos abaixo.
     AL_CERTIFICACAO: { label: 'Certificações', fields: [
@@ -683,7 +698,7 @@ window.LATTES_CATEGORIES = [
     { num: '16', key: 'AL_CERTIFICACAO_CAT', label: 'Certificações', icon: 'fa-certificate', naoLattes: true,
       note: AL_NOTE, types: ['AL_CERT_PROF_GESTAO', 'AL_CERT_TI', 'AL_CERT_FINANCEIRA', 'AL_CERT_OUTRA'] },
     { num: '17', key: 'AL_FILIACAO_CAT', label: 'Filiações', icon: 'fa-id-badge', naoLattes: true,
-      note: AL_NOTE, types: ['AL_FILIACAO'] },
+      note: AL_NOTE, types: ['AL_FILIACAO_CONSELHO', 'AL_FILIACAO_CIENTIFICA', 'AL_FILIACAO_ASSOC_PROF', 'AL_FILIACAO_SINDICATO', 'AL_FILIACAO_OUTRA'] },
     { num: '18', key: 'AL_CONCURSO_CAT', label: 'Concursos e Processos seletivos', icon: 'fa-list-check', naoLattes: true,
       note: AL_NOTE, types: ['AL_CONCURSO'] },
     { num: '19', key: 'AL_IMPRENSA_CAT', label: 'Imprensa', icon: 'fa-newspaper', naoLattes: true,
@@ -721,6 +736,7 @@ const PRIMARY_CATEGORY = {
 PRIMARY_CATEGORY.AL_CERTIFICACAO = 'AL_CERTIFICACAO_CAT';
 ['AL_CERT_PROF_GESTAO', 'AL_CERT_TI', 'AL_CERT_FINANCEIRA', 'AL_CERT_OUTRA'].forEach(k => { PRIMARY_CATEGORY[k] = 'AL_CERTIFICACAO_CAT'; });
 PRIMARY_CATEGORY.AL_FILIACAO = 'AL_FILIACAO_CAT';
+['AL_FILIACAO_CONSELHO', 'AL_FILIACAO_CIENTIFICA', 'AL_FILIACAO_ASSOC_PROF', 'AL_FILIACAO_SINDICATO', 'AL_FILIACAO_OUTRA'].forEach(k => { PRIMARY_CATEGORY[k] = 'AL_FILIACAO_CAT'; });
 PRIMARY_CATEGORY.AL_CONCURSO = 'AL_CONCURSO_CAT';
 PRIMARY_CATEGORY.AL_IMPRENSA = 'AL_IMPRENSA_CAT';
 ['CONEXAO_SOCIAL', 'CONEXAO_ACADEMICA', 'CONEXAO_PROFISSIONAL'].forEach(k => { PRIMARY_CATEGORY[k] = 'DADOS_GERAIS'; });
