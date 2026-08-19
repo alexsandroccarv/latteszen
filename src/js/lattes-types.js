@@ -199,6 +199,13 @@ const alFiliacaoFields = () => [
     { key: 'numeroSocio', label: 'Número de sócio', type: 'text', row: 'filCatSocio' },
     F_AINI, F_AFIM,
 ];
+// Campos padrão de uma menção na imprensa (título, veículo, data) — usados
+// pelos 3 tipos de Imprensa abaixo.
+const alImprensaFields = () => [
+    alNome('Título da matéria'),
+    { key: 'entidade', label: 'Nome do veículo', type: 'text', required: true, row: 'impVeicData' },
+    { key: 'ano', label: 'Data de veiculação', type: 'datebr', required: true, row: 'impVeicData' },
+];
 
 /* ---- Definição global dos TIPOS (por chave) ---- */
 const TYPES = {
@@ -565,10 +572,15 @@ const TYPES = {
     AL_GASTRONOMIA: { label: 'Gastronomia e culinária', fields: [alNome('Atividade / Especialidade'), AL_PAPEL, { key: 'frequencia', label: 'Frequência', type: 'text' }, AL_IMP, F_URL] },
 
     // 20 — Registros e Reconhecimentos
+    // Mantido apenas para compatibilidade com itens já catalogados (chave
+    // legada); novos itens usam os 3 tipos específicos abaixo.
     AL_IMPRENSA: { label: 'Imprensa', fields: [
         alNome('Título da matéria'),
         { key: 'entidade', label: 'Nome do veículo', type: 'text', required: true },
         { key: 'ano', label: 'Data de veiculação', type: 'datebr', required: true }] },
+    AL_IMPRENSA_CITACAO: { label: 'Citação na Imprensa', fields: alImprensaFields() },
+    AL_IMPRENSA_ENTREVISTADO: { label: 'Entrevistado', fields: alImprensaFields() },
+    AL_IMPRENSA_OUTRA: { label: 'Outras', fields: alImprensaFields() },
     AL_CONCURSO: { label: 'Concursos e processos seletivos', fields: [
         alNome('Nome do concurso / processo seletivo'),
         { key: 'local', label: 'Local', type: 'text' },
@@ -702,7 +714,7 @@ window.LATTES_CATEGORIES = [
     { num: '18', key: 'AL_CONCURSO_CAT', label: 'Concursos e Processos seletivos', icon: 'fa-list-check', naoLattes: true,
       note: AL_NOTE, types: ['AL_CONCURSO'] },
     { num: '19', key: 'AL_IMPRENSA_CAT', label: 'Imprensa', icon: 'fa-newspaper', naoLattes: true,
-      note: AL_NOTE, types: ['AL_IMPRENSA'] },
+      note: AL_NOTE, types: ['AL_IMPRENSA_CITACAO', 'AL_IMPRENSA_ENTREVISTADO', 'AL_IMPRENSA_OUTRA'] },
     // Fotos de Perfil e Documentos pessoais: editados em Configurações
     // (perfil), não em Catalogar — por isso `perfilOnly` (fora do seletor
     // de categoria do Catalogar), mas continuam vinculados ao Lattes.
@@ -739,6 +751,7 @@ PRIMARY_CATEGORY.AL_FILIACAO = 'AL_FILIACAO_CAT';
 ['AL_FILIACAO_CONSELHO', 'AL_FILIACAO_CIENTIFICA', 'AL_FILIACAO_ASSOC_PROF', 'AL_FILIACAO_SINDICATO', 'AL_FILIACAO_OUTRA'].forEach(k => { PRIMARY_CATEGORY[k] = 'AL_FILIACAO_CAT'; });
 PRIMARY_CATEGORY.AL_CONCURSO = 'AL_CONCURSO_CAT';
 PRIMARY_CATEGORY.AL_IMPRENSA = 'AL_IMPRENSA_CAT';
+['AL_IMPRENSA_CITACAO', 'AL_IMPRENSA_ENTREVISTADO', 'AL_IMPRENSA_OUTRA'].forEach(k => { PRIMARY_CATEGORY[k] = 'AL_IMPRENSA_CAT'; });
 ['CONEXAO_SOCIAL', 'CONEXAO_ACADEMICA', 'CONEXAO_PROFISSIONAL'].forEach(k => { PRIMARY_CATEGORY[k] = 'DADOS_GERAIS'; });
 ['RSC_COMISSAO', 'RSC_CONCURSO', 'RSC_CONTRATO', 'RSC_LICITACAO', 'RSC_SISTEMA', 'RSC_CARGO_FUNCAO', 'RSC_RESP_SETOR', 'RSC_APOIO_TECNICO', 'RSC_ADMIN_OUTRA'].forEach(k => { PRIMARY_CATEGORY[k] = 'RSC_ADMIN'; });
 const LEGACY_TYPE = { LIVRO: 'LIVRO_CAPITULO', CAPITULO_LIVRO: 'LIVRO_CAPITULO', SOFTWARE: 'SOFTWARE_SEM_REGISTRO', ORIENTACAO: 'ORIENTACAO_ANDAMENTO', BANCA: 'BANCA_CONCLUSAO' };
