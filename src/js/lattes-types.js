@@ -29,7 +29,7 @@ const F_AFIM = { key: 'anoFim', label: 'Ano de fim', type: 'datebr' };
 const F_DINI = { key: 'anoInicio', label: 'Data de início', type: 'datebr' };
 const F_DFIM = { key: 'anoFim', label: 'Data de fim (vazio = atual)', type: 'datebr' };
 const F_PAIS = { key: 'pais', label: 'País', type: 'select', options: window.PAISES_LATTES || [] };
-const F_IDIOMA = { key: 'idioma', label: 'Idioma', type: 'text', placeholder: 'Português' };
+const F_IDIOMA = { key: 'idioma', label: 'Idioma', type: 'select', options: window.IDIOMAS_LATTES || [] };
 // Período usado nos itens de Atuação (Vínculo, Corpo editorial, Comitê,
 // Revisor...): Início, Situação (Atual/Anterior) e Fim — o Fim só aparece
 // quando a Situação é "Anterior (finalizado)", como na tela real do Lattes.
@@ -255,7 +255,7 @@ const TYPES = {
         { key: 'paisEmissao', label: 'País de emissão', type: 'select', options: window.PAISES_LATTES || [] }] },
     ENDERECO: { label: 'Endereço', singleton: true, noEvidence: true, perfil: true, fields: [{ key: 'titulo', label: 'Endereço', type: 'text', required: true }, { key: 'tipo', label: 'Tipo', type: 'select', options: ['Profissional', 'Residencial'] }, F_CIDADE, { key: 'uf', label: 'UF', type: 'text' }, { key: 'cep', label: 'CEP', type: 'text' }] },
     LICENCA: { label: 'Licença maternidade, paternidade e adoção', noExport: true, fields: [{ key: 'titulo', label: 'Descrição', type: 'text', required: true }, { key: 'tipo', label: 'Tipo', type: 'select', options: ['Maternidade', 'Paternidade', 'Adoção'] }, { key: 'dataInicio', label: 'Data de início', type: 'datebr' }, { key: 'dataFim', label: 'Data de fim', type: 'datebr' }] },
-    IDIOMAS: { label: 'Idiomas', fields: [{ key: 'titulo', label: 'Idioma', type: 'text', required: true }, { key: 'habilidades', label: 'Proficiência (nível por habilidade)', type: 'skilllevels', options: ['Leitura', 'Fala', 'Escrita', 'Compreensão'], levels: ['Bom', 'Razoável', 'Pouco'] }] },
+    IDIOMAS: { label: 'Idiomas', fields: [{ key: 'titulo', label: 'Idioma', type: 'select', options: window.IDIOMAS_LATTES || [], required: true }, { key: 'habilidades', label: 'Proficiência (nível por habilidade)', type: 'skilllevels', options: ['Leitura', 'Fala', 'Escrita', 'Compreensão'], levels: ['Bom', 'Razoável', 'Pouco'] }] },
     PREMIO: { label: 'Prêmios e títulos', fields: [F_TITULO, { key: 'ano', label: 'Data da premiação', type: 'datebr', required: true }, { key: 'entidade', label: 'Entidade promotora', type: 'text', required: true }] },
     RESUMO_CV: { label: 'Texto inicial do Currículo Lattes', singleton: true, noEvidence: true, perfil: true, fields: [{ key: 'descricao', label: 'Texto', type: 'textarea', required: true }] },
     OUTRAS_INFO: { label: 'Outras informações relevantes', singleton: true, noEvidence: true, perfil: true, fields: [{ key: 'descricao', label: 'Descrição', type: 'textarea', required: true }] },
@@ -445,7 +445,7 @@ const TYPES = {
         { key: 'evento', label: 'Nome do evento', type: 'text' }, { key: 'instituicao', label: 'Instituição promotora', type: 'text' },
         { key: 'pais', label: 'País', type: 'select', options: window.PAISES_LATTES || [] }, F_CIDADE, F_IDIOMA] },
     PARTITURA: { label: 'Partitura musical', fields: [F_TITULO, F_ANO, F_AFIM, F_AUTORES, F_NATUREZA(['Canto', 'Coral', 'Orquestra', 'Outro']), { key: 'formacao', label: 'Formação instrumental', type: 'text' }, { key: 'editora', label: 'Editora', type: 'text' }, F_PAIS, F_IDIOMA, F_URL] },
-    TRADUCAO: { label: 'Tradução', fields: [F_TITULO, F_ANO, F_AFIM, F_AUTORES, F_NATUREZA(['Livro', 'Artigo', 'Outro']), { key: 'autorOriginal', label: 'Autor da obra original', type: 'text' }, { key: 'obraOriginal', label: 'Título da obra original', type: 'text' }, { key: 'idiomaOriginal', label: 'Idioma original', type: 'text' }, { key: 'idioma', label: 'Idioma da tradução', type: 'text' }, { key: 'editora', label: 'Editora', type: 'text' }, F_PAIS, F_URL] },
+    TRADUCAO: { label: 'Tradução', fields: [F_TITULO, F_ANO, F_AFIM, F_AUTORES, F_NATUREZA(['Livro', 'Artigo', 'Outro']), { key: 'autorOriginal', label: 'Autor da obra original', type: 'text' }, { key: 'obraOriginal', label: 'Título da obra original', type: 'text' }, { key: 'idiomaOriginal', label: 'Idioma original', type: 'select', options: window.IDIOMAS_LATTES || [] }, { key: 'idioma', label: 'Idioma da tradução', type: 'select', options: window.IDIOMAS_LATTES || [] }, { key: 'editora', label: 'Editora', type: 'text' }, F_PAIS, F_URL] },
     PREFACIO: { label: 'Prefácio, posfácio', fields: [F_TITULO, F_ANO, F_AFIM, F_AUTORES, F_NATUREZA(['Prefácio', 'Posfácio', 'Apresentação', 'Introdução']), { key: 'obra', label: 'Título da publicação', type: 'text' }, { key: 'editora', label: 'Editora', type: 'text' }, F_PAIS, F_IDIOMA, F_URL] },
     OUTRA_BIBLIOGRAFICA: { label: 'Outra produção bibliográfica', fields: [F_TITULO, F_ANO, F_AFIM, F_AUTORES, { key: 'natureza', label: 'Natureza', type: 'text' }, { key: 'editora', label: 'Editora', type: 'text' }, F_PAIS, F_IDIOMA, F_URL] },
 
@@ -550,7 +550,7 @@ const TYPES = {
 
     // 20 Registros pessoais — Desenvolvimento Pessoal e Habilidades
     AL_CURSO_LIVRE: { label: 'Cursos livres', fields: [alNome('Nome do curso'), { key: 'entidade', label: 'Instituição', type: 'text' }, { key: 'frequencia', label: 'Carga horária', type: 'text' }, F_AINI, F_AFIM, AL_IMP, F_URL] },
-    AL_IDIOMAS: { label: 'Idiomas e proficiências', fields: [alNome('Idioma'), { key: 'habilidades', label: 'Proficiência (nível por habilidade)', type: 'skilllevels', options: ['Leitura', 'Fala', 'Escrita', 'Compreensão'], levels: ['Bom', 'Razoável', 'Pouco'] }, { key: 'entidade', label: 'Onde estudou', type: 'text' }, F_AINI, F_AFIM, AL_IMP] },
+    AL_IDIOMAS: { label: 'Idiomas e proficiências', fields: [{ key: 'titulo', label: 'Idioma', type: 'select', options: window.IDIOMAS_LATTES || [], required: true }, { key: 'habilidades', label: 'Proficiência (nível por habilidade)', type: 'skilllevels', options: ['Leitura', 'Fala', 'Escrita', 'Compreensão'], levels: ['Bom', 'Razoável', 'Pouco'] }, { key: 'entidade', label: 'Onde estudou', type: 'text' }, F_AINI, F_AFIM, AL_IMP] },
     AL_TREINAMENTO: { label: 'Treinamentos e workshops', fields: [alNome('Nome'), AL_ENT, AL_PAPEL, AL_FREQ, F_AINI, F_AFIM, AL_IMP, F_URL] },
     AL_PROJETO_PESSOAL: { label: 'Projetos pessoais e autodidatismo', fields: [alNome('Nome do projeto'), AL_PAPEL, F_AINI, F_AFIM, { key: 'frequencia', label: 'Frequência / Dedicação', type: 'text' }, AL_IMP, F_URL] },
 
