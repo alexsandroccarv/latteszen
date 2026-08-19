@@ -253,7 +253,7 @@
         panel.innerHTML = `
             <div class="grid lg:grid-cols-5 gap-6 items-start">
                 <form id="itemForm" novalidate class="contents"></form>
-                <section class="lg:col-span-3 lg:sticky lg:top-4">
+                <section id="pdfSection" class="hidden lg:col-span-3 lg:sticky lg:top-4">
                     <div class="flex items-center justify-between mb-3">
                         <h2 class="text-lg font-bold flex items-center gap-2">
                             <i aria-hidden="true" class="fa-solid fa-file-lines text-red-600"></i>
@@ -419,10 +419,12 @@
         $('#pdfClose').classList.remove('hidden');
         $('#pdfNewTab').classList.remove('hidden');
         $('#pdfPanelName').textContent = name || '';
+        const sec = $('#pdfSection'); if (sec) sec.classList.remove('hidden'); // só aparece após uma evidência ser selecionada
     }
     function clearPdf() {
         const frame = $('#pdfFrame'), img = $('#pdfImg');
         if (state.currentPdfUrl) { try { URL.revokeObjectURL(state.currentPdfUrl); } catch (_) {} state.currentPdfUrl = null; }
+        const sec = $('#pdfSection'); if (sec) sec.classList.add('hidden');
         if (!frame) return;
         frame.src = 'about:blank'; frame.classList.add('hidden');
         if (img) { img.removeAttribute('src'); img.classList.add('hidden'); }
@@ -469,6 +471,8 @@
     function renderEvList() {
         const ul = $('#evList');
         if (!ul) return;
+        const hint = $('#evHint');
+        if (hint) hint.classList.toggle('hidden', !state.evEditing.length); // só aparece com evidência carregada
         if (!state.evEditing.length) {
             ul.innerHTML = `<li class="text-xs text-gray-400 dark:text-gray-500 italic">Nenhuma evidência anexada.</li>`;
             return;
@@ -758,7 +762,7 @@
                     <span id="formTitulo">${editing ? 'Editar item' : 'Novo item'}</span>
                 </h2>
                 <div id="draftBanner"></div>
-                <div class="grid md:grid-cols-3 gap-3">
+                <div class="grid md:grid-cols-2 gap-3">
                     <div id="evidenceBlock" class="bg-govbr-50 dark:bg-gray-900 border border-govbr-100 dark:border-gray-700 rounded px-3 py-2 transition-shadow">
                         <label class="block text-xs font-semibold mb-2" for="pdfInput"><i aria-hidden="true" class="fa-solid fa-file-arrow-up text-govbr-600 dark:text-unifesp-400 mr-1"></i> <span id="pdfInputLabel">Evidências</span></label>
                         <div class="flex items-center gap-2">
@@ -781,19 +785,17 @@
                             <button type="button" id="evUrlAdd" class="text-xs px-2 py-1 rounded bg-govbr-600 dark:bg-unifesp-700 text-white">Adicionar</button>
                             <button type="button" id="evUrlCancel" class="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600">Cancelar</button>
                         </div>
-                        <p class="text-xs text-gray-500 mt-2">Arraste e solte, cole (Ctrl+V) ou use os botões acima — PDF, imagem, vídeo, link ou zip/tar.gz. Marque <strong>“pública”</strong> em <em>quantas</em> evidências quiser (0 ou mais). Use ↑ ↓ para reordenar. A <strong>tag</strong> categoriza o documento (ex.: Certificado, Declaração…).</p>
+                        <p id="evHint" class="hidden text-xs text-gray-500 mt-2">Arraste e solte, cole (Ctrl+V) ou use os botões acima — PDF, imagem, vídeo, link ou zip/tar.gz. Marque <strong>“pública”</strong> em <em>quantas</em> evidências quiser (0 ou mais). Use ↑ ↓ para reordenar. A <strong>tag</strong> categoriza o documento (ex.: Certificado, Declaração…).</p>
                         <ul id="evList" class="mt-2 space-y-1"></ul>
                     </div>
-                    <div>
-                        <label class="block text-xs font-semibold mb-1" for="selCategoria">Categoria</label>
-                        <select id="selCategoria" class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900"></select>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold mb-1" for="selTipoSearch">Tipo do item</label>
-                        <div class="relative">
-                            <input type="text" id="selTipoSearch" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="selTipoList" autocomplete="off" placeholder="Buscar tipo…" class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900">
-                            <input type="hidden" id="selTipo">
-                            <ul id="selTipoList" role="listbox" class="hidden absolute z-30 mt-1 max-h-64 w-full overflow-auto rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 shadow-lg"></ul>
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-xs font-semibold mb-1" for="selCategoria">Categoria</label>
+                            <select id="selCategoria" class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900"></select>
+                        </div>
+                        <div id="tipoWrap" class="hidden">
+                            <label class="block text-xs font-semibold mb-1" for="selTipo">Tipo do item</label>
+                            <select id="selTipo" class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900"></select>
                         </div>
                     </div>
                 </div>
@@ -818,6 +820,9 @@
                     <button type="button" id="btnSalvarNovo" class="px-4 py-2 rounded border border-govbr-600 dark:border-unifesp-500 text-govbr-700 dark:text-unifesp-300 text-sm font-semibold hover:bg-govbr-50 dark:hover:bg-gray-800" title="Salva e abre um novo item na mesma categoria/tipo">
                         <i aria-hidden="true" class="fa-solid fa-plus mr-1"></i> Salvar e novo
                     </button>
+                    <button type="button" id="btnLimpar" class="px-4 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm" title="Limpa o formulário e começa um novo item em branco">
+                        <i aria-hidden="true" class="fa-solid fa-eraser mr-1"></i> Limpar
+                    </button>
                     <button type="button" id="btnCancelar" class="px-4 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm ${editing ? '' : 'hidden'}">Cancelar</button>
                 </div>
             </div>
@@ -832,7 +837,7 @@
             .map(c => `<option value="${c.key}">${esc(c.num + '. ' + c.label)}</option>`).join('');
         if (currentCat) selCat.value = currentCat;
 
-        // ---- Tipo do item: combobox pesquisável (input + lista + hidden #selTipo) ----
+        // ---- Tipo do item: <select> nativo (caixa de seleção), só visível após Categoria escolhida ----
         let tipoOptions = [];
         const tipoOptionsFor = (catKey) => {
             const cat = LattesTypes.categories.find(c => c.key === catKey);
@@ -840,26 +845,35 @@
             if (cat.groups) return cat.groups.flatMap(g => g.types.map(tk => ({ key: tk, label: LattesTypes.label(tk), group: g.label })));
             return (cat.types || []).map(tk => ({ key: tk, label: LattesTypes.label(tk), group: null }));
         };
-        const closeTipoList = () => { const ul = $('#selTipoList'); if (ul) ul.classList.add('hidden'); const s = $('#selTipoSearch'); if (s) s.setAttribute('aria-expanded', 'false'); };
-        const openTipoList = () => { $('#selTipoList').classList.remove('hidden'); $('#selTipoSearch').setAttribute('aria-expanded', 'true'); };
-        function renderTipoList(q) {
-            const ul = $('#selTipoList'); if (!ul) return;
-            const nq = normNome(q || '');
-            const items = tipoOptions.filter(o => !nq || normNome(o.label).includes(nq));
-            if (!items.length) { ul.innerHTML = `<li class="px-2 py-1 text-xs text-gray-400 italic">Nenhum tipo encontrado</li>`; return; }
-            let html = '', last = null;
-            items.forEach(o => {
-                if (o.group && o.group !== last) { html += `<li class="px-2 pt-2 pb-0.5 text-[11px] uppercase tracking-wide text-gray-400">${esc(o.group)}</li>`; last = o.group; }
-                const cur = o.key === $('#selTipo').value ? 'bg-govbr-50 dark:bg-gray-700 font-medium' : '';
-                html += `<li role="option" data-key="${o.key}" class="px-2 py-1 text-sm cursor-pointer hover:bg-govbr-50 dark:hover:bg-gray-700 ${cur}">${esc(o.label)}</li>`;
+        function renderTipoOptions() {
+            const sel = $('#selTipo'); if (!sel) return;
+            let html = `<option value="">— Selecione —</option>`, last = null, open = false;
+            tipoOptions.forEach(o => {
+                if (o.group !== last) {
+                    if (open) html += `</optgroup>`;
+                    open = !!o.group;
+                    if (open) html += `<optgroup label="${esc(o.group)}">`;
+                    last = o.group;
+                }
+                html += `<option value="${o.key}">${esc(o.label)}</option>`;
             });
-            ul.innerHTML = html;
-            ul.querySelectorAll('[data-key]').forEach(li => li.addEventListener('mousedown', (ev) => { ev.preventDefault(); selectTipo(li.dataset.key); }));
+            if (open) html += `</optgroup>`;
+            sel.innerHTML = html;
+        }
+        function updateTipoVisibility() {
+            const wrap = $('#tipoWrap'); if (wrap) wrap.classList.toggle('hidden', !selCat.value);
         }
         function selectTipo(key, silent) {
-            $('#selTipo').value = key || '';
-            const s = $('#selTipoSearch'); if (s) s.value = key ? LattesTypes.label(key) : '';
-            closeTipoList();
+            const sel = $('#selTipo'); if (!sel) return;
+            // Garante que a option exista mesmo fora da lista atual (ex.: abrir um
+            // documento de perfil/identidade a partir de Configurações).
+            if (key && !sel.querySelector(`option[value="${key}"]`)) {
+                const opt = document.createElement('option');
+                opt.value = key; opt.textContent = LattesTypes.label(key);
+                sel.appendChild(opt);
+            }
+            sel.value = key || '';
+            updateTipoVisibility();
             if (!silent) { currentType = key; renderDynFields(); saveDraftDebounced(); }
         }
         state._selectTipo = selectTipo;                  // ponte p/ restaurar rascunho
@@ -868,8 +882,9 @@
             const valid = currentType && tipoOptions.some(o => o.key === currentType);
             // Nunca escolhe o 1º tipo automaticamente — só mantém se já era um
             // tipo válido (edição/"Salvar e novo"); senão fica vazio, exigindo
-            // clique explícito no combobox de Tipo do item.
+            // clique explícito na caixa de seleção de Tipo do item.
             currentType = valid ? currentType : '';
+            renderTipoOptions();
             selectTipo(currentType, true);
             renderDynFields();
             const catNote = $('#catNote');
@@ -908,15 +923,8 @@
                 : (def && def.key === 'DOCUMENTO_PESSOAL' ? 'Documento (PDF ou imagem)' : 'Evidências (PDF, imagem, vídeo, link ou zip/tar.gz)');
         }
 
-        // Combobox: eventos
-        const search = $('#selTipoSearch');
-        search.addEventListener('focus', () => { search.value = ''; renderTipoList(''); openTipoList(); });
-        search.addEventListener('input', () => { renderTipoList(search.value); openTipoList(); });
-        search.addEventListener('blur', () => { setTimeout(() => { closeTipoList(); search.value = LattesTypes.label($('#selTipo').value); }, 150); });
-        search.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') { closeTipoList(); search.value = LattesTypes.label($('#selTipo').value); search.blur(); }
-            else if (e.key === 'Enter') { e.preventDefault(); const first = $('#selTipoList').querySelector('[data-key]'); if (first) { selectTipo(first.dataset.key); search.blur(); } }
-        });
+        // Tipo do item: caixa de seleção nativa
+        $('#selTipo').addEventListener('change', (e) => selectTipo(e.target.value));
 
         selCat.addEventListener('change', () => { currentType = ''; fillTipos(); saveDraftDebounced(); });
         // Limpa o destaque de erro assim que o usuário corrige o campo
@@ -969,6 +977,11 @@
         form.addEventListener('submit', onSubmitForm);
         $('#btnSalvarNovo').addEventListener('click', () => { state.saveAndNew = true; form.requestSubmit(); });
         $('#btnCancelar').addEventListener('click', () => { state.editingId = null; state.evEditing = []; state.formDirty = false; buildForm(undefined, { focus: true }); });
+        $('#btnLimpar').addEventListener('click', () => {
+            if (state.formDirty && !confirm('Limpar os dados não salvos deste formulário?')) return;
+            state.editingId = null; state.evEditing = []; state.formDirty = false;
+            buildForm(undefined, { focus: true });
+        });
 
         state.editingId = editing ? item.id : null;
         $('#idInfo').textContent = editing ? `ID: ${item.id}` : `O ID será gerado ao salvar (prefixo “${state.idPrefix}”).`;
