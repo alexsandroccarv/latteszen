@@ -588,11 +588,16 @@ window.LattesXMLExport = (function () {
             return el('ARTIGO-PUBLICADO', { 'SEQUENCIA-PRODUCAO': S() }, db + det + autoresXml + extra);
         }).join('');
 
-        const aceitos = pick('ARTIGO_ACEITO').map(f =>
-            producao('ARTIGO-ACEITO-PARA-PUBLICACAO', S(),
-                'DADOS-BASICOS-DO-ARTIGO', { 'TITULO-DO-ARTIGO': f.titulo, 'ANO-DO-ARTIGO': year(f.ano), 'IDIOMA': f.idioma, 'DOI': f.doi, 'HOME-PAGE-DO-TRABALHO': f.url },
-                'DETALHAMENTO-DO-ARTIGO', { 'TITULO-DO-PERIODICO-OU-REVISTA': f.periodico, 'ISSN': f.issn },
-                f.autores)).join('');
+        const aceitos = pick('ARTIGO_ACEITO').map(f => {
+            const db = el('DADOS-BASICOS-DO-ARTIGO', {
+                'TITULO-DO-ARTIGO': f.titulo, 'ANO-DO-ARTIGO': year(f.ano), 'IDIOMA': f.idioma, 'DOI': f.doi,
+                'FLAG-RELEVANCIA': FLAG_SIM_NAO[f.relevante] || '', 'FLAG-DIVULGACAO-CIENTIFICA': FLAG_SIM_NAO[f.divulgacaoCT] || '',
+            });
+            const det = el('DETALHAMENTO-DO-ARTIGO', { 'TITULO-DO-PERIODICO-OU-REVISTA': f.periodico, 'ISSN': f.issn });
+            const autoresXml = (Array.isArray(f.autoresLista) && f.autoresLista.length) ? autoresListaEls(f.autoresLista) : autoresEls(f.autores);
+            const extra = palavrasChaveEl(f.palavrasChave) + areaDoConhecimentoEl(f) + setoresAtividadeEl(f.setores) + informacoesAdicionaisEl(f.outrasInfo);
+            return el('ARTIGO-ACEITO-PARA-PUBLICACAO', { 'SEQUENCIA-PRODUCAO': S() }, db + det + autoresXml + extra);
+        }).join('');
 
         // Livros e capítulos
         const livrosArr = [], capsArr = [];

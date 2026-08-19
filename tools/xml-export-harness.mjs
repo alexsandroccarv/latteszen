@@ -49,6 +49,8 @@ function sampleValue(field, i) {
     if (field.type === 'number') return '40';
     if (field.type === 'url') return 'https://example.org/item/' + i;
     if (field.type === 'select' && Array.isArray(field.options) && field.options.length) return field.options[i % field.options.length];
+    if (field.type === 'checkbox') return i % 2 === 0 ? 'Sim' : 'Não';
+    if (field.type === 'repeater') return [Object.fromEntries((field.columns || []).map(c => [c.key, sampleValue(c, i)]))];
     if (k === 'autores') return 'CARVALHO, A. C.; SILVA, J. P.';
     if (k === 'issn') return '1234-5678';
     if (k === 'isbn') return '978-85-333-0227-3';
