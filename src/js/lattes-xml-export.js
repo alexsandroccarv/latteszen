@@ -83,6 +83,13 @@ window.LattesXMLExport = (function () {
             'NOME-COMPLETO-DO-AUTOR': n, 'NOME-PARA-CITACAO': n, 'ORDEM-DE-AUTORIA': String(i + 1),
         })).join('');
     }
+    // AUTORES* a partir da tabela (repeater) com Nome completo / Nome como
+    // citado por linha — usa o nome completo quando "como citado" ficar vazio.
+    function autoresListaEls(rows) {
+        return rows.map((r, i) => el('AUTORES', {
+            'NOME-COMPLETO-DO-AUTOR': clean(r.nomeCompleto), 'NOME-PARA-CITACAO': clean(r.nomeCitacao) || clean(r.nomeCompleto), 'ORDEM-DE-AUTORIA': String(i + 1),
+        })).join('');
+    }
     // PARTICIPANTE-BANCA* a partir de "Fulano; Beltrano"
     function participantesBanca(str) {
         const nomes = String(str == null ? '' : str).split(';').map(clean).filter(Boolean);
@@ -298,10 +305,7 @@ window.LattesXMLExport = (function () {
     // profissional para o token FLAG-PERIODO do Lattes.
     const FLAG_PERIODO = { 'Atual (não finalizado)': 'ATUAL', 'Anterior (finalizado)': 'ANTERIOR' };
     // MEIO-DE-DIVULGACAO (artigo em periódico).
-    const MEIO_DIVULGACAO_TOKEN = {
-        'Impresso': 'IMPRESSO', 'Meio digital': 'MEIO_DIGITAL', 'Web': 'WEB', 'Meio magnético': 'MEIO_MAGNETICO',
-        'Filme': 'FILME', 'Hipertexto': 'HIPERTEXTO', 'Outro': 'OUTRO', 'Vários': 'VARIOS',
-    };
+    const MEIO_DIVULGACAO_TOKEN = { 'Impresso': 'IMPRESSO', 'Meio digital': 'MEIO_DIGITAL', 'Impresso e mídia eletrônica': 'VARIOS' };
     // NATUREZA do financiador de projeto (enum do FINANCIADOR-DO-PROJETO).
     const FINANCIADOR_NATUREZA_TOKEN = {
         'Bolsa': 'BOLSA', 'Auxílio financeiro': 'AUXILIO_FINANCEIRO', 'Remuneração': 'REMUNERACAO',
@@ -572,13 +576,16 @@ window.LattesXMLExport = (function () {
             const pLegado = paginas(f.paginas);
             const pIni = f.paginaInicial || pLegado.ini, pFim = f.paginaFinal || pLegado.fim;
             const db = el('DADOS-BASICOS-DO-ARTIGO', {
-                'TITULO-DO-ARTIGO': f.titulo, 'ANO-DO-ARTIGO': year(f.ano), 'PAIS-DE-PUBLICACAO': f.pais, 'IDIOMA': f.idioma,
+                'TITULO-DO-ARTIGO': f.titulo, 'ANO-DO-ARTIGO': year(f.ano), 'IDIOMA': f.idioma,
                 'MEIO-DE-DIVULGACAO': MEIO_DIVULGACAO_TOKEN[f.meioDivulgacao] || '', 'HOME-PAGE-DO-TRABALHO': f.url,
                 'FLAG-RELEVANCIA': FLAG_SIM_NAO[f.relevante] || '', 'DOI': f.doi, 'FLAG-DIVULGACAO-CIENTIFICA': FLAG_SIM_NAO[f.divulgacaoCT] || '',
             });
             const det = el('DETALHAMENTO-DO-ARTIGO', { 'TITULO-DO-PERIODICO-OU-REVISTA': f.periodico, 'ISSN': f.issn, 'VOLUME': f.volume, 'FASCICULO': f.fasciculo, 'SERIE': f.serie, 'PAGINA-INICIAL': pIni, 'PAGINA-FINAL': pFim });
+            // Autores: tabela nova (Nome completo/Nome como citado) tem prioridade;
+            // respalda no formato antigo (texto ";"-separado) para itens já catalogados.
+            const autoresXml = (Array.isArray(f.autoresLista) && f.autoresLista.length) ? autoresListaEls(f.autoresLista) : autoresEls(f.autores);
             const extra = palavrasChaveEl(f.palavrasChave) + areaDoConhecimentoEl(f) + setoresAtividadeEl(f.setores) + informacoesAdicionaisEl(f.outrasInfo);
-            return el('ARTIGO-PUBLICADO', { 'SEQUENCIA-PRODUCAO': S() }, db + det + autoresEls(f.autores) + extra);
+            return el('ARTIGO-PUBLICADO', { 'SEQUENCIA-PRODUCAO': S() }, db + det + autoresXml + extra);
         }).join('');
 
         const aceitos = pick('ARTIGO_ACEITO').map(f =>

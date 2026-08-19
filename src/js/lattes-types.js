@@ -422,13 +422,16 @@ const TYPES = {
 
     // 05.1 Produção bibliográfica
     ARTIGO_PERIODICO: { label: 'Artigos completos publicados em periódicos', fields: [
-        F_TITULO, F_ANO, F_AFIM, F_IDIOMA, F_PAIS,
-        { key: 'meioDivulgacao', label: 'Meio de divulgação', type: 'select', options: ['Impresso', 'Meio digital', 'Web', 'Meio magnético', 'Filme', 'Hipertexto', 'Outro', 'Vários'] },
-        { key: 'url', label: 'Home page do trabalho (URL)', type: 'url' },
         F_DOI,
-        { key: 'relevante', label: 'É um dos 10 trabalhos mais relevantes de sua produção?', type: 'select', options: ['Sim', 'Não'] },
-        { key: 'divulgacaoCT', label: 'É uma produção para educação e popularização de C&T?', type: 'select', options: ['Sim', 'Não'] },
-        F_AUTORES,
+        F_TITULO, F_ANO, F_IDIOMA,
+        { key: 'meioDivulgacao', label: 'Meio de divulgação', type: 'select', options: ['Impresso', 'Meio digital', 'Impresso e mídia eletrônica'] },
+        { key: 'url', label: 'Home page do trabalho (URL)', type: 'url' },
+        { key: 'relevante', label: 'É um dos 10 trabalhos mais relevantes de sua produção?', type: 'checkbox' },
+        { key: 'divulgacaoCT', label: 'É uma produção para educação e popularização de C&T?', type: 'checkbox' },
+        { key: 'autoresLista', label: 'Autores', type: 'repeater', addLabel: 'Adicionar autor', columns: [
+            { key: 'nomeCompleto', label: 'Nome completo', type: 'text', required: true },
+            { key: 'nomeCitacao', label: 'Nome como citado', type: 'text' },
+        ] },
         { key: 'periodico', label: 'Periódico / Revista', type: 'text', required: true }, { key: 'issn', label: 'ISSN', type: 'text' },
         { key: 'volume', label: 'Volume', type: 'text' }, { key: 'fasciculo', label: 'Fascículo / Número', type: 'text' },
         { key: 'serie', label: 'Série', type: 'text' },
