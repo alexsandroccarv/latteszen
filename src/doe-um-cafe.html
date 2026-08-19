@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>lattesZen — Doe um café</title>
+
+    <!-- Mesmos estilos da aplicação -->
+    <link rel="stylesheet" href="css/styles.css">
+
+    <!-- Tema claro/escuro e alto contraste: aplicar cedo para evitar "flash" -->
+    <script>
+        (function () {
+            const htmlEl = document.documentElement;
+            const saved = localStorage.getItem('tema');
+            const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+            if (saved ? saved === 'dark' : prefersDark) htmlEl.classList.add('dark');
+            if (localStorage.getItem('altoContraste') === '1') htmlEl.classList.add('high-contrast');
+            const fs = parseInt(localStorage.getItem('fontScale') || '100', 10);
+            if (fs && fs !== 100) htmlEl.style.fontSize = fs + '%';
+        })();
+    </script>
+
+    <!-- Recursos externos (Tailwind + config, Font Awesome, Rawline) — mesmo do app -->
+    <script>
+        (function () {
+            var TW_CONFIG = {
+                darkMode: 'class',
+                theme: {
+                    extend: {
+                        fontFamily: { sans: ['Rawline', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif'] },
+                        colors: {
+                            unifesp: { 50: '#f0fdf4', 100: '#dcfce7', 400: '#4ade80', 600: '#16a34a', 700: '#15803d', 800: '#166534', 900: '#1E5A3A' },
+                            govbr:   { 50: '#D4E5FF', 100: '#ADCDFF', 400: '#1351B4', 600: '#1351B4', 700: '#0C326F', 800: '#071D41', 900: '#050F24' },
+                        }
+                    }
+                }
+            };
+            var tw = document.createElement('script');
+            tw.src = 'https://cdn.tailwindcss.com';
+            tw.async = true;
+            tw.onload = function () { try { window.tailwind.config = TW_CONFIG; } catch (e) {} };
+            tw.onerror = function () { document.documentElement.classList.add('no-tailwind'); };
+            document.head.appendChild(tw);
+            function loadCss(href) { var l = document.createElement('link'); l.rel = 'stylesheet'; l.href = href; l.media = 'all'; document.head.appendChild(l); }
+            loadCss('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css');
+            loadCss('https://cdngovbr-ds.estaleiro.serpro.gov.br/design-system/fonts/rawline/css/rawline.css');
+        })();
+    </script>
+
+    <!-- Estilo do conteúdo desta página (escopo .cafe-doc; dark por classe, como o app) -->
+    <style>
+      :root{
+        --cafe-surface:#f9fafb; --cafe-text:#1f2937; --cafe-muted:#6b7280; --cafe-line:#e5e7eb;
+        --cafe-accent:#1351b4; --cafe-code:#eef2f7; --cafe-note-bg:#fff7ed; --cafe-note-line:#c2410c;
+      }
+      html.dark{
+        --cafe-surface:#1f2937; --cafe-text:#e5e7eb; --cafe-muted:#9ca3af; --cafe-line:#374151;
+        --cafe-accent:#93c5fd; --cafe-code:#0f172a; --cafe-note-bg:#2a1a0f; --cafe-note-line:#f59e0b;
+      }
+      .cafe-doc{color:var(--cafe-text);line-height:1.6;max-width:900px;margin:0 auto;padding:8px 4px 40px}
+      .cafe-doc h1{font-size:1.7rem;margin:.2em 0 .1em}
+      .cafe-doc .lead{color:var(--cafe-muted);margin:0 0 1.5em}
+      .cafe-doc section.card{background:var(--cafe-surface);border:1px solid var(--cafe-line);border-radius:10px;padding:20px 22px;margin-bottom:22px}
+      .cafe-doc section.card h2{margin-top:0;font-size:1.25rem;display:flex;align-items:center;gap:10px}
+      .cafe-doc .note{border-left:4px solid var(--cafe-note-line);background:var(--cafe-note-bg);border-radius:6px;padding:12px 16px;margin:14px 0;font-size:.9rem}
+      .cafe-doc .amount-btn{border:1px solid var(--cafe-line);border-radius:8px;padding:8px 14px;font-weight:600;background:transparent;color:var(--cafe-text);cursor:pointer;transition:all .15s}
+      .cafe-doc .amount-btn:hover{border-color:var(--cafe-accent);color:var(--cafe-accent)}
+      .cafe-doc .amount-btn.active{background:var(--cafe-accent);border-color:var(--cafe-accent);color:#fff}
+      .cafe-doc .pix-code{background:var(--cafe-code);border:1px solid var(--cafe-line);border-radius:8px;padding:10px 12px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.78rem;word-break:break-all;color:var(--cafe-muted)}
+      .cafe-doc .aff-card{background:var(--cafe-surface);border:1px solid var(--cafe-line);border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:8px}
+      .cafe-doc .aff-icon{width:2.4em;height:2.4em;border-radius:8px;display:flex;align-items:center;justify-content:center;background:var(--cafe-code);color:var(--cafe-accent);font-size:1.1em}
+      .cafe-doc .pill-soon{display:inline-block;font-size:.72rem;font-weight:600;color:var(--cafe-muted);background:var(--cafe-code);border-radius:20px;padding:2px 10px}
+      .cafe-doc .copied{color:#16a34a !important;border-color:#16a34a !important}
+    </style>
+</head>
+<body class="font-sans bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-100 min-h-screen flex flex-col transition-colors duration-300">
+
+    <!-- ============================ CABEÇALHO (igual ao app) ============================ -->
+    <header class="bg-govbr-600 dark:bg-gray-900 border-b border-govbr-700 dark:border-gray-700 flex flex-col shadow-sm dark:shadow-lg z-20 shrink-0 transition-colors duration-300">
+        <div class="flex items-center justify-between px-4 py-3 bg-govbr-600 dark:bg-gray-900 transition-colors duration-300">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded bg-white dark:bg-gradient-to-br dark:from-unifesp-600 dark:to-unifesp-900 flex items-center justify-center text-govbr-600 dark:text-white font-bold transition-colors duration-300">
+                    <i aria-hidden="true" class="fa-solid fa-graduation-cap"></i>
+                </div>
+                <div class="flex items-center gap-2 overflow-hidden">
+                    <h1 class="font-bold text-white leading-none whitespace-nowrap">lattesZen</h1>
+                    <span id="headerNomeWrap" class="flex items-center gap-2 overflow-hidden hidden">
+                        <span class="text-xl text-white/30 dark:text-gray-700 font-light">|</span>
+                        <span id="headerNome" class="font-bold text-white/90 dark:text-unifesp-400 leading-none whitespace-nowrap truncate"></span>
+                    </span>
+                </div>
+            </div>
+            <div id="govBrLogo" class="bg-white rounded px-2 py-1.5 flex items-center shrink-0 dark:hidden">
+                <img src="images/geral/gov_br.svg" alt="Governo Federal" class="h-5 w-auto" onerror="this.parentElement.style.display='none'">
+            </div>
+        </div>
+
+        <!-- Abas de navegação (links de volta ao app) -->
+        <nav class="bg-white dark:bg-gray-800 border-t border-govbr-700/20 dark:border-gray-700 px-2" aria-label="Seções">
+            <div class="max-w-5xl mx-auto flex gap-1 overflow-x-auto">
+                <a href="index.html" class="tab-btn px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-gray-600 dark:text-gray-300 hover:text-govbr-600 dark:hover:text-unifesp-400 whitespace-nowrap">
+                    <i aria-hidden="true" class="fa-solid fa-file-circle-plus mr-1"></i> Catalogar
+                </a>
+                <a href="index.html" class="tab-btn px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-gray-600 dark:text-gray-300 hover:text-govbr-600 dark:hover:text-unifesp-400 whitespace-nowrap">
+                    <i aria-hidden="true" class="fa-solid fa-clipboard-check mr-1"></i> Conformidade
+                </a>
+                <a href="index.html" class="tab-btn px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-gray-600 dark:text-gray-300 hover:text-govbr-600 dark:hover:text-unifesp-400 whitespace-nowrap">
+                    <i aria-hidden="true" class="fa-solid fa-globe mr-1"></i> Publicar na Web
+                </a>
+                <a href="index.html" class="tab-btn px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-gray-600 dark:text-gray-300 hover:text-govbr-600 dark:hover:text-unifesp-400 whitespace-nowrap">
+                    <i aria-hidden="true" class="fa-solid fa-gear mr-1"></i> Configurações
+                </a>
+                <span class="tab-btn px-4 py-2.5 text-sm font-medium border-b-2 border-govbr-600 dark:border-unifesp-400 text-govbr-700 dark:text-unifesp-400 font-bold whitespace-nowrap" aria-current="page">
+                    <i aria-hidden="true" class="fa-solid fa-mug-hot mr-1"></i> Doe um café
+                </span>
+            </div>
+        </nav>
+    </header>
+
+    <!-- ============================ CONTEÚDO ============================ -->
+    <main class="flex-1 w-full max-w-6xl mx-auto px-4 py-6">
+      <div class="cafe-doc">
+        <p style="margin:0 0 10px"><a href="index.html" style="color:var(--cafe-accent);text-decoration:none">← Voltar para o lattesZen</a></p>
+        <h1>☕ Doe um café</h1>
+        <p class="lead">O lattesZen é gratuito, roda inteiramente no seu navegador e não guarda seus dados em nenhum servidor. Se ele te ajudou a organizar o currículo, considere pagar um cafezinho — qualquer valor ajuda a manter o projeto no ar.</p>
+
+        <section class="card" id="pix">
+          <h2><i aria-hidden="true" class="fa-solid fa-qrcode text-govbr-600 dark:text-unifesp-400"></i> Doar via Pix</h2>
+          <p>Escolha um valor (ou digite outro), depois escaneie o QR code ou copie o código Pix “copia e cola” no seu banco.</p>
+
+          <div class="flex flex-wrap gap-2 my-3" id="amountBtns">
+            <button type="button" class="amount-btn" data-amount="5">R$ 5</button>
+            <button type="button" class="amount-btn active" data-amount="10">R$ 10</button>
+            <button type="button" class="amount-btn" data-amount="25">R$ 25</button>
+            <button type="button" class="amount-btn" data-amount="50">R$ 50</button>
+            <span class="flex items-center gap-1">
+              <span class="text-sm text-gray-500 dark:text-gray-400">R$</span>
+              <input type="number" id="customAmount" min="1" step="1" placeholder="Outro valor" class="w-28 text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900">
+            </span>
+          </div>
+
+          <div class="grid sm:grid-cols-[auto_1fr] gap-5 items-start">
+            <div class="flex flex-col items-center gap-2">
+              <div class="p-3 bg-white rounded-lg border-2 border-govbr-200 dark:border-unifesp-600" style="width:200px;height:200px" id="qrWrap">
+                <img id="qrImg" alt="QR code Pix" class="w-full h-full object-contain" referrerpolicy="no-referrer">
+              </div>
+              <p id="qrValor" class="font-bold text-lg"></p>
+            </div>
+            <div class="space-y-3 min-w-0">
+              <div>
+                <label class="block text-xs font-semibold mb-1 text-gray-600 dark:text-gray-300">Código Pix (copia e cola)</label>
+                <p class="pix-code" id="pixPayload"></p>
+                <button type="button" id="btnCopyPayload" class="mt-2 px-3 py-1.5 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm font-semibold hover:opacity-90">
+                  <i aria-hidden="true" class="fa-solid fa-copy mr-1"></i> Copiar código Pix
+                </button>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold mb-1 text-gray-600 dark:text-gray-300">Chave Pix</label>
+                <div class="flex items-center gap-2 flex-wrap">
+                  <span class="text-sm font-mono" id="pixChave"></span>
+                  <button type="button" id="btnCopyChave" class="px-2 py-1 rounded border border-gray-300 dark:border-gray-600 text-xs hover:border-govbr-500 dark:hover:border-unifesp-400">
+                    <i aria-hidden="true" class="fa-solid fa-copy mr-1"></i> Copiar chave
+                  </button>
+                </div>
+              </div>
+              <button type="button" id="btnShare" class="px-3 py-1.5 rounded border border-gray-300 dark:border-gray-600 text-sm hover:border-govbr-500 dark:hover:border-unifesp-400">
+                <i aria-hidden="true" class="fa-solid fa-share-nodes mr-1"></i> Compartilhar esta página
+              </button>
+            </div>
+          </div>
+
+          <div class="note" id="qrNote" style="display:none">O QR code precisa de conexão com a internet para carregar. Se não aparecer, use o <strong>código Pix (copia e cola)</strong> acima — cole no “Pix Copia e Cola” do seu banco.</div>
+        </section>
+
+        <section class="card" id="parcerias">
+          <h2><i aria-hidden="true" class="fa-solid fa-handshake text-govbr-600 dark:text-unifesp-400"></i> Parcerias e afiliados</h2>
+          <p>Outra forma de apoiar sem gastar nada a mais: usar os links/códigos de parceiros abaixo quando for contratar algo que você já ia contratar mesmo.</p>
+          <div class="grid sm:grid-cols-2 md:grid-cols-3 gap-3 mt-3" id="affGrid"></div>
+        </section>
+      </div>
+    </main>
+
+    <!-- ============================ RODAPÉ (igual ao app) ============================ -->
+    <footer class="bg-govbr-800 dark:bg-gray-950 border-t border-govbr-700 dark:border-gray-700 py-3 px-6 text-xs text-blue-100 dark:text-gray-400 flex flex-col sm:flex-row justify-between items-center shrink-0 gap-4 transition-colors duration-300">
+        <div class="flex items-center gap-4 flex-wrap justify-center">
+            <span><span class="font-mono" id="appVersion"></span> | Modificado: <span id="lastModDate"></span></span>
+            <span class="text-white/25 dark:text-gray-700">|</span>
+            <a href="termodeuso.html" class="hover:text-white transition-colors">Termo de uso</a>
+            <span class="text-white/25 dark:text-gray-700">|</span>
+            <a href="politicadeprivacidade.html" class="hover:text-white transition-colors">Política de privacidade</a>
+            <span class="text-white/25 dark:text-gray-700">|</span>
+            <a href="./ajuda-lattes.html" class="hover:text-white transition-colors">Ajuda (Lattes)</a>
+            <span class="text-white/25 dark:text-gray-700">|</span>
+            <a href="./ajuda-rsc.html" class="hover:text-white transition-colors">Ajuda (RSC)</a>
+            <span class="text-white/25 dark:text-gray-700">|</span>
+            <button type="button" id="themeToggle" class="hover:text-white transition-colors flex items-center gap-1" aria-pressed="false">
+                <i aria-hidden="true" class="fa-solid fa-moon"></i> <span id="themeToggleLabel">Tema escuro</span>
+            </button>
+            <span class="text-white/25 dark:text-gray-700">|</span>
+            <button type="button" id="highContrastToggle" class="hover:text-white transition-colors flex items-center gap-1" aria-pressed="false">
+                <i aria-hidden="true" class="fa-solid fa-circle-half-stroke"></i> Alto contraste
+            </button>
+            <span class="text-white/25 dark:text-gray-700">|</span>
+            <span class="flex items-center gap-1" role="group" aria-label="Tamanho da fonte">
+                <button type="button" id="fontDec" class="hover:text-white transition-colors flex items-center gap-1" title="Diminuir fonte" aria-label="Diminuir fonte"><i aria-hidden="true" class="fa-solid fa-magnifying-glass-minus"></i> A-</button>
+                <button type="button" id="fontInc" class="hover:text-white transition-colors flex items-center gap-1" title="Aumentar fonte" aria-label="Aumentar fonte"><i aria-hidden="true" class="fa-solid fa-magnifying-glass-plus"></i> A+</button>
+            </span>
+        </div>
+        <div class="flex gap-3 items-center flex-wrap justify-center">
+            <a href="https://github.com/alexsandroccarv" target="_blank" rel="noopener" class="hover:text-white hover:underline transition-colors flex items-center gap-1">
+                <i aria-hidden="true" class="fa-brands fa-github text-white/90 dark:text-unifesp-400"></i> Alexsandro Cardoso Carvalho
+            </a>
+            <span class="text-white/40 dark:text-gray-600">|</span>
+            <a href="doe-um-cafe.html" class="hover:text-white hover:underline transition-colors flex items-center gap-1">
+                <i aria-hidden="true" class="fa-solid fa-mug-hot text-white/90 dark:text-unifesp-400"></i> Doe um café
+            </a>
+            <span class="text-white/40 dark:text-gray-600">|</span>
+            <a href="https://www.gnu.org/licenses/agpl-3.0.html" target="_blank" rel="noopener" class="hover:text-white transition-colors flex items-center gap-1" title="Licença AGPLv3 (Free Software Foundation)">
+                <i aria-hidden="true" class="fa-solid fa-scale-balanced text-white/90 dark:text-unifesp-400"></i> AGPLv3
+            </a>
+        </div>
+    </footer>
+
+    <!-- Cabeçalho/rodapé dinâmicos: versão, nome do titular e alternadores de tema (mesmo comportamento do app) -->
+    <script src="js/config.js"></script>
+    <script>
+        (function () {
+            var C = window.APP_CONFIG || {};
+            var setTxt = function (id, v) { var el = document.getElementById(id); if (el && v != null) el.textContent = v; };
+            setTxt('appVersion', C.version);
+            setTxt('lastModDate', C.lastModified);
+            var nome = '';
+            try {
+                var itens = JSON.parse(localStorage.getItem((C.storageKeys && C.storageKeys.catalog) || 'lz_catalog') || '[]');
+                var ident = itens.find(function (i) { return i.typeKey === 'IDENTIFICACAO' && i.fields && i.fields.titulo; });
+                if (ident) nome = String(ident.fields.titulo).trim();
+            } catch (e) {}
+            var nomeWrap = document.getElementById('headerNomeWrap');
+            if (nomeWrap) nomeWrap.classList.toggle('hidden', !nome);
+            setTxt('headerNome', nome);
+
+            var htmlEl = document.documentElement;
+            var tt = document.getElementById('themeToggle');
+            function syncTheme() {
+                var d = htmlEl.classList.contains('dark');
+                tt.setAttribute('aria-pressed', d ? 'true' : 'false');
+                tt.querySelector('i').className = d ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
+                document.getElementById('themeToggleLabel').textContent = d ? 'Tema claro' : 'Tema escuro';
+            }
+            if (tt) { syncTheme(); tt.addEventListener('click', function () { htmlEl.classList.toggle('dark'); localStorage.setItem('tema', htmlEl.classList.contains('dark') ? 'dark' : 'light'); syncTheme(); }); }
+
+            var hc = document.getElementById('highContrastToggle');
+            function syncHC() { hc.setAttribute('aria-pressed', htmlEl.classList.contains('high-contrast') ? 'true' : 'false'); }
+            if (hc) { syncHC(); hc.addEventListener('click', function () { htmlEl.classList.toggle('high-contrast'); localStorage.setItem('altoContraste', htmlEl.classList.contains('high-contrast') ? '1' : '0'); syncHC(); }); }
+
+            var FS_MIN = 80, FS_MAX = 150, FS_STEP = 10;
+            function getFS() { var n = parseInt(localStorage.getItem('fontScale') || '100', 10); return isNaN(n) ? 100 : n; }
+            var dec = document.getElementById('fontDec'), inc = document.getElementById('fontInc');
+            function applyFS(n) {
+                n = Math.max(FS_MIN, Math.min(FS_MAX, n));
+                htmlEl.style.fontSize = n === 100 ? '' : n + '%';
+                localStorage.setItem('fontScale', String(n));
+                if (dec) dec.disabled = n <= FS_MIN;
+                if (inc) inc.disabled = n >= FS_MAX;
+            }
+            applyFS(getFS());
+            if (dec) dec.addEventListener('click', function () { applyFS(getFS() - FS_STEP); });
+            if (inc) inc.addEventListener('click', function () { applyFS(getFS() + FS_STEP); });
+        })();
+    </script>
+
+    <!-- ============================ Pix "copia e cola" (BR Code / EMVCo) + parcerias ============================
+         Ajuste os dados abaixo com as suas informações reais antes de publicar. -->
+    <script>
+        (function () {
+            // ---- Configuração: ajuste com seus dados reais ----
+            var PIX_CONFIG = {
+                chave: 'alexsandroccarv@ccarvalho.net',  // sua chave Pix (e-mail, telefone, CPF/CNPJ ou aleatória)
+                nome: 'ALEXSANDRO CARVALHO',              // nome do recebedor: até 25 caracteres, sem acentos
+                cidade: 'BRASIL',                          // cidade do recebedor: até 15 caracteres, sem acentos — ajuste para a sua
+            };
+            // Links/códigos de afiliados: preencha "codigo" e/ou "url" de cada parceria
+            // já confirmada. Enquanto ficarem vazios, o cartão mostra "Em breve".
+            var AFFILIATES = [
+                { nome: 'Parafuso', icon: 'fa-solid fa-screwdriver-wrench', desc: 'Ferramentas e materiais para casa e obra.', codigo: '', url: '' },
+                { nome: 'Airbnb', icon: 'fa-brands fa-airbnb', desc: 'Desconto na primeira hospedagem.', codigo: '', url: '' },
+                { nome: 'Preply', icon: 'fa-solid fa-comments', desc: 'Aulas particulares de idiomas online.', codigo: '', url: '' },
+            ];
+
+            // ---- Pix BR Code (EMVCo / Banco Central) ----
+            function crc16(str) {
+                var crc = 0xFFFF;
+                for (var i = 0; i < str.length; i++) {
+                    crc ^= (str.charCodeAt(i) << 8);
+                    for (var j = 0; j < 8; j++) {
+                        crc = (crc & 0x8000) ? ((crc << 1) ^ 0x1021) : (crc << 1);
+                        crc &= 0xFFFF;
+                    }
+                }
+                return crc.toString(16).toUpperCase().padStart(4, '0');
+            }
+            function stripAccents(s) { return String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, ''); }
+            function emv(id, value) { return id + String(value.length).padStart(2, '0') + value; }
+            function buildPixPayload(amount) {
+                var nome = stripAccents(PIX_CONFIG.nome).slice(0, 25) || 'RECEBEDOR';
+                var cidade = stripAccents(PIX_CONFIG.cidade).slice(0, 15) || 'BRASIL';
+                var merchantAccount = emv('00', 'BR.GOV.BCB.PIX') + emv('01', PIX_CONFIG.chave);
+                var payload = emv('00', '01') + emv('26', merchantAccount) + emv('52', '0000') + emv('53', '986');
+                if (amount && Number(amount) > 0) payload += emv('54', Number(amount).toFixed(2));
+                payload += emv('58', 'BR') + emv('59', nome) + emv('60', cidade) + emv('62', emv('05', '***'));
+                payload += '6304';
+                return payload + crc16(payload);
+            }
+
+            var qrImg = document.getElementById('qrImg'), qrNote = document.getElementById('qrNote');
+            var payloadEl = document.getElementById('pixPayload'), valorEl = document.getElementById('qrValor');
+            var chaveEl = document.getElementById('pixChave');
+            chaveEl.textContent = PIX_CONFIG.chave;
+
+            function fmtBRL(n) { return 'R$ ' + Number(n).toFixed(2).replace('.', ','); }
+            function updatePix(amount) {
+                var payload = buildPixPayload(amount);
+                payloadEl.textContent = payload;
+                valorEl.textContent = amount ? fmtBRL(amount) : 'Valor livre';
+                qrImg.src = 'https://api.qrserver.com/v1/create-qr-code/?size=260x260&margin=8&data=' + encodeURIComponent(payload);
+                qrNote.style.display = 'none';
+            }
+            qrImg.addEventListener('error', function () { qrNote.style.display = ''; });
+
+            var amountBtns = document.querySelectorAll('#amountBtns .amount-btn');
+            var customAmount = document.getElementById('customAmount');
+            amountBtns.forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    amountBtns.forEach(function (b) { b.classList.remove('active'); });
+                    btn.classList.add('active');
+                    customAmount.value = '';
+                    updatePix(btn.dataset.amount);
+                });
+            });
+            customAmount.addEventListener('input', function () {
+                amountBtns.forEach(function (b) { b.classList.remove('active'); });
+                updatePix(customAmount.value);
+            });
+            updatePix(10);
+
+            function flashCopied(btn, label) {
+                var original = btn.innerHTML;
+                btn.classList.add('copied');
+                btn.innerHTML = '<i aria-hidden="true" class="fa-solid fa-check mr-1"></i> ' + label;
+                setTimeout(function () { btn.classList.remove('copied'); btn.innerHTML = original; }, 1800);
+            }
+            function copyText(text, btn, label) {
+                navigator.clipboard.writeText(text).then(function () { flashCopied(btn, label || 'Copiado!'); });
+            }
+            document.getElementById('btnCopyPayload').addEventListener('click', function (e) { copyText(payloadEl.textContent, e.currentTarget, 'Código copiado!'); });
+            document.getElementById('btnCopyChave').addEventListener('click', function (e) { copyText(PIX_CONFIG.chave, e.currentTarget, 'Chave copiada!'); });
+            document.getElementById('btnShare').addEventListener('click', function (e) {
+                var url = window.location.href;
+                if (navigator.share) { navigator.share({ title: 'Doe um café — lattesZen', url: url }).catch(function () {}); }
+                else { copyText(url, e.currentTarget, 'Link copiado!'); }
+            });
+
+            // ---- Parcerias / afiliados ----
+            var affGrid = document.getElementById('affGrid');
+            affGrid.innerHTML = AFFILIATES.map(function (a) {
+                var hasCodigo = !!a.codigo;
+                var hasUrl = !!a.url;
+                var action = (hasCodigo || hasUrl)
+                    ? (hasUrl
+                        ? '<a href="' + a.url + '" target="_blank" rel="noopener" class="mt-1 inline-flex items-center justify-center gap-1 px-3 py-1.5 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm font-semibold hover:opacity-90">Acessar <i aria-hidden="true" class="fa-solid fa-arrow-up-right-from-square ml-1 text-xs"></i></a>'
+                        : '')
+                    + (hasCodigo
+                        ? '<button type="button" data-code="' + a.codigo.replace(/"/g, '&quot;') + '" class="btn-copy-code mt-1 inline-flex items-center justify-center gap-1 px-3 py-1.5 rounded border border-gray-300 dark:border-gray-600 text-sm">Código: <span class="font-mono">' + a.codigo + '</span></button>'
+                        : '')
+                    : '<span class="pill-soon w-fit">Em breve</span>';
+                return '<div class="aff-card">'
+                    + '<div class="aff-icon"><i aria-hidden="true" class="' + a.icon + '"></i></div>'
+                    + '<div class="font-bold">' + a.nome + '</div>'
+                    + '<p class="text-sm text-gray-500 dark:text-gray-400 flex-1">' + a.desc + '</p>'
+                    + action
+                    + '</div>';
+            }).join('');
+            affGrid.querySelectorAll('.btn-copy-code').forEach(function (btn) {
+                btn.addEventListener('click', function (e) { copyText(btn.dataset.code, e.currentTarget, 'Código copiado!'); });
+            });
+        })();
+    </script>
+</body>
+</html>
