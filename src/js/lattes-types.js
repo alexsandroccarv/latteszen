@@ -30,6 +30,9 @@ const F_DINI = { key: 'anoInicio', label: 'Data de início', type: 'datebr' };
 const F_DFIM = { key: 'anoFim', label: 'Data de fim (vazio = atual)', type: 'datebr' };
 const F_PAIS = { key: 'pais', label: 'País', type: 'select', options: window.PAISES_LATTES || [] };
 const F_IDIOMA = { key: 'idioma', label: 'Idioma', type: 'select', options: window.IDIOMAS_LATTES || [] };
+// Opções de "Meio de divulgação" (Livros/Capítulos) — enum MEIO-DE-DIVULGACAO
+// do schema Lattes, exceto WEB (não usada na tela real para estes tipos).
+const MEIO_DIVULGACAO_OPTIONS = ['Impresso', 'Meio magnético', 'Meio digital', 'Filme', 'Hipertexto', 'Outro', 'Impresso e mídia eletrônica'];
 // Período usado nos itens de Atuação (Vínculo, Corpo editorial, Comitê,
 // Revisor...): Início, Situação (Atual/Anterior) e Fim — o Fim só aparece
 // quando a Situação é "Anterior (finalizado)", como na tela real do Lattes.
@@ -458,12 +461,70 @@ const TYPES = {
         { key: 'setores', label: 'Setores de atividade', type: 'cnaeSetores', help: 'Até 3 setores (lista CNAE).' },
         { key: 'outrasInfo', label: 'Outras informações', type: 'textarea' },
     ] },
+    // Mantido apenas para compatibilidade com itens já catalogados (chave
+    // legada); novos itens usam os 2 tipos específicos abaixo (Livros/Capítulos).
     LIVRO_CAPITULO: { label: 'Livros e capítulos', fields: [
         { key: 'tipoObra', label: 'Tipo', type: 'select', required: true, options: ['Livro publicado', 'Livro organizado', 'Capítulo de livro'] },
         F_TITULO, F_ANO, F_AFIM, F_AUTORES, { key: 'tituloLivro', label: 'Título do livro (se capítulo)', type: 'text' },
         { key: 'organizadores', label: 'Organizadores', type: 'text' }, { key: 'editora', label: 'Editora', type: 'text' },
         F_CIDADE, { key: 'isbn', label: 'ISBN', type: 'text' }, { key: 'edicao', label: 'Edição', type: 'text' },
         { key: 'paginas', label: 'Páginas', type: 'text' }, F_IDIOMA, F_PAIS, F_URL] },
+    LIVROS: { label: 'Livros', fields: [
+        F_DOI,
+        { key: 'tipoObra', label: 'Tipo', type: 'select', required: true, options: ['Livro publicado', 'Organização de obra publicada'] },
+        { key: 'naturezaLivroPublicado', label: 'Natureza', type: 'select', options: ['Coletânea', 'Texto Integral', 'Verbete', 'Outro'],
+          disabledWhen: { field: 'tipoObra', notEquals: 'Livro publicado' } },
+        { key: 'naturezaOrganizacao', label: 'Natureza', type: 'select', options: ['Periódico', 'Outro', 'Livro', 'Anais', 'Catálogo', 'Coletânea', 'Enciclopédia'],
+          disabledWhen: { field: 'tipoObra', notEquals: 'Organização de obra publicada' } },
+        { key: 'titulo', label: 'Título do livro', type: 'text', required: true },
+        { ...F_ANO, label: 'Ano' }, F_PAIS, F_IDIOMA,
+        { key: 'meioDivulgacao', label: 'Meio de divulgação', type: 'select', options: MEIO_DIVULGACAO_OPTIONS },
+        { key: 'url', label: 'Home page do trabalho (URL)', type: 'url' },
+        { key: 'relevante', label: 'É um dos 10 trabalhos mais relevantes de sua produção?', type: 'checkbox' },
+        { key: 'divulgacaoCT', label: 'É uma produção para educação e popularização de C&T?', type: 'checkbox' },
+        { key: 'numeroVolumes', label: 'Número de volumes', type: 'text' },
+        { key: 'paginas', label: 'Número de páginas', type: 'text' },
+        { key: 'isbn', label: 'ISBN', type: 'text' },
+        { key: 'edicao', label: 'Número da edição/revisão', type: 'text' },
+        { key: 'serie', label: 'Série', type: 'text' },
+        { key: 'cidade', label: 'Cidade da editora', type: 'text' },
+        { key: 'editora', label: 'Nome da editora', type: 'text' },
+        { key: 'autoresLista', label: 'Autores', type: 'repeater', addLabel: 'Adicionar autor', columns: [
+            { key: 'nomeCompleto', label: 'Nome completo', type: 'text', required: true },
+            { key: 'nomeCitacao', label: 'Nome como citado', type: 'text' },
+        ] },
+        { key: 'palavrasChave', label: 'Palavras-chave', type: 'textarea', placeholder: 'Separe por ponto e vírgula (;)', help: 'Até 6 palavras-chave (limite da Plataforma Lattes).' },
+        { key: 'areaConhecimento', label: 'Área do conhecimento (CNPq/CAPES)', type: 'areatree', help: 'Selecione do mais geral ao mais específico: Grande área › Área › Subárea › Especialidade.' },
+        { key: 'setores', label: 'Setores de atividade', type: 'cnaeSetores', help: 'Até 3 setores (lista CNAE).' },
+        { key: 'outrasInfo', label: 'Outras informações', type: 'textarea' },
+    ] },
+    CAPITULOS_LIVRO: { label: 'Capítulos', fields: [
+        F_DOI,
+        { key: 'titulo', label: 'Título do capítulo', type: 'text', required: true },
+        { ...F_ANO, label: 'Ano' }, F_PAIS, F_IDIOMA,
+        { key: 'meioDivulgacao', label: 'Meio de divulgação', type: 'select', options: MEIO_DIVULGACAO_OPTIONS },
+        { key: 'url', label: 'Home page do trabalho (URL)', type: 'url' },
+        { key: 'relevante', label: 'É um dos 10 trabalhos mais relevantes de sua produção?', type: 'checkbox' },
+        { key: 'divulgacaoCT', label: 'É uma produção para educação e popularização de C&T?', type: 'checkbox' },
+        { key: 'tituloLivro', label: 'Título do livro', type: 'text' },
+        { key: 'organizadores', label: 'Organizadores', type: 'text', help: 'Se houver mais de um organizador, informe os nomes separados por ponto e vírgula (;).' },
+        { key: 'numeroVolumes', label: 'Número do volume', type: 'text' },
+        { key: 'paginaInicial', label: 'Página inicial', type: 'text' },
+        { key: 'paginaFinal', label: 'Página final', type: 'text' },
+        { key: 'edicao', label: 'Número da edição/revisão', type: 'text' },
+        { key: 'serie', label: 'Série', type: 'text' },
+        { key: 'isbn', label: 'ISBN', type: 'text' },
+        { key: 'cidade', label: 'Cidade da editora', type: 'text' },
+        { key: 'editora', label: 'Nome da editora', type: 'text' },
+        { key: 'autoresLista', label: 'Autores', type: 'repeater', addLabel: 'Adicionar autor', columns: [
+            { key: 'nomeCompleto', label: 'Nome completo', type: 'text', required: true },
+            { key: 'nomeCitacao', label: 'Nome como citado', type: 'text' },
+        ] },
+        { key: 'palavrasChave', label: 'Palavras-chave', type: 'textarea', placeholder: 'Separe por ponto e vírgula (;)', help: 'Até 6 palavras-chave (limite da Plataforma Lattes).' },
+        { key: 'areaConhecimento', label: 'Área do conhecimento (CNPq/CAPES)', type: 'areatree', help: 'Selecione do mais geral ao mais específico: Grande área › Área › Subárea › Especialidade.' },
+        { key: 'setores', label: 'Setores de atividade', type: 'cnaeSetores', help: 'Até 3 setores (lista CNAE).' },
+        { key: 'outrasInfo', label: 'Outras informações', type: 'textarea' },
+    ] },
     TEXTO_JORNAL: { label: 'Texto em jornal ou revista (magazine)', fields: [F_TITULO, F_ANO, F_AFIM, F_AUTORES,
         { key: 'veiculo', label: 'Jornal / Revista', type: 'text', required: true }, { key: 'data', label: 'Data', type: 'date' },
         { key: 'volume', label: 'Volume', type: 'text' }, { key: 'paginas', label: 'Páginas', type: 'text' }, F_CIDADE, F_PAIS, F_IDIOMA, F_URL] },
@@ -691,7 +752,7 @@ const TYPES = {
 Object.keys(TYPES).forEach(k => TYPES[k].key = k);
 
 /* ---- As 11 categorias do menu Lattes (com subgrupos onde há) ---- */
-const PROD_BIBLIO = ['ARTIGO_PERIODICO', 'ARTIGO_ACEITO', 'LIVRO_CAPITULO', 'TEXTO_JORNAL', 'TRABALHO_EVENTO', 'APRESENTACAO', 'PARTITURA', 'TRADUCAO', 'PREFACIO', 'OUTRA_BIBLIOGRAFICA'];
+const PROD_BIBLIO = ['ARTIGO_PERIODICO', 'ARTIGO_ACEITO', 'LIVROS', 'CAPITULOS_LIVRO', 'TEXTO_JORNAL', 'TRABALHO_EVENTO', 'APRESENTACAO', 'PARTITURA', 'TRADUCAO', 'PREFACIO', 'OUTRA_BIBLIOGRAFICA'];
 const PROD_TECNICA = ['ASSESSORIA_CONSULTORIA', 'EXTENSAO_TECNOLOGICA', 'SOFTWARE_SEM_REGISTRO', 'PRODUTO_TECNOLOGICO', 'PROCESSO_TECNICA', 'TRABALHO_TECNICO', 'CARTA_MAPA', 'CURSO_MINISTRADO', 'MATERIAL_DIDATICO', 'EDITORACAO', 'MANUTENCAO_OBRA', 'MAQUETE', 'MIDIA', 'RELATORIO_PESQUISA', 'MIDIA_SOCIAL', 'OUTRA_TECNICA'];
 const PROD_ARTISTICA = ['ARTES_CENICAS', 'MUSICA', 'ARTES_VISUAIS', 'OUTRA_ARTISTICA'];
 const PI_TYPES = ['PATENTE', 'SOFTWARE_REGISTRADO', 'CULTIVAR_PROTEGIDA', 'CULTIVAR_REGISTRADA', 'DESENHO_INDUSTRIAL', 'MARCA', 'TOPOGRAFIA_CI'];
@@ -724,7 +785,7 @@ window.LATTES_CATEGORIES = [
     { num: '07', key: 'INOVACAO', label: 'Inovação', icon: 'fa-lightbulb',
       types: ['SOFTWARE_SEM_REGISTRO', 'PRODUTO_TECNOLOGICO', 'PROCESSO_TECNICA', 'PROJETO_PESQUISA', 'PROJETO_DESENVOLVIMENTO', 'PROJETO_EXTENSAO', 'PROJETO_ENSINO', 'PROJETO_OUTRO'] },
     { num: '08', key: 'EDUCACAO_CT', label: 'Educação e Popularização de C&T', icon: 'fa-chalkboard-user',
-      types: ['ARTIGO_PERIODICO', 'ARTIGO_ACEITO', 'LIVRO_CAPITULO', 'TEXTO_JORNAL', 'TRABALHO_EVENTO', 'APRESENTACAO', 'SOFTWARE_SEM_REGISTRO', 'CURSO_MINISTRADO', 'MATERIAL_DIDATICO', 'MIDIA', 'SOFTWARE_REGISTRADO', 'ORGANIZACAO_EVENTO', 'PARTICIPACAO_EVENTO', 'MIDIA_SOCIAL', 'ARTES_VISUAIS', 'ARTES_CENICAS', 'MUSICA', 'OUTRA_BIBLIOGRAFICA', 'OUTRA_TECNICA', 'OUTRA_ARTISTICA'] },
+      types: ['ARTIGO_PERIODICO', 'ARTIGO_ACEITO', 'LIVROS', 'CAPITULOS_LIVRO', 'TEXTO_JORNAL', 'TRABALHO_EVENTO', 'APRESENTACAO', 'SOFTWARE_SEM_REGISTRO', 'CURSO_MINISTRADO', 'MATERIAL_DIDATICO', 'MIDIA', 'SOFTWARE_REGISTRADO', 'ORGANIZACAO_EVENTO', 'PARTICIPACAO_EVENTO', 'MIDIA_SOCIAL', 'ARTES_VISUAIS', 'ARTES_CENICAS', 'MUSICA', 'OUTRA_BIBLIOGRAFICA', 'OUTRA_TECNICA', 'OUTRA_ARTISTICA'] },
     { num: '09', key: 'EVENTOS', label: 'Eventos', icon: 'fa-calendar-days', types: ['PARTICIPACAO_EVENTO', 'ORGANIZACAO_EVENTO'] },
     { num: '10', key: 'ORIENTACOES', label: 'Orientações', icon: 'fa-user-group', types: ['ORIENTACAO_CONCLUIDA', 'ORIENTACAO_ANDAMENTO'] },
     { num: '11', key: 'BANCAS', label: 'Bancas', icon: 'fa-gavel', types: ['BANCA_CONCLUSAO', 'BANCA_JULGADORA'] },
@@ -762,7 +823,7 @@ const PRIMARY_CATEGORY = {
     ATIV_ENSINO: 'ATUACAO', ATIV_DIRECAO: 'ATUACAO', ATIV_CONSELHO: 'ATUACAO', ATIV_EXTENSAO: 'ATUACAO', ATIV_SERVICO: 'ATUACAO', ATIV_OUTRA: 'ATUACAO',
     ATIV_PESQUISA: 'ATUACAO', ATIV_ESTAGIO: 'ATUACAO', ATIV_TREINAMENTO: 'ATUACAO',
     PROJETO_PESQUISA: 'PROJETOS', PROJETO_DESENVOLVIMENTO: 'PROJETOS', PROJETO_EXTENSAO: 'PROJETOS', PROJETO_ENSINO: 'PROJETOS', PROJETO_OUTRO: 'PROJETOS',
-    ARTIGO_PERIODICO: 'PRODUCOES', ARTIGO_ACEITO: 'PRODUCOES', LIVRO_CAPITULO: 'PRODUCOES', TEXTO_JORNAL: 'PRODUCOES', TRABALHO_EVENTO: 'PRODUCOES', APRESENTACAO: 'PRODUCOES', PARTITURA: 'PRODUCOES', TRADUCAO: 'PRODUCOES', PREFACIO: 'PRODUCOES', OUTRA_BIBLIOGRAFICA: 'PRODUCOES',
+    ARTIGO_PERIODICO: 'PRODUCOES', ARTIGO_ACEITO: 'PRODUCOES', LIVRO_CAPITULO: 'PRODUCOES', LIVROS: 'PRODUCOES', CAPITULOS_LIVRO: 'PRODUCOES', TEXTO_JORNAL: 'PRODUCOES', TRABALHO_EVENTO: 'PRODUCOES', APRESENTACAO: 'PRODUCOES', PARTITURA: 'PRODUCOES', TRADUCAO: 'PRODUCOES', PREFACIO: 'PRODUCOES', OUTRA_BIBLIOGRAFICA: 'PRODUCOES',
     ASSESSORIA_CONSULTORIA: 'PRODUCOES', EXTENSAO_TECNOLOGICA: 'PRODUCOES', SOFTWARE_SEM_REGISTRO: 'PRODUCOES', PRODUTO_TECNOLOGICO: 'PRODUCOES', PROCESSO_TECNICA: 'PRODUCOES', TRABALHO_TECNICO: 'PRODUCOES', CARTA_MAPA: 'PRODUCOES', CURSO_MINISTRADO: 'PRODUCOES', MATERIAL_DIDATICO: 'PRODUCOES', EDITORACAO: 'PRODUCOES', MANUTENCAO_OBRA: 'PRODUCOES', MAQUETE: 'PRODUCOES', MIDIA: 'PRODUCOES', RELATORIO_PESQUISA: 'PRODUCOES', MIDIA_SOCIAL: 'PRODUCOES', OUTRA_TECNICA: 'PRODUCOES',
     ARTES_CENICAS: 'PRODUCOES', MUSICA: 'PRODUCOES', ARTES_VISUAIS: 'PRODUCOES', OUTRA_ARTISTICA: 'PRODUCOES',
     PATENTE: 'PATENTES_REGISTROS', SOFTWARE_REGISTRADO: 'PATENTES_REGISTROS', CULTIVAR_PROTEGIDA: 'PATENTES_REGISTROS', CULTIVAR_REGISTRADA: 'PATENTES_REGISTROS', DESENHO_INDUSTRIAL: 'PATENTES_REGISTROS', MARCA: 'PATENTES_REGISTROS', TOPOGRAFIA_CI: 'PATENTES_REGISTROS',

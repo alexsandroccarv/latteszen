@@ -305,7 +305,16 @@ window.LattesXMLExport = (function () {
     // profissional para o token FLAG-PERIODO do Lattes.
     const FLAG_PERIODO = { 'Atual (não finalizado)': 'ATUAL', 'Anterior (finalizado)': 'ANTERIOR' };
     // MEIO-DE-DIVULGACAO (artigo em periódico).
-    const MEIO_DIVULGACAO_TOKEN = { 'Impresso': 'IMPRESSO', 'Meio digital': 'MEIO_DIGITAL', 'Impresso e mídia eletrônica': 'VARIOS' };
+    const MEIO_DIVULGACAO_TOKEN = {
+        'Impresso': 'IMPRESSO', 'Meio digital': 'MEIO_DIGITAL', 'Impresso e mídia eletrônica': 'VARIOS',
+        'Meio magnético': 'MEIO_MAGNETICO', 'Filme': 'FILME', 'Hipertexto': 'HIPERTEXTO', 'Outro': 'OUTRO',
+    };
+    // TIPO/NATUREZA de Livros (DADOS-BASICOS-DO-LIVRO).
+    const LIVRO_TIPO_TOKEN = { 'Livro publicado': 'LIVRO_PUBLICADO', 'Organização de obra publicada': 'LIVRO_ORGANIZADO_OU_EDICAO' };
+    const LIVRO_NATUREZA_TOKEN = {
+        'Coletânea': 'COLETANEA', 'Texto Integral': 'TEXTO_INTEGRAL', 'Verbete': 'VERBETE', 'Outro': 'OUTRA',
+        'Periódico': 'PERIODICO', 'Livro': 'LIVRO', 'Anais': 'ANAIS', 'Catálogo': 'CATALOGO', 'Enciclopédia': 'ENCICLOPEDIA',
+    };
     // NATUREZA do financiador de projeto (enum do FINANCIADOR-DO-PROJETO).
     const FINANCIADOR_NATUREZA_TOKEN = {
         'Bolsa': 'BOLSA', 'Auxílio financeiro': 'AUXILIO_FINANCEIRO', 'Remuneração': 'REMUNERACAO',
@@ -601,6 +610,8 @@ window.LattesXMLExport = (function () {
 
         // Livros e capítulos
         const livrosArr = [], capsArr = [];
+        // Compat.: chave legada (tipo único com "Tipo" = Livro publicado/
+        // organizado/Capítulo de livro), mantida para itens já catalogados.
         pick('LIVRO_CAPITULO').forEach(f => {
             const p = paginas(f.paginas);
             if (/cap/i.test(f.tipoObra || '')) {
@@ -614,6 +625,30 @@ window.LattesXMLExport = (function () {
                     'DETALHAMENTO-DO-LIVRO', { 'NUMERO-DE-PAGINAS': f.paginas, 'ISBN': f.isbn, 'NUMERO-DA-EDICAO-REVISAO': f.edicao, 'CIDADE-DA-EDITORA': f.cidade, 'NOME-DA-EDITORA': f.editora },
                     f.autores));
             }
+        });
+        pick('LIVROS').forEach(f => {
+            const natureza = f.tipoObra === 'Livro publicado' ? f.naturezaLivroPublicado : f.naturezaOrganizacao;
+            const db = el('DADOS-BASICOS-DO-LIVRO', {
+                'TIPO': LIVRO_TIPO_TOKEN[f.tipoObra] || '', 'NATUREZA': LIVRO_NATUREZA_TOKEN[natureza] || '',
+                'TITULO-DO-LIVRO': f.titulo, 'ANO': year(f.ano), 'PAIS-DE-PUBLICACAO': f.pais, 'IDIOMA': f.idioma,
+                'MEIO-DE-DIVULGACAO': MEIO_DIVULGACAO_TOKEN[f.meioDivulgacao] || '', 'HOME-PAGE-DO-TRABALHO': f.url,
+                'FLAG-RELEVANCIA': FLAG_SIM_NAO[f.relevante] || '', 'DOI': f.doi, 'FLAG-DIVULGACAO-CIENTIFICA': FLAG_SIM_NAO[f.divulgacaoCT] || '',
+            });
+            const det = el('DETALHAMENTO-DO-LIVRO', { 'NUMERO-DE-VOLUMES': f.numeroVolumes, 'NUMERO-DE-PAGINAS': f.paginas, 'ISBN': f.isbn, 'NUMERO-DA-EDICAO-REVISAO': f.edicao, 'NUMERO-DA-SERIE': f.serie, 'CIDADE-DA-EDITORA': f.cidade, 'NOME-DA-EDITORA': f.editora });
+            const autoresXml = (Array.isArray(f.autoresLista) && f.autoresLista.length) ? autoresListaEls(f.autoresLista) : autoresEls(f.autores);
+            const extra = palavrasChaveEl(f.palavrasChave) + areaDoConhecimentoEl(f) + setoresAtividadeEl(f.setores) + informacoesAdicionaisEl(f.outrasInfo);
+            livrosArr.push(el('LIVRO-PUBLICADO-OU-ORGANIZADO', { 'SEQUENCIA-PRODUCAO': S() }, db + det + autoresXml + extra));
+        });
+        pick('CAPITULOS_LIVRO').forEach(f => {
+            const db = el('DADOS-BASICOS-DO-CAPITULO', {
+                'TITULO-DO-CAPITULO-DO-LIVRO': f.titulo, 'ANO': year(f.ano), 'PAIS-DE-PUBLICACAO': f.pais, 'IDIOMA': f.idioma,
+                'MEIO-DE-DIVULGACAO': MEIO_DIVULGACAO_TOKEN[f.meioDivulgacao] || '', 'HOME-PAGE-DO-TRABALHO': f.url,
+                'FLAG-RELEVANCIA': FLAG_SIM_NAO[f.relevante] || '', 'DOI': f.doi, 'FLAG-DIVULGACAO-CIENTIFICA': FLAG_SIM_NAO[f.divulgacaoCT] || '',
+            });
+            const det = el('DETALHAMENTO-DO-CAPITULO', { 'TITULO-DO-LIVRO': f.tituloLivro, 'NUMERO-DE-VOLUMES': f.numeroVolumes, 'PAGINA-INICIAL': f.paginaInicial, 'PAGINA-FINAL': f.paginaFinal, 'ISBN': f.isbn, 'ORGANIZADORES': f.organizadores, 'NUMERO-DA-EDICAO-REVISAO': f.edicao, 'NUMERO-DA-SERIE': f.serie, 'CIDADE-DA-EDITORA': f.cidade, 'NOME-DA-EDITORA': f.editora });
+            const autoresXml = (Array.isArray(f.autoresLista) && f.autoresLista.length) ? autoresListaEls(f.autoresLista) : autoresEls(f.autores);
+            const extra = palavrasChaveEl(f.palavrasChave) + areaDoConhecimentoEl(f) + setoresAtividadeEl(f.setores) + informacoesAdicionaisEl(f.outrasInfo);
+            capsArr.push(el('CAPITULO-DE-LIVRO-PUBLICADO', { 'SEQUENCIA-PRODUCAO': S() }, db + det + autoresXml + extra));
         });
         const livrosCaps = wrap('LIVROS-E-CAPITULOS', [wrap('LIVROS-PUBLICADOS-OU-ORGANIZADOS', livrosArr.join('')), wrap('CAPITULOS-DE-LIVROS-PUBLICADOS', capsArr.join(''))].join(''));
 
