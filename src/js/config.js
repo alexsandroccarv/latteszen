@@ -3,8 +3,8 @@
    ========================================================================== */
 window.APP_CONFIG = {
     name: 'lattesZen',
-    version: 'v0.2.3',
-    lastModified: '16/08/2026',
+    version: 'v0.2.5',
+    lastModified: '19/08/2026',
     author: {
         nome: 'Alexsandro Cardoso Carvalho',
         github: 'https://github.com/alexsandroccarv',
