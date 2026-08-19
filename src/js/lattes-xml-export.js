@@ -297,6 +297,11 @@ window.LattesXMLExport = (function () {
     // Mapeia o campo "Situação" (Atual/Anterior) das atividades de Atuação
     // profissional para o token FLAG-PERIODO do Lattes.
     const FLAG_PERIODO = { 'Atual (não finalizado)': 'ATUAL', 'Anterior (finalizado)': 'ANTERIOR' };
+    // MEIO-DE-DIVULGACAO (artigo em periódico).
+    const MEIO_DIVULGACAO_TOKEN = {
+        'Impresso': 'IMPRESSO', 'Meio digital': 'MEIO_DIGITAL', 'Web': 'WEB', 'Meio magnético': 'MEIO_MAGNETICO',
+        'Filme': 'FILME', 'Hipertexto': 'HIPERTEXTO', 'Outro': 'OUTRO', 'Vários': 'VARIOS',
+    };
     // NATUREZA do financiador de projeto (enum do FINANCIADOR-DO-PROJETO).
     const FINANCIADOR_NATUREZA_TOKEN = {
         'Bolsa': 'BOLSA', 'Auxílio financeiro': 'AUXILIO_FINANCEIRO', 'Remuneração': 'REMUNERACAO',
@@ -562,11 +567,18 @@ window.LattesXMLExport = (function () {
         }).join('');
 
         const artigos = pick('ARTIGO_PERIODICO').map(f => {
-            const p = paginas(f.paginas);
-            return producao('ARTIGO-PUBLICADO', S(),
-                'DADOS-BASICOS-DO-ARTIGO', { 'TITULO-DO-ARTIGO': f.titulo, 'ANO-DO-ARTIGO': year(f.ano), 'PAIS-DE-PUBLICACAO': f.pais, 'IDIOMA': f.idioma, 'DOI': f.doi, 'HOME-PAGE-DO-TRABALHO': f.url },
-                'DETALHAMENTO-DO-ARTIGO', { 'TITULO-DO-PERIODICO-OU-REVISTA': f.periodico, 'ISSN': f.issn, 'VOLUME': f.volume, 'FASCICULO': f.fasciculo, 'PAGINA-INICIAL': p.ini, 'PAGINA-FINAL': p.fim },
-                f.autores);
+            // Compat.: itens antigos guardavam só "paginas" (ex.: "120-135");
+            // os campos novos (página inicial/final separadas) têm prioridade.
+            const pLegado = paginas(f.paginas);
+            const pIni = f.paginaInicial || pLegado.ini, pFim = f.paginaFinal || pLegado.fim;
+            const db = el('DADOS-BASICOS-DO-ARTIGO', {
+                'TITULO-DO-ARTIGO': f.titulo, 'ANO-DO-ARTIGO': year(f.ano), 'PAIS-DE-PUBLICACAO': f.pais, 'IDIOMA': f.idioma,
+                'MEIO-DE-DIVULGACAO': MEIO_DIVULGACAO_TOKEN[f.meioDivulgacao] || '', 'HOME-PAGE-DO-TRABALHO': f.url,
+                'FLAG-RELEVANCIA': FLAG_SIM_NAO[f.relevante] || '', 'DOI': f.doi, 'FLAG-DIVULGACAO-CIENTIFICA': FLAG_SIM_NAO[f.divulgacaoCT] || '',
+            });
+            const det = el('DETALHAMENTO-DO-ARTIGO', { 'TITULO-DO-PERIODICO-OU-REVISTA': f.periodico, 'ISSN': f.issn, 'VOLUME': f.volume, 'FASCICULO': f.fasciculo, 'SERIE': f.serie, 'PAGINA-INICIAL': pIni, 'PAGINA-FINAL': pFim });
+            const extra = palavrasChaveEl(f.palavrasChave) + areaDoConhecimentoEl(f) + setoresAtividadeEl(f.setores) + informacoesAdicionaisEl(f.outrasInfo);
+            return el('ARTIGO-PUBLICADO', { 'SEQUENCIA-PRODUCAO': S() }, db + det + autoresEls(f.autores) + extra);
         }).join('');
 
         const aceitos = pick('ARTIGO_ACEITO').map(f =>

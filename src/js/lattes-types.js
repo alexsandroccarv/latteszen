@@ -421,10 +421,24 @@ const TYPES = {
     PROJETO_OUTRO: { label: 'Outros tipos de projetos', fields: projetoFieldsPadrao() },
 
     // 05.1 Produção bibliográfica
-    ARTIGO_PERIODICO: { label: 'Artigos completos publicados em periódicos', fields: [F_TITULO, F_ANO, F_AFIM, F_AUTORES,
+    ARTIGO_PERIODICO: { label: 'Artigos completos publicados em periódicos', fields: [
+        F_TITULO, F_ANO, F_AFIM, F_IDIOMA, F_PAIS,
+        { key: 'meioDivulgacao', label: 'Meio de divulgação', type: 'select', options: ['Impresso', 'Meio digital', 'Web', 'Meio magnético', 'Filme', 'Hipertexto', 'Outro', 'Vários'] },
+        { key: 'url', label: 'Home page do trabalho (URL)', type: 'url' },
+        F_DOI,
+        { key: 'relevante', label: 'É um dos 10 trabalhos mais relevantes de sua produção?', type: 'select', options: ['Sim', 'Não'] },
+        { key: 'divulgacaoCT', label: 'É uma produção para educação e popularização de C&T?', type: 'select', options: ['Sim', 'Não'] },
+        F_AUTORES,
         { key: 'periodico', label: 'Periódico / Revista', type: 'text', required: true }, { key: 'issn', label: 'ISSN', type: 'text' },
         { key: 'volume', label: 'Volume', type: 'text' }, { key: 'fasciculo', label: 'Fascículo / Número', type: 'text' },
-        { key: 'paginas', label: 'Páginas', type: 'text', placeholder: 'ex.: 120-135' }, F_IDIOMA, F_PAIS, F_DOI, F_URL] },
+        { key: 'serie', label: 'Série', type: 'text' },
+        { key: 'paginaInicial', label: 'Página inicial / Número artigo eletrônico', type: 'text' },
+        { key: 'paginaFinal', label: 'Página final', type: 'text' },
+        { key: 'palavrasChave', label: 'Palavras-chave', type: 'textarea', placeholder: 'Separe por ponto e vírgula (;)', help: 'Até 6 palavras-chave (limite da Plataforma Lattes).' },
+        { key: 'areaConhecimento', label: 'Área do conhecimento (CNPq/CAPES)', type: 'areatree', help: 'Selecione do mais geral ao mais específico: Grande área › Área › Subárea › Especialidade.' },
+        { key: 'setores', label: 'Setores de atividade', type: 'cnaeSetores', help: 'Até 3 setores (lista CNAE).' },
+        { key: 'outrasInfo', label: 'Outras informações', type: 'textarea' },
+    ] },
     ARTIGO_ACEITO: { label: 'Artigos aceitos para publicação', fields: [F_TITULO, F_ANO, F_AFIM, F_AUTORES,
         { key: 'periodico', label: 'Periódico / Revista', type: 'text', required: true }, { key: 'issn', label: 'ISSN', type: 'text' }, F_IDIOMA, F_DOI, F_URL] },
     LIVRO_CAPITULO: { label: 'Livros e capítulos', fields: [
