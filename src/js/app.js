@@ -1428,7 +1428,7 @@
                 const off = isFieldDisabled(f, vals);
                 wrap.classList.toggle('hidden', off);
                 if (off) {
-                    if (input) { input.value = ''; input.removeAttribute('required'); input.dispatchEvent(new Event('change')); } // propaga p/ campos encadeados (ex.: comBolsa → bolsa)
+                    if (input) { input.value = ''; if (input.type === 'checkbox') input.checked = false; input.removeAttribute('required'); input.dispatchEvent(new Event('change')); } // propaga p/ campos encadeados (ex.: comBolsa → bolsa)
                     $$(`[data-cbgroup="${f.key}"]`, wrap).forEach(cb => { cb.checked = false; });
                     $$(`[data-areatree]`, wrap).forEach(sel => { sel.value = ''; });
                     $$(`[data-setor]`, wrap).forEach(sel => { sel.value = ''; });
