@@ -28,7 +28,7 @@ const F_AFIM = { key: 'anoFim', label: 'Ano de fim', type: 'datebr' };
 // Lattes apenas o ANO é mantido (o schema só aceita ANO-INICIO/ANO-FIM).
 const F_DINI = { key: 'anoInicio', label: 'Data de início', type: 'datebr' };
 const F_DFIM = { key: 'anoFim', label: 'Data de fim (vazio = atual)', type: 'datebr' };
-const F_PAIS = { key: 'pais', label: 'País', type: 'select', options: window.PAISES_LATTES || [] };
+const F_PAIS = { key: 'pais', label: 'País', type: 'select', options: window.PAISES_LATTES || [], default: 'Brasil' };
 const F_IDIOMA = { key: 'idioma', label: 'Idioma', type: 'select', options: window.IDIOMAS_LATTES || [] };
 // Opções de "Meio de divulgação" (Livros/Capítulos) — enum MEIO-DE-DIVULGACAO
 // do schema Lattes, exceto WEB (não usada na tela real para estes tipos).
@@ -80,7 +80,7 @@ const projetoEquipeField = (label, addLabel) => ({ key: 'equipe', label: label |
 const institucaoColumns = () => [
     { key: 'nome', label: 'Nome da instituição', type: 'text', required: true },
     { key: 'sigla', label: 'Sigla', type: 'text' },
-    { key: 'pais', label: 'País', type: 'select', options: window.PAISES_LATTES || [] },
+    { key: 'pais', label: 'País', type: 'select', options: window.PAISES_LATTES || [], default: 'Brasil' },
     { key: 'uf', label: 'UF', type: 'text', enabledWhenCol: { key: 'pais', equals: 'Brasil' } },
 ];
 const projetoInstituicoesEnvolvidasField = () => ({ key: 'instituicoesEnvolvidas', label: 'Instituições envolvidas no projeto', type: 'repeater',
@@ -97,7 +97,7 @@ const projetoFinanciadoresField = () => ({ key: 'financiadores', label: 'Institu
 const projetoInstituicaoExecucaoFields = () => [
     { key: 'instituicaoExecucaoNome', label: 'Instituição de execução', type: 'text' },
     { key: 'instituicaoExecucaoSigla', label: 'Sigla', type: 'text', row: 'instExecucao' },
-    { key: 'instituicaoExecucaoPais', label: 'País', type: 'select', options: window.PAISES_LATTES || [], row: 'instExecucao' },
+    { key: 'instituicaoExecucaoPais', label: 'País', type: 'select', options: window.PAISES_LATTES || [], default: 'Brasil', row: 'instExecucao' },
     { key: 'instituicaoExecucaoUf', label: 'UF', type: 'text', row: 'instExecucao', disabledWhen: { field: 'instituicaoExecucaoPais', notEquals: 'Brasil' } },
 ];
 const projetoProducoesField = () => ({ key: 'producoesCT', label: 'Produção C&T', type: 'repeater',
@@ -222,8 +222,8 @@ const TYPES = {
         { key: 'corRaca', label: 'Cor ou raça', type: 'select', options: ['Branca', 'Preta', 'Parda', 'Indígena', 'Não desejo declarar'] },
         { key: 'sexo', label: 'Sexo', type: 'select', options: ['Masculino', 'Feminino'], help: 'Exigido pelo Lattes na importação do XML.' },
         { key: 'nacionalidade', label: 'Nacionalidade', type: 'text', placeholder: 'Brasileira' },
-        { key: 'paisNacionalidade', label: 'País de nacionalidade', type: 'select', options: window.PAISES_LATTES || [] },
-        { key: 'pais', label: 'País de nascimento', type: 'select', options: window.PAISES_LATTES || [] },
+        { key: 'paisNacionalidade', label: 'País de nacionalidade', type: 'select', options: window.PAISES_LATTES || [], default: 'Brasil' },
+        { key: 'pais', label: 'País de nascimento', type: 'select', options: window.PAISES_LATTES || [], default: 'Brasil' },
         { key: 'ufNascimento', label: 'UF de nascimento', type: 'text', placeholder: 'ex.: RS', disabledWhen: { field: 'pais', notEquals: 'Brasil' } },
         { key: 'cidadeNascimento', label: 'Cidade de nascimento', type: 'text' },
         { key: 'dataNascimento', label: 'Data de nascimento', type: 'datebr' },
@@ -255,7 +255,7 @@ const TYPES = {
         { key: 'numero', label: 'Número do passaporte', type: 'text', required: true },
         { key: 'dataValidade', label: 'Data de validade', type: 'datebr' },
         { key: 'dataEmissao', label: 'Data de emissão', type: 'datebr' },
-        { key: 'paisEmissao', label: 'País de emissão', type: 'select', options: window.PAISES_LATTES || [] }] },
+        { key: 'paisEmissao', label: 'País de emissão', type: 'select', options: window.PAISES_LATTES || [], default: 'Brasil' }] },
     ENDERECO: { label: 'Endereço', singleton: true, noEvidence: true, perfil: true, fields: [{ key: 'titulo', label: 'Endereço', type: 'text', required: true }, { key: 'tipo', label: 'Tipo', type: 'select', options: ['Profissional', 'Residencial'] }, F_CIDADE, { key: 'uf', label: 'UF', type: 'text' }, { key: 'cep', label: 'CEP', type: 'text' }] },
     LICENCA: { label: 'Licença maternidade, paternidade e adoção', noExport: true, fields: [{ key: 'titulo', label: 'Descrição', type: 'text', required: true }, { key: 'tipo', label: 'Tipo', type: 'select', options: ['Maternidade', 'Paternidade', 'Adoção'] }, { key: 'dataInicio', label: 'Data de início', type: 'datebr' }, { key: 'dataFim', label: 'Data de fim', type: 'datebr' }] },
     IDIOMAS: { label: 'Idiomas', fields: [{ key: 'titulo', label: 'Idioma', type: 'select', options: window.IDIOMAS_LATTES || [], required: true }, { key: 'habilidades', label: 'Proficiência (nível por habilidade)', type: 'skilllevels', options: ['Leitura', 'Fala', 'Escrita', 'Compreensão'], levels: ['Bom', 'Razoável', 'Pouco'] }] },
@@ -528,7 +528,7 @@ const TYPES = {
     TEXTO_JORNAL: { label: 'Texto em jornal ou revista (magazine)', fields: [
         { key: 'natureza', label: 'Natureza', type: 'select', options: ['Jornal de notícias', 'Revista (Magazine)'] },
         F_TITULO, { ...F_ANO, label: 'Ano' },
-        { key: 'pais', label: 'País da publicação', type: 'select', options: window.PAISES_LATTES || [] }, F_IDIOMA,
+        { key: 'pais', label: 'País da publicação', type: 'select', options: window.PAISES_LATTES || [], default: 'Brasil' }, F_IDIOMA,
         { key: 'meioDivulgacao', label: 'Meio de divulgação', type: 'select', options: MEIO_DIVULGACAO_OPTIONS },
         { key: 'url', label: 'Home page do trabalho (URL)', type: 'url' },
         { key: 'relevante', label: 'É um dos 10 trabalhos mais relevantes de sua produção?', type: 'checkbox' },
@@ -553,7 +553,7 @@ const TYPES = {
         F_DOI,
         F_NATUREZA(['Completo', 'Resumo', 'Resumo expandido']),
         F_TITULO, { ...F_ANO, label: 'Ano' },
-        { key: 'pais', label: 'País de publicação', type: 'select', options: window.PAISES_LATTES || [] }, F_IDIOMA,
+        { key: 'pais', label: 'País de publicação', type: 'select', options: window.PAISES_LATTES || [], default: 'Brasil' }, F_IDIOMA,
         { key: 'meioDivulgacao', label: 'Meio de divulgação', type: 'select', options: MEIO_DIVULGACAO_OPTIONS },
         { key: 'url', label: 'Home page do trabalho (URL)', type: 'url' },
         { key: 'relevante', label: 'É um dos 10 trabalhos mais relevantes de sua produção?', type: 'checkbox' },
@@ -584,7 +584,7 @@ const TYPES = {
         F_DOI,
         F_NATUREZA(['Comunicação', 'Conferência ou palestra', 'Congresso', 'Seminário', 'Simpósio', 'Outra']),
         F_TITULO, { ...F_ANO, label: 'Ano' },
-        { key: 'pais', label: 'País de publicação', type: 'select', options: window.PAISES_LATTES || [] }, F_IDIOMA,
+        { key: 'pais', label: 'País de publicação', type: 'select', options: window.PAISES_LATTES || [], default: 'Brasil' }, F_IDIOMA,
         // Meio de divulgação/Home page aparecem na tela do Lattes para este
         // tipo, mas o schema de exportação offline (docs/CurriculoLattes.xsd)
         // não tem atributo correspondente em DADOS-BASICOS-DA-APRESENTACAO-DE-
@@ -652,18 +652,18 @@ const TYPES = {
         { key: 'tipoParticipacao', label: 'Tipo de apresentação / participação', type: 'select', options: ['Conferencista', 'Simposista', 'Moderador', 'Avaliador', 'Homenageado'], disabledWhen: { field: 'formaParticipacao', equals: 'Ouvinte' } },
         { key: 'tituloApresentacao', label: 'Título da apresentação', type: 'text', help: 'Preencher apenas para Convidado ou Participante.', disabledWhen: { field: 'formaParticipacao', equals: 'Ouvinte' } },
         F_ANO, F_AFIM,
-        { key: 'pais', label: 'País', type: 'select', options: window.PAISES_LATTES || [] },
+        { key: 'pais', label: 'País', type: 'select', options: window.PAISES_LATTES || [], default: 'Brasil' },
         F_CIDADE,
         { key: 'divulgacaoCT', label: 'É uma produção para educação e popularização de C&T?', type: 'select', options: ['Sim', 'Não'] },
         { key: 'url', label: 'Home page do trabalho (URL)', type: 'url' }] },
-    ORGANIZACAO_EVENTO: { label: 'Organização de eventos, congressos, exposições, feiras e olimpíadas', fields: [F_TITULO, F_ANO, F_AFIM, { key: 'tipoEvento', label: 'Tipo', type: 'select', options: ['Concerto', 'Concurso', 'Congresso', 'Exposição', 'Festival', 'Feira', 'Olimpíada', 'Outro'] }, { key: 'instituicao', label: 'Instituição promotora', type: 'text' }, { key: 'pais', label: 'País', type: 'select', options: window.PAISES_LATTES || [] }, F_CIDADE, F_URL] },
+    ORGANIZACAO_EVENTO: { label: 'Organização de eventos, congressos, exposições, feiras e olimpíadas', fields: [F_TITULO, F_ANO, F_AFIM, { key: 'tipoEvento', label: 'Tipo', type: 'select', options: ['Concerto', 'Concurso', 'Congresso', 'Exposição', 'Festival', 'Feira', 'Olimpíada', 'Outro'] }, { key: 'instituicao', label: 'Instituição promotora', type: 'text' }, { key: 'pais', label: 'País', type: 'select', options: window.PAISES_LATTES || [], default: 'Brasil' }, F_CIDADE, F_URL] },
 
     // 10 Orientações
     ORIENTACAO_CONCLUIDA: { label: 'Orientações e supervisões concluídas', fields: [
         { key: 'tipo', label: 'Natureza', type: 'select', required: true, options: ['Iniciação científica', 'TCC / Graduação', 'Especialização / Monografia', 'Mestrado', 'Doutorado', 'Pós-Doutorado', 'Outra'] },
         { key: 'modalidade', label: 'Tipo', type: 'select', options: ['Acadêmico', 'Profissionalizante'], help: 'Apenas para Mestrado.',
           disabledWhen: { field: 'tipo', in: ['Iniciação científica', 'TCC / Graduação', 'Especialização / Monografia', 'Doutorado', 'Pós-Doutorado', 'Outra'] } },
-        { key: 'titulo', label: 'Título do trabalho', type: 'text' }, F_ANO, F_AFIM, { key: 'pais', label: 'País', type: 'select', options: window.PAISES_LATTES || [] }, F_IDIOMA,
+        { key: 'titulo', label: 'Título do trabalho', type: 'text' }, F_ANO, F_AFIM, { key: 'pais', label: 'País', type: 'select', options: window.PAISES_LATTES || [], default: 'Brasil' }, F_IDIOMA,
         { key: 'url', label: 'Home page do trabalho (URL)', type: 'url' },
         { key: 'orientando', label: 'Nome do orientado(a)', type: 'text', required: true },
         { key: 'natureza', label: 'Tipo de orientação', type: 'select', options: ['Orientador principal', 'Coorientador'] },
@@ -676,7 +676,7 @@ const TYPES = {
         { key: 'tipo', label: 'Natureza', type: 'select', required: true, options: ['Iniciação científica', 'TCC / Graduação', 'Especialização / Monografia', 'Mestrado', 'Doutorado', 'Pós-Doutorado', 'Outra'] },
         { key: 'modalidade', label: 'Tipo', type: 'select', options: ['Acadêmico', 'Profissionalizante'], help: 'Apenas para Mestrado.',
           disabledWhen: { field: 'tipo', in: ['Iniciação científica', 'TCC / Graduação', 'Especialização / Monografia', 'Doutorado', 'Pós-Doutorado', 'Outra'] } },
-        { key: 'titulo', label: 'Título do trabalho', type: 'text' }, F_ANO, F_AFIM, { key: 'pais', label: 'País', type: 'select', options: window.PAISES_LATTES || [] }, F_IDIOMA,
+        { key: 'titulo', label: 'Título do trabalho', type: 'text' }, F_ANO, F_AFIM, { key: 'pais', label: 'País', type: 'select', options: window.PAISES_LATTES || [], default: 'Brasil' }, F_IDIOMA,
         { key: 'url', label: 'Home page do trabalho (URL)', type: 'url' },
         { key: 'orientando', label: 'Nome do orientando(a)', type: 'text', required: true },
         { key: 'natureza', label: 'Tipo de orientação', type: 'select', options: ['Orientador principal', 'Coorientador'] },

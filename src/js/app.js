@@ -412,7 +412,10 @@
             img.src = url; img.classList.remove('hidden');
             frame.src = 'about:blank'; frame.classList.add('hidden');
         } else {
-            frame.src = url; frame.classList.remove('hidden');
+            // PDF: pede ao visualizador nativo do navegador para ajustar a
+            // página inteira à janela (não afeta outros tipos de arquivo).
+            frame.src = /^pdf$/i.test(ext || '') ? (url + '#view=Fit') : url;
+            frame.classList.remove('hidden');
             img.removeAttribute('src'); img.classList.add('hidden');
         }
         $('#pdfEmpty').classList.add('hidden');
@@ -1013,11 +1016,11 @@
     // Campos que ganham autocomplete (combobox): escolha da lista OU digitação
     // de um valor novo. Sugestões = lista curada (editável em Configurações) +
     // valores já usados no catálogo.
-    const AUTOCOMPLETE_KEYS = ['instituicao', 'financiador', 'entidade', 'orgao', 'editora', 'periodico', 'evento', 'evidenciaTag'];
+    const AUTOCOMPLETE_KEYS = ['instituicao', 'financiador', 'entidade', 'orgao', 'editora', 'periodico', 'evento', 'evidenciaTag', 'cidade', 'cidadeEditora'];
     const VOCAB_LABELS = {
         instituicao: 'Instituições', financiador: 'Financiadores / Agências', entidade: 'Entidades',
         orgao: 'Órgãos', editora: 'Editoras', periodico: 'Periódicos / Revistas', evento: 'Eventos',
-        evidenciaTag: 'Tags de evidências',
+        evidenciaTag: 'Tags de evidências', cidade: 'Cidades', cidadeEditora: 'Cidades (editora)',
     };
     // Tags sugeridas por padrão para categorizar evidências (documentos anexados).
     // Qualquer outro valor digitado pelo usuário também é aprendido (collectSuggestions).
@@ -1119,6 +1122,11 @@
     }
 
     function fieldHtml(f, val, compact) {
+        // `undefined` = campo nunca definido (item novo, ou tipo ganhou o campo
+        // depois de itens antigos existirem) → usa o padrão, se houver. Já um
+        // valor vazio já salvo ('') é uma escolha explícita do usuário e não é
+        // sobrescrito.
+        if (val === undefined && f.default != null) val = f.default;
         val = val == null ? '' : val;
         const req = f.required ? 'required' : '';
         const reqMark = f.required ? ' <span class="text-red-500">*</span>' : '';
