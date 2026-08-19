@@ -817,7 +817,7 @@
                     <button type="submit" class="px-4 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm font-semibold hover:opacity-90">
                         <i aria-hidden="true" class="fa-solid fa-floppy-disk mr-1"></i> ${editing ? 'Salvar alterações' : 'Salvar'}
                     </button>
-                    <button type="button" id="btnSalvarNovo" class="px-4 py-2 rounded border border-govbr-600 dark:border-unifesp-500 text-govbr-700 dark:text-unifesp-300 text-sm font-semibold hover:bg-govbr-50 dark:hover:bg-gray-800" title="Salva e abre um novo item na mesma categoria/tipo">
+                    <button type="button" id="btnSalvarNovo" class="px-4 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm" title="Salva e abre um novo item na mesma categoria/tipo">
                         <i aria-hidden="true" class="fa-solid fa-plus mr-1"></i> Salvar e novo
                     </button>
                     <button type="button" id="btnLimpar" class="px-4 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm" title="Limpa o formulário e começa um novo item em branco">
