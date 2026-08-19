@@ -130,10 +130,9 @@
           <p>Escolha um valor (ou digite outro), depois escaneie o QR code ou copie o código Pix “copia e cola” no seu banco.</p>
 
           <div class="flex flex-wrap gap-2 my-3" id="amountBtns">
-            <button type="button" class="amount-btn" data-amount="5">R$ 5</button>
-            <button type="button" class="amount-btn active" data-amount="10">R$ 10</button>
-            <button type="button" class="amount-btn" data-amount="25">R$ 25</button>
+            <button type="button" class="amount-btn active" data-amount="25">R$ 25</button>
             <button type="button" class="amount-btn" data-amount="50">R$ 50</button>
+            <button type="button" class="amount-btn" data-amount="100">R$ 100</button>
             <span class="flex items-center gap-1">
               <span class="text-sm text-gray-500 dark:text-gray-400">R$</span>
               <input type="number" id="customAmount" min="1" step="1" placeholder="Outro valor" class="w-28 text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900">
@@ -342,7 +341,7 @@
                 amountBtns.forEach(function (b) { b.classList.remove('active'); });
                 updatePix(customAmount.value);
             });
-            updatePix(10);
+            updatePix(25);
 
             function flashCopied(btn, label) {
                 var original = btn.innerHTML;
