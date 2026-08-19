@@ -736,9 +736,13 @@
         const form = $('#itemForm');
         const editing = !!item;
 
-        let currentType = item ? LattesTypes.normalizeType(item.typeKey) : (state.lastType || '');
+        // Item novo: Categoria/Tipo começam vazios, exigindo escolha explícita
+        // (painel de campos só aparece depois — ver renderDynFields). Exceção:
+        // "Salvar e novo" (opts.keepType) mantém a mesma categoria/tipo, de
+        // propósito, para agilizar o cadastro em série.
+        let currentType = item ? LattesTypes.normalizeType(item.typeKey) : (opts.keepType ? (state.lastType || '') : '');
         let currentCat = item ? (item.categoryKey || LattesTypes.primaryCategory(currentType))
-            : (state.lastCat || (LattesTypes.categories[0] && LattesTypes.categories[0].key));
+            : (opts.keepType ? (state.lastCat || (LattesTypes.categories[0] && LattesTypes.categories[0].key)) : '');
         if (currentCat === 'NAO_LATTES' || currentCat === 'ATIVIDADES_LIVRES') currentCat = 'AL_DESENVOLVIMENTO'; // legado
 
         // Layout em T: `form` tem display:contents (ver renderCatalogar) — os 2
@@ -819,9 +823,10 @@
             </div>
             ${datalistsHtml()}`;
 
-        // Categoria (select nativo)
+        // Categoria (select nativo) — placeholder em branco: item novo só mostra
+        // os campos depois de Categoria e Tipo escolhidos explicitamente.
         const selCat = $('#selCategoria');
-        selCat.innerHTML = LattesTypes.categories
+        selCat.innerHTML = `<option value="">— Selecione —</option>` + LattesTypes.categories
             .filter(c => !c.rscOnly || state.rscEnabled)   // categoria RSC só com o módulo ligado
             .filter(c => !c.perfilOnly)                     // Fotos de Perfil/Documentos pessoais: só via Configurações
             .map(c => `<option value="${c.key}">${esc(c.num + '. ' + c.label)}</option>`).join('');
@@ -861,7 +866,10 @@
         function fillTipos() {
             tipoOptions = tipoOptionsFor(selCat.value);
             const valid = currentType && tipoOptions.some(o => o.key === currentType);
-            currentType = valid ? currentType : ((tipoOptions[0] && tipoOptions[0].key) || '');
+            // Nunca escolhe o 1º tipo automaticamente — só mantém se já era um
+            // tipo válido (edição/"Salvar e novo"); senão fica vazio, exigindo
+            // clique explícito no combobox de Tipo do item.
+            currentType = valid ? currentType : '';
             selectTipo(currentType, true);
             renderDynFields();
             const catNote = $('#catNote');
@@ -1802,7 +1810,7 @@
         // "Salvar" / "Salvar alterações": reabre o item recém-salvo (novo ou editado),
         // para revisar/anexar evidência. "Salvar e novo": abre um item em branco (mesma cat/tipo).
         if (!saveNew) buildForm(state.items.find(i => i.id === item.id), { focus: false });
-        else buildForm(undefined, { focus: true });
+        else buildForm(undefined, { focus: true, keepType: true });
         renderItemList();
     }
 
