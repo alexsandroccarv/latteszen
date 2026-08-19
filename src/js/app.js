@@ -1213,7 +1213,12 @@
         } else if (f.type === 'checkbox') {
             // Pergunta Sim/Não como caixa de seleção única (marcado = Sim,
             // desmarcado = Não — nunca fica em branco, como o padrão do Lattes).
-            input = `<label class="flex items-center gap-2 text-sm"><input type="checkbox" name="${f.key}" ${val === 'Sim' ? 'checked' : ''}> Sim</label>`;
+            // Pergunta e caixa ficam na mesma linha (foge do wrapper padrão
+            // label-em-cima/campo-embaixo usado pelos demais tipos de campo).
+            return `<div data-field="${f.key}" class="${compact ? 'w-24 shrink-0' : ''}">
+                <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="${f.key}" ${val === 'Sim' ? 'checked' : ''}> ${esc(f.label)}${reqMark}</label>
+                ${f.help ? `<p class="text-xs text-gray-500 mt-0.5">${esc(f.help)}</p>` : ''}
+            </div>`;
         } else if (f.type === 'url') {
             // URL + "N/A" (Não se aplica): conta como preenchido; vai em branco no XML
             const na = String(val) === NA_VALUE;
