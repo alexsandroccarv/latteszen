@@ -291,6 +291,9 @@
         semPdf:       { cor: 'red',   icone: 'fa-file-circle-xmark', titulo: 'Sem evidência', desc: 'Falta anexar comprovação' },
         naoLattes:    { cor: 'purple', icone: 'fa-heart', titulo: 'Não-Lattes', desc: 'Itens pessoais' },
         descObrig:    { cor: 'red', icone: 'fa-align-left', titulo: 'Obrigatórios pendentes', desc: 'Falta campo obrigatório' },
+        rscUsavel:    { cor: 'amber', icone: 'fa-award', titulo: 'Usáveis para RSC', desc: 'Elegíveis dentro do período de uso' },
+        rscMarcado:   { cor: 'green', icone: 'fa-award', titulo: 'Marcados para RSC', desc: 'Já contabilizados no RSC' },
+        rscElegivel:  { cor: 'amber', icone: 'fa-award', titulo: 'Elegíveis para RSC', desc: 'Dentro do período, ainda não marcados' },
     };
     // Tipos que exigem evidência (ex.: Identificação, Texto inicial, Outras
     // informações e Conexões não exigem) — usado nas métricas de conformidade.
@@ -304,7 +307,38 @@
         semPdf:         i => i.lattesItem && needsEvidence(i) && !i.hasPdf,
         naoLattes:      i => !i.lattesItem,
         descObrig:      i => descState(i) === 'red',
+        rscUsavel:      i => { const e = rscEstado(i); return e === 'green' || e === 'amber'; },
+        rscMarcado:     i => rscEstado(i) === 'green',
+        rscElegivel:    i => rscEstado(i) === 'amber',
     };
+
+    // Caixa de totalização/filtragem dos itens usáveis no RSC-PCCTAE (só
+    // aparece com o módulo habilitado). "Usáveis" = elegíveis e dentro do
+    // período de uso (verde + âmbar de rscEstado — exclui os cinzas, fora
+    // do período, e os tipos não elegíveis, ex. Identificação/Não-Lattes).
+    function rscConformidadeBoxHtml() {
+        const usaveis = state.items.filter(i => { const e = rscEstado(i); return e === 'green' || e === 'amber'; });
+        const marcados = usaveis.filter(i => rscEstado(i) === 'green').length;
+        const elegiveis = usaveis.length - marcados;
+        const chip = (key, n) => {
+            const m = VIEW_META[key];
+            const active = state.viewFilter === key;
+            return `<button type="button" data-view="${key}" title="Filtrar: ${m.titulo}"
+                class="text-left bg-white dark:bg-gray-900 border rounded px-3 py-2 hover:shadow transition ${active ? `border-${m.cor}-500 ring-2 ring-${m.cor}-500/40` : 'border-gray-200 dark:border-gray-700'}">
+                <span class="block text-xl font-bold text-${m.cor}-600 dark:text-${m.cor}-400">${n}</span>
+                <span class="block text-xs text-gray-600 dark:text-gray-400">${m.titulo}</span>
+            </button>`;
+        };
+        return `
+            <div class="bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800 rounded-lg p-4 mb-5">
+                <h3 class="font-bold text-sm flex items-center gap-2 mb-3"><i aria-hidden="true" class="fa-solid fa-award text-amber-600"></i> RSC-PCCTAE — itens usáveis</h3>
+                <div class="grid grid-cols-3 gap-2">
+                    ${chip('rscUsavel', usaveis.length)}
+                    ${chip('rscMarcado', marcados)}
+                    ${chip('rscElegivel', elegiveis)}
+                </div>
+            </div>`;
+    }
 
     // Aba única (antigos "Catálogo" + "Relatório/Conformidade"): painel de
     // conformidade (cartões + barra) + lista de itens com filtro/ordenação.
@@ -358,6 +392,8 @@
                     <p class="text-xs text-gray-500 mt-0.5">${descG} completos · ${descA} falta opcional · ${descR} falta obrigatório</p>
                 </div>
             </div>
+
+            ${state.rscEnabled ? rscConformidadeBoxHtml() : ''}
 
             <div class="flex items-center justify-between mb-3 gap-2 flex-wrap">
                 <h2 class="text-lg font-bold flex items-center gap-2">
@@ -1903,23 +1939,28 @@
             return `<button type="button" data-act="pdf" data-id="${item.id}" title="${esc(title)}" class="relative inline-flex items-center justify-center w-6 h-6 rounded hover:bg-gray-100 dark:hover:bg-gray-700 ${cor}"><i class="fa-solid ${icon}"></i>${badge}</button>`;
         }).join('');
     }
+    // Estado do item em relação ao RSC: 'green' (marcado/em uso), 'amber'
+    // (elegível, dentro do período de uso, ainda não marcado), 'gray' (fora
+    // do período de uso) ou null (módulo desligado ou tipo não elegível).
+    function rscEstado(item) {
+        if (!state.rscEnabled) return null;
+        const eligivel = item.typeKey && !LattesTypes.isPerfilType(item.typeKey) && !LattesTypes.isNaoLattesType(item.typeKey);
+        if (!eligivel) return null;
+        if (item.rsc && item.rsc.conta) return 'green';
+        const inicioAno = parseInt(anoDe((state.rscCfg && state.rscCfg.dataInicioContagem) || ''), 10);
+        const itemAno = itemYear(item);
+        const foraDoPeriodo = !isNaN(inicioAno) && itemAno != null && itemAno < inicioAno;
+        return foraDoPeriodo ? 'gray' : 'amber';
+    }
     // Ícone do RSC: verde (marcado), âmbar (elegível, dentro do período de uso,
     // ainda não marcado) ou cinza (fora do período de uso). Some quando o
     // módulo está desligado ou o tipo não é elegível ao RSC.
     function rscIconHtml(item) {
-        if (!state.rscEnabled) return '';
-        const eligivel = item.typeKey && !LattesTypes.isPerfilType(item.typeKey) && !LattesTypes.isNaoLattesType(item.typeKey);
-        if (!eligivel) return '';
-        let estado, title;
-        if (item.rsc && item.rsc.conta) {
-            estado = 'green'; title = 'Marcado para uso no RSC';
-        } else {
-            const inicioAno = parseInt(anoDe((state.rscCfg && state.rscCfg.dataInicioContagem) || ''), 10);
-            const itemAno = itemYear(item);
-            const foraDoPeriodo = !isNaN(inicioAno) && itemAno != null && itemAno < inicioAno;
-            estado = foraDoPeriodo ? 'gray' : 'amber';
-            title = foraDoPeriodo ? 'Fora do período de uso do RSC' : 'Dentro do período de uso do RSC — ainda não marcado';
-        }
+        const estado = rscEstado(item);
+        if (!estado) return '';
+        const title = estado === 'green' ? 'Marcado para uso no RSC'
+            : estado === 'amber' ? 'Dentro do período de uso do RSC — ainda não marcado'
+            : 'Fora do período de uso do RSC';
         const cls = estado === 'green' ? 'text-green-600 dark:text-green-500' : estado === 'amber' ? 'text-amber-600 dark:text-amber-500' : 'text-gray-400 dark:text-gray-500';
         return `<span title="${esc(title)}" class="inline-flex items-center justify-center w-6 h-6 ${cls}"><i class="fa-solid fa-award"></i></span>`;
     }
