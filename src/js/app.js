@@ -2264,16 +2264,23 @@
         return `
             <section class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
                 <h2 class="text-lg font-bold mb-2 flex items-center gap-2"><i class="fa-solid fa-file-code text-govbr-600 dark:text-unifesp-400"></i> Exportar para a Plataforma Lattes (XML)</h2>
-                <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">Gera o arquivo <strong>curriculo.xml</strong> no formato oficial do CNPq (schema <em>CurriculoLattes</em>, codificação ISO-8859-1). Inclui apenas os itens das categorias do Lattes — <strong>RSC, Conexões e Registros pessoais não são exportados</strong>. As evidências (PDFs) não fazem parte do XML.</p>
+                <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">Gera um arquivo <strong>curriculo-&lt;nome&gt;-&lt;data e hora&gt;.xml</strong> no formato oficial do CNPq (schema <em>CurriculoLattes</em>, codificação ISO-8859-1). O nome traz a data/hora da geração, então exportações anteriores não são sobrescritas. Inclui apenas os itens das categorias do Lattes — <strong>RSC, Conexões e Registros pessoais não são exportados</strong>. As evidências (PDFs) não fazem parte do XML.</p>
                 ${xmlConsistencyNoticeHtml()}
                 <div class="flex gap-2 flex-wrap">
                     <button id="btnXmlDownload" class="px-3 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm"><i class="fa-solid fa-download mr-1"></i> Baixar XML (.xml)</button>
-                    <button id="btnXmlSave" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-folder-open mr-1"></i> Salvar na pasta (${esc(LattesTypes.lattesXmlFolder())}/curriculo.xml)</button>
+                    <button id="btnXmlSave" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-folder-open mr-1"></i> Salvar na pasta (${esc(LattesTypes.lattesXmlFolder())})</button>
                 </div>
                 <p id="xmlStatus" class="text-xs text-gray-500 mt-2"></p>
             </section>`;
     }
 
+    // Nome do arquivo XML exportado, com timestamp (evita sobrescrever
+    // exportações anteriores e registra quando cada uma foi gerada).
+    function xmlFileName() {
+        const nome = (state.items.find(i => i.typeKey === 'IDENTIFICACAO' && i.fields && i.fields.titulo) || {}).fields;
+        const safe = (nome && nome.titulo ? nome.titulo : 'curriculo').replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, '-').toLowerCase();
+        return `curriculo-${safe}-${fileStamp()}.xml`;
+    }
     // Ata os botões da exportação XML (usado dentro de renderConfig).
     function wireExportLattes() {
         const xmlStatus = (t) => { const el = $('#xmlStatus'); if (el) el.textContent = t; };
@@ -2293,10 +2300,8 @@
             xmlStatus('Gerando XML…');
             try {
                 const { bytes } = generateLattesXml();
-                const nome = (state.items.find(i => i.typeKey === 'IDENTIFICACAO' && i.fields && i.fields.titulo) || {}).fields;
-                const safe = (nome && nome.titulo ? nome.titulo : 'curriculo').replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, '-').toLowerCase();
                 const blob = new Blob([bytes], { type: 'application/xml' });
-                const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `curriculo-${safe}.xml`; a.click(); URL.revokeObjectURL(a.href);
+                const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = xmlFileName(); a.click(); URL.revokeObjectURL(a.href);
                 xmlStatus(`XML gerado (${xmlExportaveis()} item(ns) exportado(s)).`);
                 xmlConsistencyToast();
             } catch (e) { xmlStatus(''); toast('Falha ao gerar XML: ' + e.message, 'erro'); }
@@ -2307,10 +2312,11 @@
             xmlStatus('Gerando e salvando XML…');
             try {
                 const folder = LattesTypes.lattesXmlFolder();
+                const nomeArquivo = xmlFileName();
                 const { bytes } = generateLattesXml();
-                await Storage.writeFile('curriculo.xml', bytes, folder);
-                xmlStatus(`Salvo em “${folder}/curriculo.xml” (${xmlExportaveis()} item(ns)).`);
-                toast(`XML salvo em “${folder}/curriculo.xml”.`, 'ok');
+                await Storage.writeFile(nomeArquivo, bytes, folder);
+                xmlStatus(`Salvo em “${folder}/${nomeArquivo}” (${xmlExportaveis()} item(ns)).`);
+                toast(`XML salvo em “${folder}/${nomeArquivo}”.`, 'ok');
                 xmlConsistencyToast();
             } catch (e) { xmlStatus(''); toast('Falha ao salvar XML: ' + e.message, 'erro'); }
         });
