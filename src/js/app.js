@@ -1277,7 +1277,19 @@
                 : t === 'url' ? 'https://…' : '');
             const extra = t === 'number' ? 'min="0" step="any"'
                 : `maxlength="${f.maxlength || (t === 'url' ? 300 : 500)}"`;
-            input = `<input type="${t}" name="${f.key}" value="${esc(val)}" ${req} ${listAttr} ${vAttr} ${extra} placeholder="${esc(ph)}" class="${base}">`;
+            if (f.na) {
+                // Campo + "N/A" (Não se aplica), mesmo padrão do campo URL:
+                // conta como preenchido; vai em branco numa futura exportação.
+                const na = String(val) === NA_VALUE;
+                input = `<div class="flex items-center gap-2">
+                    <input type="${t}" name="${f.key}" value="${na ? '' : esc(val)}" ${req} ${listAttr} ${vAttr} ${extra} placeholder="${esc(ph)}" class="${base} flex-1 ${na ? 'opacity-50' : ''}" ${na ? 'disabled' : ''}>
+                    <label class="flex items-center gap-1 text-xs shrink-0 whitespace-nowrap" title="Marque quando não se aplica. Conta como preenchido.">
+                        <input type="checkbox" data-na="${f.key}" ${na ? 'checked' : ''}> N/A
+                    </label>
+                </div>`;
+            } else {
+                input = `<input type="${t}" name="${f.key}" value="${esc(val)}" ${req} ${listAttr} ${vAttr} ${extra} placeholder="${esc(ph)}" class="${base}">`;
+            }
         }
         return `<div data-field="${f.key}" class="${compact ? 'w-24 shrink-0' : ''}">
             <label class="block text-xs font-semibold mb-1">${esc(f.label)}${reqMark}</label>
@@ -1552,7 +1564,8 @@
             });
         });
     }
-    // Checkbox "N/A" (Não se aplica) dos campos URL: bloqueia/limpa o input
+    // Checkbox "N/A" (Não se aplica): bloqueia/limpa o input associado.
+    // Usado nos campos URL e em qualquer campo com `na: true` na definição.
     function wireNA(container) {
         $$('[data-na]', container).forEach(cb => cb.addEventListener('change', () => {
             const input = container.querySelector(`[name="${cb.dataset.na}"]`);
@@ -1641,7 +1654,7 @@
             } else if (f.type === 'checkbox') {
                 const el = form.querySelector(`[name="${f.key}"]`);
                 fields[f.key] = el && el.checked ? 'Sim' : 'Não';
-            } else if (f.type === 'url') {
+            } else if (f.type === 'url' || f.na) {
                 const na = form.querySelector(`[data-na="${f.key}"]`);
                 if (na && na.checked) fields[f.key] = NA_VALUE;
                 else { const el = form.elements[f.key]; fields[f.key] = el ? el.value.trim() : ''; }
@@ -1942,10 +1955,27 @@
     // Estado do item em relação ao RSC: 'green' (marcado/em uso), 'amber'
     // (elegível, dentro do período de uso, ainda não marcado), 'gray' (fora
     // do período de uso) ou null (módulo desligado ou tipo não elegível).
+    // Participação em eventos como "Ouvinte" só conta no RSC pelo critério
+    // 2.11 do Anexo II (capacitação/evento ≥10h) — quem só assistiu não gera
+    // produção própria. Descarta quando a carga horária é conhecida e menor
+    // que 10h, ou marcada N/A; mantém quando a carga horária está em branco
+    // (não dá pra afirmar que é < 10h).
+    function ouvinteForaDoRSC(item) {
+        if (item.typeKey !== 'PARTICIPACAO_EVENTO') return false;
+        const f = item.fields || {};
+        if (f.formaParticipacao !== 'Ouvinte') return false;
+        const ch = String(f.cargaHoraria || '').trim();
+        if (!ch) return false;
+        if (ch === NA_VALUE) return true;
+        const m = ch.match(/\d+(?:[.,]\d+)?/);
+        if (!m) return false;
+        return parseFloat(m[0].replace(',', '.')) < 10;
+    }
     function rscEstado(item) {
         if (!state.rscEnabled) return null;
         const eligivel = item.typeKey && !LattesTypes.isPerfilType(item.typeKey) && !LattesTypes.isNaoLattesType(item.typeKey);
         if (!eligivel) return null;
+        if (ouvinteForaDoRSC(item)) return null;
         if (item.rsc && item.rsc.conta) return 'green';
         const inicioAno = parseInt(anoDe((state.rscCfg && state.rscCfg.dataInicioContagem) || ''), 10);
         const itemAno = itemYear(item);
