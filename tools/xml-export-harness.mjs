@@ -44,6 +44,9 @@ if (!LattesXMLExport || typeof LattesXMLExport.build !== 'function') {
 /* ---- Gera um valor de amostra plausível para cada campo ---- */
 function sampleValue(field, i) {
     const k = field.key;
+    // Campo com checkbox N/A: alterna com "Não se aplica" p/ exercitar esse
+    // caminho na exportação (deve virar atributo ausente, não texto literal).
+    if (field.na && i % 3 === 0) return 'Não se aplica';
     if (field.type === 'year') return String(2000 + (i % 24));
     if (field.type === 'date') return '2024-03-15';
     if (field.type === 'number') return '40';

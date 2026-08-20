@@ -39,6 +39,10 @@ window.LattesXMLExport = (function () {
             .replace(/"/g, '&quot;').replace(/'/g, '&apos;');
     }
     const clean = (v) => String(v == null ? '' : v).replace(/\s+/g, ' ').trim();
+    // Campo Carga horária marcado "N/A" (checkbox N/A do formulário) vira
+    // atributo ausente no XML — não faz sentido exportar o texto literal
+    // "Não se aplica" onde o schema espera um número de horas.
+    const semNA = (v) => (v === 'Não se aplica' ? '' : v);
 
     // Serializa atributos, omitindo vazios/nulos. Preserva a ordem de inserção.
     function attrStr(attrs) {
@@ -373,7 +377,7 @@ window.LattesXMLExport = (function () {
             const anoTitulo = year(f.anoObtencaoTitulo) || year(f.anoFim);
             // Ensino fundamental/médio/Residência médica não têm NOME-CURSO.
             if (elname === 'GRADUACAO') { base['NOME-CURSO'] = f.curso; base['TIPO-GRADUACAO'] = f.tipoGraduacao; base['TITULO-DO-TRABALHO-DE-CONCLUSAO-DE-CURSO'] = f.titulo; base['NOME-DO-ORIENTADOR'] = f.orientador; }
-            else if (elname === 'ESPECIALIZACAO' || elname === 'APERFEICOAMENTO') { base['NOME-CURSO'] = f.curso; base['CARGA-HORARIA'] = f.cargaHoraria; base['TITULO-DA-MONOGRAFIA'] = f.titulo; base['NOME-DO-ORIENTADOR'] = f.orientador; }
+            else if (elname === 'ESPECIALIZACAO' || elname === 'APERFEICOAMENTO') { base['NOME-CURSO'] = f.curso; base['CARGA-HORARIA'] = semNA(f.cargaHoraria); base['TITULO-DA-MONOGRAFIA'] = f.titulo; base['NOME-DO-ORIENTADOR'] = f.orientador; }
             else if (elname === 'MESTRADO' || elname === 'MESTRADO-PROFISSIONALIZANTE' || elname === 'DOUTORADO') {
                 base['NOME-CURSO'] = f.curso; base['ANO-DE-OBTENCAO-DO-TITULO'] = anoTitulo;
                 base['TITULO-DA-DISSERTACAO-TESE'] = f.titulo; base['NOME-COMPLETO-DO-ORIENTADOR'] = f.orientador; base['NOME-DO-CO-ORIENTADOR'] = f.coorientador;
@@ -470,7 +474,7 @@ window.LattesXMLExport = (function () {
                 seq.push(el('VINCULOS', {
                     'TIPO-DE-VINCULO': 'LIVRE', 'ENQUADRAMENTO-FUNCIONAL': 'LIVRE',
                     'OUTRO-VINCULO-INFORMADO': f.vinculo, 'OUTRO-ENQUADRAMENTO-FUNCIONAL-INFORMADO': f.cargo,
-                    'CARGA-HORARIA-SEMANAL': f.cargaHoraria, 'FLAG-DEDICACAO-EXCLUSIVA': FLAG_SIM_NAO[f.dedicacaoExclusiva] || '',
+                    'CARGA-HORARIA-SEMANAL': semNA(f.cargaHoraria), 'FLAG-DEDICACAO-EXCLUSIVA': FLAG_SIM_NAO[f.dedicacaoExclusiva] || '',
                     'FLAG-VINCULO-EMPREGATICIO': FLAG_SIM_NAO[f.vinculoEmpregaticio] || '',
                     'ANO-INICIO': year(f.anoInicio), 'ANO-FIM': year(f.anoFim), 'OUTRAS-INFORMACOES': f.titulo,
                 }));
@@ -779,7 +783,7 @@ window.LattesXMLExport = (function () {
             'DETALHAMENTO-DE-CARTA-MAPA-OU-SIMILAR', { 'FINALIDADE': f.finalidade }, f.autores)).join('');
         const cursos = pick('CURSO_MINISTRADO').map(f => producao('CURSO-DE-CURTA-DURACAO-MINISTRADO', S(),
             'DADOS-BASICOS-DE-CURSOS-CURTA-DURACAO-MINISTRADO', { 'NIVEL-DO-CURSO': tok('DADOS-BASICOS-DE-CURSOS-CURTA-DURACAO-MINISTRADO', 'NIVEL-DO-CURSO', f.nivel), 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma, 'HOME-PAGE-DO-TRABALHO': f.url },
-            'DETALHAMENTO-DE-CURSOS-CURTA-DURACAO-MINISTRADO', { 'INSTITUICAO-PROMOTORA-DO-CURSO': f.instituicao, 'CIDADE': f.cidade, 'DURACAO': f.cargaHoraria }, f.autores)).join('');
+            'DETALHAMENTO-DE-CURSOS-CURTA-DURACAO-MINISTRADO', { 'INSTITUICAO-PROMOTORA-DO-CURSO': f.instituicao, 'CIDADE': f.cidade, 'DURACAO': semNA(f.cargaHoraria) }, f.autores)).join('');
         const materiais = pick('MATERIAL_DIDATICO').map(f => producao('DESENVOLVIMENTO-DE-MATERIAL-DIDATICO-OU-INSTRUCIONAL', S(),
             'DADOS-BASICOS-DO-MATERIAL-DIDATICO-OU-INSTRUCIONAL', { 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma, 'HOME-PAGE-DO-TRABALHO': f.url },
             'DETALHAMENTO-DO-MATERIAL-DIDATICO-OU-INSTRUCIONAL', { 'FINALIDADE': f.finalidade }, f.autores)).join('');
@@ -883,7 +887,7 @@ window.LattesXMLExport = (function () {
         const compl = byType('FORMACAO_COMPLEMENTAR').map(it => {
             const f = it.fields;
             return el('OUTROS', {
-                'SEQUENCIA-FORMACAO': String(++sf), 'NIVEL': 'OUTROS', 'CARGA-HORARIA': f.cargaHoraria,
+                'SEQUENCIA-FORMACAO': String(++sf), 'NIVEL': 'OUTROS', 'CARGA-HORARIA': semNA(f.cargaHoraria),
                 'NOME-INSTITUICAO': f.instituicao, 'NOME-CURSO': f.titulo,
                 'STATUS-DO-CURSO': STATUS_CURSO_TOKEN[f.statusCurso] || statusCurso(f.anoFim),
                 'ANO-DE-INICIO': year(f.anoInicio), 'ANO-DE-CONCLUSAO': year(f.anoFim),
