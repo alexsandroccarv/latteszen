@@ -1955,19 +1955,23 @@
     // Estado do item em relação ao RSC: 'green' (marcado/em uso), 'amber'
     // (elegível, dentro do período de uso, ainda não marcado), 'gray' (fora
     // do período de uso) ou null (módulo desligado ou tipo não elegível).
-    // Participação em eventos como "Ouvinte" só conta no RSC pelo critério
-    // 2.11 do Anexo II (capacitação/evento ≥10h) — quem só assistiu não gera
-    // produção própria. Descarta quando a carga horária é conhecida e menor
-    // que 10h, ou marcada N/A; mantém quando a carga horária está em branco
-    // (não dá pra afirmar que é < 10h).
-    function ouvinteForaDoRSC(item) {
-        if (item.typeKey !== 'PARTICIPACAO_EVENTO') return false;
+    // Alguns tipos só contam no RSC com carga horária ≥10h (Anexo II,
+    // critérios 2.9 — formação continuada — e 2.11 — capacitação/evento):
+    // Participação em eventos como "Ouvinte" (só assistiu, não gera produção
+    // própria) e Formação complementar. Descarta (além da checagem de data,
+    // que roda em seguida) quando a carga horária é conhecida e menor que
+    // 10h, ou marcada N/A; mantém quando está em branco (não dá pra afirmar
+    // que é < 10h).
+    function cargaHorariaAbaixoDoMinimoRSC(item) {
         const f = item.fields || {};
-        if (f.formaParticipacao !== 'Ouvinte') return false;
-        const ch = String(f.cargaHoraria || '').trim();
-        if (!ch) return false;
-        if (ch === NA_VALUE) return true;
-        const m = ch.match(/\d+(?:[.,]\d+)?/);
+        let ch;
+        if (item.typeKey === 'PARTICIPACAO_EVENTO' && f.formaParticipacao === 'Ouvinte') ch = f.cargaHoraria;
+        else if (item.typeKey === 'FORMACAO_COMPLEMENTAR') ch = f.cargaHoraria;
+        else return false;
+        const s = String(ch || '').trim();
+        if (!s) return false;
+        if (s === NA_VALUE) return true;
+        const m = s.match(/\d+(?:[.,]\d+)?/);
         if (!m) return false;
         return parseFloat(m[0].replace(',', '.')) < 10;
     }
@@ -1975,7 +1979,7 @@
         if (!state.rscEnabled) return null;
         const eligivel = item.typeKey && !LattesTypes.isPerfilType(item.typeKey) && !LattesTypes.isNaoLattesType(item.typeKey);
         if (!eligivel) return null;
-        if (ouvinteForaDoRSC(item)) return null;
+        if (cargaHorariaAbaixoDoMinimoRSC(item)) return null;
         if (item.rsc && item.rsc.conta) return 'green';
         const inicioAno = parseInt(anoDe((state.rscCfg && state.rscCfg.dataInicioContagem) || ''), 10);
         const itemAno = itemYear(item);
