@@ -258,8 +258,12 @@ footer strong{color:var(--muted);font-weight:700}
 `,
     };
 
-    function renderHtml(model, style) {
+    // opts.externalCss: caminho relativo (ex.: "css/estilo.css") — quando
+    // informado, o CSS vai por <link> em vez de embutido em <style> (uso: a
+    // versão salva na pasta, que grava o CSS como arquivo à parte).
+    function renderHtml(model, style, opts) {
         style = STYLES[style] ? style : 'elegante';
+        opts = opts || {};
         const m = model || {};
         const secoesComItens = (m.secoes || []).filter(s => (s.tipos || []).some(t => t.itens && t.itens.length));
         const nav = secoesComItens.map(s => `<a href="#${s.id}">${esc(s.label)}</a>`).join('');
@@ -287,7 +291,7 @@ footer strong{color:var(--muted);font-weight:700}
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>${esc(m.nome || 'Currículo')}</title>
 <meta name="description" content="Currículo de ${esc(m.nome || '')}${m.tagline ? ' — ' + esc(m.tagline) : ''}">
-<style>${STYLES[style] || STYLES.elegante}</style>
+${opts.externalCss ? `<link rel="stylesheet" href="${esc(opts.externalCss)}">` : `<style>${STYLES[style] || STYLES.elegante}</style>`}
 </head>
 <body>
 <a class="skip" href="#conteudo">Ir para o conteúdo</a>
@@ -437,5 +441,9 @@ ${statsHtml}
 </html>`;
     }
 
-    return { renderHtml, styles: Object.keys(STYLES) };
+    return {
+        renderHtml, styles: Object.keys(STYLES),
+        // CSS puro de um estilo (usado para gravar como arquivo à parte, ex.: css/estilo.css)
+        css(style) { return STYLES[style] || STYLES.elegante; },
+    };
 })();

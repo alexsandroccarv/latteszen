@@ -3236,16 +3236,36 @@
         const y = itemYear(it);
         return y != null ? String(y) : '';
     }
-    // Evidências públicas de um item, prontas para o modelo da página pública
-    // (embutidas em base64; links entram como estão).
-    async function itemAnexos(it) {
+    // Subpasta (dentro de "Publicação para Web") onde as imagens ficam como
+    // arquivos à parte, na versão "external" (salva na pasta).
+    const PUB_IMG_SUBDIR = 'img';
+    const PUB_CSS_FILE = 'estilo.css';
+    // Evidências públicas de um item, prontas para o modelo da página pública.
+    // Por padrão embute em base64 (arquivo único, autossuficiente — usado na
+    // prévia e no HTML baixado). Com `external: true`, imagens (jpg/png/gif/
+    // webp) viram arquivo à parte em "Publicação para Web/img" e entram no
+    // modelo como link relativo, não base64 (demais tipos, ex. PDF, continuam
+    // embutidos — só "imagens" precisam ser arquivo separado). Links (kind
+    // 'link') sempre entram como estão, nos dois modos.
+    async function itemAnexos(it, external) {
         const anexos = [];
         if (Array.isArray(it.evidencias)) {
             for (const ev of it.evidencias) {
                 if (!ev.publica) continue;
                 if (ev.kind === 'link') { anexos.push({ name: ev.name || ev.url, ext: 'url', url: ev.url }); continue; }
                 if (!Storage.hasDirectory()) continue;
-                try { const f = await Storage.readAttachmentFile(ev.basename, LattesTypes.categoryFolder(it.categoryKey), ev.ext); if (f) { const du = await fileToDataUrl(f); if (du) anexos.push({ name: ev.name || `${ev.basename}.${ev.ext}`, ext: ev.ext, dataUri: du }); } } catch (_) {}
+                try {
+                    const f = await Storage.readAttachmentFile(ev.basename, LattesTypes.categoryFolder(it.categoryKey), ev.ext);
+                    if (!f) continue;
+                    const nome = ev.name || `${ev.basename}.${ev.ext}`;
+                    if (external && isImageExt(ev.ext)) {
+                        await Storage.writeFile(`${ev.basename}.${ev.ext}`, f, `${LattesTypes.publicacaoFolder()}/${PUB_IMG_SUBDIR}`);
+                        anexos.push({ name: nome, ext: ev.ext, url: `${PUB_IMG_SUBDIR}/${ev.basename}.${ev.ext}` });
+                    } else {
+                        const du = await fileToDataUrl(f);
+                        if (du) anexos.push({ name: nome, ext: ev.ext, dataUri: du });
+                    }
+                } catch (_) {}
             }
         }
         return anexos;
@@ -3260,7 +3280,13 @@
     const PUB_MERGE_LABEL = 'Além do Currículo Lattes';
     const PUB_MERGE_ID = 'sec-extras';
 
-    async function buildPublicModel() {
+    // opts.external: grava as imagens (foto + evidências) como arquivos à
+    // parte em "Publicação para Web/img" (em vez de embutir em base64) — só
+    // faz sentido quando o HTML gerado vai ficar salvo NA MESMA pasta (senão
+    // os links relativos quebram). Usado só pelo "Salvar na pasta"; a prévia
+    // e o "Baixar" continuam sempre autossuficientes (embed).
+    async function buildPublicModel(opts) {
+        const external = !!(opts && opts.external);
         const items = state.items;
         const first = tk => items.find(i => i.typeKey === tk);
         const byType = tk => items.filter(i => i.typeKey === tk);
@@ -3277,7 +3303,15 @@
         let foto = null;
         if (fotoItem && Storage.hasDirectory()) {
             const ev = (Array.isArray(fotoItem.evidencias) && fotoItem.evidencias[0]) || (fotoItem.hasPdf ? { basename: fotoItem.id, ext: fotoItem.fileExt || 'jpg' } : null);
-            if (ev) { try { const f = await Storage.readAttachmentFile(ev.basename, LattesTypes.categoryFolder('PERFIL_FOTOS'), ev.ext); if (f) foto = await fileToDataUrl(f); } catch (_) {} }
+            if (ev) {
+                try {
+                    const f = await Storage.readAttachmentFile(ev.basename, LattesTypes.categoryFolder('PERFIL_FOTOS'), ev.ext);
+                    if (f) {
+                        if (external) { await Storage.writeFile(`foto.${ev.ext}`, f, `${LattesTypes.publicacaoFolder()}/${PUB_IMG_SUBDIR}`); foto = `${PUB_IMG_SUBDIR}/foto.${ev.ext}`; }
+                        else foto = await fileToDataUrl(f);
+                    }
+                } catch (_) {}
+            }
         }
 
         const contatos = [];
@@ -3318,7 +3352,7 @@
                         const y = itemYear(it); if (y != null && y > maxAno) maxAno = y;
                         const tipoLabel = LattesTypes.label(it.typeKey);
                         const linha = [tipoLabel, (it.fields && it.fields.orgao) || ''].map(s => String(s || '').trim()).filter(Boolean).join(' · ');
-                        itens.push({ titulo: LattesTypes.itemTitle(it), ano: itemAnoRange(it), linha, anexos: await itemAnexos(it) });
+                        itens.push({ titulo: LattesTypes.itemTitle(it), ano: itemAnoRange(it), linha, anexos: await itemAnexos(it, external) });
                     }
                     gruposAtu.push({ label: inst === '\0outras' ? 'Outras atuações' : inst, itens, _maxAno: maxAno });
                 }
@@ -3336,7 +3370,7 @@
                 const its = sortByYear(items.filter(i => i.typeKey === tk && i.categoryKey === cat.key), false);
                 if (!its.length) continue;
                 const itens = [];
-                for (const it of its) itens.push({ titulo: LattesTypes.itemTitle(it), ano: itemAnoRange(it), linha: itemLinha(it), anexos: await itemAnexos(it) });
+                for (const it of its) itens.push({ titulo: LattesTypes.itemTitle(it), ano: itemAnoRange(it), linha: itemLinha(it), anexos: await itemAnexos(it, external) });
                 tipos.push({ label: LattesTypes.label(tk), itens });
             }
             const catNum = parseInt(cat.num, 10);
@@ -3350,18 +3384,34 @@
             secoes, geradoEm: new Date().toLocaleString('pt-BR'), totalItens: items.length,
         };
     }
-    async function generatePublicHtml() { return LzPublish.renderHtml(await buildPublicModel(), 'elegante'); }
+    // external: gera a versão com CSS/imagens como arquivo à parte (grava as
+    // imagens como efeito colateral de buildPublicModel) — usar só junto da
+    // gravação do css/estilo.css na mesma pasta (ver btnPubSave/btnPubDownload).
+    async function generatePublicHtml(external) {
+        const model = await buildPublicModel({ external });
+        return LzPublish.renderHtml(model, 'elegante', external ? { externalCss: `css/${PUB_CSS_FILE}` } : null);
+    }
 
+    // Grava a versão pronta para hospedar (index.html + css/estilo.css +
+    // img/*) em "Publicação para Web" — usada pelo Salvar e, quando há
+    // diretório configurado, também pelo Baixar (além de baixar o arquivo).
+    async function savePublicBundle() {
+        const folder = LattesTypes.publicacaoFolder();
+        await Storage.writeFile(PUB_CSS_FILE, LzPublish.css('elegante'), `${folder}/css`);
+        const html = await generatePublicHtml(true);
+        await Storage.writeFile('index.html', html, folder);
+        return { folder, html };
+    }
     function renderPublicar() {
         const panel = $('#tab-publicar');
         panel.innerHTML = `
             <div class="space-y-4 max-w-4xl">
                 <section class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
                     <h2 class="text-lg font-bold mb-2 flex items-center gap-2"><i class="fa-solid fa-globe text-govbr-600 dark:text-unifesp-400"></i> Página pública do currículo</h2>
-                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">Gera <strong>um único arquivo HTML</strong> (autossuficiente) com todo o currículo. Foto e contatos vêm do perfil e das Conexões. Apenas as evidências marcadas como <strong>“pública”</strong> são embutidas (em base64) e ficam acessíveis na página.</p>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">Foto e contatos vêm do perfil e das Conexões. Apenas as evidências marcadas como <strong>“pública”</strong> ficam acessíveis na página. Ao <strong>salvar na pasta</strong>, a página vai pronta para hospedar: <code>index.html</code> + <code>css/</code> + <code>img/</code> em “${esc(LattesTypes.publicacaoFolder())}”. O <strong>arquivo baixado</strong> é sempre um único HTML autossuficiente (CSS e imagens embutidos), para abrir/enviar sem depender de mais nada.</p>
                     <div class="flex gap-2 flex-wrap">
                         <button id="btnPubPreview" class="px-3 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm"><i class="fa-solid fa-eye mr-1"></i> Gerar prévia</button>
-                        <button id="btnPubSave" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-folder-open mr-1"></i> Salvar na pasta (Publicação/index.html)</button>
+                        <button id="btnPubSave" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-folder-open mr-1"></i> Salvar na pasta (${esc(LattesTypes.publicacaoFolder())})</button>
                         <button id="btnPubDownload" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-download mr-1"></i> Baixar HTML</button>
                     </div>
                     <p id="pubStatus" class="text-xs text-gray-500 mt-2"></p>
@@ -3380,23 +3430,28 @@
             if (!Storage.hasDirectory()) { toast('Configure um diretório em Configurações para salvar na pasta.', 'aviso'); return; }
             status('Gerando e salvando…');
             try {
-                const html = await generatePublicHtml();
-                await Storage.writeFile('index.html', html, 'Publicação');
+                const { folder, html } = await savePublicBundle();
                 $('#pubPreview').srcdoc = html;
-                status('Salvo em “Publicação/index.html”.');
-                toast('Página salva em “Publicação/index.html”.', 'ok');
+                status(`Salvo em “${folder}/” (index.html + css/ + img/).`);
+                toast(`Página salva em “${folder}/” — pronta para publicar.`, 'ok');
             } catch (e) { status(''); toast('Falha ao salvar: ' + e.message, 'erro'); }
         });
         $('#btnPubDownload').addEventListener('click', async () => {
             status('Gerando arquivo…');
             try {
+                // Com diretório configurado, também deixa a versão pronta para
+                // hospedar salva em "Publicação para Web" — o download em si
+                // continua sendo sempre o HTML autossuficiente (para poder
+                // sair da pasta sem quebrar link nenhum).
+                let folder = null;
+                if (Storage.hasDirectory()) { ({ folder } = await savePublicBundle()); }
                 const html = await generatePublicHtml();
                 $('#pubPreview').srcdoc = html;
                 const nome = (state.items.find(i => i.typeKey === 'IDENTIFICACAO' && i.fields && i.fields.titulo) || {}).fields;
                 const safe = (nome && nome.titulo ? nome.titulo : 'curriculo').replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, '-').toLowerCase();
                 const blob = new Blob([html], { type: 'text/html' });
                 const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `curriculo-${safe}.html`; a.click(); URL.revokeObjectURL(a.href);
-                status('Arquivo baixado.');
+                status(folder ? `Arquivo baixado — também salvo em “${folder}/”.` : 'Arquivo baixado.');
             } catch (e) { status(''); toast('Falha ao gerar: ' + e.message, 'erro'); }
         });
     }
