@@ -38,28 +38,30 @@ window.LzPublish = (function () {
         paper: '<svg class="ic" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg>',
         image: '<svg class="ic" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.6"/><path d="m21 16-5-5L5 20"/></svg>',
         link: '<svg class="ic" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 17H7A5 5 0 0 1 7 7h2"/><path d="M15 7h2a5 5 0 0 1 0 10h-2"/><path d="M8 12h8"/></svg>',
+        chevron: '<svg class="ic chev" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>',
     };
 
+    // Evidência como ícone puro (sem nome visível) — nome vai no title/aria-label.
     function anexoHtml(a) {
         if (a.url) {
-            return `<a class="anexo" href="${esc(a.url)}" target="_blank" rel="noopener" title="${esc(a.name)}">
-                ${IC.link}<span>${esc(a.name)}</span></a>`;
+            return `<a class="anexo" href="${esc(a.url)}" target="_blank" rel="noopener" title="${esc(a.name)}" aria-label="${esc(a.name)}">${IC.link}</a>`;
         }
         const img = /^(jpe?g|png|gif|webp)$/i.test(a.ext);
-        return `<a class="anexo" href="${a.dataUri}" target="_blank" rel="noopener" ${img ? '' : `download="${esc(a.name)}"`} title="${esc(a.name)}">
-            ${img ? IC.image : IC.paper}<span>${esc(a.name)}</span></a>`;
+        return `<a class="anexo" href="${a.dataUri}" target="_blank" rel="noopener" ${img ? '' : `download="${esc(a.name)}"`} title="${esc(a.name)}" aria-label="${esc(a.name)}">${img ? IC.image : IC.paper}</a>`;
     }
 
+    // Linha do item: ano — título — ícones de evidência, todos na mesma
+    // linha; descrição/detalhamento (linha) abaixo, só quando existir.
     function itemHtml(it) {
         const anexos = (it.anexos && it.anexos.length)
             ? `<div class="anexos">${it.anexos.map(anexoHtml).join('')}</div>` : '';
         return `<li class="item" data-search="${esc(((it.titulo || '') + ' ' + (it.linha || '')).toLowerCase())}">
-            <div class="item-main">
+            <div class="item-row">
+                ${it.ano ? `<span class="year">${esc(it.ano)}</span>` : ''}
                 <p class="item-title">${esc(it.titulo || '(sem título)')}</p>
-                ${it.linha ? `<p class="item-meta">${esc(it.linha)}</p>` : ''}
                 ${anexos}
             </div>
-            ${it.ano ? `<span class="year">${esc(it.ano)}</span>` : ''}
+            ${it.linha ? `<p class="item-meta">${esc(it.linha)}</p>` : ''}
         </li>`;
     }
 
@@ -71,15 +73,21 @@ window.LzPublish = (function () {
         </div>`;
     }
 
+    // Seção como "cortina": recolhida por padrão, os itens só aparecem ao
+    // clicar no cabeçalho (<details>/<summary> nativos — acessível e sem
+    // depender de JS para abrir).
     function secaoHtml(s) {
         const tipos = (s.tipos || []).map(tipoHtml).join('');
         if (!tipos) return '';
         return `<section id="${s.id}" class="secao reveal">
-            <div class="secao-head">
-                ${s.num ? `<span class="secao-num">${esc(s.num)}</span>` : ''}
-                <h2 class="secao-title">${esc(s.label)}</h2>
-            </div>
-            ${tipos}
+            <details class="secao-details">
+                <summary class="secao-head">
+                    ${s.num ? `<span class="secao-num">${esc(s.num)}</span>` : ''}
+                    <span class="secao-title" role="heading" aria-level="2">${esc(s.label)}</span>
+                    ${IC.chevron}
+                </summary>
+                <div class="secao-body">${tipos}</div>
+            </details>
         </section>`;
     }
 
@@ -183,28 +191,35 @@ main{padding:8px 0 72px}
 .bio{background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--gold);border-radius:12px;
   padding:20px 24px;margin:34px auto 0;box-shadow:var(--shadow);white-space:pre-wrap;font-size:1.02rem;color:var(--ink)}
 .secao{margin:44px 0 0}
-.secao-head{display:flex;align-items:baseline;gap:14px;border-bottom:1px solid var(--line);padding-bottom:10px;margin-bottom:20px}
+.secao-details{display:block}
+.secao-head{display:flex;align-items:baseline;gap:14px;border-bottom:1px solid var(--line);padding-bottom:10px;margin-bottom:0;
+  cursor:pointer;list-style:none;-webkit-tap-highlight-color:transparent}
+.secao-head::-webkit-details-marker{display:none}
+.secao-head::marker{content:""}
+.secao-details[open]>.secao-head{margin-bottom:20px}
+.secao-head:hover .secao-title{color:var(--accent-2)}
 .secao-num{font-family:var(--serif);color:var(--gold);font-size:1rem;font-weight:700;letter-spacing:.05em;font-variant-numeric:tabular-nums}
-.secao-title{font-family:var(--serif);font-weight:600;font-size:clamp(1.35rem,2.6vw,1.7rem);margin:0;letter-spacing:-.01em;text-wrap:balance}
+.secao-title{flex:1;min-width:0;font-family:var(--serif);font-weight:600;font-size:clamp(1.35rem,2.6vw,1.7rem);margin:0;
+  letter-spacing:-.01em;text-wrap:balance;transition:color .2s}
+.chev{flex:0 0 auto;color:var(--faint);transition:transform .25s ease}
+.secao-details[open] .chev{transform:rotate(180deg)}
 .tipo{margin:22px 0 0}
 .tipo-label{display:flex;align-items:center;gap:8px;font-size:.72rem;font-weight:700;letter-spacing:.13em;
   text-transform:uppercase;color:var(--accent);margin:0 0 4px}
 .count{font-family:var(--sans);font-size:.68rem;font-weight:700;letter-spacing:.02em;color:var(--faint);
   background:var(--chip);border-radius:999px;padding:1px 8px}
 .items{list-style:none;margin:0;padding:0}
-.item{display:flex;gap:18px;justify-content:space-between;align-items:baseline;padding:14px 8px 14px 10px;
-  border-bottom:1px solid var(--line);border-radius:8px;transition:background-color .2s}
+.item{padding:12px 8px 12px 10px;border-bottom:1px solid var(--line);border-radius:8px;transition:background-color .2s}
 .item:hover{background:var(--chip)}
-.item-main{min-width:0}
-.item-title{margin:0;font-weight:600;font-size:1.01rem;line-height:1.4}
-.item-meta{margin:3px 0 0;color:var(--muted);font-size:.9rem;line-height:1.5}
+.item-row{display:flex;align-items:baseline;gap:12px}
+.item-title{flex:1;min-width:0;margin:0;font-weight:600;font-size:1.01rem;line-height:1.4}
+.item-meta{margin:4px 0 0;color:var(--muted);font-size:.9rem;line-height:1.5}
 .year{flex:0 0 auto;font-family:var(--serif);font-variant-numeric:tabular-nums;font-weight:700;font-size:.95rem;
-  color:var(--gold);letter-spacing:.02em}
-.anexos{margin-top:9px;display:flex;flex-wrap:wrap;gap:7px}
-.anexo{display:inline-flex;align-items:center;gap:5px;font-size:.76rem;background:transparent;color:var(--accent-2);
-  padding:3px 10px 3px 8px;border-radius:999px;border:1px solid var(--line);transition:border-color .2s,background-color .2s}
-.anexo:hover{border-color:var(--accent-2);background:var(--chip)}
-.anexo span{max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  color:var(--gold);letter-spacing:.02em;white-space:nowrap}
+.anexos{flex:0 0 auto;display:flex;gap:5px}
+.anexo{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;color:var(--accent-2);
+  border-radius:999px;border:1px solid var(--line);transition:border-color .2s,background-color .2s,color .2s}
+.anexo:hover{border-color:var(--accent-2);background:var(--chip);color:var(--accent)}
 .empty{color:var(--muted);font-style:italic;padding:40px 0}
 footer{border-top:1px solid var(--line);color:var(--faint);font-size:.8rem;text-align:center;padding:30px 24px;margin-top:20px}
 footer strong{color:var(--muted);font-weight:700}
@@ -223,7 +238,6 @@ footer strong{color:var(--muted);font-weight:700}
 @media (max-width:640px){
   .hero .wrap{padding:44px 22px 40px;gap:22px}
   .avatar{width:92px;height:92px}
-  .item{flex-direction:row}
   .stat-num{font-size:1.6rem}
 }
 @media (prefers-reduced-motion: reduce){
@@ -233,12 +247,13 @@ footer strong{color:var(--muted);font-weight:700}
   .totop{transition:opacity .01s}
 }
 @media print{
-  nav.toc,.totop,#themeBtn,#printBtn,.searchwrap{display:none!important}
+  nav.toc,.totop,#themeBtn,#printBtn,.searchwrap,.chev{display:none!important}
   body{background:#fff;color:#000}
   .hero{background:var(--hero-bg)!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
   .item,.bio,.stats{box-shadow:none}
   .reveal{opacity:1!important;transform:none!important}
   .secao{break-inside:avoid}
+  .secao-head{cursor:default}
 }
 `,
     };
@@ -331,6 +346,22 @@ ${statsHtml}
   });
   document.getElementById('printBtn').addEventListener('click',function(){window.print();});
 
+  // Impressão: as seções ficam recolhidas por padrão, então força todas
+  // abertas antes de imprimir (senão o conteúdo simplesmente não sai no PDF).
+  addEventListener('beforeprint',function(){
+    document.querySelectorAll('details.secao-details').forEach(function(d){ d.open=true; });
+  });
+
+  // Índice: clicar numa seção também abre a cortina (senão o link rola até
+  // um cabeçalho recolhido, sem nada visível abaixo).
+  document.querySelectorAll('nav.toc a').forEach(function(a){
+    a.addEventListener('click',function(){
+      var sec=document.getElementById(a.getAttribute('href').slice(1));
+      var det=sec&&sec.querySelector('details.secao-details');
+      if(det) det.open=true;
+    });
+  });
+
   // Filtro de busca
   var search=document.getElementById('search');
   search.addEventListener('input',function(){
@@ -343,7 +374,12 @@ ${statsHtml}
     });
     document.querySelectorAll('.secao').forEach(function(se){
       if(se.id==='outras') return;
-      se.style.display = se.querySelectorAll('.item:not([style*="none"])').length ? '' : 'none';
+      var hasMatch = se.querySelectorAll('.item:not([style*="none"])').length>0;
+      se.style.display = hasMatch ? '' : 'none';
+      // Digitando: abre as seções com resultado (senão fica escondido atrás
+      // da cortina). Campo vazio: volta todas ao estado recolhido padrão.
+      var det=se.querySelector('details.secao-details');
+      if(det) det.open = q ? hasMatch : false;
     });
   });
 

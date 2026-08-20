@@ -3225,9 +3225,40 @@
         ['periodico', 'evento', 'instituicao', 'orgao', 'entidade', 'editora', 'cargo', 'tipo', 'financiador', 'autores'].forEach(k => add(f[k]));
         return parts.slice(0, 4).join(' · ');
     }
+    // "ano - ano" quando o item tem início/fim diferentes (ex.: Atuação,
+    // Formação); um único ano (ou o fallback ano/anoFim/anoInicio de
+    // itemYear) quando não há período.
+    function itemAnoRange(it) {
+        const f = it.fields || {};
+        const ini = anoDe(f.anoInicio || ''), fim = anoDe(f.anoFim || '');
+        if (ini && fim && ini !== fim) return `${ini}–${fim}`;
+        if (ini && !fim) return ini;
+        const y = itemYear(it);
+        return y != null ? String(y) : '';
+    }
+    // Evidências públicas de um item, prontas para o modelo da página pública
+    // (embutidas em base64; links entram como estão).
+    async function itemAnexos(it) {
+        const anexos = [];
+        if (Array.isArray(it.evidencias)) {
+            for (const ev of it.evidencias) {
+                if (!ev.publica) continue;
+                if (ev.kind === 'link') { anexos.push({ name: ev.name || ev.url, ext: 'url', url: ev.url }); continue; }
+                if (!Storage.hasDirectory()) continue;
+                try { const f = await Storage.readAttachmentFile(ev.basename, LattesTypes.categoryFolder(it.categoryKey), ev.ext); if (f) { const du = await fileToDataUrl(f); if (du) anexos.push({ name: ev.name || `${ev.basename}.${ev.ext}`, ext: ev.ext, dataUri: du }); } } catch (_) {}
+            }
+        }
+        return anexos;
+    }
     const PUB_ICON = { DADOS_GERAIS: '🪪', FORMACAO: '🎓', ATUACAO: '💼', PROJETOS: '🧩', PRODUCOES: '📚', PATENTES_REGISTROS: '📜', INOVACAO: '💡', EDUCACAO_CT: '📢', EVENTOS: '📅', ORIENTACOES: '👥', BANCAS: '⚖️',
         AL_DESENVOLVIMENTO: '🌱', AL_ENGAJAMENTO: '🤝', AL_SAUDE_ESPORTE: '🏃', AL_INTERESSES: '🎨', AL_CERTIFICACAO_CAT: '📜', AL_FILIACAO_CAT: '🪪', AL_CONCURSO_CAT: '📋', AL_IMPRENSA_CAT: '📰' };
     const PUB_EXCLUDE_TYPES = new Set(['IDENTIFICACAO', 'FOTO_PERFIL', 'ENDERECO', 'RESUMO_CV', 'OUTRAS_INFO', 'DOCUMENTO_PESSOAL']);
+    // Categorias 12–19 ("Além do Lattes": Desenvolvimento Pessoal, Engajamento,
+    // Saúde/Esporte, Interesses, Certificações, Filiações, Concursos, Imprensa)
+    // viram uma única seção mesclada na página pública. Fora do intervalo: a
+    // 97 (RSC — administrativo, tema à parte) e 20/21 (perfil: foto/documentos).
+    const PUB_MERGE_LABEL = 'Além do Currículo Lattes';
+    const PUB_MERGE_ID = 'sec-extras';
 
     async function buildPublicModel() {
         const items = state.items;
@@ -3259,9 +3290,44 @@
         }));
 
         const secoes = [];
+        const extrasTipos = []; // categorias 12–19, mescladas numa única seção
         for (const cat of LattesTypes.categories) {
             if (cat.key === 'CONEXOES') continue;
             const typeKeys = cat.groups ? cat.groups.flatMap(g => g.types) : (cat.types || []);
+
+            // Atuação: agrupa todos os tipos (vínculo, direção, pesquisa,
+            // ensino...) por nome da instituição, em vez de um bloco por tipo
+            // — assim toda a trajetória numa mesma instituição fica junta,
+            // como no Currículo Lattes real. Itens sem instituição (raro:
+            // corpo editorial/revisor de periódico não têm esse campo) caem
+            // num grupo "Outras atuações" ao final.
+            if (cat.key === 'ATUACAO') {
+                const seus = typeKeys.filter(tk => !PUB_EXCLUDE_TYPES.has(tk));
+                const porInstituicao = new Map();
+                for (const it of items.filter(i => seus.includes(i.typeKey) && i.categoryKey === cat.key)) {
+                    const inst = String((it.fields && it.fields.instituicao) || '').trim() || '\0outras';
+                    if (!porInstituicao.has(inst)) porInstituicao.set(inst, []);
+                    porInstituicao.get(inst).push(it);
+                }
+                const gruposAtu = [];
+                for (const [inst, its] of porInstituicao) {
+                    const ordenados = sortByYear(its, false);
+                    const itens = [];
+                    let maxAno = -Infinity;
+                    for (const it of ordenados) {
+                        const y = itemYear(it); if (y != null && y > maxAno) maxAno = y;
+                        const tipoLabel = LattesTypes.label(it.typeKey);
+                        const linha = [tipoLabel, (it.fields && it.fields.orgao) || ''].map(s => String(s || '').trim()).filter(Boolean).join(' · ');
+                        itens.push({ titulo: LattesTypes.itemTitle(it), ano: itemAnoRange(it), linha, anexos: await itemAnexos(it) });
+                    }
+                    gruposAtu.push({ label: inst === '\0outras' ? 'Outras atuações' : inst, itens, _maxAno: maxAno });
+                }
+                gruposAtu.sort((a, b) => (b.label === 'Outras atuações' ? -1 : a.label === 'Outras atuações' ? 1 : b._maxAno - a._maxAno));
+                gruposAtu.forEach(g => delete g._maxAno);
+                if (gruposAtu.length) secoes.push({ id: 'sec-' + cat.key.toLowerCase(), num: cat.num, label: cat.label, icon: PUB_ICON[cat.key] || '▣', tipos: gruposAtu });
+                continue;
+            }
+
             const tipos = [];
             for (const tk of typeKeys) {
                 if (PUB_EXCLUDE_TYPES.has(tk)) continue;
@@ -3270,23 +3336,14 @@
                 const its = sortByYear(items.filter(i => i.typeKey === tk && i.categoryKey === cat.key), false);
                 if (!its.length) continue;
                 const itens = [];
-                for (const it of its) {
-                    const anexos = [];
-                    if (Array.isArray(it.evidencias)) {
-                        for (const ev of it.evidencias) {
-                            if (!ev.publica) continue;
-                            if (ev.kind === 'link') { anexos.push({ name: ev.name || ev.url, ext: 'url', url: ev.url }); continue; }
-                            if (!Storage.hasDirectory()) continue;
-                            try { const f = await Storage.readAttachmentFile(ev.basename, LattesTypes.categoryFolder(it.categoryKey), ev.ext); if (f) { const du = await fileToDataUrl(f); if (du) anexos.push({ name: ev.name || `${ev.basename}.${ev.ext}`, ext: ev.ext, dataUri: du }); } } catch (_) {}
-                        }
-                    }
-                    const y = itemYear(it);
-                    itens.push({ titulo: LattesTypes.itemTitle(it), ano: y != null ? String(y) : '', linha: itemLinha(it), anexos });
-                }
+                for (const it of its) itens.push({ titulo: LattesTypes.itemTitle(it), ano: itemAnoRange(it), linha: itemLinha(it), anexos: await itemAnexos(it) });
                 tipos.push({ label: LattesTypes.label(tk), itens });
             }
-            if (tipos.length) secoes.push({ id: 'sec-' + cat.key.toLowerCase(), num: cat.num, label: cat.label, icon: PUB_ICON[cat.key] || '▣', tipos });
+            const catNum = parseInt(cat.num, 10);
+            if (catNum >= 12 && catNum <= 19) extrasTipos.push(...tipos);
+            else if (tipos.length) secoes.push({ id: 'sec-' + cat.key.toLowerCase(), num: cat.num, label: cat.label, icon: PUB_ICON[cat.key] || '▣', tipos });
         }
+        if (extrasTipos.length) secoes.push({ id: PUB_MERGE_ID, num: null, label: PUB_MERGE_LABEL, icon: '✦', tipos: extrasTipos });
         return {
             nome, iniciais, tagline: (ident && ident.fields.citacoes) || '', bio: (resumo && resumo.fields.descricao) || '',
             foto, local, areasAtuacao, orcid, lattesUrl, contatos, outras: (outrasI && outrasI.fields.descricao) || '',
