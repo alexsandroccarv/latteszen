@@ -2268,7 +2268,7 @@
                 ${xmlConsistencyNoticeHtml()}
                 <div class="flex gap-2 flex-wrap">
                     <button id="btnXmlDownload" class="px-3 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm"><i class="fa-solid fa-download mr-1"></i> Baixar XML (.xml)</button>
-                    <button id="btnXmlSave" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-folder-open mr-1"></i> Salvar na pasta (Publicação/curriculo.xml)</button>
+                    <button id="btnXmlSave" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-folder-open mr-1"></i> Salvar na pasta (${esc(LattesTypes.lattesXmlFolder())}/curriculo.xml)</button>
                 </div>
                 <p id="xmlStatus" class="text-xs text-gray-500 mt-2"></p>
             </section>`;
@@ -2306,10 +2306,11 @@
             if (!Storage.hasDirectory()) { toast('Configure um diretório abaixo para salvar na pasta.', 'aviso'); return; }
             xmlStatus('Gerando e salvando XML…');
             try {
+                const folder = LattesTypes.lattesXmlFolder();
                 const { bytes } = generateLattesXml();
-                await Storage.writeFile('curriculo.xml', bytes, 'Publicação');
-                xmlStatus(`Salvo em “Publicação/curriculo.xml” (${xmlExportaveis()} item(ns)).`);
-                toast('XML salvo em “Publicação/curriculo.xml”.', 'ok');
+                await Storage.writeFile('curriculo.xml', bytes, folder);
+                xmlStatus(`Salvo em “${folder}/curriculo.xml” (${xmlExportaveis()} item(ns)).`);
+                toast(`XML salvo em “${folder}/curriculo.xml”.`, 'ok');
                 xmlConsistencyToast();
             } catch (e) { xmlStatus(''); toast('Falha ao salvar XML: ' + e.message, 'erro'); }
         });

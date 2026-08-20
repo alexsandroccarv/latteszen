@@ -953,7 +953,8 @@ window.LattesTypes = (function () {
 
     const BACKUP_FOLDER = 'Cópia de segurança';
     const EVIDENCIAS_FOLDER = 'Evidências';
-    const EXPORT_FOLDERS = ['Exportação/RSC-PCCTAE', 'Exportação/Progressão Docentes', 'Exportação/Súmula Curricular FAPESP', 'Exportação/Lattes XML'];
+    const LATTES_XML_FOLDER = 'Exportação/Lattes XML';
+    const EXPORT_FOLDERS = ['Exportação/RSC-PCCTAE', 'Exportação/Progressão Docentes', 'Exportação/Súmula Curricular FAPESP', LATTES_XML_FOLDER];
     const PUBLICACAO_FOLDER = 'Publicação para Web';
     const EXTRA_FOLDERS = [PUBLICACAO_FOLDER, 'Relatórios'];
 
@@ -983,6 +984,7 @@ window.LattesTypes = (function () {
         naoLattes: NAO_LATTES_TYPE,
         backupFolder() { return BACKUP_FOLDER; },
         publicacaoFolder() { return PUBLICACAO_FOLDER; },
+        lattesXmlFolder() { return LATTES_XML_FOLDER; },
         getType(typeKey) { return TYPES[typeKey] || (typeKey === 'NAO_LATTES' ? NAO_LATTES_TYPE : null); },
         // compat: get() devolve o tipo (independe de categoria)
         get(typeKey) { return this.getType(typeKey); },
