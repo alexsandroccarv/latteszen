@@ -302,7 +302,7 @@ const TYPES = {
         { key: 'numeroRegistro', label: 'Número do registro', type: 'text', disabledWhen: { field: 'nivel', in: nivelExcept('Residência médica') } },
         { key: 'palavrasChave', label: 'Palavras-chave', type: 'textarea', placeholder: 'Separe por ponto e vírgula (;)', help: 'Até 6 palavras-chave (limite da Plataforma Lattes).',
           disabledWhen: { field: 'nivel', in: nivelExcept('Mestrado', 'Mestrado profissional', 'Doutorado', 'Residência médica') } },
-        { key: 'areaConhecimento', label: 'Área do conhecimento (CNPq/CAPES)', type: 'areatree', help: 'Selecione do mais geral ao mais específico: Grande área › Área › Subárea › Especialidade.',
+        { key: 'areaConhecimento', label: 'Área do conhecimento (CNPq/CAPES)', type: 'areatree', help: 'Selecione do mais geral ao mais específico: Grande área > Área > Subárea > Especialidade.',
           disabledWhen: { field: 'nivel', in: nivelExcept('Mestrado', 'Mestrado profissional', 'Doutorado', 'Residência médica') } },
         { key: 'setores', label: 'Setores de atividade', type: 'cnaeSetores', help: 'Até 3 setores (lista CNAE).',
           disabledWhen: { field: 'nivel', in: nivelExcept('Mestrado', 'Mestrado profissional', 'Doutorado', 'Residência médica') } },
@@ -325,7 +325,7 @@ const TYPES = {
         { key: 'palavrasChave', label: 'Palavras-chave', type: 'textarea', placeholder: 'Separe por ponto e vírgula (;)', help: 'Até 6 palavras-chave (limite da Plataforma Lattes).',
           disabledWhen: { field: 'tipo', equals: 'Pós-Doutorado' } },
         // Áreas: comum aos dois níveis.
-        { key: 'areaConhecimento', label: 'Área do conhecimento (CNPq/CAPES)', type: 'areatree', help: 'Selecione do mais geral ao mais específico: Grande área › Área › Subárea › Especialidade.' },
+        { key: 'areaConhecimento', label: 'Área do conhecimento (CNPq/CAPES)', type: 'areatree', help: 'Selecione do mais geral ao mais específico: Grande área > Área > Subárea > Especialidade.' },
         { key: 'setores', label: 'Setores de atividade', type: 'cnaeSetores', help: 'Até 3 setores (lista CNAE).',
           disabledWhen: { field: 'tipo', equals: 'Pós-Doutorado' } },
     ] },
@@ -372,7 +372,7 @@ const TYPES = {
         { key: 'titulo', label: 'Agência de fomento', type: 'text', required: true },
         ...periodoComSituacao(),
         { key: 'outrasInfo', label: 'Outras informações', type: 'textarea' }] },
-    AREA_ATUACAO: { label: 'Áreas de atuação', noEvidence: true, perfil: true, fields: [{ key: 'areaConhecimento', label: 'Área do conhecimento (CNPq/CAPES)', type: 'areatree', required: true, help: 'Selecione do mais geral ao mais específico: Grande área › Área › Subárea › Especialidade.' }] },
+    AREA_ATUACAO: { label: 'Áreas de atuação', noEvidence: true, perfil: true, fields: [{ key: 'areaConhecimento', label: 'Área do conhecimento (CNPq/CAPES)', type: 'areatree', required: true, help: 'Selecione do mais geral ao mais específico: Grande área > Área > Subárea > Especialidade.' }] },
     // Atividades da atuação profissional (subitens de "Atuação profissional",
     // na ordem e com os campos das telas reais do Lattes). O campo com "Digite
     // e pressione ENTER" (cargo, linha de pesquisa, treinamento…) é um texto
@@ -441,7 +441,7 @@ const TYPES = {
         { key: 'paginaInicial', label: 'Página inicial / Número artigo eletrônico', type: 'text' },
         { key: 'paginaFinal', label: 'Página final', type: 'text' },
         { key: 'palavrasChave', label: 'Palavras-chave', type: 'textarea', placeholder: 'Separe por ponto e vírgula (;)', help: 'Até 6 palavras-chave (limite da Plataforma Lattes).' },
-        { key: 'areaConhecimento', label: 'Área do conhecimento (CNPq/CAPES)', type: 'areatree', help: 'Selecione do mais geral ao mais específico: Grande área › Área › Subárea › Especialidade.' },
+        { key: 'areaConhecimento', label: 'Área do conhecimento (CNPq/CAPES)', type: 'areatree', help: 'Selecione do mais geral ao mais específico: Grande área > Área > Subárea > Especialidade.' },
         { key: 'setores', label: 'Setores de atividade', type: 'cnaeSetores', help: 'Até 3 setores (lista CNAE).' },
         { key: 'outrasInfo', label: 'Outras informações', type: 'textarea' },
     ] },
@@ -457,7 +457,7 @@ const TYPES = {
             { key: 'nomeCitacao', label: 'Nome como citado', type: 'text' },
         ] },
         { key: 'palavrasChave', label: 'Palavras-chave', type: 'textarea', placeholder: 'Separe por ponto e vírgula (;)', help: 'Até 6 palavras-chave (limite da Plataforma Lattes).' },
-        { key: 'areaConhecimento', label: 'Área do conhecimento (CNPq/CAPES)', type: 'areatree', help: 'Selecione do mais geral ao mais específico: Grande área › Área › Subárea › Especialidade.' },
+        { key: 'areaConhecimento', label: 'Área do conhecimento (CNPq/CAPES)', type: 'areatree', help: 'Selecione do mais geral ao mais específico: Grande área > Área > Subárea > Especialidade.' },
         { key: 'setores', label: 'Setores de atividade', type: 'cnaeSetores', help: 'Até 3 setores (lista CNAE).' },
         { key: 'outrasInfo', label: 'Outras informações', type: 'textarea' },
     ] },
@@ -494,7 +494,7 @@ const TYPES = {
             { key: 'nomeCitacao', label: 'Nome como citado', type: 'text' },
         ] },
         { key: 'palavrasChave', label: 'Palavras-chave', type: 'textarea', placeholder: 'Separe por ponto e vírgula (;)', help: 'Até 6 palavras-chave (limite da Plataforma Lattes).' },
-        { key: 'areaConhecimento', label: 'Área do conhecimento (CNPq/CAPES)', type: 'areatree', help: 'Selecione do mais geral ao mais específico: Grande área › Área › Subárea › Especialidade.' },
+        { key: 'areaConhecimento', label: 'Área do conhecimento (CNPq/CAPES)', type: 'areatree', help: 'Selecione do mais geral ao mais específico: Grande área > Área > Subárea > Especialidade.' },
         { key: 'setores', label: 'Setores de atividade', type: 'cnaeSetores', help: 'Até 3 setores (lista CNAE).' },
         { key: 'outrasInfo', label: 'Outras informações', type: 'textarea' },
     ] },
@@ -521,7 +521,7 @@ const TYPES = {
             { key: 'nomeCitacao', label: 'Nome como citado', type: 'text' },
         ] },
         { key: 'palavrasChave', label: 'Palavras-chave', type: 'textarea', placeholder: 'Separe por ponto e vírgula (;)', help: 'Até 6 palavras-chave (limite da Plataforma Lattes).' },
-        { key: 'areaConhecimento', label: 'Área do conhecimento (CNPq/CAPES)', type: 'areatree', help: 'Selecione do mais geral ao mais específico: Grande área › Área › Subárea › Especialidade.' },
+        { key: 'areaConhecimento', label: 'Área do conhecimento (CNPq/CAPES)', type: 'areatree', help: 'Selecione do mais geral ao mais específico: Grande área > Área > Subárea > Especialidade.' },
         { key: 'setores', label: 'Setores de atividade', type: 'cnaeSetores', help: 'Até 3 setores (lista CNAE).' },
         { key: 'outrasInfo', label: 'Outras informações', type: 'textarea' },
     ] },
@@ -545,7 +545,7 @@ const TYPES = {
             { key: 'nomeCitacao', label: 'Nome como citado', type: 'text' },
         ] },
         { key: 'palavrasChave', label: 'Palavras-chave', type: 'textarea', placeholder: 'Separe por ponto e vírgula (;)', help: 'Até 6 palavras-chave (limite da Plataforma Lattes).' },
-        { key: 'areaConhecimento', label: 'Área do conhecimento (CNPq/CAPES)', type: 'areatree', help: 'Selecione do mais geral ao mais específico: Grande área › Área › Subárea › Especialidade.' },
+        { key: 'areaConhecimento', label: 'Área do conhecimento (CNPq/CAPES)', type: 'areatree', help: 'Selecione do mais geral ao mais específico: Grande área > Área > Subárea > Especialidade.' },
         { key: 'setores', label: 'Setores de atividade', type: 'cnaeSetores', help: 'Até 3 setores (lista CNAE).' },
         { key: 'outrasInfo', label: 'Outras informações', type: 'textarea' },
     ] },
@@ -576,7 +576,7 @@ const TYPES = {
             { key: 'nomeCitacao', label: 'Nome como citado', type: 'text' },
         ] },
         { key: 'palavrasChave', label: 'Palavras-chave', type: 'textarea', placeholder: 'Separe por ponto e vírgula (;)', help: 'Até 6 palavras-chave (limite da Plataforma Lattes).' },
-        { key: 'areaConhecimento', label: 'Área do conhecimento (CNPq/CAPES)', type: 'areatree', help: 'Selecione do mais geral ao mais específico: Grande área › Área › Subárea › Especialidade.' },
+        { key: 'areaConhecimento', label: 'Área do conhecimento (CNPq/CAPES)', type: 'areatree', help: 'Selecione do mais geral ao mais específico: Grande área > Área > Subárea > Especialidade.' },
         { key: 'setores', label: 'Setores de atividade', type: 'cnaeSetores', help: 'Até 3 setores (lista CNAE).' },
         { key: 'outrasInfo', label: 'Outras informações', type: 'textarea' },
     ] },
@@ -602,7 +602,7 @@ const TYPES = {
             { key: 'nomeCitacao', label: 'Nome como citado', type: 'text' },
         ] },
         { key: 'palavrasChave', label: 'Palavras-chave', type: 'textarea', placeholder: 'Separe por ponto e vírgula (;)', help: 'Até 6 palavras-chave (limite da Plataforma Lattes).' },
-        { key: 'areaConhecimento', label: 'Área do conhecimento (CNPq/CAPES)', type: 'areatree', help: 'Selecione do mais geral ao mais específico: Grande área › Área › Subárea › Especialidade.' },
+        { key: 'areaConhecimento', label: 'Área do conhecimento (CNPq/CAPES)', type: 'areatree', help: 'Selecione do mais geral ao mais específico: Grande área > Área > Subárea > Especialidade.' },
         { key: 'setores', label: 'Setores de atividade', type: 'cnaeSetores', help: 'Até 3 setores (lista CNAE).' },
         { key: 'outrasInfo', label: 'Outras informações', type: 'textarea' },
     ] },
@@ -670,7 +670,7 @@ const TYPES = {
         { key: 'natureza', label: 'Tipo de orientação', type: 'select', options: ['Orientador principal', 'Coorientador'] },
         { key: 'curso', label: 'Curso', type: 'text' }, F_INST, { key: 'bolsa', label: 'Bolsista / Agência financiadora', type: 'text' },
         { key: 'palavrasChave', label: 'Palavras-chave', type: 'textarea', placeholder: 'Separe por ponto e vírgula (;)', help: 'Até 6 palavras-chave (limite da Plataforma Lattes).' },
-        { key: 'areaConhecimento', label: 'Área do conhecimento (CNPq/CAPES)', type: 'areatree', help: 'Selecione do mais geral ao mais específico: Grande área › Área › Subárea › Especialidade.' },
+        { key: 'areaConhecimento', label: 'Área do conhecimento (CNPq/CAPES)', type: 'areatree', help: 'Selecione do mais geral ao mais específico: Grande área > Área > Subárea > Especialidade.' },
         { key: 'outrasInfo', label: 'Outras informações', type: 'textarea' },
     ] },
     ORIENTACAO_ANDAMENTO: { label: 'Orientações e supervisões em andamento', fields: [
@@ -683,7 +683,7 @@ const TYPES = {
         { key: 'natureza', label: 'Tipo de orientação', type: 'select', options: ['Orientador principal', 'Coorientador'] },
         { key: 'curso', label: 'Curso', type: 'text' }, F_INST, { key: 'bolsa', label: 'Bolsista / Agência financiadora', type: 'text' },
         { key: 'palavrasChave', label: 'Palavras-chave', type: 'textarea', placeholder: 'Separe por ponto e vírgula (;)', help: 'Até 6 palavras-chave (limite da Plataforma Lattes).' },
-        { key: 'areaConhecimento', label: 'Área do conhecimento (CNPq/CAPES)', type: 'areatree', help: 'Selecione do mais geral ao mais específico: Grande área › Área › Subárea › Especialidade.' },
+        { key: 'areaConhecimento', label: 'Área do conhecimento (CNPq/CAPES)', type: 'areatree', help: 'Selecione do mais geral ao mais específico: Grande área > Área > Subárea > Especialidade.' },
         { key: 'outrasInfo', label: 'Outras informações', type: 'textarea' },
     ] },
 
@@ -697,7 +697,7 @@ const TYPES = {
         { key: 'candidato', label: 'Nome do candidato', type: 'text' }, F_INST, { key: 'curso', label: 'Curso', type: 'text' },
         { key: 'membros', label: 'Participantes da banca', type: 'textarea', placeholder: 'Separe por ponto e vírgula (;)', help: 'Um nome por posição — a ordem digitada é a ordem de autoria na banca.' },
         { key: 'palavrasChave', label: 'Palavras-chave', type: 'textarea', placeholder: 'Separe por ponto e vírgula (;)', help: 'Até 6 palavras-chave (limite da Plataforma Lattes).' },
-        { key: 'areaConhecimento', label: 'Área do conhecimento (CNPq/CAPES)', type: 'areatree', help: 'Selecione do mais geral ao mais específico: Grande área › Área › Subárea › Especialidade.' },
+        { key: 'areaConhecimento', label: 'Área do conhecimento (CNPq/CAPES)', type: 'areatree', help: 'Selecione do mais geral ao mais específico: Grande área > Área > Subárea > Especialidade.' },
         { key: 'outrasInfo', label: 'Outras informações', type: 'textarea' },
     ] },
     BANCA_JULGADORA: { label: 'Participação em bancas de comissões julgadoras', fields: [
@@ -707,7 +707,7 @@ const TYPES = {
         F_INST,
         { key: 'membros', label: 'Participantes da banca', type: 'textarea', placeholder: 'Separe por ponto e vírgula (;)', help: 'Um nome por posição — a ordem digitada é a ordem de autoria na banca.' },
         { key: 'palavrasChave', label: 'Palavras-chave', type: 'textarea', placeholder: 'Separe por ponto e vírgula (;)', help: 'Até 6 palavras-chave (limite da Plataforma Lattes).' },
-        { key: 'areaConhecimento', label: 'Área do conhecimento (CNPq/CAPES)', type: 'areatree', help: 'Selecione do mais geral ao mais específico: Grande área › Área › Subárea › Especialidade.' },
+        { key: 'areaConhecimento', label: 'Área do conhecimento (CNPq/CAPES)', type: 'areatree', help: 'Selecione do mais geral ao mais específico: Grande área > Área > Subárea > Especialidade.' },
         { key: 'outrasInfo', label: 'Outras informações', type: 'textarea' },
     ] },
 
@@ -1029,10 +1029,10 @@ window.LattesTypes = (function () {
                 const t = [periodo, resto].filter(Boolean).join(' ');
                 if (t) return t;
             }
-            // Áreas de atuação: hierarquia CNPq/CAPES (Grande área › Área › Subárea › Especialidade)
+            // Áreas de atuação: hierarquia CNPq/CAPES (Grande área > Área > Subárea > Especialidade)
             if (item.typeKey === 'AREA_ATUACAO') {
                 const partes = [f.grandeArea, f.area, f.subarea, f.especialidade].map(x => String(x || '').trim()).filter(Boolean);
-                if (partes.length) return partes.map(titleCasePt).join(' › ');
+                if (partes.length) return partes.map(titleCasePt).join(' > '); // separador ASCII (compatível com ISO-8859-1)
                 if (f.areaConhecimento) return titleCasePt(f.areaConhecimento);
             }
             // Atuação profissional: "Cargo/Função" (o ano já aparece à parte no

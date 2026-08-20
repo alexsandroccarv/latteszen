@@ -1577,7 +1577,7 @@
         }));
     }
 
-    // Preenche e conecta a cascata Grande área › Área › Subárea › Especialidade
+    // Preenche e conecta a cascata Grande área > Área > Subárea > Especialidade
     function wireAreaTree(container, vals) {
         const DATA = window.AreasConhecimento || [];
         const g = container.querySelector('[data-areatree="g"]');
@@ -1645,7 +1645,7 @@
                 const gv = q => { const el = form.querySelector(`[data-areatree="${q}"]`); return el ? el.value.trim() : ''; };
                 const G = gv('g'), A = gv('a'), S = gv('s'), E = gv('e');
                 fields.grandeArea = G; fields.area = A; fields.subarea = S; fields.especialidade = E;
-                fields[f.key] = (G && A) ? [G, A, S, E].filter(Boolean).join(' › ') : '';
+                fields[f.key] = (G && A) ? [G, A, S, E].filter(Boolean).join(' > ') : ''; // separador ASCII (compatível com ISO-8859-1)
             } else if (f.type === 'cnaeSetores') {
                 fields[f.key] = [1, 2, 3].map(i => { const el = form.querySelector(`[data-setor="${i}"]`); return el ? el.value.trim() : ''; }).filter(Boolean).join('; ');
             } else if (f.type === 'repeater') {

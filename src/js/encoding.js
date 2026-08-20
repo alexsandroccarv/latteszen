@@ -41,6 +41,7 @@ window.LzEncoding = (function () {
         '…': '...',                                              // reticências
         ' ': ' ', ' ': ' ', ' ': ' ',                  // espaços especiais
         '•': '-', 'ʼ': "'", '⁄': '/',
+        '›': '>', '‹': '<',                                       // aspas-guillemet simples (separador de área do conhecimento)
     };
     const NORM_RE = new RegExp('[' + Object.keys(NORM).join('') + ']', 'g');
     function normalizePunctuation(s) {

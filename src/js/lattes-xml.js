@@ -755,7 +755,7 @@ window.LattesXML = (function () {
                 grandeArea: humanize(a['NOME-GRANDE-AREA-DO-CONHECIMENTO']),
                 area: a['NOME-DA-AREA-DO-CONHECIMENTO'] || '',
                 subarea: a['NOME-DA-SUB-AREA-DO-CONHECIMENTO'] || '', especialidade: a['NOME-DA-ESPECIALIDADE'] || '',
-                areaConhecimento: [humanize(a['NOME-GRANDE-AREA-DO-CONHECIMENTO']), a['NOME-DA-AREA-DO-CONHECIMENTO'], a['NOME-DA-SUB-AREA-DO-CONHECIMENTO'], a['NOME-DA-ESPECIALIDADE']].map(x => (x || '').trim()).filter(Boolean).join(' › '),
+                areaConhecimento: [humanize(a['NOME-GRANDE-AREA-DO-CONHECIMENTO']), a['NOME-DA-AREA-DO-CONHECIMENTO'], a['NOME-DA-SUB-AREA-DO-CONHECIMENTO'], a['NOME-DA-ESPECIALIDADE']].map(x => (x || '').trim()).filter(Boolean).join(' > '), // separador ASCII (compatível com ISO-8859-1)
                 titulo,
             }, el);
         }
