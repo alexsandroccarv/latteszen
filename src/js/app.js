@@ -2014,6 +2014,28 @@
         const cls = estado === 'green' ? 'text-green-600 dark:text-green-500' : estado === 'amber' ? 'text-amber-600 dark:text-amber-500' : 'text-red-600 dark:text-red-500';
         return `<span title="${esc(title)}" class="inline-flex items-center justify-center w-6 h-6 ${cls}"><i class="fa-solid fa-graduation-cap"></i></span>`;
     }
+    // Ícone de carga horária: verde (tem carga horária), vermelho (não tem)
+    // ou cinza (não se aplica — campo desabilitado por outra condição do
+    // próprio tipo, ex. Formação Acadêmica fora de Aperfeiçoamento/
+    // Especialização, ou marcado "N/A" onde houver essa opção). Some para
+    // tipos que não têm campo "cargaHoraria".
+    function cargaHorariaIconHtml(item) {
+        const def = LattesTypes.getType(item.typeKey);
+        const f = def && def.fields && def.fields.find(fld => fld.key === 'cargaHoraria');
+        if (!f) return '';
+        const vals = item.fields || {};
+        const v = String(vals.cargaHoraria || '').trim();
+        let estado, title;
+        if (isFieldDisabled(f, vals) || v === NA_VALUE) {
+            estado = 'gray'; title = 'Carga horária: não se aplica';
+        } else if (v) {
+            estado = 'green'; title = 'Tem carga horária: ' + v;
+        } else {
+            estado = 'red'; title = 'Sem carga horária';
+        }
+        const cls = estado === 'green' ? 'text-green-600 dark:text-green-500' : estado === 'red' ? 'text-red-600 dark:text-red-500' : 'text-gray-400 dark:text-gray-500';
+        return `<span title="${esc(title)}" class="inline-flex items-center justify-center w-6 h-6 ${cls}"><i class="fa-solid fa-clock"></i></span>`;
+    }
     // Ícone de descrição: reaproveita o estado de completude (descState).
     function descIconHtml(item) {
         const estado = descState(item);
@@ -2036,7 +2058,7 @@
                     <div class="flex items-center gap-0.5 shrink-0 ml-auto">
                         ${evidenceIconsHtml(i)}
                         ${sep}
-                        ${rscIconHtml(i)}${lattesIconHtml(i)}${descIconHtml(i)}
+                        ${cargaHorariaIconHtml(i)}${rscIconHtml(i)}${lattesIconHtml(i)}${descIconHtml(i)}
                         <span class="print:hidden contents">
                             ${sep}
                             <button data-act="edit" data-id="${i.id}" title="Abrir / Editar" class="w-7 h-7 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-govbr-600 dark:text-unifesp-400"><i class="fa-solid fa-pen"></i></button>
