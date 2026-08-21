@@ -3877,6 +3877,7 @@
                         <div class="flex gap-2"><i class="fa-solid fa-paperclip text-govbr-600 dark:text-unifesp-400 mt-1"></i><span><strong>Evidências organizadas:</strong> cada item guarda seu comprovante (PDF) já na pasta certa — nada de procurar arquivo solto na hora de comprovar algo.</span></div>
                         <div class="flex gap-2"><i class="fa-solid fa-clipboard-check text-govbr-600 dark:text-unifesp-400 mt-1"></i><span><strong>Conformidade visível:</strong> ícones mostram, item a item, o que falta (carga horária, descrição, prazos) — sem caçar campo por campo.</span></div>
                         <div class="flex gap-2"><i class="fa-solid fa-award text-govbr-600 dark:text-unifesp-400 mt-1"></i><span><strong>RSC sem planilha:</strong> simulador de pontuação e memorial descritivo do RSC-PCCTAE prontos a partir dos itens já cadastrados.</span></div>
+                        <div class="flex gap-2"><i class="fa-solid fa-lock text-govbr-600 dark:text-unifesp-400 mt-1"></i><span><strong>Foco na privacidade:</strong> todo processamento ocorre localmente, no seu navegador — seus dados não saem do seu computador.</span></div>
                     </div>
                 </section>
 
