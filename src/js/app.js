@@ -1847,7 +1847,10 @@
         // 3) Formatos específicos (ISSN/ISBN/DOI/URL) e números ≥ 0
         for (const f of def.fields) {
             const raw = fields[f.key];
-            if (f.na && raw === NA_VALUE) continue; // marcado "Não se aplica" — não valida formato/número
+            // Marcado "Não se aplica" — não valida formato/número. Campos URL
+            // sempre oferecem N/A (independente de `f.na`, só usado pelos
+            // demais tipos), então entram aqui mesmo sem esse flag.
+            if (raw === NA_VALUE && (f.na || f.type === 'url')) continue;
             const kind = f.validate ? f.validate : (f.key === 'issn' || f.key === 'isbn' || f.key === 'doi') ? f.key : (f.type === 'url' ? 'url' : null);
             if (kind) {
                 if (raw == null || raw === '') continue;
