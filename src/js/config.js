@@ -3,7 +3,7 @@
    ========================================================================== */
 window.APP_CONFIG = {
     name: 'lattesZen',
-    version: 'v0.2.5',
+    version: 'v0.2.6',
     lastModified: '19/08/2026',
     author: {
         nome: 'Alexsandro Cardoso Carvalho',
