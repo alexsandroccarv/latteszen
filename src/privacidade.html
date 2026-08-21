@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>lattesZen — Ajuda (RSC-PCCTAE)</title>
+    <title>lattesZen — Política de Privacidade</title>
 
     <!-- Mesmos estilos da aplicação -->
     <link rel="stylesheet" href="css/styles.css">
@@ -73,7 +73,6 @@
       .help-doc nav.toc li{margin:3px 0;break-inside:avoid}
       .help-doc section.card{background:var(--hdoc-surface);border:1px solid var(--hdoc-line);border-radius:10px;padding:20px 22px;margin-bottom:22px}
       .help-doc section.card h2{margin-top:0;font-size:1.25rem;display:flex;align-items:center;gap:10px}
-      .help-doc .step-num{display:inline-flex;align-items:center;justify-content:center;width:1.6em;height:1.6em;border-radius:50%;background:#1351b4;color:#fff;font-size:.85rem;font-weight:700;flex-shrink:0}
       .help-doc h3{font-size:1.02rem;margin:1.2em 0 .3em}
       .help-doc code{background:var(--hdoc-code);padding:.1em .4em;border-radius:4px;font-size:.88em;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
       .help-doc ul,.help-doc ol{padding-left:1.4em}
@@ -83,9 +82,6 @@
       .help-doc .warn{background:var(--hdoc-warn-bg);border-color:var(--hdoc-warn-line)}
       .help-doc .ok{background:var(--hdoc-ok-bg);border-color:var(--hdoc-ok-line)}
       .help-doc .tag{display:inline-block;background:var(--hdoc-chip);color:var(--hdoc-chipink);border-radius:20px;padding:1px 10px;font-size:.8rem;font-weight:600;margin:0 2px}
-      .help-doc table{width:100%;border-collapse:collapse;margin:12px 0;font-size:.92rem}
-      .help-doc th,.help-doc td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--hdoc-line);vertical-align:top}
-      .help-doc th{color:var(--hdoc-muted);font-size:.8rem;text-transform:uppercase;letter-spacing:.03em}
       .help-doc .pill{display:inline-block;background:#0C326F;color:#fff;border-radius:6px;padding:2px 8px;font-size:.78rem;font-weight:600}
       html.dark .help-doc .pill{background:#1351B4}
     </style>
@@ -114,7 +110,10 @@
 
         <!-- Abas de navegação (links de volta ao app) -->
         <nav class="bg-white dark:bg-gray-800 border-t border-govbr-700/20 dark:border-gray-700 px-2" aria-label="Seções">
-            <div class="max-w-5xl mx-auto flex gap-1 overflow-x-auto">
+            <div class="max-w-5xl flex gap-1 overflow-x-auto">
+                <a href="index.html" class="tab-btn px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-gray-600 dark:text-gray-300 hover:text-govbr-600 dark:hover:text-unifesp-400 whitespace-nowrap">
+                    <i aria-hidden="true" class="fa-solid fa-house mr-1"></i> Início
+                </a>
                 <a href="index.html" class="tab-btn px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-gray-600 dark:text-gray-300 hover:text-govbr-600 dark:hover:text-unifesp-400 whitespace-nowrap">
                     <i aria-hidden="true" class="fa-solid fa-file-circle-plus mr-1"></i> Catalogar
                 </a>
@@ -128,7 +127,7 @@
                     <i aria-hidden="true" class="fa-solid fa-gear mr-1"></i> Configurações
                 </a>
                 <span class="tab-btn px-4 py-2.5 text-sm font-medium border-b-2 border-govbr-600 dark:border-unifesp-400 text-govbr-700 dark:text-unifesp-400 font-bold whitespace-nowrap" aria-current="page">
-                    <i aria-hidden="true" class="fa-solid fa-circle-question mr-1"></i> Ajuda
+                    <i aria-hidden="true" class="fa-solid fa-user-shield mr-1"></i> Privacidade
                 </span>
             </div>
         </nav>
@@ -137,105 +136,123 @@
     <!-- ============================ CONTEÚDO ============================ -->
     <main class="flex-1 w-full max-w-6xl mx-auto px-4 py-6">
       <div class="help-doc">
-        <p style="margin:0 0 10px"><a href="ajuda-lattes.html">← Ajuda do fluxo Currículo Lattes</a></p>
-        <h1>RSC-PCCTAE no lattesZen</h1>
-        <p class="lead">Como usar o módulo de <strong>Reconhecimento de Saberes e Competências</strong> para simular a pontuação e o nível alcançável, e gerar o memorial. O fluxo geral do currículo (pasta, importação, campos, conformidade) está na <a href="ajuda-lattes.html">ajuda do Lattes</a>.</p>
+        <p style="margin:0 0 10px"><a href="index.html">← Voltar ao lattesZen</a></p>
+        <h1>Política de Privacidade</h1>
+        <p class="lead">Como o lattesZen trata (ou, principalmente, <em>não</em> trata) os seus dados pessoais — em conformidade com a Lei Geral de Proteção de Dados (LGPD, Lei nº 13.709/2018).</p>
 
-        <div class="warn">
-          <strong>Aviso importante:</strong> este módulo é uma <em>ferramenta de apoio de uso individual</em>, baseada nas tabelas do <strong>Decreto nº 13.048/2026</strong>. Os cálculos são estimativas para organização pessoal e <strong>não têm caráter oficial</strong> — a avaliação formal cabe à comissão da sua instituição. Sempre confira as regras vigentes e os anexos originais.
+        <div class="ok">
+          <strong>Resumo em uma frase:</strong> o lattesZen <strong>não tem servidor</strong>. Tudo o que você cadastra fica no seu navegador e, se você configurar, numa pasta do seu próprio computador — nada é enviado para nós.
         </div>
 
         <nav class="toc">
           <h2>Nesta página</h2>
           <ol>
-            <li><a href="#oque">O que é o RSC-PCCTAE</a></li>
-            <li><a href="#habilitar">1. Habilitar o módulo</a></li>
-            <li><a href="#camada">2. Marcar itens (camada RSC)</a></li>
-            <li><a href="#categoria97">3. Itens administrativos (cat. 97)</a></li>
-            <li><a href="#simulador">4. A aba RSC (simulador)</a></li>
-            <li><a href="#memorial">5. Memorial e planilha</a></li>
-            <li><a href="#requisitos">Os seis requisitos</a></li>
+            <li><a href="#sobre">Sobre este documento</a></li>
+            <li><a href="#arquitetura">1. Como o lattesZen funciona (sem servidor)</a></li>
+            <li><a href="#dados">2. Quais dados existem e onde ficam</a></li>
+            <li><a href="#naofaz">3. O que o lattesZen não faz</a></li>
+            <li><a href="#terceiros">4. Recursos de terceiros carregados pela página</a></li>
+            <li><a href="#fora">5. Ações que saem do lattesZen</a></li>
+            <li><a href="#base">6. Base legal (LGPD)</a></li>
+            <li><a href="#direitos">7. Seus direitos como titular</a></li>
+            <li><a href="#criancas">8. Crianças e adolescentes</a></li>
+            <li><a href="#alteracoes">9. Alterações nesta política</a></li>
+            <li><a href="#contato">10. Contato</a></li>
           </ol>
         </nav>
 
-        <section class="card" id="oque">
-          <h2>O que é o RSC-PCCTAE</h2>
-          <p>O <strong>RSC</strong> (Reconhecimento de Saberes e Competências) permite ao servidor técnico-administrativo em educação (PCCTAE) obter, para fins de <strong>Incentivo à Qualificação</strong>, um reconhecimento equivalente a um nível de escolaridade superior ao que possui, com base em atividades, produções e responsabilidades desempenhadas.</p>
-          <p>Na prática, você reúne <strong>evidências</strong> distribuídas em <strong>seis requisitos</strong> (Anexos I–VI do decreto), cada atividade vale uma quantidade de <strong>pontos</strong>, e o total — combinado ao número de <strong>critérios distintos</strong> atendidos e à sua <strong>escolaridade</strong> — determina o <strong>nível de RSC alcançável (RSC-I, RSC-II, RSC-III)</strong>.</p>
-          <p>O lattesZen aproveita os itens que você já cataloga para o Lattes: em vez de recadastrar tudo, você apenas <em>marca</em> quais itens contam para o RSC e a que critério pertencem.</p>
+        <section class="card" id="sobre">
+          <h2>Sobre este documento</h2>
+          <p>O lattesZen é um <strong>software livre</strong> (licença AGPLv3), mantido de forma independente, para ajudar servidores, docentes e pesquisadores a organizar o próprio Currículo Lattes. Este documento explica, de forma direta, o que acontece com os dados que você cadastra ao usar a ferramenta.</p>
+          <p>Este texto tem caráter informativo e busca refletir <strong>fielmente o funcionamento técnico</strong> do lattesZen — como o código é aberto, você (ou qualquer pessoa) pode conferir cada afirmação abaixo diretamente no <a href="https://github.com/alexsandroccarv/lattesZen" target="_blank" rel="noopener">repositório do projeto</a>.</p>
         </section>
 
-        <section class="card" id="habilitar">
-          <h2><span class="step-num">1</span> Habilitar o módulo</h2>
-          <p>O RSC vem <strong>desligado</strong> por padrão. Para ativá-lo:</p>
-          <ol>
-            <li>Abra a aba <span class="pill">Configurações</span>.</li>
-            <li>Na seção <strong>RSC-PCCTAE (opcional)</strong>, marque <span class="tag">Habilitar módulo RSC-PCCTAE</span>.</li>
-            <li>Preencha os dados do servidor: <strong>cargo</strong>, <strong>classe/nível</strong>, SIAPE (opcional), lotação, data de ingresso e <strong>início da contagem</strong>.</li>
-            <li>Escolha a <strong>escolaridade</strong> — ela <em>limita o nível máximo</em> de RSC que você pode alcançar e define o Incentivo à Qualificação (IQ) correspondente.</li>
-            <li>Clique em <strong>Salvar RSC</strong>.</li>
-          </ol>
-          <div class="note">Ao habilitar, surge uma nova aba <span class="pill">RSC</span> (o simulador) e, dentro do formulário de cada item elegível, aparece uma <strong>camada RSC</strong> logo abaixo dos campos normais.</div>
-        </section>
-
-        <section class="card" id="camada">
-          <h2><span class="step-num">2</span> Marcar itens para o RSC (camada RSC)</h2>
-          <p>Com o módulo ligado, edite um item na aba <span class="pill">Catalogar</span>. Abaixo dos campos, na camada RSC:</p>
-          <ol>
-            <li>Marque <strong>“Contabilizar este item no RSC-PCCTAE”</strong>.</li>
-            <li>Escolha o <strong>critério</strong> correspondente — a lista é organizada pelos seis requisitos (Anexos I–VI); cada opção mostra a descrição, a unidade de medida e os pontos.</li>
-            <li>Quando o critério pedir, informe o <strong>papel/subtipo</strong> (ex.: coordenação vs. participação).</li>
-            <li>Escreva uma <strong>justificativa</strong> — ela entra no memorial.</li>
-            <li>O app calcula e mostra os <strong>pontos do item</strong> na hora (quantidade × valor unitário, conforme a unidade: por ano/fração, por mês ou por unidade).</li>
-          </ol>
-          <p>Itens habilitados para o RSC ganham um <strong>marcador âmbar</strong> na lista da aba Conformidade, indicando o critério e os pontos.</p>
-          <div class="note"><strong>Unidades de cálculo:</strong> <code>ano</code> (por ano ou fração acima de 6 meses, usa as datas de início/fim), <code>mês</code> (por mês) e <code>unidade</code> (conta 1 por designação/projeto/produto/prêmio/evento).</div>
-        </section>
-
-        <section class="card" id="categoria97">
-          <h2><span class="step-num">3</span> Itens que não existem no Lattes — categoria 97</h2>
-          <p>Muitas atividades administrativas que contam para o RSC <strong>não têm lugar no Currículo Lattes</strong> (participação em comissões, gestão de contratos, licitações, cargos de direção/função gratificada, responsabilidade por setor, etc.).</p>
-          <p>Para isso existe a categoria <strong>97 — RSC · Atividades administrativas</strong>, que aparece no catálogo <em>somente quando o módulo RSC está habilitado</em>. Use-a para registrar essas atividades com sua justificativa e evidências. Elas contam para o simulador do RSC, mas <strong>não são exportadas no XML do Lattes</strong>.</p>
-        </section>
-
-        <section class="card" id="simulador">
-          <h2><span class="step-num">4</span> A aba RSC (simulador)</h2>
-          <p>A aba <span class="pill">RSC</span> consolida tudo o que você marcou e mostra:</p>
+        <section class="card" id="arquitetura">
+          <h2><i class="fa-solid fa-laptop-code text-govbr-600 dark:text-unifesp-400"></i> 1. Como o lattesZen funciona (sem servidor)</h2>
+          <p>O lattesZen é um <strong>aplicativo que roda inteiramente no seu navegador</strong> (client-side). Não existe um servidor, backend, banco de dados remoto ou API própria para onde as informações do seu currículo sejam enviadas — não há, inclusive, <strong>cadastro, login ou senha</strong> de nenhum tipo.</p>
           <ul>
-            <li><strong>Nível alcançável</strong> (RSC-I / II / III) em destaque, respeitando o teto imposto pela sua escolaridade.</li>
-            <li><strong>Total de pontos</strong> e <strong>número de critérios distintos</strong> atendidos.</li>
-            <li><strong>Pontos por requisito</strong> (tabela dos Anexos I–VI): itens, critérios e soma de cada um.</li>
-            <li>A <strong>lista dos itens contados</strong>, com os pontos de cada.</li>
-            <li>Para cada nível, quanto <strong>ainda falta</strong> (em pontos e/ou em número de critérios) para atingi-lo.</li>
+            <li>O <strong>índice do catálogo</strong> (os itens que você cadastra) e suas <strong>preferências</strong> (tema, alto contraste, tamanho de fonte) ficam salvos no <code>localStorage</code> do seu navegador, associado a este site.</li>
+            <li>Se o seu navegador suportar (Chrome/Edge) e você <strong>escolher uma pasta</strong> em Configurações, os arquivos de cada item (PDF + metadados) e as demais pastas do currículo (evidências, backup, exportação, publicação) são lidos e gravados <strong>diretamente no seu computador</strong>, sem passar por nenhum servidor intermediário.</li>
           </ul>
-          <p>Assim você enxerga onde concentrar esforço — por exemplo, se falta apenas diversificar critérios em vez de somar mais pontos no mesmo requisito.</p>
-          <div class="note">Só entram no cálculo os itens que estão <strong>marcados para contabilizar</strong>, <strong>com um critério escolhido</strong> e que ainda <strong>não foram usados</strong> num reconhecimento anterior.</div>
+          <div class="note">Isso significa que, sem uma ação sua (exportar, publicar, doar), <strong>nenhum dado do seu currículo sai do seu dispositivo</strong>.</div>
         </section>
 
-        <section class="card" id="memorial">
-          <h2><span class="step-num">5</span> Memorial e planilha</h2>
-          <p>Ainda na aba RSC, você pode gerar os documentos de apoio para montar o processo:</p>
-          <ul>
-            <li><strong>Gerar memorial</strong> — um arquivo de texto (<code>rsc-memorial.txt</code>) com seus dados, os itens por requisito, as justificativas e a pontuação.</li>
-            <li><strong>Planilha (CSV)</strong> — tabela com requisito, critério, descrição, título do item, período, papel, quantidade, valor unitário, pontos e evidências, para conferência e anexação ao processo.</li>
-          </ul>
-          <div class="ok">Como cada item pode ter a evidência (PDF) anexada no fluxo normal do currículo, o memorial e a planilha já refletem a comprovação que você organizou.</div>
-        </section>
-
-        <section class="card" id="requisitos">
-          <h2>Os seis requisitos (Anexos I–VI)</h2>
+        <section class="card" id="dados">
+          <h2><i class="fa-solid fa-database text-govbr-600 dark:text-unifesp-400"></i> 2. Quais dados existem e onde ficam</h2>
+          <p>Os dados tratados pelo lattesZen são exclusivamente os que <strong>você mesmo digita ou importa</strong>: identificação, formação, produções, atuação profissional, projetos, eventos, evidências (PDFs) e, se o módulo estiver habilitado, dados funcionais para o simulador de RSC-PCCTAE (cargo, SIAPE, lotação, escolaridade). Nada disso é coletado por nós — é você quem cadastra, e fica com você.</p>
           <table>
-            <thead><tr><th>Req.</th><th>Tema</th></tr></thead>
+            <thead><tr><th>Onde fica</th><th>O quê</th><th>Sai do seu dispositivo?</th></tr></thead>
             <tbody>
-              <tr><td><strong>I</strong></td><td>Grupos, comissões, comitês e representações institucionais</td></tr>
-              <tr><td><strong>II</strong></td><td>Projetos institucionais e apoio a ensino, pesquisa e extensão</td></tr>
-              <tr><td><strong>III</strong></td><td>Premiação e reconhecimento público</td></tr>
-              <tr><td><strong>IV</strong></td><td>Responsabilidades técnico-administrativas ou especializadas</td></tr>
-              <tr><td><strong>V</strong></td><td>Função ou cargo de direção/assessoramento</td></tr>
-              <tr><td><strong>VI</strong></td><td>Produção, prospecção e difusão de conhecimento</td></tr>
+              <tr><td><code>localStorage</code> do navegador</td><td>Índice do catálogo, configurações e preferências de interface</td><td>Não</td></tr>
+              <tr><td>Pasta escolhida no seu computador (opcional)</td><td>Arquivos PDF de evidência, JSON de cada item, backups, XML exportado, página pública gerada</td><td>Não</td></tr>
+              <tr><td>Memória da aba do navegador</td><td>Estado temporário da tela enquanto você usa o app</td><td>Não</td></tr>
             </tbody>
           </table>
-          <p>Os valores em pontos de cada critério, os mínimos por nível e o teto por escolaridade estão embutidos no app conforme o decreto. Como a norma pode ser alterada por ato complementar, confira sempre a versão vigente antes de formalizar seu processo.</p>
+          <p>Como tudo fica no seu próprio navegador/computador, <strong>trocar de dispositivo ou de navegador não migra os dados automaticamente</strong> — use a função <strong>Exportar catálogo</strong> (Configurações › Backup) para levar seus dados com você.</p>
+        </section>
+
+        <section class="card" id="naofaz">
+          <h2><i class="fa-solid fa-ban text-govbr-600 dark:text-unifesp-400"></i> 3. O que o lattesZen não faz</h2>
+          <ul>
+            <li>Não tem servidor, backend ou banco de dados próprio para onde seus dados sejam enviados.</li>
+            <li>Não pede conta, login, senha ou e-mail para uso.</li>
+            <li>Não usa cookies de rastreamento nem ferramentas de analytics/métricas (Google Analytics, Meta Pixel, e afins).</li>
+            <li>Não vende, aluga, compartilha ou cede dados a terceiros — não há com quem compartilhar, já que não coletamos nada.</li>
+            <li>Não envia nada automaticamente para a Plataforma Lattes ou qualquer outro serviço — toda exportação/publicação é uma ação explícita sua.</li>
+          </ul>
+        </section>
+
+        <section class="card" id="terceiros">
+          <h2><i class="fa-solid fa-cloud text-govbr-600 dark:text-unifesp-400"></i> 4. Recursos de terceiros carregados pela página</h2>
+          <p>Para exibir a interface, o navegador busca algumas bibliotecas públicas diretamente de seus provedores originais:</p>
+          <ul>
+            <li><strong>Tailwind CSS</strong> (<code>cdn.tailwindcss.com</code>) — estilo visual.</li>
+            <li><strong>Font Awesome</strong> (<code>cdnjs.cloudflare.com</code>) — ícones.</li>
+            <li><strong>Fonte Rawline</strong> e <strong>logo Gov.br</strong> (<code>cdngovbr-ds.estaleiro.serpro.gov.br</code>) — identidade visual do padrão Governo Federal.</li>
+          </ul>
+          <p>Essas requisições seguem o funcionamento normal da web: os provedores podem registrar metadados padrão de acesso (como endereço IP e navegador utilizado), segundo suas próprias políticas — o lattesZen não envia nenhum dado adicional a eles, e não tem controle sobre esses registros. Se algum desses recursos não carregar (rede lenta, bloqueio de firewall), o app continua funcionando com um estilo mais simples.</p>
+        </section>
+
+        <section class="card" id="fora">
+          <h2><i class="fa-solid fa-arrow-up-right-from-square text-govbr-600 dark:text-unifesp-400"></i> 5. Ações que saem do lattesZen</h2>
+          <p>Algumas funções, por natureza, levam informações para fora do app — sempre por sua própria iniciativa:</p>
+          <ul>
+            <li><strong>Exportar XML:</strong> gera um arquivo no seu computador para você mesmo importar manualmente na Plataforma Lattes (CNPq/gov.br) — o lattesZen não se conecta à Plataforma Lattes.</li>
+            <li><strong>Publicar na Web:</strong> gera uma página HTML (e a pasta pronta para hospedar) no seu computador; se você optar por publicá-la em algum serviço de hospedagem, a exposição pública desses dados passa a ser regida pela política de privacidade desse serviço.</li>
+            <li><strong>Doe um café:</strong> o QR code Pix é gerado consultando o serviço externo <code>api.qrserver.com</code>, que recebe apenas o código Pix “copia e cola” (dados do recebedor da doação, não seus dados) para desenhar a imagem. Essa página também traz links de parceiros/afiliados (ex.: Preply, Airbnb) — ao clicar, você sai do lattesZen e passa a estar sujeito à política de privacidade de cada site de destino.</li>
+          </ul>
+        </section>
+
+        <section class="card" id="base">
+          <h2><i class="fa-solid fa-scale-balanced text-govbr-600 dark:text-unifesp-400"></i> 6. Base legal (LGPD)</h2>
+          <p>Como o lattesZen processa os dados <strong>integralmente no dispositivo do próprio titular</strong>, sem coleta ou tratamento centralizado por parte do desenvolvedor, o uso normal do app se enquadra no tratamento de dados realizado por pessoa natural para fins <strong>exclusivamente particulares</strong> (art. 4º, §1º, da LGPD), fora do alcance das hipóteses de tratamento que a lei impõe a controladores de dados de terceiros.</p>
+          <p>Quando você opta por atividades que envolvem serviços de terceiros — importar/exportar na Plataforma Lattes, hospedar a página pública, doar via Pix ou usar um link de parceiro — aplica-se a política de privacidade e a base legal de cada serviço utilizado, não a deste documento.</p>
+        </section>
+
+        <section class="card" id="direitos">
+          <h2><i class="fa-solid fa-user-check text-govbr-600 dark:text-unifesp-400"></i> 7. Seus direitos como titular</h2>
+          <p>O artigo 18 da LGPD garante direitos como acesso, correção, eliminação e portabilidade dos dados. Como tudo fica no seu próprio navegador/computador, você já exerce esses direitos diretamente, sem precisar solicitar nada a ninguém:</p>
+          <ul>
+            <li><strong>Acesso e correção:</strong> veja e edite qualquer item a qualquer momento na aba Catalogar.</li>
+            <li><strong>Eliminação:</strong> use <strong>Limpar catálogo</strong> (Configurações) e/ou apague os arquivos da pasta escolhida no seu sistema operacional.</li>
+            <li><strong>Portabilidade:</strong> exporte o backup (JSON) ou o XML do Lattes sempre que quiser levar seus dados para outro lugar.</li>
+            <li><strong>Revogação:</strong> basta parar de usar o app e apagar os dados locais — não há conta para cancelar nem servidor onde solicitar exclusão.</li>
+          </ul>
+        </section>
+
+        <section class="card" id="criancas">
+          <h2><i class="fa-solid fa-child text-govbr-600 dark:text-unifesp-400"></i> 8. Crianças e adolescentes</h2>
+          <p>O lattesZen é uma ferramenta destinada à organização do Currículo Lattes por servidores, docentes e pesquisadores, não sendo direcionada a crianças ou adolescentes.</p>
+        </section>
+
+        <section class="card" id="alteracoes">
+          <h2><i class="fa-solid fa-clock-rotate-left text-govbr-600 dark:text-unifesp-400"></i> 9. Alterações nesta política</h2>
+          <p>Por ser software livre e de código aberto, qualquer alteração neste documento fica registrada no histórico do <a href="https://github.com/alexsandroccarv/lattesZen" target="_blank" rel="noopener">repositório no GitHub</a>. A versão e a data no rodapé desta página indicam a última atualização.</p>
+        </section>
+
+        <section class="card" id="contato">
+          <h2><i class="fa-solid fa-envelope text-govbr-600 dark:text-unifesp-400"></i> 10. Contato</h2>
+          <p>Dúvidas sobre esta política ou sobre como o lattesZen trata dados podem ser enviadas como uma <a href="https://github.com/alexsandroccarv/lattesZen/issues" target="_blank" rel="noopener">issue no repositório do projeto</a> — o mesmo canal usado para reportar bugs e sugerir funcionalidades.</p>
         </section>
       </div>
     </main>
