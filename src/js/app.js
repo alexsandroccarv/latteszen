@@ -800,37 +800,24 @@
         if (!typeKey || LattesTypes.isPerfilType(typeKey)) { box.innerHTML = ''; return; }
         const v = (item && item.visibilidade) || {};
         const exportarLattes = v.exportarLattes !== false;
-        const visivelNoLattes = v.visivelNoLattes === 'Privado' ? 'Privado' : 'Público';
+        const visivelNoLattes = v.visivelNoLattes !== 'Privado';
         const publicarWeb = v.publicarWeb !== false;
         const doLattes = elegivelAoLattes(typeKey, catKey);
 
         box.innerHTML = `
-        <div class="bg-sky-50 dark:bg-sky-900/10 border border-sky-200 dark:border-sky-800 rounded px-3 py-2 space-y-2">
-            <p class="text-sm font-semibold flex items-center gap-2"><i aria-hidden="true" class="fa-solid fa-eye text-sky-600"></i> Visibilidade</p>
+        <div class="flex flex-wrap gap-x-4 gap-y-1 text-sm bg-sky-50 dark:bg-sky-900/10 border border-sky-200 dark:border-sky-800 rounded px-3 py-2">
             ${doLattes ? `
-            <label class="flex items-center gap-2 text-sm"><input type="checkbox" id="visExportarLattes" ${exportarLattes ? 'checked' : ''}> Exportar para Lattes</label>
-            <p class="text-[11px] text-gray-500">Desmarque para este item ficar de fora do XML gerado em "Exportar para a Plataforma Lattes", mesmo sendo de um tipo/categoria exportável.</p>
-            <div id="visVisibilidadeWrap" class="${exportarLattes ? '' : 'hidden'}">
-                <label class="block text-xs font-semibold mb-1" for="visVisibilidadeLattes">Visibilidade no Lattes</label>
-                <select id="visVisibilidadeLattes" class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900">
-                    <option value="Público" ${visivelNoLattes === 'Público' ? 'selected' : ''}>Público — exibido na consulta pública</option>
-                    <option value="Privado" ${visivelNoLattes === 'Privado' ? 'selected' : ''}>Privado — não exibido na consulta pública</option>
-                </select>
-                <p class="text-[11px] text-gray-500 mt-0.5">Só anotação: essa opção não existe no XML — configure de verdade direto na Plataforma Lattes, depois de importar lá.</p>
-            </div>` : ''}
-            <label class="flex items-center gap-2 text-sm"><input type="checkbox" id="visPublicarWeb" ${publicarWeb ? 'checked' : ''}> Publicar na Web</label>
-            <p class="text-[11px] text-gray-500">Desmarque para este item não aparecer na página HTML gerada em "Publicar na Web" — independe das opções do Lattes acima.</p>
+            <label class="flex items-center gap-1.5"><input type="checkbox" id="visExportarLattes" ${exportarLattes ? 'checked' : ''}> Exportar item para meu Lattes</label>
+            <label class="flex items-center gap-1.5"><input type="checkbox" id="visVisivelLattes" ${visivelNoLattes ? 'checked' : ''}> Item visível (público) no Lattes</label>` : ''}
+            <label class="flex items-center gap-1.5"><input type="checkbox" id="visPublicarWeb" ${publicarWeb ? 'checked' : ''}> Publicar item na Web</label>
         </div>`;
 
         const expChk = $('#visExportarLattes');
-        if (expChk) expChk.addEventListener('change', () => {
-            const wrap = $('#visVisibilidadeWrap'); if (wrap) wrap.classList.toggle('hidden', !expChk.checked);
-            state.formDirty = true;
-        });
+        if (expChk) expChk.addEventListener('change', () => { state.formDirty = true; });
+        const visChk = $('#visVisivelLattes');
+        if (visChk) visChk.addEventListener('change', () => { state.formDirty = true; });
         const pubChk = $('#visPublicarWeb');
         if (pubChk) pubChk.addEventListener('change', () => { state.formDirty = true; });
-        const visSel = $('#visVisibilidadeLattes');
-        if (visSel) visSel.addEventListener('change', () => { state.formDirty = true; });
     }
     // Lê a camada de Visibilidade do formulário → { exportarLattes,
     // visivelNoLattes, publicarWeb } (ou null se o bloco não foi montado —
@@ -839,10 +826,10 @@
         const pubChk = form.querySelector('#visPublicarWeb');
         if (!pubChk) return null;
         const expChk = form.querySelector('#visExportarLattes');
-        const visSel = form.querySelector('#visVisibilidadeLattes');
+        const visChk = form.querySelector('#visVisivelLattes');
         return {
             exportarLattes: expChk ? expChk.checked : false,
-            visivelNoLattes: visSel ? visSel.value : 'Público',
+            visivelNoLattes: (visChk ? visChk.checked : true) ? 'Público' : 'Privado',
             publicarWeb: pubChk.checked,
         };
     }
