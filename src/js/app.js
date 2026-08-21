@@ -23,6 +23,7 @@
         viewFilter: 'todos',// recorte da lista (todos/comprovados/semPdf/naoLattes/descObrig)
         formDirty: false,   // há edições não salvas no formulário de Catalogar?
         saveAndNew: false,  // flag do botão "Salvar e novo"
+        saveAndNext: false, // flag do botão "Salvar e próximo"
         activeTab: 'catalogar',
         lastCat: '', lastType: '', // última categoria/tipo usados (agiliza cadastro em série)
         vocab: {},          // listas curadas de autocomplete (por chave de campo)
@@ -968,6 +969,9 @@
                     <button type="button" id="btnSalvarNovo" class="px-4 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm" title="Salva e abre um novo item na mesma categoria/tipo">
                         <i aria-hidden="true" class="fa-solid fa-plus mr-1"></i> Salvar e novo
                     </button>
+                    ${editing ? `<button type="button" id="btnSalvarProximo" class="px-4 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm" title="Salva e abre o próximo item da lista de Conformidade (mesmo filtro/busca/ordenação de lá)">
+                        <i aria-hidden="true" class="fa-solid fa-forward mr-1"></i> Salvar e próximo
+                    </button>` : ''}
                     <button type="button" id="btnLimpar" class="px-4 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm" title="Limpa o formulário e começa um novo item em branco">
                         <i aria-hidden="true" class="fa-solid fa-eraser mr-1"></i> Limpar
                     </button>
@@ -1128,6 +1132,8 @@
         // Submit / Salvar e novo / Cancelar
         form.addEventListener('submit', onSubmitForm);
         $('#btnSalvarNovo').addEventListener('click', () => { state.saveAndNew = true; form.requestSubmit(); });
+        const btnProximo = $('#btnSalvarProximo');
+        if (btnProximo) btnProximo.addEventListener('click', () => { state.saveAndNext = true; form.requestSubmit(); });
         $('#btnCancelar').addEventListener('click', () => { state.editingId = null; state.evEditing = []; state.formDirty = false; buildForm(undefined, { focus: true }); });
         $('#btnLimpar').addEventListener('click', () => {
             if (state.formDirty && !confirm('Limpar os dados não salvos deste formulário?')) return;
@@ -1881,6 +1887,12 @@
     async function onSubmitForm(e) {
         e.preventDefault();
         const form = e.target;
+        // Lê e já reseta os flags dos botões alternativos ("Salvar e novo" /
+        // "Salvar e próximo") aqui em cima — assim, se a validação abaixo
+        // falhar e o usuário salvar depois pelo botão padrão, não fica um
+        // "novo"/"próximo" pendente de um clique anterior.
+        const saveNew = state.saveAndNew, saveNext = state.saveAndNext;
+        state.saveAndNew = false; state.saveAndNext = false;
         const categoryKey = $('#selCategoria').value;
         const typeKey = $('#selTipo').value;
         const naoLattes = LattesTypes.isNaoLattesCategory(categoryKey) || LattesTypes.isNaoLattesType(typeKey);
@@ -1909,6 +1921,12 @@
             id: uid(), createdAt: nowISO(),
             source: 'local', hasPdf: false, pdfName: null, lattesRef: null,
         };
+        // Captura o "próximo" ANTES de mutar os campos deste item — assim, se
+        // a edição fizer o item sair do filtro atual (o caso mais comum: você
+        // acabou de corrigir o problema que motivou o filtro), ainda avança
+        // pro item que era o seguinte na lista de antes, em vez de "perder a
+        // posição" porque o item editado não bate mais no filtro.
+        const proximoAlvo = (editing && saveNext) ? nextItemAfter(item.id) : null;
         const prevCat = item.categoryKey || null;              // categoria ANTES da edição
         const prevEvid = evListFromItem(item); // estado anterior (p/ apagar removidas)
         item.lattesItem = !naoLattes;
@@ -1996,13 +2014,36 @@
         const st = Storage.loadSettings(); st.lastCat = state.lastCat; st.lastType = state.lastType; Storage.saveSettings(st);
 
         clearDraft(); // item salvo → descarta o rascunho automático
-        const saveNew = state.saveAndNew;
-        state.saveAndNew = false; state.editingId = null; state.evEditing = []; state.formDirty = false;
+        state.editingId = null; state.evEditing = []; state.formDirty = false;
         // "Salvar" / "Salvar alterações": reabre o item recém-salvo (novo ou editado),
-        // para revisar/anexar evidência. "Salvar e novo": abre um item em branco (mesma cat/tipo).
-        if (!saveNew) buildForm(state.items.find(i => i.id === item.id), { focus: false });
+        // para revisar/anexar evidência. "Salvar e novo": abre um item em branco
+        // (mesma cat/tipo). "Salvar e próximo": abre o item que era o seguinte na
+        // lista de Conformidade (filtro de ícone/cartão, busca e ordenação de lá),
+        // capturado antes desta edição — sem próximo, cai no comportamento padrão.
+        if (saveNext && !proximoAlvo) toast('Não há um próximo item nesse recorte de Conformidade.', 'info');
+        if (proximoAlvo) buildForm(proximoAlvo, { focus: false });
+        else if (!saveNew) buildForm(state.items.find(i => i.id === item.id), { focus: false });
         else buildForm(undefined, { focus: true, keepType: true });
         renderItemList();
+    }
+    // Lista filtrada/ordenada exatamente como aparece em Conformidade (mesmo
+    // recorte de ícone/cartão, mesma busca, mesma ordenação) — usada pelo
+    // "Salvar e próximo" pra navegar item a item na mesma ordem de lá.
+    function itemsFiltradosOrdenados() {
+        const q = ($('#filterBox') && $('#filterBox').value || '').toLowerCase();
+        const asc = (state.sortOrder || 'desc') === 'asc';
+        const view = state.viewFilter && VIEW_PREDICATE[state.viewFilter] ? state.viewFilter : 'todos';
+        let items = state.items.filter(VIEW_PREDICATE[view]).filter(i => !LattesTypes.isPerfilType(i.typeKey));
+        if (q) items = items.filter(i => (LattesTypes.itemTitle(i) + ' ' + LattesTypes.label(i.typeKey) + ' ' + LattesTypes.categoryLabel(i.categoryKey)).toLowerCase().includes(q));
+        return sortByYear(items, asc);
+    }
+    // Próximo item após `id` na lista/ordem atual de Conformidade — null se o
+    // item não estiver nela ou já for o último.
+    function nextItemAfter(id) {
+        const list = itemsFiltradosOrdenados();
+        const idx = list.findIndex(i => i.id === id);
+        if (idx === -1 || idx === list.length - 1) return null;
+        return list[idx + 1];
     }
 
     // Número de evidências do item (considera formato legado hasPdf)
