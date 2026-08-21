@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>lattesZen — Termo de Uso</title>
+
+    <!-- Mesmos estilos da aplicação -->
+    <link rel="stylesheet" href="css/styles.css">
+
+    <!-- Tema claro/escuro e alto contraste: aplicar cedo para evitar "flash" -->
+    <script>
+        (function () {
+            const htmlEl = document.documentElement;
+            const saved = localStorage.getItem('tema');
+            const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+            if (saved ? saved === 'dark' : prefersDark) htmlEl.classList.add('dark');
+            if (localStorage.getItem('altoContraste') === '1') htmlEl.classList.add('high-contrast');
+            const fs = parseInt(localStorage.getItem('fontScale') || '100', 10);
+            if (fs && fs !== 100) htmlEl.style.fontSize = fs + '%';
+        })();
+    </script>
+
+    <!-- Recursos externos (Tailwind + config, Font Awesome, Rawline) — mesmo do app -->
+    <script>
+        (function () {
+            var TW_CONFIG = {
+                darkMode: 'class',
+                theme: {
+                    extend: {
+                        fontFamily: { sans: ['Rawline', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif'] },
+                        colors: {
+                            unifesp: { 50: '#f0fdf4', 100: '#dcfce7', 400: '#4ade80', 600: '#16a34a', 700: '#15803d', 800: '#166534', 900: '#1E5A3A' },
+                            govbr:   { 50: '#D4E5FF', 100: '#ADCDFF', 400: '#1351B4', 600: '#1351B4', 700: '#0C326F', 800: '#071D41', 900: '#050F24' },
+                        }
+                    }
+                }
+            };
+            var tw = document.createElement('script');
+            tw.src = 'https://cdn.tailwindcss.com';
+            tw.async = true;
+            tw.onload = function () { try { window.tailwind.config = TW_CONFIG; } catch (e) {} };
+            tw.onerror = function () { document.documentElement.classList.add('no-tailwind'); };
+            document.head.appendChild(tw);
+            function loadCss(href) { var l = document.createElement('link'); l.rel = 'stylesheet'; l.href = href; l.media = 'all'; document.head.appendChild(l); }
+            loadCss('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css');
+            loadCss('https://cdngovbr-ds.estaleiro.serpro.gov.br/design-system/fonts/rawline/css/rawline.css');
+        })();
+    </script>
+
+    <!-- Estilo do conteúdo desta página (escopo .help-doc; dark por classe, como o app) -->
+    <style>
+      :root{
+        --hdoc-surface:#f9fafb; --hdoc-text:#1f2937; --hdoc-muted:#6b7280; --hdoc-line:#e5e7eb;
+        --hdoc-accent:#1351b4; --hdoc-code:#eef2f7; --hdoc-chip:#eef2ff; --hdoc-chipink:#1e3a8a;
+        --hdoc-note-bg:#eff6ff; --hdoc-note-line:#1351b4; --hdoc-warn-bg:#fff7ed; --hdoc-warn-line:#c2410c;
+        --hdoc-ok-bg:#ecfdf5; --hdoc-ok-line:#047857;
+      }
+      html.dark{
+        --hdoc-surface:#1f2937; --hdoc-text:#e5e7eb; --hdoc-muted:#9ca3af; --hdoc-line:#374151;
+        --hdoc-accent:#93c5fd; --hdoc-code:#0f172a; --hdoc-chip:#1e293b; --hdoc-chipink:#bfdbfe;
+        --hdoc-note-bg:#0f2033; --hdoc-note-line:#3b82f6; --hdoc-warn-bg:#2a1a0f; --hdoc-warn-line:#f59e0b;
+        --hdoc-ok-bg:#0e2a1e; --hdoc-ok-line:#34d399;
+      }
+      .help-doc{color:var(--hdoc-text);line-height:1.6;max-width:900px;margin:0 auto;padding:8px 4px 40px}
+      .help-doc h1{font-size:1.7rem;margin:.2em 0 .1em}
+      .help-doc .lead{color:var(--hdoc-muted);margin:0 0 1.5em}
+      .help-doc a{color:var(--hdoc-accent);text-decoration:none}
+      .help-doc a:hover{text-decoration:underline}
+      .help-doc nav.toc{background:var(--hdoc-surface);border:1px solid var(--hdoc-line);border-radius:10px;padding:14px 18px;margin-bottom:28px}
+      .help-doc nav.toc h2{font-size:.8rem;text-transform:uppercase;letter-spacing:.05em;color:var(--hdoc-muted);margin:0 0 8px}
+      .help-doc nav.toc ol{margin:0;padding-left:1.2em;columns:2;column-gap:28px}
+      .help-doc nav.toc li{margin:3px 0;break-inside:avoid}
+      .help-doc section.card{background:var(--hdoc-surface);border:1px solid var(--hdoc-line);border-radius:10px;padding:20px 22px;margin-bottom:22px}
+      .help-doc section.card h2{margin-top:0;font-size:1.25rem;display:flex;align-items:center;gap:10px}
+      .help-doc h3{font-size:1.02rem;margin:1.2em 0 .3em}
+      .help-doc code{background:var(--hdoc-code);padding:.1em .4em;border-radius:4px;font-size:.88em;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+      .help-doc ul,.help-doc ol{padding-left:1.4em}
+      .help-doc li{margin:.25em 0}
+      .help-doc .note,.help-doc .warn,.help-doc .ok{border-left:4px solid;border-radius:6px;padding:12px 16px;margin:14px 0;font-size:.95rem}
+      .help-doc .note{background:var(--hdoc-note-bg);border-color:var(--hdoc-note-line)}
+      .help-doc .warn{background:var(--hdoc-warn-bg);border-color:var(--hdoc-warn-line)}
+      .help-doc .ok{background:var(--hdoc-ok-bg);border-color:var(--hdoc-ok-line)}
+      .help-doc .tag{display:inline-block;background:var(--hdoc-chip);color:var(--hdoc-chipink);border-radius:20px;padding:1px 10px;font-size:.8rem;font-weight:600;margin:0 2px}
+      .help-doc .pill{display:inline-block;background:#0C326F;color:#fff;border-radius:6px;padding:2px 8px;font-size:.78rem;font-weight:600}
+      html.dark .help-doc .pill{background:#1351B4}
+    </style>
+</head>
+<body class="font-sans bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-100 min-h-screen flex flex-col transition-colors duration-300">
+
+    <!-- ============================ CABEÇALHO (igual ao app) ============================ -->
+    <header class="bg-govbr-600 dark:bg-gray-900 border-b border-govbr-700 dark:border-gray-700 flex flex-col shadow-sm dark:shadow-lg z-20 shrink-0 transition-colors duration-300">
+        <div class="flex items-center justify-between px-4 py-3 bg-govbr-600 dark:bg-gray-900 transition-colors duration-300">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded bg-white dark:bg-gradient-to-br dark:from-unifesp-600 dark:to-unifesp-900 flex items-center justify-center text-govbr-600 dark:text-white font-bold transition-colors duration-300">
+                    <i aria-hidden="true" class="fa-solid fa-graduation-cap"></i>
+                </div>
+                <div class="flex items-center gap-2 overflow-hidden">
+                    <h1 class="font-bold text-white leading-none whitespace-nowrap">lattesZen</h1>
+                    <span id="headerNomeWrap" class="flex items-center gap-2 overflow-hidden hidden">
+                        <span class="text-xl text-white/30 dark:text-gray-700 font-light">|</span>
+                        <span id="headerNome" class="font-bold text-white/90 dark:text-unifesp-400 leading-none whitespace-nowrap truncate"></span>
+                    </span>
+                </div>
+            </div>
+            <div id="govBrLogo" class="bg-white rounded px-2 py-1.5 flex items-center shrink-0 dark:hidden">
+                <img src="images/geral/gov_br.svg" alt="Governo Federal" class="h-5 w-auto" onerror="this.parentElement.style.display='none'">
+            </div>
+        </div>
+
+        <!-- Abas de navegação (links de volta ao app) -->
+        <nav class="bg-white dark:bg-gray-800 border-t border-govbr-700/20 dark:border-gray-700 px-2" aria-label="Seções">
+            <div class="max-w-5xl flex gap-1 overflow-x-auto">
+                <a href="index.html" class="tab-btn px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-gray-600 dark:text-gray-300 hover:text-govbr-600 dark:hover:text-unifesp-400 whitespace-nowrap">
+                    <i aria-hidden="true" class="fa-solid fa-house mr-1"></i> Início
+                </a>
+                <a href="index.html" class="tab-btn px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-gray-600 dark:text-gray-300 hover:text-govbr-600 dark:hover:text-unifesp-400 whitespace-nowrap">
+                    <i aria-hidden="true" class="fa-solid fa-file-circle-plus mr-1"></i> Catalogar
+                </a>
+                <a href="index.html" class="tab-btn px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-gray-600 dark:text-gray-300 hover:text-govbr-600 dark:hover:text-unifesp-400 whitespace-nowrap">
+                    <i aria-hidden="true" class="fa-solid fa-clipboard-check mr-1"></i> Conformidade
+                </a>
+                <a href="index.html" class="tab-btn px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-gray-600 dark:text-gray-300 hover:text-govbr-600 dark:hover:text-unifesp-400 whitespace-nowrap">
+                    <i aria-hidden="true" class="fa-solid fa-globe mr-1"></i> Publicar na Web
+                </a>
+                <a href="index.html" class="tab-btn px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-gray-600 dark:text-gray-300 hover:text-govbr-600 dark:hover:text-unifesp-400 whitespace-nowrap">
+                    <i aria-hidden="true" class="fa-solid fa-gear mr-1"></i> Configurações
+                </a>
+                <span class="tab-btn px-4 py-2.5 text-sm font-medium border-b-2 border-govbr-600 dark:border-unifesp-400 text-govbr-700 dark:text-unifesp-400 font-bold whitespace-nowrap" aria-current="page">
+                    <i aria-hidden="true" class="fa-solid fa-file-contract mr-1"></i> Termo de Uso
+                </span>
+            </div>
+        </nav>
+    </header>
+
+    <!-- ============================ CONTEÚDO ============================ -->
+    <main class="flex-1 w-full max-w-6xl mx-auto px-4 py-6">
+      <div class="help-doc">
+        <p style="margin:0 0 10px"><a href="index.html">← Voltar ao lattesZen</a></p>
+        <h1>Termo de Uso</h1>
+        <p class="lead">As condições de uso do lattesZen — o que você pode esperar da ferramenta e o que é de sua responsabilidade ao utilizá-la.</p>
+
+        <div class="warn">
+          <strong>Antes de começar:</strong> o lattesZen ainda está <strong>em desenvolvimento</strong>. Pode ter erros, funcionar diferente do esperado, ou mudar de uma hora para outra. <strong>Faça sempre uma cópia (backup) dos seus arquivos</strong> (Configurações › Backup).
+        </div>
+
+        <nav class="toc">
+          <h2>Nesta página</h2>
+          <ol>
+            <li><a href="#aceitacao">1. Aceitação destes termos</a></li>
+            <li><a href="#descricao">2. O que é o lattesZen</a></li>
+            <li><a href="#licenca">3. Software livre, sem garantia</a></li>
+            <li><a href="#responsabilidade">4. Sua responsabilidade</a></li>
+            <li><a href="#uso">5. Uso adequado</a></li>
+            <li><a href="#dados">6. Dados pessoais</a></li>
+            <li><a href="#terceiros">7. Serviços e links de terceiros</a></li>
+            <li><a href="#propriedade">8. Propriedade intelectual</a></li>
+            <li><a href="#alteracoes">9. Alterações deste termo</a></li>
+            <li><a href="#legislacao">10. Legislação aplicável</a></li>
+            <li><a href="#contato">11. Contato</a></li>
+          </ol>
+        </nav>
+
+        <section class="card" id="aceitacao">
+          <h2><i class="fa-solid fa-handshake text-govbr-600 dark:text-unifesp-400"></i> 1. Aceitação destes termos</h2>
+          <p>Ao acessar e usar o lattesZen, você concorda com as condições descritas neste Termo de Uso. Se você não concordar com algum ponto, a recomendação é não utilizar a ferramenta.</p>
+        </section>
+
+        <section class="card" id="descricao">
+          <h2><i class="fa-solid fa-graduation-cap text-govbr-600 dark:text-unifesp-400"></i> 2. O que é o lattesZen</h2>
+          <p>O lattesZen é uma ferramenta gratuita e de código aberto que roda inteiramente no seu navegador, para ajudar você a organizar o seu Currículo Lattes: cadastrar itens com evidências, verificar conformidade, montar o dossiê de RSC-PCCTAE, exportar um XML para a Plataforma Lattes e publicar uma página do currículo na web.</p>
+          <p>O lattesZen <strong>não é</strong> a Plataforma Lattes, não é mantido pelo CNPq ou por qualquer órgão do Governo Federal, e não substitui os canais oficiais — é uma ferramenta de apoio, de uso independente.</p>
+        </section>
+
+        <section class="card" id="licenca">
+          <h2><i class="fa-solid fa-scale-balanced text-govbr-600 dark:text-unifesp-400"></i> 3. Software livre, sem garantia</h2>
+          <p>O lattesZen é distribuído sob a licença <strong><a href="https://www.gnu.org/licenses/agpl-3.0.html" target="_blank" rel="noopener">AGPLv3</a></strong> (Free Software Foundation) e fornecido <strong>“no estado em que se encontra”</strong> (<em>as is</em>), <strong>sem garantias de qualquer tipo</strong>, expressas ou implícitas — inclusive quanto a adequação a uma finalidade específica, ausência de erros ou disponibilidade contínua, conforme a própria licença estabelece.</p>
+          <div class="warn">O projeto ainda está em <strong>desenvolvimento ativo</strong>: funcionalidades podem mudar, apresentar falhas, ou ser removidas sem aviso prévio. Não há qualquer garantia de continuidade, suporte ou manutenção.</div>
+        </section>
+
+        <section class="card" id="responsabilidade">
+          <h2><i class="fa-solid fa-triangle-exclamation text-govbr-600 dark:text-unifesp-400"></i> 4. Sua responsabilidade</h2>
+          <p>Como todo o processamento ocorre localmente no seu navegador e computador (veja a <a href="privacidade.html">Política de Privacidade</a>), <strong>você é o único responsável pela guarda e integridade dos seus dados</strong>. O autor e mantenedor do lattesZen não se responsabiliza por:</p>
+          <ul>
+            <li>Perda de dados, arquivos ou evidências cadastradas — <strong>faça backups com frequência</strong> (Configurações › Backup).</li>
+            <li>Erros, omissões ou inconsistências no XML exportado, na página pública gerada, ou em qualquer documento produzido pela ferramenta — <strong>confira sempre</strong> antes de enviar/publicar.</li>
+            <li>Consequências do uso do XML exportado diretamente na Plataforma Lattes oficial — essa importação é uma ação sua, fora do lattesZen.</li>
+            <li>Decisões tomadas com base nos cálculos do simulador de RSC-PCCTAE, que são <strong>estimativas de apoio pessoal, sem caráter oficial</strong> — a avaliação formal cabe sempre à comissão da sua instituição.</li>
+          </ul>
+        </section>
+
+        <section class="card" id="uso">
+          <h2><i class="fa-solid fa-circle-check text-govbr-600 dark:text-unifesp-400"></i> 5. Uso adequado</h2>
+          <p>O lattesZen deve ser usado para os fins a que se destina: organizar informações curriculares e acadêmicas próprias. Não é permitido usar a ferramenta para fins ilícitos, para inserir informações falsas com intenção de fraude, ou para tentar comprometer a segurança/funcionamento do software ou de seu código-fonte.</p>
+        </section>
+
+        <section class="card" id="dados">
+          <h2><i class="fa-solid fa-lock text-govbr-600 dark:text-unifesp-400"></i> 6. Dados pessoais</h2>
+          <p>O tratamento de dados pessoais no lattesZen está descrito em detalhe na <a href="privacidade.html">Política de Privacidade</a> — em resumo, o app não tem servidor, e os dados que você cadastra ficam no seu navegador e/ou numa pasta do seu próprio computador.</p>
+        </section>
+
+        <section class="card" id="terceiros">
+          <h2><i class="fa-solid fa-arrow-up-right-from-square text-govbr-600 dark:text-unifesp-400"></i> 7. Serviços e links de terceiros</h2>
+          <p>O lattesZen carrega bibliotecas públicas de terceiros (Tailwind CSS, Font Awesome, fonte Rawline) e contém links para serviços externos — a Plataforma Lattes (gov.br/CNPq), o repositório no GitHub, e, na página <a href="doe-um-cafe.html">Doe um café</a>, um gerador de QR code Pix e links de parceiros/afiliados. O uso desses serviços externos está sujeito aos termos e políticas de cada um deles — o lattesZen não tem controle sobre seu conteúdo, disponibilidade ou práticas, e não se responsabiliza por eles.</p>
+        </section>
+
+        <section class="card" id="propriedade">
+          <h2><i class="fa-solid fa-code text-govbr-600 dark:text-unifesp-400"></i> 8. Propriedade intelectual</h2>
+          <p>O código-fonte do lattesZen é aberto e está disponível no <a href="https://github.com/alexsandroccarv/lattesZen" target="_blank" rel="noopener">repositório do projeto</a>, sob a licença <a href="https://www.gnu.org/licenses/agpl-3.0.html" target="_blank" rel="noopener">AGPLv3</a>: qualquer pessoa pode ler, usar, modificar e redistribuir o código, respeitando os termos dessa licença. Os dados do seu currículo cadastrados na ferramenta continuam sendo seus, sem qualquer cessão de direitos ao mantenedor do projeto.</p>
+        </section>
+
+        <section class="card" id="alteracoes">
+          <h2><i class="fa-solid fa-clock-rotate-left text-govbr-600 dark:text-unifesp-400"></i> 9. Alterações deste termo</h2>
+          <p>Por ser software livre e de código aberto, qualquer alteração neste Termo de Uso fica registrada no histórico do <a href="https://github.com/alexsandroccarv/lattesZen" target="_blank" rel="noopener">repositório no GitHub</a>. A versão e a data no rodapé desta página indicam a última atualização. O uso continuado do lattesZen após uma alteração implica concordância com o termo atualizado.</p>
+        </section>
+
+        <section class="card" id="legislacao">
+          <h2><i class="fa-solid fa-gavel text-govbr-600 dark:text-unifesp-400"></i> 10. Legislação aplicável</h2>
+          <p>Este Termo de Uso é regido pelas leis da República Federativa do Brasil, incluindo a Lei Geral de Proteção de Dados (LGPD, Lei nº 13.709/2018) no que se refere ao tratamento de dados pessoais.</p>
+        </section>
+
+        <section class="card" id="contato">
+          <h2><i class="fa-solid fa-envelope text-govbr-600 dark:text-unifesp-400"></i> 11. Contato</h2>
+          <p>Dúvidas sobre este Termo de Uso podem ser enviadas como uma <a href="https://github.com/alexsandroccarv/lattesZen/issues" target="_blank" rel="noopener">issue no repositório do projeto</a> — o mesmo canal usado para reportar bugs e sugerir funcionalidades.</p>
+        </section>
+      </div>
+    </main>
+
+    <!-- ============================ RODAPÉ (igual ao app) ============================ -->
+    <footer class="bg-govbr-800 dark:bg-gray-950 border-t border-govbr-700 dark:border-gray-700 py-3 px-6 text-xs text-blue-100 dark:text-gray-400 flex flex-col sm:flex-row justify-between items-center shrink-0 gap-4 transition-colors duration-300">
+        <div class="flex items-center gap-4 flex-wrap justify-center">
+            <span><span class="font-mono" id="appVersion"></span> | <span id="lastModDate"></span></span>
+            <span class="text-white/25 dark:text-gray-700">|</span>
+            <a href="termodeuso.html" class="hover:text-white transition-colors">Termo de uso</a>
+            <span class="text-white/25 dark:text-gray-700">|</span>
+            <a href="privacidade.html" class="hover:text-white transition-colors">Política de privacidade</a>
+            <span class="text-white/25 dark:text-gray-700">|</span>
+            <a href="./ajuda-lattes.html" class="hover:text-white transition-colors">Ajuda (Lattes)</a>
+            <span class="text-white/25 dark:text-gray-700">|</span>
+            <a href="./ajuda-rsc.html" class="hover:text-white transition-colors">Ajuda (RSC)</a>
+            <span class="text-white/25 dark:text-gray-700">|</span>
+            <button type="button" id="themeToggle" class="hover:text-white transition-colors flex items-center gap-1" aria-pressed="false">
+                <i aria-hidden="true" class="fa-solid fa-moon"></i> <span id="themeToggleLabel">Tema escuro</span>
+            </button>
+            <span class="text-white/25 dark:text-gray-700">|</span>
+            <button type="button" id="highContrastToggle" class="hover:text-white transition-colors flex items-center gap-1" aria-pressed="false">
+                <i aria-hidden="true" class="fa-solid fa-circle-half-stroke"></i> Alto contraste
+            </button>
+            <span class="text-white/25 dark:text-gray-700">|</span>
+            <span class="flex items-center gap-1" role="group" aria-label="Tamanho da fonte">
+                <button type="button" id="fontDec" class="hover:text-white transition-colors flex items-center gap-1" title="Diminuir fonte" aria-label="Diminuir fonte"><i aria-hidden="true" class="fa-solid fa-magnifying-glass-minus"></i> A-</button>
+                <button type="button" id="fontInc" class="hover:text-white transition-colors flex items-center gap-1" title="Aumentar fonte" aria-label="Aumentar fonte"><i aria-hidden="true" class="fa-solid fa-magnifying-glass-plus"></i> A+</button>
+            </span>
+        </div>
+        <div class="flex gap-3 items-center flex-wrap justify-center">
+            <a href="https://github.com/alexsandroccarv" target="_blank" rel="noopener" class="hover:text-white hover:underline transition-colors flex items-center gap-1">
+                <i aria-hidden="true" class="fa-brands fa-github text-white/90 dark:text-unifesp-400"></i> Alexsandro Cardoso Carvalho
+            </a>
+            <span class="text-white/40 dark:text-gray-600">|</span>
+            <a href="doe-um-cafe.html" class="hover:text-white hover:underline transition-colors flex items-center gap-1">
+                <i aria-hidden="true" class="fa-solid fa-mug-hot text-white/90 dark:text-unifesp-400"></i> Doe um café
+            </a>
+            <span class="text-white/40 dark:text-gray-600">|</span>
+            <a href="https://www.gnu.org/licenses/agpl-3.0.html" target="_blank" rel="noopener" class="hover:text-white transition-colors flex items-center gap-1" title="Licença AGPLv3 (Free Software Foundation)">
+                <i aria-hidden="true" class="fa-solid fa-scale-balanced text-white/90 dark:text-unifesp-400"></i> AGPLv3
+            </a>
+        </div>
+    </footer>
+
+    <!-- Cabeçalho/rodapé dinâmicos: versão, nome do titular e alternadores de tema (mesmo comportamento do app) -->
+    <script src="js/config.js"></script>
+    <script>
+        (function () {
+            var C = window.APP_CONFIG || {};
+            var setTxt = function (id, v) { var el = document.getElementById(id); if (el && v != null) el.textContent = v; };
+            setTxt('appVersion', C.version);
+            setTxt('lastModDate', C.lastModified);
+            // Nome completo do item de Identificação (mesma lógica do app): "lattesZen | Nome".
+            var nome = '';
+            try {
+                var itens = JSON.parse(localStorage.getItem((C.storageKeys && C.storageKeys.catalog) || 'lz_catalog') || '[]');
+                var ident = itens.find(function (i) { return i.typeKey === 'IDENTIFICACAO' && i.fields && i.fields.titulo; });
+                if (ident) nome = String(ident.fields.titulo).trim();
+            } catch (e) {}
+            var nomeWrap = document.getElementById('headerNomeWrap');
+            if (nomeWrap) nomeWrap.classList.toggle('hidden', !nome);
+            setTxt('headerNome', nome);
+            document.title = nome ? (C.name || 'lattesZen') + ' | ' + nome : (C.name || 'lattesZen');
+
+            var htmlEl = document.documentElement;
+            var tt = document.getElementById('themeToggle');
+            function syncTheme() {
+                var d = htmlEl.classList.contains('dark');
+                tt.setAttribute('aria-pressed', d ? 'true' : 'false');
+                tt.querySelector('i').className = d ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
+                document.getElementById('themeToggleLabel').textContent = d ? 'Tema claro' : 'Tema escuro';
+            }
+            if (tt) { syncTheme(); tt.addEventListener('click', function () { htmlEl.classList.toggle('dark'); localStorage.setItem('tema', htmlEl.classList.contains('dark') ? 'dark' : 'light'); syncTheme(); }); }
+
+            var hc = document.getElementById('highContrastToggle');
+            function syncHC() { hc.setAttribute('aria-pressed', htmlEl.classList.contains('high-contrast') ? 'true' : 'false'); }
+            if (hc) { syncHC(); hc.addEventListener('click', function () { htmlEl.classList.toggle('high-contrast'); localStorage.setItem('altoContraste', htmlEl.classList.contains('high-contrast') ? '1' : '0'); syncHC(); }); }
+
+            var FS_MIN = 80, FS_MAX = 150, FS_STEP = 10;
+            function getFS() { var n = parseInt(localStorage.getItem('fontScale') || '100', 10); return isNaN(n) ? 100 : n; }
+            var dec = document.getElementById('fontDec'), inc = document.getElementById('fontInc');
+            function applyFS(n) {
+                n = Math.max(FS_MIN, Math.min(FS_MAX, n));
+                htmlEl.style.fontSize = n === 100 ? '' : n + '%';
+                localStorage.setItem('fontScale', String(n));
+                if (dec) dec.disabled = n <= FS_MIN;
+                if (inc) inc.disabled = n >= FS_MAX;
+            }
+            applyFS(getFS());
+            if (dec) dec.addEventListener('click', function () { applyFS(getFS() - FS_STEP); });
+            if (inc) inc.addEventListener('click', function () { applyFS(getFS() + FS_STEP); });
+        })();
+    </script>
+</body>
+</html>
