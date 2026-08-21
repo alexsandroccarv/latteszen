@@ -737,6 +737,78 @@
         });
         recompute();
     }
+
+    // Categoria/tipo é elegível ao Lattes (exportação/visibilidade no Lattes
+    // fazem sentido)? Categorias 12–19 ("Além do Lattes") e tipos/categorias
+    // marcados naoLattes nunca vão pro XML de qualquer forma — não faz
+    // sentido mostrar ou gravar essas duas opções para eles.
+    function elegivelAoLattes(typeKey, catKey) {
+        if (!typeKey) return false;
+        if (LattesTypes.isNaoLattesType(typeKey) || LattesTypes.isNaoLattesCategory(catKey)) return false;
+        const cat = LattesTypes.categoryByKey(catKey);
+        const catNum = cat ? parseInt(cat.num, 10) : NaN;
+        if (catNum >= 12 && catNum <= 19) return false;
+        return true;
+    }
+    // Camada de Visibilidade no formulário (abaixo do bloco RSC): três eixos
+    // independentes — Exportar para Lattes (entra ou não no XML gerado),
+    // Visibilidade no Lattes (Público/Privado — só anotação, a Plataforma
+    // Lattes não expõe isso no XML de/para lattesZen) e Publicar na Web
+    // (entra ou não na página HTML própria). Nenhum dos três afeta o RSC,
+    // que usa sua própria marcação (rsc.conta), isolada.
+    function renderVisibilidadeBlock(item) {
+        const box = $('#visibilidadeBlock'); if (!box) return;
+        const typeKey = $('#selTipo') ? $('#selTipo').value : '';
+        const catKey = $('#selCategoria') ? $('#selCategoria').value : '';
+        if (!typeKey || LattesTypes.isPerfilType(typeKey)) { box.innerHTML = ''; return; }
+        const v = (item && item.visibilidade) || {};
+        const exportarLattes = v.exportarLattes !== false;
+        const visivelNoLattes = v.visivelNoLattes === 'Privado' ? 'Privado' : 'Público';
+        const publicarWeb = v.publicarWeb !== false;
+        const doLattes = elegivelAoLattes(typeKey, catKey);
+
+        box.innerHTML = `
+        <div class="bg-sky-50 dark:bg-sky-900/10 border border-sky-200 dark:border-sky-800 rounded px-3 py-2 space-y-2">
+            <p class="text-sm font-semibold flex items-center gap-2"><i aria-hidden="true" class="fa-solid fa-eye text-sky-600"></i> Visibilidade</p>
+            ${doLattes ? `
+            <label class="flex items-center gap-2 text-sm"><input type="checkbox" id="visExportarLattes" ${exportarLattes ? 'checked' : ''}> Exportar para Lattes</label>
+            <p class="text-[11px] text-gray-500">Desmarque para este item ficar de fora do XML gerado em "Exportar para a Plataforma Lattes", mesmo sendo de um tipo/categoria exportável.</p>
+            <div id="visVisibilidadeWrap" class="${exportarLattes ? '' : 'hidden'}">
+                <label class="block text-xs font-semibold mb-1" for="visVisibilidadeLattes">Visibilidade no Lattes</label>
+                <select id="visVisibilidadeLattes" class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900">
+                    <option value="Público" ${visivelNoLattes === 'Público' ? 'selected' : ''}>Público — exibido na consulta pública</option>
+                    <option value="Privado" ${visivelNoLattes === 'Privado' ? 'selected' : ''}>Privado — não exibido na consulta pública</option>
+                </select>
+                <p class="text-[11px] text-gray-500 mt-0.5">Só anotação: essa opção não existe no XML — configure de verdade direto na Plataforma Lattes, depois de importar lá.</p>
+            </div>` : ''}
+            <label class="flex items-center gap-2 text-sm"><input type="checkbox" id="visPublicarWeb" ${publicarWeb ? 'checked' : ''}> Publicar na Web</label>
+            <p class="text-[11px] text-gray-500">Desmarque para este item não aparecer na página HTML gerada em "Publicar na Web" — independe das opções do Lattes acima.</p>
+        </div>`;
+
+        const expChk = $('#visExportarLattes');
+        if (expChk) expChk.addEventListener('change', () => {
+            const wrap = $('#visVisibilidadeWrap'); if (wrap) wrap.classList.toggle('hidden', !expChk.checked);
+            state.formDirty = true;
+        });
+        const pubChk = $('#visPublicarWeb');
+        if (pubChk) pubChk.addEventListener('change', () => { state.formDirty = true; });
+        const visSel = $('#visVisibilidadeLattes');
+        if (visSel) visSel.addEventListener('change', () => { state.formDirty = true; });
+    }
+    // Lê a camada de Visibilidade do formulário → { exportarLattes,
+    // visivelNoLattes, publicarWeb } (ou null se o bloco não foi montado —
+    // tipo de perfil). Independente do RSC — nunca lida aqui.
+    function collectVisibilidade(form) {
+        const pubChk = form.querySelector('#visPublicarWeb');
+        if (!pubChk) return null;
+        const expChk = form.querySelector('#visExportarLattes');
+        const visSel = form.querySelector('#visVisibilidadeLattes');
+        return {
+            exportarLattes: expChk ? expChk.checked : false,
+            visivelNoLattes: visSel ? visSel.value : 'Público',
+            publicarWeb: pubChk.checked,
+        };
+    }
     // Normaliza ano/data-completa para dd/mm/aaaa (usado no período do RSC).
     // 'aaaa' vira 01/01/aaaa (início) ou 31/12/aaaa (fim). ISO aaaa-mm-dd também.
     function _rscToBR(v, endOfYear) {
@@ -844,6 +916,7 @@
             <div id="camposPanel" class="hidden lg:col-span-2 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 space-y-3">
                 <div id="dynFields" class="space-y-3"></div>
                 <div id="rscBlock" class="space-y-3"></div>
+                <div id="visibilidadeBlock" class="space-y-3"></div>
 
                 <div class="space-y-1">
                     <label class="block text-xs font-semibold" for="notasGerais">Anotações gerais</label>
@@ -955,6 +1028,7 @@
             wireDynamicLabels($('#dynFields'), def);     // rótulos que mudam conforme outro campo
             wireRepeater($('#dynFields'), def);          // listas (Equipe, Financiadores, Produção C&T...)
             renderRscBlock(item);                        // camada RSC (se habilitado)
+            renderVisibilidadeBlock(item);                // Exportar Lattes / visibilidade / Publicar na Web
             const semEvidencia = !!(def && def.noEvidence);
             $('#evidenceBlock').style.display = semEvidencia ? 'none' : '';
             if (semEvidencia) { state.evEditing = []; renderEvList(); clearPdf(); }
@@ -1812,6 +1886,9 @@
 
         // Camada RSC (se habilitado e o item é elegível)
         if (state.rscEnabled) { const rscData = collectRsc(form); if (rscData) item.rsc = rscData; }
+        // Camada de Visibilidade (Exportar Lattes / visibilidade no Lattes / Publicar na Web)
+        const visibilidadeData = collectVisibilidade(form);
+        if (visibilidadeData) item.visibilidade = visibilidadeData;
 
         // ---- Evidências: grava novas, remove excluídas, aplica ordem/pública ----
         const subdir = LattesTypes.categoryFolder(item.categoryKey);
@@ -2036,6 +2113,27 @@
         const cls = estado === 'green' ? 'text-green-600 dark:text-green-500' : estado === 'red' ? 'text-red-600 dark:text-red-500' : 'text-gray-400 dark:text-gray-500';
         return `<span title="${esc(title)}" class="inline-flex items-center justify-center w-6 h-6 ${cls}"><i class="fa-solid fa-clock"></i></span>`;
     }
+    // Ícone "Exportar para Lattes": verde (entra no XML), cinza (desmarcado
+    // no item — fica de fora mesmo sendo de tipo/categoria exportável). Some
+    // para tipos/categorias que não vão pro Lattes de jeito nenhum (categorias
+    // 12+/"Além do Lattes", tipos marcados naoLattes) — nada a mostrar ali.
+    function exportarLattesIconHtml(item) {
+        if (!elegivelAoLattes(item.typeKey, item.categoryKey)) return '';
+        const on = !(item.visibilidade && item.visibilidade.exportarLattes === false);
+        const cls = on ? 'text-green-600 dark:text-green-500' : 'text-gray-400 dark:text-gray-500';
+        const title = on ? 'Exportado para o Lattes (XML)' : 'Fora da exportação para o Lattes (XML)';
+        return `<span title="${esc(title)}" class="inline-flex items-center justify-center w-6 h-6 ${cls}"><i class="fa-solid fa-file-export"></i></span>`;
+    }
+    // Ícone "Publicar na Web": verde (entra na página HTML própria), cinza
+    // (desmarcado no item). Some para tipos de perfil (não são itens da
+    // página pública). Independente do Lattes — não usa elegivelAoLattes.
+    function publicarWebIconHtml(item) {
+        if (LattesTypes.isPerfilType(item.typeKey)) return '';
+        const on = publicarWebOk(item);
+        const cls = on ? 'text-green-600 dark:text-green-500' : 'text-gray-400 dark:text-gray-500';
+        const title = on ? 'Publicado na página Web' : 'Fora da página Web (Publicar na Web)';
+        return `<span title="${esc(title)}" class="inline-flex items-center justify-center w-6 h-6 ${cls}"><i class="fa-solid fa-globe"></i></span>`;
+    }
     // Ícone de descrição: reaproveita o estado de completude (descState).
     function descIconHtml(item) {
         const estado = descState(item);
@@ -2058,7 +2156,7 @@
                     <div class="flex items-center gap-0.5 shrink-0 ml-auto">
                         ${evidenceIconsHtml(i)}
                         ${sep}
-                        ${cargaHorariaIconHtml(i)}${rscIconHtml(i)}${lattesIconHtml(i)}${descIconHtml(i)}
+                        ${cargaHorariaIconHtml(i)}${rscIconHtml(i)}${lattesIconHtml(i)}${exportarLattesIconHtml(i)}${publicarWebIconHtml(i)}${descIconHtml(i)}
                         <span class="print:hidden contents">
                             ${sep}
                             <button data-act="edit" data-id="${i.id}" title="Abrir / Editar" class="w-7 h-7 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-govbr-600 dark:text-unifesp-400"><i class="fa-solid fa-pen"></i></button>
@@ -2315,6 +2413,7 @@
         const xmlExportaveis = () => state.items.filter(i => {
             const def = LattesTypes.getType(i.typeKey);
             if (def && def.noExport) return false;
+            if (i.visibilidade && i.visibilidade.exportarLattes === false) return false;
             return !LattesTypes.isNaoLattesCategory(i.categoryKey);
         }).length;
         const dl = $('#btnXmlDownload');
@@ -3302,6 +3401,10 @@
     const PUB_ICON = { DADOS_GERAIS: '🪪', FORMACAO: '🎓', ATUACAO: '💼', PROJETOS: '🧩', PRODUCOES: '📚', PATENTES_REGISTROS: '📜', INOVACAO: '💡', EDUCACAO_CT: '📢', EVENTOS: '📅', ORIENTACOES: '👥', BANCAS: '⚖️',
         AL_DESENVOLVIMENTO: '🌱', AL_ENGAJAMENTO: '🤝', AL_SAUDE_ESPORTE: '🏃', AL_INTERESSES: '🎨', AL_CERTIFICACAO_CAT: '📜', AL_FILIACAO_CAT: '🪪', AL_CONCURSO_CAT: '📋', AL_IMPRENSA_CAT: '📰' };
     const PUB_EXCLUDE_TYPES = new Set(['IDENTIFICACAO', 'FOTO_PERFIL', 'ENDERECO', 'RESUMO_CV', 'OUTRAS_INFO', 'DOCUMENTO_PESSOAL']);
+    // "Publicar na Web" desmarcado no item: some da página, independente das
+    // opções de Lattes (Exportar/Visibilidade), que não têm nenhuma relação
+    // com esta página HTML própria.
+    const publicarWebOk = (it) => !(it.visibilidade && it.visibilidade.publicarWeb === false);
     // Categorias 12–19 ("Além do Lattes": Desenvolvimento Pessoal, Engajamento,
     // Saúde/Esporte, Interesses, Certificações, Filiações, Concursos, Imprensa)
     // viram uma única seção mesclada na página pública. Fora do intervalo: a
@@ -3367,7 +3470,7 @@
             if (cat.key === 'ATUACAO') {
                 const seus = typeKeys.filter(tk => !PUB_EXCLUDE_TYPES.has(tk));
                 const porInstituicao = new Map();
-                for (const it of items.filter(i => seus.includes(i.typeKey) && i.categoryKey === cat.key)) {
+                for (const it of items.filter(i => seus.includes(i.typeKey) && i.categoryKey === cat.key && publicarWebOk(i))) {
                     const inst = String((it.fields && it.fields.instituicao) || '').trim() || '\0outras';
                     if (!porInstituicao.has(inst)) porInstituicao.set(inst, []);
                     porInstituicao.get(inst).push(it);
@@ -3396,7 +3499,7 @@
                 if (PUB_EXCLUDE_TYPES.has(tk)) continue;
                 // Casa tipo E categoria do item (um tipo pode figurar em mais de
                 // uma categoria; o item pertence só à sua categoria de origem)
-                const its = sortByYear(items.filter(i => i.typeKey === tk && i.categoryKey === cat.key), false);
+                const its = sortByYear(items.filter(i => i.typeKey === tk && i.categoryKey === cat.key && publicarWebOk(i)), false);
                 if (!its.length) continue;
                 const itens = [];
                 for (const it of its) itens.push({ titulo: LattesTypes.itemTitle(it), ano: itemAnoRange(it), linha: itemLinha(it), anexos: await itemAnexos(it, external) });

@@ -1020,6 +1020,7 @@ window.LattesXMLExport = (function () {
             const def = LT && LT.getType(it.typeKey);
             if (def && def.noExport) return false;
             if (LT && LT.isNaoLattesCategory && LT.isNaoLattesCategory(it.categoryKey)) return false;
+            if (it.visibilidade && it.visibilidade.exportarLattes === false) return false; // desmarcado no item
             return true;
         });
 
