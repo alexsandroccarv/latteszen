@@ -291,9 +291,22 @@
         semPdf:       { cor: 'red',   icone: 'fa-file-circle-xmark', titulo: 'Sem evidência', desc: 'Falta anexar comprovação' },
         naoLattes:    { cor: 'purple', icone: 'fa-heart', titulo: 'Não-Lattes', desc: 'Itens pessoais' },
         descObrig:    { cor: 'red', icone: 'fa-align-left', titulo: 'Obrigatórios pendentes', desc: 'Falta campo obrigatório' },
+        descOpcional: { cor: 'amber', icone: 'fa-align-left', titulo: 'Falta campo opcional', desc: 'Descrição incompleta (opcional)' },
+        descCompleta: { cor: 'green', icone: 'fa-align-left', titulo: 'Descrição completa', desc: 'Todos os campos preenchidos' },
         rscUsavel:    { cor: 'amber', icone: 'fa-award', titulo: 'Usáveis para RSC', desc: 'Elegíveis dentro do período de uso' },
         rscMarcado:   { cor: 'green', icone: 'fa-award', titulo: 'Marcados para RSC', desc: 'Já contabilizados no RSC' },
         rscElegivel:  { cor: 'amber', icone: 'fa-award', titulo: 'Elegíveis para RSC', desc: 'Dentro do período, ainda não marcados' },
+        rscForaPeriodo: { cor: 'gray', icone: 'fa-award', titulo: 'RSC fora do período', desc: 'Fora do período de uso do RSC' },
+        chVerde:      { cor: 'green', icone: 'fa-clock', titulo: 'Com carga horária', desc: 'Carga horária preenchida' },
+        chVermelho:   { cor: 'red', icone: 'fa-clock', titulo: 'Sem carga horária', desc: 'Falta preencher a carga horária' },
+        chCinza:      { cor: 'gray', icone: 'fa-clock', titulo: 'Carga horária N/A', desc: 'Não se aplica' },
+        lattesPendente:   { cor: 'red', icone: 'fa-graduation-cap', titulo: 'Ainda não no Lattes', desc: 'Não enviado à Plataforma Lattes' },
+        lattesModificado: { cor: 'amber', icone: 'fa-graduation-cap', titulo: 'Modificado após o Lattes', desc: 'Editado localmente após ir ao Lattes' },
+        lattesEnviado:    { cor: 'green', icone: 'fa-graduation-cap', titulo: 'Já no Lattes', desc: 'Sem edições desde o envio' },
+        exportLattesSim:  { cor: 'green', icone: 'fa-file-export', titulo: 'Exportar p/ Lattes: sim', desc: 'Entra no XML gerado' },
+        exportLattesNao:  { cor: 'gray', icone: 'fa-file-export', titulo: 'Exportar p/ Lattes: não', desc: 'Fora do XML gerado' },
+        pubWebSim:        { cor: 'green', icone: 'fa-globe', titulo: 'Publicar na Web: sim', desc: 'Entra na página pública' },
+        pubWebNao:        { cor: 'gray', icone: 'fa-globe', titulo: 'Publicar na Web: não', desc: 'Fora da página pública' },
     };
     // Tipos que exigem evidência (ex.: Identificação, Texto inicial, Outras
     // informações e Conexões não exigem) — usado nas métricas de conformidade.
@@ -307,9 +320,22 @@
         semPdf:         i => i.lattesItem && needsEvidence(i) && !i.hasPdf,
         naoLattes:      i => !i.lattesItem,
         descObrig:      i => descState(i) === 'red',
+        descOpcional:   i => descState(i) === 'amber',
+        descCompleta:   i => descState(i) === 'green',
         rscUsavel:      i => { const e = rscEstado(i); return e === 'green' || e === 'amber'; },
         rscMarcado:     i => rscEstado(i) === 'green',
         rscElegivel:    i => rscEstado(i) === 'amber',
+        rscForaPeriodo: i => rscEstado(i) === 'gray',
+        chVerde:        i => cargaHorariaEstado(i) === 'green',
+        chVermelho:     i => cargaHorariaEstado(i) === 'red',
+        chCinza:        i => cargaHorariaEstado(i) === 'gray',
+        lattesPendente:   i => lattesEstado(i) === 'red',
+        lattesModificado: i => lattesEstado(i) === 'amber',
+        lattesEnviado:    i => lattesEstado(i) === 'green',
+        exportLattesSim:  i => elegivelAoLattes(i.typeKey, i.categoryKey) && !(i.visibilidade && i.visibilidade.exportarLattes === false),
+        exportLattesNao:  i => elegivelAoLattes(i.typeKey, i.categoryKey) && !!(i.visibilidade && i.visibilidade.exportarLattes === false),
+        pubWebSim:        i => !LattesTypes.isPerfilType(i.typeKey) && publicarWebOk(i),
+        pubWebNao:        i => !LattesTypes.isPerfilType(i.typeKey) && !publicarWebOk(i),
     };
 
     // Caixa de totalização/filtragem dos itens usáveis no RSC-PCCTAE (só
@@ -427,11 +453,21 @@
         $('#btnExpandAll').addEventListener('click', () => $$('#itemList details').forEach(d => d.open = true));
         $('#btnCollapseAll').addEventListener('click', () => $$('#itemList details').forEach(d => d.open = false));
         $('#btnImprimir').addEventListener('click', () => window.print());
-        $$('[data-view]', panel).forEach(b => b.addEventListener('click', () => {
-            const k = b.dataset.view;
-            state.viewFilter = (state.viewFilter === k) ? 'todos' : k; // clicar de novo limpa
-            renderConformidade();
-        }));
+        // Delegação (em vez de ligar em cada [data-view] individualmente):
+        // os ícones de status de cada item ficam dentro de #itemList, que é
+        // reconstruído sozinho (busca/ordenar) sem passar de novo por aqui —
+        // um listener direto nos botões se perderia nesse caso. Ligado uma
+        // única vez em #tab-conformidade (nó estável, nunca recriado).
+        if (!panel.dataset.viewDelegado) {
+            panel.dataset.viewDelegado = '1';
+            panel.addEventListener('click', (e) => {
+                const b = e.target.closest('[data-view]');
+                if (!b) return;
+                const k = b.dataset.view;
+                state.viewFilter = (state.viewFilter === k) ? 'todos' : k; // clicar de novo limpa
+                renderConformidade();
+            });
+        }
     }
 
     /* =====================================================================
@@ -2063,6 +2099,20 @@
         const foraDoPeriodo = !isNaN(inicioAno) && itemAno != null && itemAno < inicioAno;
         return foraDoPeriodo ? 'gray' : 'amber';
     }
+    // Cores compartilhadas pelos ícones de status do card do item.
+    const ICON_COLOR_CLASS = {
+        green: 'text-green-600 dark:text-green-500', amber: 'text-amber-600 dark:text-amber-500',
+        red: 'text-red-600 dark:text-red-500', gray: 'text-gray-400 dark:text-gray-500',
+    };
+    // Ícone de status clicável: mesma aparência de sempre, mas agora é um
+    // botão com data-view — clicar filtra a lista para só os itens com esse
+    // mesmo estado (reaproveita o mecanismo dos cartões de filtro do topo:
+    // VIEW_PREDICATE/VIEW_META + a delegação de clique em #tab-conformidade).
+    function iconBtnHtml(viewKey, estado, title, iconClass) {
+        const active = state.viewFilter === viewKey;
+        return `<button type="button" data-view="${viewKey}" title="${esc(title)}"
+            class="inline-flex items-center justify-center w-6 h-6 rounded hover:bg-gray-100 dark:hover:bg-gray-700 ${ICON_COLOR_CLASS[estado]} ${active ? 'ring-2 ring-current' : ''}"><i class="fa-solid ${iconClass}"></i></button>`;
+    }
     // Ícone do RSC: verde (marcado), âmbar (elegível, dentro do período de uso,
     // ainda não marcado) ou cinza (fora do período de uso). Some quando o
     // módulo está desligado ou o tipo não é elegível ao RSC.
@@ -2072,46 +2122,52 @@
         const title = estado === 'green' ? 'Marcado para uso no RSC'
             : estado === 'amber' ? 'Dentro do período de uso do RSC — ainda não marcado'
             : 'Fora do período de uso do RSC';
-        const cls = estado === 'green' ? 'text-green-600 dark:text-green-500' : estado === 'amber' ? 'text-amber-600 dark:text-amber-500' : 'text-gray-400 dark:text-gray-500';
-        return `<span title="${esc(title)}" class="inline-flex items-center justify-center w-6 h-6 ${cls}"><i class="fa-solid fa-award"></i></span>`;
+        const key = estado === 'green' ? 'rscMarcado' : estado === 'amber' ? 'rscElegivel' : 'rscForaPeriodo';
+        return iconBtnHtml(key, estado, title, 'fa-award');
+    }
+    // Estado do item em relação ao Lattes: 'red' (ainda não enviado), 'amber'
+    // (enviado, mas modificado localmente depois), 'green' (enviado, sem
+    // edições) ou null (item Não-Lattes — nunca vai pro XML).
+    function lattesEstado(item) {
+        if (!item.lattesItem) return null;
+        if (!item.lattesRef) return 'red';
+        if (item.updatedAt && item.createdAt && item.updatedAt !== item.createdAt) return 'amber';
+        return 'green';
     }
     // Ícone Lattes: vermelho (ainda não está no Lattes), âmbar (está no Lattes
     // mas foi modificado localmente) ou verde (já está no Lattes, sem edições
     // desde a importação/adoção). Some para itens Não-Lattes (nunca exportados).
     function lattesIconHtml(item) {
-        if (!item.lattesItem) return '';
-        let estado, title;
-        if (!item.lattesRef) {
-            estado = 'red'; title = 'Ainda não está no Lattes';
-        } else if (item.updatedAt && item.createdAt && item.updatedAt !== item.createdAt) {
-            estado = 'amber'; title = 'Está no Lattes, mas sofreu modificação local';
-        } else {
-            estado = 'green'; title = 'Já está no Lattes';
-        }
-        const cls = estado === 'green' ? 'text-green-600 dark:text-green-500' : estado === 'amber' ? 'text-amber-600 dark:text-amber-500' : 'text-red-600 dark:text-red-500';
-        return `<span title="${esc(title)}" class="inline-flex items-center justify-center w-6 h-6 ${cls}"><i class="fa-solid fa-graduation-cap"></i></span>`;
+        const estado = lattesEstado(item);
+        if (!estado) return '';
+        const title = estado === 'red' ? 'Ainda não está no Lattes'
+            : estado === 'amber' ? 'Está no Lattes, mas sofreu modificação local'
+            : 'Já está no Lattes';
+        const key = estado === 'red' ? 'lattesPendente' : estado === 'amber' ? 'lattesModificado' : 'lattesEnviado';
+        return iconBtnHtml(key, estado, title, 'fa-graduation-cap');
     }
-    // Ícone de carga horária: verde (tem carga horária), vermelho (não tem)
-    // ou cinza (não se aplica — campo desabilitado por outra condição do
-    // próprio tipo, ex. Formação Acadêmica fora de Aperfeiçoamento/
-    // Especialização, ou marcado "N/A" onde houver essa opção). Some para
-    // tipos que não têm campo "cargaHoraria".
-    function cargaHorariaIconHtml(item) {
+    // Estado da carga horária do item: 'green' (tem), 'red' (falta), 'gray'
+    // (não se aplica — campo desabilitado por outra condição do próprio
+    // tipo, ex. Formação Acadêmica fora de Aperfeiçoamento/Especialização,
+    // ou marcado "N/A") ou null (tipo sem campo "cargaHoraria").
+    function cargaHorariaEstado(item) {
         const def = LattesTypes.getType(item.typeKey);
         const f = def && def.fields && def.fields.find(fld => fld.key === 'cargaHoraria');
-        if (!f) return '';
+        if (!f) return null;
         const vals = item.fields || {};
         const v = String(vals.cargaHoraria || '').trim();
-        let estado, title;
-        if (isFieldDisabled(f, vals) || v === NA_VALUE) {
-            estado = 'gray'; title = 'Carga horária: não se aplica';
-        } else if (v) {
-            estado = 'green'; title = 'Tem carga horária: ' + v;
-        } else {
-            estado = 'red'; title = 'Sem carga horária';
-        }
-        const cls = estado === 'green' ? 'text-green-600 dark:text-green-500' : estado === 'red' ? 'text-red-600 dark:text-red-500' : 'text-gray-400 dark:text-gray-500';
-        return `<span title="${esc(title)}" class="inline-flex items-center justify-center w-6 h-6 ${cls}"><i class="fa-solid fa-clock"></i></span>`;
+        if (isFieldDisabled(f, vals) || v === NA_VALUE) return 'gray';
+        return v ? 'green' : 'red';
+    }
+    // Ícone de carga horária: verde (tem carga horária), vermelho (não tem)
+    // ou cinza (não se aplica). Some para tipos sem campo "cargaHoraria".
+    function cargaHorariaIconHtml(item) {
+        const estado = cargaHorariaEstado(item);
+        if (!estado) return '';
+        const v = String((item.fields || {}).cargaHoraria || '').trim();
+        const title = estado === 'gray' ? 'Carga horária: não se aplica' : estado === 'green' ? 'Tem carga horária: ' + v : 'Sem carga horária';
+        const key = estado === 'green' ? 'chVerde' : estado === 'red' ? 'chVermelho' : 'chCinza';
+        return iconBtnHtml(key, estado, title, 'fa-clock');
     }
     // Ícone "Exportar para Lattes": verde (entra no XML), cinza (desmarcado
     // no item — fica de fora mesmo sendo de tipo/categoria exportável). Some
@@ -2120,9 +2176,8 @@
     function exportarLattesIconHtml(item) {
         if (!elegivelAoLattes(item.typeKey, item.categoryKey)) return '';
         const on = !(item.visibilidade && item.visibilidade.exportarLattes === false);
-        const cls = on ? 'text-green-600 dark:text-green-500' : 'text-gray-400 dark:text-gray-500';
         const title = on ? 'Exportado para o Lattes (XML)' : 'Fora da exportação para o Lattes (XML)';
-        return `<span title="${esc(title)}" class="inline-flex items-center justify-center w-6 h-6 ${cls}"><i class="fa-solid fa-file-export"></i></span>`;
+        return iconBtnHtml(on ? 'exportLattesSim' : 'exportLattesNao', on ? 'green' : 'gray', title, 'fa-file-export');
     }
     // Ícone "Publicar na Web": verde (entra na página HTML própria), cinza
     // (desmarcado no item). Some para tipos de perfil (não são itens da
@@ -2130,16 +2185,15 @@
     function publicarWebIconHtml(item) {
         if (LattesTypes.isPerfilType(item.typeKey)) return '';
         const on = publicarWebOk(item);
-        const cls = on ? 'text-green-600 dark:text-green-500' : 'text-gray-400 dark:text-gray-500';
         const title = on ? 'Publicado na página Web' : 'Fora da página Web (Publicar na Web)';
-        return `<span title="${esc(title)}" class="inline-flex items-center justify-center w-6 h-6 ${cls}"><i class="fa-solid fa-globe"></i></span>`;
+        return iconBtnHtml(on ? 'pubWebSim' : 'pubWebNao', on ? 'green' : 'gray', title, 'fa-globe');
     }
     // Ícone de descrição: reaproveita o estado de completude (descState).
     function descIconHtml(item) {
         const estado = descState(item);
         const title = estado === 'green' ? 'Descrição completa' : estado === 'amber' ? 'Descrição incompleta (falta campo opcional)' : 'Sem descrição (falta campo obrigatório)';
-        const cls = estado === 'green' ? 'text-green-600 dark:text-green-500' : estado === 'amber' ? 'text-amber-600 dark:text-amber-500' : 'text-red-600 dark:text-red-500';
-        return `<span title="${esc(title)}" class="inline-flex items-center justify-center w-6 h-6 ${cls}"><i class="fa-solid fa-align-left"></i></span>`;
+        const key = estado === 'green' ? 'descCompleta' : estado === 'amber' ? 'descOpcional' : 'descObrig';
+        return iconBtnHtml(key, estado, title, 'fa-align-left');
     }
 
     function itemCardHtml(i) {
