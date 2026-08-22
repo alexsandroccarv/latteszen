@@ -6,6 +6,10 @@
    periódico), um capítulo de livro, e um tipo de obra sem mapeamento
    conhecido (deve cair no tipo-catálogo OUTRA_BIBLIOGRAFICA). Reaproveita a
    mesma deduplicação por assinatura de conteúdo já usada no import de XML.
+
+   Também mocka o endpoint de busca EM LOTE (registro completo, com
+   colaboradores) usado para preencher os autores — a listagem resumida
+   (/works) não traz colaboradores por si só.
    ========================================================================== */
 import { test, assert, assertEqual } from '../harness.mjs';
 
@@ -44,9 +48,28 @@ const ORCID_FIXTURE = {
     ],
 };
 
+const ORCID_BULK_FIXTURE = {
+    bulk: [
+        { work: { 'put-code': 111, contributors: { contributor: [
+            { 'credit-name': { value: 'Maria Autora' }, 'contributor-attributes': { 'contributor-role': 'author' } },
+            { 'credit-name': { value: 'João Sem Papel' }, 'contributor-attributes': null },
+            { 'credit-name': { value: 'Editor Fulano' }, 'contributor-attributes': { 'contributor-role': 'editor' } },
+        ] } } },
+        { work: { 'put-code': 222, contributors: { contributor: [
+            { 'credit-name': { value: 'Autor do Capítulo' }, 'contributor-attributes': { 'contributor-role': 'author' } },
+        ] } } },
+        { work: { 'put-code': 333, contributors: { contributor: [
+            { 'credit-name': { value: 'Autor Um' }, 'contributor-attributes': { 'contributor-role': 'author' } },
+            { 'credit-name': { value: 'Autor Dois' }, 'contributor-attributes': { 'contributor-role': 'author' } },
+        ] } } },
+    ],
+};
+
 async function mockOrcid(page) {
     await page.route('https://pub.orcid.org/**', (route) => {
-        route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(ORCID_FIXTURE) });
+        const url = route.request().url();
+        const isBulk = /\/works\/[\d,]+$/.test(url); // /works/111,222,333 (registro completo) vs /works (listagem)
+        route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(isBulk ? ORCID_BULK_FIXTURE : ORCID_FIXTURE) });
     });
 }
 
@@ -101,6 +124,29 @@ test('Importar selecionados grava os itens com os campos extraídos do ORCID', a
     assertEqual(artigo.fields.ano, '2022', 'O ano de publicação deveria ter sido extraído');
     assertEqual(artigo.source, 'orcid', 'O item importado deveria registrar source: orcid');
     assert(artigo.lattesItem === true, 'Publicação importada do ORCID deveria contar como item do Lattes (lattesItem: true)');
+});
+
+test('Autores são buscados via segunda chamada (registro completo da obra)', async ({ page, baseUrl }) => {
+    await mockOrcid(page);
+    await abrirConfigECOrcid(page, baseUrl);
+    await page.fill('#orcidInput', ORCID_ID);
+    await page.click('#btnOrcidBuscar');
+    await page.waitForTimeout(400);
+    await page.click('#btnOrcidImport');
+    await page.waitForTimeout(300);
+
+    const catalogo = await page.evaluate(() => JSON.parse(localStorage.getItem('lz_catalog') || '[]'));
+
+    const artigo = catalogo.find((i) => i.fields.titulo === 'Um artigo de teste');
+    assert(Array.isArray(artigo.fields.autoresLista), 'Artigo (tipo com autoresLista) deveria ter a lista de autores preenchida');
+    assertEqual(artigo.fields.autoresLista.map((a) => a.nomeCompleto), ['Maria Autora', 'João Sem Papel'],
+        'Deveria incluir colaboradores com papel "author" ou sem papel definido, e excluir o "editor"');
+
+    const capitulo = catalogo.find((i) => i.fields.titulo === 'Um capítulo de livro de teste');
+    assertEqual(capitulo.fields.autoresLista.map((a) => a.nomeCompleto), ['Autor do Capítulo'], 'Capítulo deveria ter o autor extraído');
+
+    const outro = catalogo.find((i) => i.fields.titulo === 'Um tipo de obra desconhecido');
+    assertEqual(outro.fields.autores, 'Autor Um; Autor Dois', 'Tipo com campo "autores" simples (textarea) deveria juntar os nomes com "; "');
 });
 
 test('Reimportar as mesmas obras do ORCID não duplica (dedup por assinatura)', async ({ page, baseUrl }) => {

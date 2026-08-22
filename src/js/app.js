@@ -2931,7 +2931,7 @@
                 </p>
                 <div class="text-sm rounded-md border-l-4 border-amber-500 bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-300 px-3 py-2 mb-3 flex gap-2">
                     <i class="fa-solid fa-triangle-exclamation mt-0.5"></i>
-                    <span>O ORCID não fornece a lista de <strong>autores</strong> nesta consulta — preencha esse campo depois de importar, em cada item. O <strong>tipo</strong> de cada obra é inferido automaticamente e pode precisar de ajuste.</span>
+                    <span>Os <strong>autores</strong> são buscados automaticamente, mas só saem se o próprio autor tiver um nome público registrado no ORCID daquela obra — quando faltar, complete depois de importar. O <strong>tipo</strong> de cada obra é inferido automaticamente e pode precisar de ajuste.</span>
                 </div>
                 <div class="flex flex-wrap items-end gap-2">
                     <div>
@@ -2955,7 +2955,9 @@
         return found ? String(found['external-id-value'] || '').trim() : '';
     }
     // Converte um work-summary do ORCID num item do lattesZen (typeKey/categoryKey/fields).
-    function orcidWorkToItem(summary) {
+    // `autores`, quando informado, vem da busca em lote de fetchOrcidWorkDetails (2ª
+    // chamada) — o endpoint de listagem por si só não traz os colaboradores da obra.
+    function orcidWorkToItem(summary, autores) {
         const typeKey = ORCID_TYPE_MAP[summary.type] || ORCID_FALLBACK_TYPE;
         const titulo = (summary.title && summary.title.title && summary.title.title.value) || '';
         const ano = (summary['publication-date'] && summary['publication-date'].year && summary['publication-date'].year.value) || '';
@@ -2970,7 +2972,49 @@
         if (temCampo('doi')) fields.doi = doi;
         if (temCampo('url')) fields.url = url;
         if (typeKey === 'ARTIGO_PERIODICO' || typeKey === 'ARTIGO_ACEITO') fields.periodico = journal;
+        if (autores && autores.length) {
+            if (temCampo('autoresLista')) fields.autoresLista = autores.map((nome) => ({ nomeCompleto: nome, nomeCitacao: '' }));
+            else if (temCampo('autores')) fields.autores = autores.join('; ');
+        }
         return { typeKey, categoryKey: LattesTypes.primaryCategory(typeKey), fields, putCode: summary['put-code'] };
+    }
+    // Extrai os nomes dos colaboradores com papel de autor (ou sem papel
+    // informado — é o padrão da maioria dos registros) do registro COMPLETO de
+    // uma obra do ORCID. Colaboradores sem "credit-name" público não têm como
+    // ser nomeados (só o ORCID iD deles, sem nome de exibição) e são ignorados.
+    function orcidContributorNames(work) {
+        const list = work && work.contributors && work.contributors.contributor;
+        if (!Array.isArray(list)) return [];
+        return list
+            .filter((c) => {
+                const role = c['contributor-attributes'] && c['contributor-attributes']['contributor-role'];
+                return !role || role === 'author';
+            })
+            .map((c) => (c['credit-name'] && c['credit-name'].value) || '')
+            .filter(Boolean);
+    }
+    // Busca os registros COMPLETOS (com colaboradores) de uma lista de obras, em
+    // lotes de até 50 (limite do endpoint de busca em lote da API do ORCID).
+    // Retorna um Map put-code → nomes de autores. Uma falha num lote não trava
+    // a importação — a obra simplesmente fica sem autores pré-preenchidos.
+    async function fetchOrcidWorkDetails(orcid, putCodes) {
+        const map = new Map();
+        for (let i = 0; i < putCodes.length; i += 50) {
+            const lote = putCodes.slice(i, i + 50);
+            let resp;
+            try { resp = await fetch(`https://pub.orcid.org/v3.0/${orcid}/works/${lote.join(',')}`, { headers: { 'Accept': 'application/json' } }); }
+            catch (_) { continue; }
+            if (!resp.ok) continue;
+            const data = await resp.json();
+            const bulk = Array.isArray(data.bulk) ? data.bulk : [];
+            for (const entry of bulk) {
+                const work = entry && entry.work;
+                if (!work) continue;
+                const nomes = orcidContributorNames(work);
+                if (nomes.length) map.set(work['put-code'], nomes);
+            }
+        }
+        return map;
     }
     // Busca as obras públicas de um ORCID iD. Lança erro (mensagem em pt-BR) se
     // o formato for inválido ou a consulta falhar.
@@ -2983,10 +3027,11 @@
         if (!resp.ok) throw new Error(`ORCID retornou um erro (HTTP ${resp.status}) — confira se o ORCID iD existe e é público.`);
         const data = await resp.json();
         const groups = Array.isArray(data.group) ? data.group : [];
-        return groups
-            .map((g) => (g['work-summary'] && g['work-summary'][0]) || null)
-            .filter(Boolean)
-            .map(orcidWorkToItem);
+        const summaries = groups.map((g) => (g['work-summary'] && g['work-summary'][0]) || null).filter(Boolean);
+        let autoresPorObra = new Map();
+        try { autoresPorObra = await fetchOrcidWorkDetails(clean, summaries.map((s) => s['put-code'])); }
+        catch (_) { /* segue sem autores pré-preenchidos */ }
+        return summaries.map((s) => orcidWorkToItem(s, autoresPorObra.get(s['put-code'])));
     }
 
     function renderOrcidResult(items) {
