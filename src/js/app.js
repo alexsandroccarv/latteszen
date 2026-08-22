@@ -1098,13 +1098,13 @@
                 <p id="idInfo" class="text-xs text-gray-500"></p>
 
                 <div class="flex gap-2 pt-1 flex-wrap">
-                    <button type="submit" class="px-4 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm font-semibold hover:opacity-90">
+                    <button type="submit" class="px-4 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm font-semibold hover:opacity-90" title="Atalho: Ctrl+S (Cmd+S no Mac)">
                         <i aria-hidden="true" class="fa-solid fa-floppy-disk mr-1"></i> ${editing ? 'Salvar alterações' : 'Salvar'}
                     </button>
-                    <button type="button" id="btnSalvarNovo" class="px-4 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm" title="Salva e abre um novo item na mesma categoria/tipo">
+                    <button type="button" id="btnSalvarNovo" class="px-4 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm" title="Salva e abre um novo item na mesma categoria/tipo. Atalho: Ctrl+Enter (Cmd+Enter no Mac), quando não há um item em edição">
                         <i aria-hidden="true" class="fa-solid fa-plus mr-1"></i> Salvar e novo
                     </button>
-                    ${editing ? `<button type="button" id="btnSalvarProximo" class="px-4 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm" title="Salva e abre o próximo item da lista de Conformidade (mesmo filtro/busca/ordenação de lá)">
+                    ${editing ? `<button type="button" id="btnSalvarProximo" class="px-4 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm" title="Salva e abre o próximo item da lista de Conformidade (mesmo filtro/busca/ordenação de lá). Atalho: Ctrl+Enter (Cmd+Enter no Mac)">
                         <i aria-hidden="true" class="fa-solid fa-forward mr-1"></i> Salvar e próximo
                     </button>` : ''}
                     <button type="button" id="btnLimpar" class="px-4 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm" title="Limpa o formulário e começa um novo item em branco">
@@ -2178,13 +2178,62 @@
         if (q) items = items.filter(i => (LattesTypes.itemTitle(i) + ' ' + LattesTypes.label(i.typeKey) + ' ' + LattesTypes.categoryLabel(i.categoryKey)).toLowerCase().includes(q));
         return sortByYear(items, asc);
     }
-    // Próximo item após `id` na lista/ordem atual de Conformidade — null se o
-    // item não estiver nela ou já for o último.
+    // Próximo/anterior item na lista/ordem atual de Conformidade — null se o
+    // item não estiver nela ou já for a ponta (usado por "Salvar e próximo"
+    // e pelos atalhos de teclado Alt+↓/Alt+↑).
     function nextItemAfter(id) {
         const list = itemsFiltradosOrdenados();
         const idx = list.findIndex(i => i.id === id);
         if (idx === -1 || idx === list.length - 1) return null;
         return list[idx + 1];
+    }
+    function prevItemBefore(id) {
+        const list = itemsFiltradosOrdenados();
+        const idx = list.findIndex(i => i.id === id);
+        if (idx <= 0) return null;
+        return list[idx - 1];
+    }
+    // Atalhos de teclado em Catalogar:
+    //  - Ctrl/Cmd+S: salva o item em edição (mesmo efeito do botão "Salvar").
+    //  - Ctrl/Cmd+Enter: "Salvar e próximo" (ou "Salvar e novo" se estiver
+    //    criando um item novo — não há "próximo" nesse caso).
+    //  - Alt+↓ / Alt+↑: enquanto edita um item existente, pula pro
+    //    próximo/anterior item da mesma lista de Conformidade (mesmo recorte
+    //    de filtro/busca/ordenação de lá) SEM salvar — útil pra revisar
+    //    vários itens de um filtro em sequência antes de decidir o que
+    //    corrigir em cada um.
+    function wireKeyboardShortcuts() {
+        document.addEventListener('keydown', (e) => {
+            if (state.activeTab !== 'catalogar') return;
+            const form = $('#itemForm');
+            if (!form) return;
+            const ctrlOrCmd = e.ctrlKey || e.metaKey;
+
+            if (ctrlOrCmd && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 's') {
+                e.preventDefault();
+                form.requestSubmit();
+                return;
+            }
+            if (ctrlOrCmd && !e.shiftKey && e.key === 'Enter') {
+                e.preventDefault();
+                const btnProximo = $('#btnSalvarProximo');
+                const btnNovo = $('#btnSalvarNovo');
+                if (btnProximo) btnProximo.click();
+                else if (btnNovo) btnNovo.click();
+                else form.requestSubmit();
+                return;
+            }
+            if (e.altKey && !ctrlOrCmd && (e.key === 'ArrowDown' || e.key === 'ArrowUp') && state.editingId) {
+                e.preventDefault();
+                const alvo = e.key === 'ArrowDown' ? nextItemAfter(state.editingId) : prevItemBefore(state.editingId);
+                if (!alvo) {
+                    toast(e.key === 'ArrowDown' ? 'Não há um próximo item nesse recorte de Conformidade.' : 'Não há um item anterior nesse recorte de Conformidade.', 'info');
+                    return;
+                }
+                if (state.formDirty && !confirm('Há alterações não salvas no formulário. Sair mesmo assim?')) return;
+                buildForm(alvo, { focus: false });
+            }
+        });
     }
 
     // Número de evidências do item (considera formato legado hasPdf)
@@ -4325,6 +4374,7 @@
         $('#lastModDate').textContent = APP_CONFIG.lastModified;
 
         wireFooterToggles();
+        wireKeyboardShortcuts();
         const dirHealthGoto = $('#dirHealthGoto');
         if (dirHealthGoto) dirHealthGoto.addEventListener('click', () => {
             switchTab('config');
