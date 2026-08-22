@@ -54,36 +54,6 @@ window.Storage = (function () {
 
     const supportsFS = 'showDirectoryPicker' in window;
 
-    /* ---------------- WebDAV (alternativa à pasta local) ------------------
-       `mode` decide qual back-end os métodos de arquivo abaixo usam. Em modo
-       'webdav', `webdavCfg` guarda { baseUrl, username, password, pasta } —
-       a senha fica em localStorage (via settings), como qualquer config do
-       app; por isso a UI recomenda uma senha de aplicativo, não a principal.
-       ------------------------------------------------------------------- */
-    let mode = 'local'; // 'local' | 'webdav'
-    let webdavCfg = null;
-    function storageMode() { return mode; }
-    // Caminho relativo ao servidor WebDAV configurado: pasta raiz + subdir + arquivo.
-    function webPath(subdir, filename) {
-        return [webdavCfg && webdavCfg.pasta, subdir, filename].filter(Boolean).join('/');
-    }
-    async function connectWebDAV(cfg) {
-        const c = {
-            baseUrl: String((cfg && cfg.baseUrl) || '').replace(/\/+$/, ''),
-            username: (cfg && cfg.username) || '',
-            password: (cfg && cfg.password) || '',
-            pasta: String((cfg && cfg.pasta) || '').replace(/^\/+|\/+$/g, ''),
-        };
-        if (!c.baseUrl || !c.username || !c.password || !c.pasta) throw new Error('Preencha servidor, usuário, senha e pasta antes de conectar.');
-        window.WebDavClient.configure(c);
-        await window.WebDavClient.testConnection(); // lança erro (credenciais/rede/CORS) se falhar
-        await window.WebDavClient.mkcolRecursive(c.pasta); // garante que a pasta raiz exista
-        webdavCfg = c;
-        mode = 'webdav';
-        const s = loadSettings(); s.webdav = c; saveSettings(s);
-        return c;
-    }
-
     async function verifyPermission(handle, readWrite = true) {
         const opts = { mode: readWrite ? 'readwrite' : 'read' };
         if ((await handle.queryPermission(opts)) === 'granted') return true;
@@ -95,25 +65,15 @@ window.Storage = (function () {
         if (!supportsFS) throw new Error('Navegador sem suporte à File System Access API (use Chrome ou Edge).');
         const handle = await window.showDirectoryPicker({ mode: 'readwrite' });
         dirHandle = handle;
-        mode = 'local';
         await idbSet(IDB_KEY, handle);
         return handle;
     }
 
-    // Restaura a config salva (pasta local OU WebDAV), sem pedir permissão
-    // automaticamente. WebDAV tem prioridade se ambos estiverem salvos (não
-    // deveria acontecer via UI normal, mas evita ambiguidade).
+    // Restaura o handle salvo (sem pedir permissão automaticamente)
     async function restoreDirectory() {
-        const s = loadSettings();
-        if (s.webdav && s.webdav.baseUrl) {
-            webdavCfg = s.webdav;
-            mode = 'webdav';
-            window.WebDavClient.configure(webdavCfg);
-            return webdavCfg;
-        }
         if (!supportsFS) return null;
         const handle = await idbGet(IDB_KEY);
-        if (handle) { dirHandle = handle; mode = 'local'; }
+        if (handle) dirHandle = handle;
         return handle || null;
     }
 
@@ -124,11 +84,8 @@ window.Storage = (function () {
         return dirHandle;
     }
 
-    function hasDirectory() { return mode === 'webdav' ? !!webdavCfg : !!dirHandle; }
-    async function directoryName() {
-        if (mode === 'webdav') return webdavCfg ? `Koofr (${webdavCfg.username}) — /${webdavCfg.pasta}` : null;
-        return dirHandle ? dirHandle.name : null;
-    }
+    function hasDirectory() { return !!dirHandle; }
+    async function directoryName() { return dirHandle ? dirHandle.name : null; }
 
     // Verifica se a pasta configurada ainda está acessível de verdade — não
     // só se HÁ um handle guardado, mas se a permissão continua concedida e se
@@ -139,17 +96,6 @@ window.Storage = (function () {
     // nunca em checagem automática (silenciosa) ao abrir o app.
     async function checkHealth(opts) {
         opts = opts || {};
-        if (mode === 'webdav') {
-            if (!webdavCfg) return { ok: true, hasDir: false };
-            try {
-                await window.WebDavClient.testConnection();
-                return { ok: true, hasDir: true };
-            } catch (e) {
-                if (e.status === 401 || e.status === 403) return { ok: false, hasDir: true, reason: 'permission', message: e.message };
-                if (e.isNetworkError) return { ok: false, hasDir: true, reason: 'network', message: e.message };
-                return { ok: false, hasDir: true, reason: 'missing', message: e.message };
-            }
-        }
         if (!dirHandle) return { ok: true, hasDir: false };
         try {
             let perm = await dirHandle.queryPermission({ mode: 'readwrite' });
@@ -168,13 +114,6 @@ window.Storage = (function () {
     }
 
     async function forgetDirectory() {
-        if (mode === 'webdav') {
-            webdavCfg = null;
-            window.WebDavClient.configure(null);
-            const s = loadSettings(); delete s.webdav; saveSettings(s);
-            mode = 'local';
-            return;
-        }
         dirHandle = null;
         await idbDel(IDB_KEY);
     }
@@ -195,10 +134,6 @@ window.Storage = (function () {
     // Cria os subdiretórios (um por categoria) dentro da pasta escolhida.
     // Cada nome pode ser um caminho com "/" (ex.: "Evidências/01 Dados gerais").
     async function ensureSubdirs(names) {
-        if (mode === 'webdav') {
-            for (const name of names) { try { await window.WebDavClient.mkcolRecursive(webPath(name)); } catch (_) {} }
-            return;
-        }
         const dir = await ensureDirReady();
         for (const name of names) {
             try { await walkDir(dir, name, true); } catch (_) {}
@@ -212,11 +147,6 @@ window.Storage = (function () {
     }
 
     async function writeFile(filename, data, subdir) {
-        if (mode === 'webdav') {
-            if (subdir) await window.WebDavClient.mkcolRecursive(webPath(subdir));
-            await window.WebDavClient.put(webPath(subdir, filename), data);
-            return;
-        }
         const dir = await targetDir(subdir);
         const fh = await dir.getFileHandle(filename, { create: true });
         const w = await fh.createWritable();
@@ -242,33 +172,11 @@ window.Storage = (function () {
         return dir.getDirectoryHandle(INBOX_FOLDER, { create: !!create });
     }
     async function ensureInbox() {
-        if (mode === 'webdav') {
-            if (!webdavCfg) return;
-            try { await window.WebDavClient.mkcolRecursive(webPath(INBOX_FOLDER)); } catch (_) {}
-            try { await window.WebDavClient.mkcolRecursive(webPath(`${INBOX_FOLDER}/${PROCESSED_FOLDER}`)); } catch (_) {}
-            return;
-        }
         const inbox = await inboxDir(true);
         await inbox.getDirectoryHandle(PROCESSED_FOLDER, { create: true });
     }
     // Lista os arquivos (PDF/imagem) pendentes na Inbox (ignora subpastas)
     async function listInbox() {
-        if (mode === 'webdav') {
-            if (!webdavCfg) return [];
-            let entries;
-            try { entries = await window.WebDavClient.propfind(webPath(INBOX_FOLDER)); } catch (_) { return []; }
-            if (!entries) return [];
-            const out = [];
-            for (const entry of entries) {
-                if (entry.isDir) continue;
-                const m = entry.nome.match(/\.([^.]+)$/);
-                const ext = m ? m[1].toLowerCase() : '';
-                if (!ATTACH_EXTS.includes(ext)) continue;
-                out.push({ name: entry.nome, ext, size: entry.tamanho });
-            }
-            out.sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
-            return out;
-        }
         let inbox; try { inbox = await inboxDir(true); } catch (_) { return []; }
         const out = [];
         for await (const [name, h] of inbox.entries()) {
@@ -284,30 +192,12 @@ window.Storage = (function () {
         return out;
     }
     async function readInboxFile(name) {
-        if (mode === 'webdav') {
-            if (!webdavCfg) return null;
-            return window.WebDavClient.get(webPath(INBOX_FOLDER, name));
-        }
         const inbox = await inboxDir(true);
         const fh = await inbox.getFileHandle(name);
         return fh.getFile();
     }
     // Move o original da Inbox para Processados; sufixa em caso de colisão.
     async function moveInboxToProcessed(name) {
-        if (mode === 'webdav') {
-            if (!webdavCfg) return name;
-            const dot = name.lastIndexOf('.');
-            const base = dot > 0 ? name.slice(0, dot) : name;
-            const ext = dot > 0 ? name.slice(dot) : '';
-            let procEntries;
-            try { procEntries = await window.WebDavClient.propfind(webPath(`${INBOX_FOLDER}/${PROCESSED_FOLDER}`)); } catch (_) { procEntries = null; }
-            const existingNames = new Set((procEntries || []).filter((e) => !e.isDir).map((e) => e.nome));
-            let target = name, n = 2;
-            while (existingNames.has(target)) { target = `${base}-${n}${ext}`; n++; }
-            await window.WebDavClient.mkcolRecursive(webPath(`${INBOX_FOLDER}/${PROCESSED_FOLDER}`));
-            await window.WebDavClient.move(webPath(INBOX_FOLDER, name), webPath(`${INBOX_FOLDER}/${PROCESSED_FOLDER}`, target), false);
-            return target;
-        }
         const inbox = await inboxDir(true);
         const proc = await inbox.getDirectoryHandle(PROCESSED_FOLDER, { create: true });
         const dot = name.lastIndexOf('.');
@@ -331,19 +221,13 @@ window.Storage = (function () {
     async function writeAttachment(basename, fileOrBlob, subdir, ext) {
         ext = (ext || 'pdf').toLowerCase();
         for (const e of ATTACH_EXTS) if (e !== ext) {
-            if (mode === 'webdav') { try { await window.WebDavClient.del(webPath(subdir, `${basename}.${e}`)); } catch (_) {} }
-            else { try { const d = await targetDir(subdir); await d.removeEntry(`${basename}.${e}`); } catch (_) {} }
+            try { const d = await targetDir(subdir); await d.removeEntry(`${basename}.${e}`); } catch (_) {}
         }
         await writeFile(`${basename}.${ext}`, fileOrBlob, subdir);
     }
 
     // Remove um anexo específico (todas as extensões daquele basename).
     async function deleteEntry(basename, subdir) {
-        if (mode === 'webdav') {
-            if (!webdavCfg) return;
-            for (const ext of ATTACH_EXTS) { try { await window.WebDavClient.del(webPath(subdir, `${basename}.${ext}`)); } catch (_) {} }
-            return;
-        }
         if (!dirHandle) return;
         let dir;
         try { dir = await walkDir(dirHandle, subdir, false); } catch (_) { return; }
@@ -354,26 +238,6 @@ window.Storage = (function () {
 
     // Remove todos os arquivos de um item: <id>.json, <id>.<ext> e <id>-*.<ext>.
     async function deleteItemFiles(id, subdir) {
-        if (mode === 'webdav') {
-            if (!webdavCfg) return;
-            let entries;
-            try { entries = await window.WebDavClient.propfind(webPath(subdir)); } catch (_) { return; }
-            if (!entries) return;
-            for (const entry of entries) {
-                if (entry.isDir) continue;
-                const name = entry.nome;
-                let rm = name === `${id}.json`;
-                if (!rm) {
-                    const m = name.match(/^(.*)\.([^.]+)$/);
-                    if (m) {
-                        const base = m[1], ext = m[2].toLowerCase();
-                        rm = (base === id || base.indexOf(id + '-') === 0) && ATTACH_EXTS.includes(ext);
-                    }
-                }
-                if (rm) { try { await window.WebDavClient.del(webPath(subdir, name)); } catch (_) {} }
-            }
-            return;
-        }
         if (!dirHandle) return;
         let dir;
         try { dir = await walkDir(dirHandle, subdir, false); } catch (_) { return; }
@@ -392,28 +256,6 @@ window.Storage = (function () {
     // Move os arquivos de um item (<id>.json, <id>.<ext>, <id>-*.<ext>) de um
     // subdiretório para outro — usado quando a CATEGORIA do item muda.
     async function moveItemFiles(id, fromSubdir, toSubdir) {
-        if (mode === 'webdav') {
-            if (!webdavCfg || fromSubdir === toSubdir) return;
-            let entries;
-            try { entries = await window.WebDavClient.propfind(webPath(fromSubdir)); } catch (_) { return; }
-            if (!entries) return;
-            const names = [];
-            for (const entry of entries) {
-                if (entry.isDir) continue;
-                const name = entry.nome;
-                if (name === `${id}.json`) { names.push(name); continue; }
-                const m = name.match(/^(.*)\.([^.]+)$/);
-                if (!m) continue;
-                const base = m[1], ext = m[2].toLowerCase();
-                if ((base === id || base.indexOf(id + '-') === 0) && ATTACH_EXTS.includes(ext)) names.push(name);
-            }
-            if (!names.length) return;
-            try { await window.WebDavClient.mkcolRecursive(webPath(toSubdir)); } catch (_) {}
-            for (const name of names) {
-                try { await window.WebDavClient.move(webPath(fromSubdir, name), webPath(toSubdir, name), true); } catch (_) { /* se falhar um, segue os demais */ }
-            }
-            return;
-        }
         if (!dirHandle || fromSubdir === toSubdir) return;
         let from;
         try { from = await walkDir(dirHandle, fromSubdir, false); } catch (_) { return; }
@@ -444,13 +286,6 @@ window.Storage = (function () {
     // de categoria removida/renomeada numa migração). Não apaga se houver
     // qualquer arquivo restante, por segurança.
     async function removeSubdirIfEmpty(name) {
-        if (mode === 'webdav') {
-            if (!webdavCfg) return false;
-            let entries;
-            try { entries = await window.WebDavClient.propfind(webPath(name)); } catch (_) { return false; }
-            if (entries === null || entries.length > 0) return false;
-            try { await window.WebDavClient.del(webPath(name)); return true; } catch (_) { return false; }
-        }
         if (!dirHandle) return false;
         let sub;
         try { sub = await dirHandle.getDirectoryHandle(name); } catch (_) { return false; }
@@ -485,15 +320,6 @@ window.Storage = (function () {
     // "Exportação/Lattes XML"), movendo todo o conteúdo — a File System
     // Access API não tem rename nativo. Não faz nada se a pasta antiga não existir.
     async function renameRootFolder(oldName, newPath) {
-        if (mode === 'webdav') {
-            if (!webdavCfg || oldName === newPath) return false;
-            const existsOld = await window.WebDavClient.exists(webPath(oldName));
-            if (!existsOld) return false;
-            const parentSegs = String(newPath).split('/').filter(Boolean);
-            parentSegs.pop();
-            if (parentSegs.length) { try { await window.WebDavClient.mkcolRecursive(webPath(parentSegs.join('/'))); } catch (_) {} }
-            try { await window.WebDavClient.move(webPath(oldName), webPath(newPath), true); return true; } catch (_) { return false; }
-        }
         if (!dirHandle || oldName === newPath) return false;
         let oldHandle;
         try { oldHandle = await dirHandle.getDirectoryHandle(oldName); } catch (_) { return false; }
@@ -506,14 +332,6 @@ window.Storage = (function () {
     // caminho pai (ex.: "00 Processado" -> "Processados" dentro de "Caixa
     // de Entrada"), não na raiz do diretório.
     async function renameNestedFolder(parentPath, oldName, newName) {
-        if (mode === 'webdav') {
-            if (!webdavCfg || oldName === newName) return false;
-            const oldFull = parentPath ? `${parentPath}/${oldName}` : oldName;
-            const newFull = parentPath ? `${parentPath}/${newName}` : newName;
-            const existsOld = await window.WebDavClient.exists(webPath(oldFull));
-            if (!existsOld) return false;
-            try { await window.WebDavClient.move(webPath(oldFull), webPath(newFull), true); return true; } catch (_) { return false; }
-        }
         if (!dirHandle || oldName === newName) return false;
         let parent;
         try { parent = await walkDir(dirHandle, parentPath, false); } catch (_) { return false; }
@@ -526,17 +344,6 @@ window.Storage = (function () {
     }
 
     async function readAttachmentUrl(basename, subdir, ext) {
-        if (mode === 'webdav') {
-            if (!webdavCfg) return null;
-            const tryExts = ext ? [ext.toLowerCase()] : ATTACH_EXTS;
-            for (const e of tryExts) {
-                try {
-                    const blob = await window.WebDavClient.get(webPath(subdir, `${basename}.${e}`));
-                    if (blob) return URL.createObjectURL(blob);
-                } catch (_) { /* tenta próxima */ }
-            }
-            return null;
-        }
         const dir = await ensureDirReady();
         let target;
         try { target = await walkDir(dir, subdir, false); } catch (_) { return null; }
@@ -551,19 +358,8 @@ window.Storage = (function () {
         return null;
     }
 
-    // Devolve o File (ou Blob, em modo WebDAV) de um anexo (para embutir em base64 na página pública).
+    // Devolve o File de um anexo (para embutir em base64 na página pública).
     async function readAttachmentFile(basename, subdir, ext) {
-        if (mode === 'webdav') {
-            if (!webdavCfg) return null;
-            const tryExts = ext ? [ext.toLowerCase()] : ATTACH_EXTS;
-            for (const e of tryExts) {
-                try {
-                    const blob = await window.WebDavClient.get(webPath(subdir, `${basename}.${e}`));
-                    if (blob) return blob;
-                } catch (_) { /* tenta próxima */ }
-            }
-            return null;
-        }
         const dir = await ensureDirReady();
         let target;
         try { target = await walkDir(dir, subdir, false); } catch (_) { return null; }
@@ -577,30 +373,6 @@ window.Storage = (function () {
 
     // Reconstrói o catálogo a partir dos *.json (raiz e subdiretórios de categoria)
     async function scanDirectory() {
-        if (mode === 'webdav') {
-            if (!webdavCfg) return [];
-            const items = [];
-            async function scanOne(relPath) {
-                let entries;
-                try { entries = await window.WebDavClient.propfind(webPath(relPath)); } catch (_) { return; }
-                if (!entries) return;
-                for (const entry of entries) {
-                    if (entry.isDir) {
-                        if (entry.nome === INBOX_FOLDER) continue; // não indexa a bandeja de entrada
-                        await scanOne(relPath ? `${relPath}/${entry.nome}` : entry.nome);
-                    } else if (entry.nome.toLowerCase().endsWith('.json') && entry.nome !== 'catalogo.json' && entry.nome.indexOf('latteszen-') !== 0) {
-                        try {
-                            const blob = await window.WebDavClient.get(webPath(relPath, entry.nome));
-                            if (!blob) continue;
-                            const obj = JSON.parse(await blob.text());
-                            if (obj && obj.id) items.push(obj);
-                        } catch (_) { /* ignora inválidos */ }
-                    }
-                }
-            }
-            await scanOne('');
-            return items;
-        }
         const dir = await ensureDirReady();
         const items = [];
         async function scanOne(handle) {
@@ -653,8 +425,6 @@ window.Storage = (function () {
         // diretório
         chooseDirectory, restoreDirectory, ensureDirReady, hasDirectory,
         directoryName, forgetDirectory, verifyPermission, checkHealth,
-        // WebDAV
-        storageMode, connectWebDAV,
         // arquivos
         writeJson, writeFile, writeAttachment, deleteEntry, deleteItemFiles, moveItemFiles, removeSubdirIfEmpty, renameRootFolder, renameNestedFolder, readAttachmentUrl, readAttachmentFile, scanDirectory, ensureSubdirs,
         // bandeja de entrada (inbox)

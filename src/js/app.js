@@ -165,8 +165,6 @@
         if (problema) {
             const msg = state.dirHealth.reason === 'permission'
                 ? 'Sem permissão de acesso à pasta configurada — os arquivos não estão sendo salvos nela. Verifique em Configurações.'
-                : state.dirHealth.reason === 'network'
-                ? 'Não foi possível conectar ao servidor WebDAV — verifique sua internet ou se o servidor permite acesso a partir deste site (CORS). Os arquivos não estão sendo salvos nele.'
                 : 'A pasta configurada não foi encontrada (pode ter sido movida, renomeada ou apagada) — os arquivos não estão sendo salvos nela.';
             const el = $('#dirHealthMsg'); if (el) el.textContent = msg;
         }
@@ -177,8 +175,6 @@
         if (state.dirHealth.ok) return `<span class="text-green-700 dark:text-green-400"><i aria-hidden="true" class="fa-solid fa-circle-check mr-1"></i> Acessível.</span>`;
         const msg = state.dirHealth.reason === 'permission'
             ? 'Sem permissão de acesso — clique em "Verificar pasta" para conceder novamente.'
-            : state.dirHealth.reason === 'network'
-            ? 'Falha de conexão com o servidor WebDAV — verifique sua internet ou se o servidor permite acesso a partir deste site (CORS).'
             : 'Pasta não encontrada — pode ter sido movida, renomeada ou apagada.';
         return `<span class="text-red-700 dark:text-red-400"><i aria-hidden="true" class="fa-solid fa-triangle-exclamation mr-1"></i> ${esc(msg)}</span>`;
     }
@@ -3927,7 +3923,6 @@
         updateHeaderIdentity(); // reflete edições no nome (Identificação, import, limpar catálogo…)
         const panel = $('#tab-config');
         const dirName = Storage.hasDirectory() ? await Storage.directoryName() : null;
-        const storageMode = Storage.storageMode();
         // Reconfere a saúde da pasta (silencioso) toda vez que a aba é aberta,
         // pra manter o status em dia sem precisar clicar em "Verificar pasta".
         if (Storage.hasDirectory()) await checkDirHealth();
@@ -3949,26 +3944,6 @@
                         <button id="btnSync" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-rotate mr-1"></i> Sincronizar do diretório</button>
                         ${dirName ? `<button id="btnCheckDir" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-stethoscope mr-1"></i> Verificar pasta</button>` : ''}
                         <button id="btnForget" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-link-slash mr-1"></i> Esquecer pasta</button>
-                    </div>
-                    <div class="mt-4 pt-3 border-t border-gray-200 dark:border-gray-700">
-                        <h3 class="text-sm font-bold mb-1">Armazenamento remoto (WebDAV — Koofr)</h3>
-                        <p class="text-xs text-gray-500 mb-2">
-                            Alternativa à pasta local: os arquivos ficam numa conta <a href="https://app.koofr.net/" target="_blank" rel="noopener" class="underline">Koofr</a> via WebDAV, acessível de mais de um dispositivo.
-                            Use uma <strong>senha de aplicativo</strong>, gerada em
-                            <a href="https://app.koofr.net/app/admin/preferences/password" target="_blank" rel="noopener" class="underline">Preferências → Senha → Senhas de aplicativo</a>
-                            — nunca a senha principal da conta (cada nova conexão exige uma senha de aplicativo própria).
-                            <span class="text-amber-700 dark:text-amber-400">Depende do servidor permitir acesso a partir deste site (CORS); se a conexão falhar de forma persistente, pode ser essa a causa.</span>
-                        </p>
-                        <div class="grid sm:grid-cols-2 gap-2 mb-2">
-                            <input id="webdavUser" type="text" placeholder="E-mail da conta Koofr" class="text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900" autocomplete="username">
-                            <input id="webdavPass" type="password" placeholder="Senha de aplicativo" class="text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900" autocomplete="new-password">
-                            <input id="webdavPasta" type="text" placeholder="Pasta (ex.: lattesZen)" value="lattesZen" class="text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 sm:col-span-2">
-                        </div>
-                        <div class="flex flex-wrap gap-2 items-center">
-                            <button id="btnWebdavConnect" class="px-3 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm"><i class="fa-solid fa-cloud mr-1"></i> Conectar ao Koofr</button>
-                            ${storageMode === 'webdav' ? `<span class="text-xs text-green-700 dark:text-green-400"><i class="fa-solid fa-circle-check mr-1"></i> Este é o armazenamento em uso.</span>` : ''}
-                        </div>
-                        <div id="webdavStatus" class="text-sm mt-2"></div>
                     </div>
                     <div class="mt-4 pt-3 border-t border-gray-200 dark:border-gray-700">
                         <h3 class="text-sm font-bold mb-1">Prefixo do identificador dos arquivos</h3>
@@ -4125,35 +4100,6 @@
             if (state.dirHealth && state.dirHealth.ok) toast('Pasta acessível.', 'ok');
             else toast('Não foi possível acessar a pasta — verifique se ela ainda existe e se a permissão foi concedida.', 'erro');
             renderConfig();
-        });
-        const btnWebdavConnect = $('#btnWebdavConnect');
-        if (btnWebdavConnect) btnWebdavConnect.addEventListener('click', async () => {
-            const username = $('#webdavUser').value.trim();
-            const password = $('#webdavPass').value;
-            const pasta = $('#webdavPasta').value.trim() || 'lattesZen';
-            const statusEl = $('#webdavStatus');
-            btnWebdavConnect.disabled = true;
-            if (statusEl) statusEl.innerHTML = '<span class="text-gray-500">Conectando…</span>';
-            try {
-                await Storage.connectWebDAV({ baseUrl: 'https://app.koofr.net/dav/Koofr', username, password, pasta });
-                await Storage.ensureSubdirs(LattesTypes.allFolders()); // cria a estrutura de pastas
-                try { await Storage.ensureInbox(); } catch (_) {}      // cria "Caixa de Entrada" / "Processados"
-                state.dirHealth = null; // acabou de conectar; revalidada no próximo render
-                let msg = 'Conectado ao Koofr via WebDAV (estrutura de pastas criada).';
-                try {
-                    const { encontrados } = await syncFromDirectory();
-                    msg += encontrados
-                        ? ` ${encontrados} item(ns) já cadastrado(s) na pasta foram sincronizados automaticamente.`
-                        : ' Pasta vazia — pronta para uso.';
-                } catch (_) {}
-                toast(msg, 'ok');
-                renderItemList();
-                renderConfig();
-            } catch (e) {
-                if (statusEl) statusEl.innerHTML = `<span class="text-red-700 dark:text-red-400"><i aria-hidden="true" class="fa-solid fa-triangle-exclamation mr-1"></i> ${esc(e.message)}</span>`;
-                toast('Falha ao conectar: ' + e.message, 'erro');
-                btnWebdavConnect.disabled = false;
-            }
         });
 
         $('#btnExport').addEventListener('click', exportCatalog);
