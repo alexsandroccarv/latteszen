@@ -3954,7 +3954,9 @@
                         <h3 class="text-sm font-bold mb-1">Armazenamento remoto (WebDAV — Koofr)</h3>
                         <p class="text-xs text-gray-500 mb-2">
                             Alternativa à pasta local: os arquivos ficam numa conta <a href="https://app.koofr.net/" target="_blank" rel="noopener" class="underline">Koofr</a> via WebDAV, acessível de mais de um dispositivo.
-                            Use uma <strong>senha de aplicativo</strong> (Koofr → Preferências → Senha → Senhas de aplicativo), nunca a senha principal da conta.
+                            Use uma <strong>senha de aplicativo</strong>, gerada em
+                            <a href="https://app.koofr.net/app/admin/preferences/password" target="_blank" rel="noopener" class="underline">Preferências → Senha → Senhas de aplicativo</a>
+                            — nunca a senha principal da conta (cada nova conexão exige uma senha de aplicativo própria).
                             <span class="text-amber-700 dark:text-amber-400">Depende do servidor permitir acesso a partir deste site (CORS); se a conexão falhar de forma persistente, pode ser essa a causa.</span>
                         </p>
                         <div class="grid sm:grid-cols-2 gap-2 mb-2">
