@@ -17,6 +17,7 @@ import './specs/importar-orcid.mjs';
 import './specs/crossref-doi.mjs';
 import './specs/importar-bibtex-ris.mjs';
 import './specs/exportar-bibtex-ris.mjs';
+import './specs/webdav-koofr.mjs';
 
 console.log('Rodando suíte de testes de regressão (Playwright)...\n');
 await runAll();
