@@ -31,6 +31,7 @@
         idPrefix: 'lz',     // prefixo do ID dos arquivos (configurável, até 3 chars)
         rscEnabled: false,  // módulo RSC-PCCTAE habilitado?
         rscCfg: {},         // dados funcionais do servidor (cargo, escolaridade, etc.)
+        dirHealth: null,    // último resultado de Storage.checkHealth() (null = sem pasta/não verificado)
     };
 
     /* --------------------------- Utilidades ----------------------------- */
@@ -143,6 +144,37 @@
             toast('Não foi possível salvar a lixeira (armazenamento cheio).', 'erro');
             return false;
         }
+    }
+
+    // Verifica se a pasta configurada continua acessível (permissão + a pasta
+    // ainda existir de fato) e atualiza o aviso persistente no topo da página.
+    // { requestIfNeeded: true } só a partir de um clique do usuário (gesto) —
+    // é o que reabre o prompt nativo do navegador para reconceder permissão.
+    async function checkDirHealth(opts) {
+        if (!Storage.hasDirectory()) { state.dirHealth = null; renderDirBanner(); return; }
+        state.dirHealth = await Storage.checkHealth(opts);
+        renderDirBanner();
+    }
+    function renderDirBanner() {
+        const banner = $('#dirHealthBanner');
+        if (!banner) return;
+        const problema = state.dirHealth && state.dirHealth.ok === false;
+        banner.classList.toggle('hidden', !problema);
+        if (problema) {
+            const msg = state.dirHealth.reason === 'permission'
+                ? 'Sem permissão de acesso à pasta configurada — os arquivos não estão sendo salvos nela. Verifique em Configurações.'
+                : 'A pasta configurada não foi encontrada (pode ter sido movida, renomeada ou apagada) — os arquivos não estão sendo salvos nela.';
+            const el = $('#dirHealthMsg'); if (el) el.textContent = msg;
+        }
+    }
+    // Texto de status usado na seção "Diretório de arquivos" em Configurações.
+    function dirHealthStatusHtml() {
+        if (!state.dirHealth) return `<span class="text-gray-500"><i aria-hidden="true" class="fa-solid fa-circle-question mr-1"></i> Ainda não verificado.</span>`;
+        if (state.dirHealth.ok) return `<span class="text-green-700 dark:text-green-400"><i aria-hidden="true" class="fa-solid fa-circle-check mr-1"></i> Acessível.</span>`;
+        const msg = state.dirHealth.reason === 'permission'
+            ? 'Sem permissão de acesso — clique em "Verificar pasta" para conceder novamente.'
+            : 'Pasta não encontrada — pode ter sido movida, renomeada ou apagada.';
+        return `<span class="text-red-700 dark:text-red-400"><i aria-hidden="true" class="fa-solid fa-triangle-exclamation mr-1"></i> ${esc(msg)}</span>`;
     }
     function saveVocab() {
         const s = Storage.loadSettings();
@@ -3215,6 +3247,9 @@
         updateHeaderIdentity(); // reflete edições no nome (Identificação, import, limpar catálogo…)
         const panel = $('#tab-config');
         const dirName = Storage.hasDirectory() ? await Storage.directoryName() : null;
+        // Reconfere a saúde da pasta (silencioso) toda vez que a aba é aberta,
+        // pra manter o status em dia sem precisar clicar em "Verificar pasta".
+        if (Storage.hasDirectory()) await checkDirHealth();
 
         panel.innerHTML = `
             <div class="space-y-6 max-w-2xl">
@@ -3226,10 +3261,12 @@
                         <code class="text-xs bg-gray-200 dark:bg-gray-700 px-1 rounded">ID.json</code>.
                         ${Storage.supportsFS ? '' : '<span class="text-red-600 font-semibold">Seu navegador não suporta esta função — use Chrome ou Edge.</span>'}
                     </p>
-                    <p class="text-sm mb-3">Pasta atual: <strong id="dirNameLbl">${dirName ? esc(dirName) : '<em>nenhuma</em>'}</strong></p>
+                    <p class="text-sm mb-1">Pasta atual: <strong id="dirNameLbl">${dirName ? esc(dirName) : '<em>nenhuma</em>'}</strong></p>
+                    ${dirName ? `<p class="text-sm mb-3" id="dirHealthStatus">${dirHealthStatusHtml()}</p>` : ''}
                     <div class="flex flex-wrap gap-2">
                         <button id="btnChooseDir" class="px-3 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm" ${Storage.supportsFS ? '' : 'disabled'}><i class="fa-solid fa-folder mr-1"></i> Escolher pasta</button>
                         <button id="btnSync" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-rotate mr-1"></i> Sincronizar do diretório</button>
+                        ${dirName ? `<button id="btnCheckDir" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-stethoscope mr-1"></i> Verificar pasta</button>` : ''}
                         <button id="btnForget" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-link-slash mr-1"></i> Esquecer pasta</button>
                     </div>
                     <div class="mt-4 pt-3 border-t border-gray-200 dark:border-gray-700">
@@ -3364,7 +3401,14 @@
                 renderItemList();
             } catch (e) { toast(e.message, 'erro'); }
         });
-        $('#btnForget').addEventListener('click', async () => { await Storage.forgetDirectory(); toast('Pasta esquecida.', 'ok'); renderConfig(); });
+        $('#btnForget').addEventListener('click', async () => { await Storage.forgetDirectory(); state.dirHealth = null; renderDirBanner(); toast('Pasta esquecida.', 'ok'); renderConfig(); });
+        const btnCheckDir = $('#btnCheckDir');
+        if (btnCheckDir) btnCheckDir.addEventListener('click', async () => {
+            await checkDirHealth({ requestIfNeeded: true });
+            if (state.dirHealth && state.dirHealth.ok) toast('Pasta acessível.', 'ok');
+            else toast('Não foi possível acessar a pasta — verifique se ela ainda existe e se a permissão foi concedida.', 'erro');
+            renderConfig();
+        });
 
         $('#btnExport').addEventListener('click', exportCatalog);
         $('#importJson').addEventListener('change', importCatalog);
@@ -4223,6 +4267,12 @@
         $('#lastModDate').textContent = APP_CONFIG.lastModified;
 
         wireFooterToggles();
+        const dirHealthGoto = $('#dirHealthGoto');
+        if (dirHealthGoto) dirHealthGoto.addEventListener('click', () => {
+            switchTab('config');
+            const sec = $('#dirSection');
+            if (sec) sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
 
         // Carrega catálogo, vocabulários e restaura diretório
         state.items = Storage.loadCatalog();
@@ -4241,6 +4291,7 @@
         updateHeaderIdentity();
         applyRscVisibility();
         try { await Storage.restoreDirectory(); } catch (_) {}
+        try { await checkDirHealth(); } catch (_) {} // silencioso: sem pedir permissão de novo sem um clique do usuário
         try { await purgeOldTrash(); } catch (_) {}
         // Move os arquivos das Conexões migradas da pasta antiga (98) p/ Dados gerais (01)
         if (conexoesMigradas.length && Storage.hasDirectory()) {

@@ -87,6 +87,32 @@ window.Storage = (function () {
     function hasDirectory() { return !!dirHandle; }
     async function directoryName() { return dirHandle ? dirHandle.name : null; }
 
+    // Verifica se a pasta configurada ainda está acessível de verdade — não
+    // só se HÁ um handle guardado, mas se a permissão continua concedida e se
+    // a pasta em si ainda existe no disco (pode ter sido movida, renomeada ou
+    // apagada fora do navegador, o que não revoga a permissão sozinho).
+    // { requestIfNeeded: true } reprograma a permissão (mostra o prompt do
+    // navegador) — só use isso a partir de um clique do usuário (gesto),
+    // nunca em checagem automática (silenciosa) ao abrir o app.
+    async function checkHealth(opts) {
+        opts = opts || {};
+        if (!dirHandle) return { ok: true, hasDir: false };
+        try {
+            let perm = await dirHandle.queryPermission({ mode: 'readwrite' });
+            if (perm !== 'granted' && opts.requestIfNeeded) {
+                perm = await dirHandle.requestPermission({ mode: 'readwrite' });
+            }
+            if (perm !== 'granted') return { ok: false, hasDir: true, reason: 'permission' };
+        } catch (e) {
+            return { ok: false, hasDir: true, reason: 'permission', message: e.message };
+        }
+        // Sondagem leve, só de leitura: se a pasta em si não existir mais,
+        // isso falha (ex.: NotFoundError) mesmo com a permissão concedida.
+        try { await dirHandle.values().next(); }
+        catch (e) { return { ok: false, hasDir: true, reason: 'missing', message: e.message }; }
+        return { ok: true, hasDir: true };
+    }
+
     async function forgetDirectory() {
         dirHandle = null;
         await idbDel(IDB_KEY);
@@ -398,7 +424,7 @@ window.Storage = (function () {
         supportsFS,
         // diretório
         chooseDirectory, restoreDirectory, ensureDirReady, hasDirectory,
-        directoryName, forgetDirectory, verifyPermission,
+        directoryName, forgetDirectory, verifyPermission, checkHealth,
         // arquivos
         writeJson, writeFile, writeAttachment, deleteEntry, deleteItemFiles, moveItemFiles, removeSubdirIfEmpty, renameRootFolder, renameNestedFolder, readAttachmentUrl, readAttachmentFile, scanDirectory, ensureSubdirs,
         // bandeja de entrada (inbox)

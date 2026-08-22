@@ -106,6 +106,13 @@
         </nav>
     </header>
 
+    <!-- Aviso persistente: pasta configurada inacessível (permissão perdida ou
+         movida/renomeada/apagada fora do app) — ver Storage.checkHealth(). -->
+    <div id="dirHealthBanner" class="hidden print:hidden bg-red-600 text-white text-sm px-4 py-2 flex items-center justify-center gap-3 flex-wrap text-center">
+        <span class="flex items-center gap-2"><i aria-hidden="true" class="fa-solid fa-triangle-exclamation"></i> <span id="dirHealthMsg"></span></span>
+        <button type="button" id="dirHealthGoto" class="underline whitespace-nowrap font-semibold">Verificar em Configurações</button>
+    </div>
+
     <!-- ============================ CONTEÚDO ============================ -->
     <main class="flex-1 w-full max-w-[1498px] mx-auto px-4 py-6">
         <div id="tab-inicio"       class="tab-panel" role="tabpanel"></div>
