@@ -22,4 +22,25 @@ window.APP_CONFIG = {
         theme: 'tema',
         highContrast: 'altoContraste',
     },
+    // Google Drive (armazenamento remoto opcional, alternativo à pasta local).
+    // Client ID OAuth do Google Cloud Console — não é segredo, pode ficar aqui
+    // (é assim que funciona OAuth para apps sem backend). Passo a passo pra
+    // gerar o seu:
+    //   1. https://console.cloud.google.com/ → crie um projeto (ou reaproveite um).
+    //   2. "APIs e serviços" → "Biblioteca" → habilite a "Google Drive API".
+    //   3. "APIs e serviços" → "Tela de consentimento OAuth" → tipo "Externo";
+    //      preencha nome do app e e-mail de suporte; em "Escopos", adicione
+    //      https://www.googleapis.com/auth/drive.file (escopo não-sensível —
+    //      só exige verificação básica do Google se passar de 100 usuários de
+    //      teste, não a avaliação de segurança pesada dos escopos restritos).
+    //   4. "Credenciais" → "Criar credenciais" → "ID do cliente OAuth" → tipo
+    //      "Aplicativo da Web"; em "Origens JavaScript autorizadas", adicione
+    //      o domínio onde o lattesZen está publicado (ex.: https://seusite.com)
+    //      e, se for testar localmente, http://localhost:PORTA.
+    //   5. Copie o "Client ID" gerado (algo como "123...-abc....apps.googleusercontent.com")
+    //      e cole abaixo. Não precisa do "Client Secret" — este app não usa
+    //      backend, a autenticação é toda feita do navegador direto pro Google.
+    // Enquanto ficar vazio, a seção "Google Drive" em Configurações aparece
+    // desabilitada com um aviso, em vez de quebrar.
+    googleDriveClientId: (typeof window !== 'undefined' && window.__LZ_TEST_GDRIVE_CLIENT_ID) || '',
 };

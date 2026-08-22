@@ -163,9 +163,12 @@
         const problema = state.dirHealth && state.dirHealth.ok === false;
         banner.classList.toggle('hidden', !problema);
         if (problema) {
+            const gdrive = Storage.storageMode() === 'gdrive';
             const msg = state.dirHealth.reason === 'permission'
-                ? 'Sem permissão de acesso à pasta configurada — os arquivos não estão sendo salvos nela. Verifique em Configurações.'
-                : 'A pasta configurada não foi encontrada (pode ter sido movida, renomeada ou apagada) — os arquivos não estão sendo salvos nela.';
+                ? (gdrive ? 'Sessão do Google Drive expirada ou acesso revogado — reconecte em Configurações.' : 'Sem permissão de acesso à pasta configurada — os arquivos não estão sendo salvos nela. Verifique em Configurações.')
+                : state.dirHealth.reason === 'network'
+                ? 'Não foi possível conectar ao armazenamento remoto — verifique sua conexão com a internet.'
+                : (gdrive ? 'A pasta do lattesZen não foi encontrada no Google Drive (pode ter sido movida ou excluída).' : 'A pasta configurada não foi encontrada (pode ter sido movida, renomeada ou apagada) — os arquivos não estão sendo salvos nela.');
             const el = $('#dirHealthMsg'); if (el) el.textContent = msg;
         }
     }
@@ -173,9 +176,12 @@
     function dirHealthStatusHtml() {
         if (!state.dirHealth) return `<span class="text-gray-500"><i aria-hidden="true" class="fa-solid fa-circle-question mr-1"></i> Ainda não verificado.</span>`;
         if (state.dirHealth.ok) return `<span class="text-green-700 dark:text-green-400"><i aria-hidden="true" class="fa-solid fa-circle-check mr-1"></i> Acessível.</span>`;
+        const gdrive = Storage.storageMode() === 'gdrive';
         const msg = state.dirHealth.reason === 'permission'
-            ? 'Sem permissão de acesso — clique em "Verificar pasta" para conceder novamente.'
-            : 'Pasta não encontrada — pode ter sido movida, renomeada ou apagada.';
+            ? (gdrive ? 'Sessão expirada ou acesso revogado — clique em "Conectar ao Google Drive" novamente.' : 'Sem permissão de acesso — clique em "Verificar pasta" para conceder novamente.')
+            : state.dirHealth.reason === 'network'
+            ? 'Falha de conexão com o armazenamento remoto — verifique sua internet.'
+            : (gdrive ? 'Pasta não encontrada no Google Drive — pode ter sido movida ou excluída.' : 'Pasta não encontrada — pode ter sido movida, renomeada ou apagada.');
         return `<span class="text-red-700 dark:text-red-400"><i aria-hidden="true" class="fa-solid fa-triangle-exclamation mr-1"></i> ${esc(msg)}</span>`;
     }
     function saveVocab() {
@@ -3923,6 +3929,7 @@
         updateHeaderIdentity(); // reflete edições no nome (Identificação, import, limpar catálogo…)
         const panel = $('#tab-config');
         const dirName = Storage.hasDirectory() ? await Storage.directoryName() : null;
+        const storageMode = Storage.storageMode();
         // Reconfere a saúde da pasta (silencioso) toda vez que a aba é aberta,
         // pra manter o status em dia sem precisar clicar em "Verificar pasta".
         if (Storage.hasDirectory()) await checkDirHealth();
@@ -3944,6 +3951,22 @@
                         <button id="btnSync" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-rotate mr-1"></i> Sincronizar do diretório</button>
                         ${dirName ? `<button id="btnCheckDir" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-stethoscope mr-1"></i> Verificar pasta</button>` : ''}
                         <button id="btnForget" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-link-slash mr-1"></i> Esquecer pasta</button>
+                    </div>
+                    <div class="mt-4 pt-3 border-t border-gray-200 dark:border-gray-700">
+                        <h3 class="text-sm font-bold mb-1">Armazenamento remoto (Google Drive)</h3>
+                        <p class="text-xs text-gray-500 mb-2">
+                            Alternativa à pasta local: os arquivos ficam numa pasta dedicada no seu Google Drive, acessível de mais de um dispositivo.
+                            O lattesZen só acessa os arquivos que ele mesmo cria (escopo <code class="bg-gray-200 dark:bg-gray-700 px-1 rounded">drive.file</code>) — nunca o restante do seu Drive.
+                            ${APP_CONFIG.googleDriveClientId ? '' : '<span class="text-red-600 font-semibold">Recurso ainda não configurado neste site (falta o Client ID do Google Cloud Console em config.js).</span>'}
+                        </p>
+                        <div class="flex flex-wrap gap-2 mb-2">
+                            <input id="gdrivePasta" type="text" placeholder="Pasta (ex.: lattesZen)" value="lattesZen" ${storageMode === 'gdrive' ? 'disabled' : ''} class="text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900">
+                        </div>
+                        <div class="flex flex-wrap gap-2 items-center">
+                            <button id="btnGDriveConnect" class="px-3 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm" ${APP_CONFIG.googleDriveClientId ? '' : 'disabled'}><i class="fa-brands fa-google mr-1"></i> Conectar ao Google Drive</button>
+                            ${storageMode === 'gdrive' ? `<span class="text-xs text-green-700 dark:text-green-400"><i class="fa-solid fa-circle-check mr-1"></i> Este é o armazenamento em uso.</span>` : ''}
+                        </div>
+                        <div id="gdriveStatus" class="text-sm mt-2"></div>
                     </div>
                     <div class="mt-4 pt-3 border-t border-gray-200 dark:border-gray-700">
                         <h3 class="text-sm font-bold mb-1">Prefixo do identificador dos arquivos</h3>
@@ -4100,6 +4123,33 @@
             if (state.dirHealth && state.dirHealth.ok) toast('Pasta acessível.', 'ok');
             else toast('Não foi possível acessar a pasta — verifique se ela ainda existe e se a permissão foi concedida.', 'erro');
             renderConfig();
+        });
+        const btnGDriveConnect = $('#btnGDriveConnect');
+        if (btnGDriveConnect) btnGDriveConnect.addEventListener('click', async () => {
+            const pasta = $('#gdrivePasta').value.trim() || 'lattesZen';
+            const statusEl = $('#gdriveStatus');
+            btnGDriveConnect.disabled = true;
+            if (statusEl) statusEl.innerHTML = '<span class="text-gray-500">Conectando… (autorize na janela do Google)</span>';
+            try {
+                await Storage.connectGoogleDrive({ pasta });
+                await Storage.ensureSubdirs(LattesTypes.allFolders()); // cria a estrutura de pastas
+                try { await Storage.ensureInbox(); } catch (_) {}      // cria "Caixa de Entrada" / "Processados"
+                state.dirHealth = null; // acabou de conectar; revalidada no próximo render
+                let msg = 'Conectado ao Google Drive (estrutura de pastas criada).';
+                try {
+                    const { encontrados } = await syncFromDirectory();
+                    msg += encontrados
+                        ? ` ${encontrados} item(ns) já cadastrado(s) na pasta foram sincronizados automaticamente.`
+                        : ' Pasta vazia — pronta para uso.';
+                } catch (_) {}
+                toast(msg, 'ok');
+                renderItemList();
+                renderConfig();
+            } catch (e) {
+                if (statusEl) statusEl.innerHTML = `<span class="text-red-700 dark:text-red-400"><i aria-hidden="true" class="fa-solid fa-triangle-exclamation mr-1"></i> ${esc(e.message)}</span>`;
+                toast('Falha ao conectar: ' + e.message, 'erro');
+                btnGDriveConnect.disabled = false;
+            }
         });
 
         $('#btnExport').addEventListener('click', exportCatalog);

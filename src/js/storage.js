@@ -54,6 +54,56 @@ window.Storage = (function () {
 
     const supportsFS = 'showDirectoryPicker' in window;
 
+    /* ---------------- Google Drive (alternativa à pasta local) -------------
+       `mode` decide qual back-end os métodos de arquivo abaixo usam. Em modo
+       'gdrive', `gdriveCfg` guarda { pasta, rootFolderId, folderCache } — o
+       Drive não tem "caminho" de verdade (só relações pai/filho por ID), por
+       isso o cache: evita relistar/recriar a mesma cadeia de pastas a cada
+       operação. Persiste em settings; o token de acesso em si NUNCA é salvo
+       (fica só em memória, renovado via GDriveClient quando preciso).
+       ------------------------------------------------------------------- */
+    let mode = 'local'; // 'local' | 'gdrive'
+    let gdriveCfg = null;
+    function storageMode() { return mode; }
+    function persistGDriveConfig() {
+        const s = loadSettings();
+        s.gdrive = { pasta: gdriveCfg.pasta, rootFolderId: gdriveCfg.rootFolderId, folderCache: gdriveCfg.folderCache };
+        saveSettings(s);
+    }
+    // Resolve o ID da pasta correspondente a um caminho relativo à pasta raiz
+    // (ex.: "Evidências/01 Dados gerais"), criando cada segmento se `create`.
+    // Usa e alimenta o cache por caminho completo (e por prefixo, ao longo do
+    // caminho) para não repetir buscas já feitas.
+    async function resolveFolder(path, create) {
+        if (!path) return gdriveCfg.rootFolderId;
+        const cache = gdriveCfg.folderCache;
+        if (cache[path]) return cache[path];
+        const segs = String(path).split('/').filter(Boolean);
+        let parentId = gdriveCfg.rootFolderId;
+        let acumulado = '';
+        for (const seg of segs) {
+            acumulado = acumulado ? `${acumulado}/${seg}` : seg;
+            if (cache[acumulado]) { parentId = cache[acumulado]; continue; }
+            const id = create ? await window.GDriveClient.ensureFolder(parentId, seg) : await window.GDriveClient.findFolder(parentId, seg);
+            if (!id) return null;
+            cache[acumulado] = id;
+            parentId = id;
+        }
+        persistGDriveConfig();
+        return parentId;
+    }
+    async function connectGoogleDrive(cfg) {
+        const pasta = String((cfg && cfg.pasta) || '').trim() || 'lattesZen';
+        window.GDriveClient.configure(APP_CONFIG.googleDriveClientId);
+        await window.GDriveClient.connectInteractive(); // abre o consentimento do Google
+        await window.GDriveClient.testConnection();
+        const rootFolderId = await window.GDriveClient.ensureFolder('root', pasta);
+        gdriveCfg = { pasta, rootFolderId, folderCache: {} };
+        mode = 'gdrive';
+        persistGDriveConfig();
+        return gdriveCfg;
+    }
+
     async function verifyPermission(handle, readWrite = true) {
         const opts = { mode: readWrite ? 'readwrite' : 'read' };
         if ((await handle.queryPermission(opts)) === 'granted') return true;
@@ -65,15 +115,25 @@ window.Storage = (function () {
         if (!supportsFS) throw new Error('Navegador sem suporte à File System Access API (use Chrome ou Edge).');
         const handle = await window.showDirectoryPicker({ mode: 'readwrite' });
         dirHandle = handle;
+        mode = 'local';
         await idbSet(IDB_KEY, handle);
         return handle;
     }
 
-    // Restaura o handle salvo (sem pedir permissão automaticamente)
+    // Restaura a config salva (pasta local OU Google Drive), sem pedir
+    // permissão/reautenticar automaticamente. Drive tem prioridade se ambos
+    // estiverem salvos (não deveria acontecer via UI normal).
     async function restoreDirectory() {
+        const s = loadSettings();
+        if (s.gdrive && s.gdrive.rootFolderId) {
+            gdriveCfg = { pasta: s.gdrive.pasta, rootFolderId: s.gdrive.rootFolderId, folderCache: s.gdrive.folderCache || {} };
+            mode = 'gdrive';
+            window.GDriveClient.configure(APP_CONFIG.googleDriveClientId);
+            return gdriveCfg;
+        }
         if (!supportsFS) return null;
         const handle = await idbGet(IDB_KEY);
-        if (handle) dirHandle = handle;
+        if (handle) { dirHandle = handle; mode = 'local'; }
         return handle || null;
     }
 
@@ -84,8 +144,11 @@ window.Storage = (function () {
         return dirHandle;
     }
 
-    function hasDirectory() { return !!dirHandle; }
-    async function directoryName() { return dirHandle ? dirHandle.name : null; }
+    function hasDirectory() { return mode === 'gdrive' ? !!gdriveCfg : !!dirHandle; }
+    async function directoryName() {
+        if (mode === 'gdrive') return gdriveCfg ? `Google Drive — /${gdriveCfg.pasta}` : null;
+        return dirHandle ? dirHandle.name : null;
+    }
 
     // Verifica se a pasta configurada ainda está acessível de verdade — não
     // só se HÁ um handle guardado, mas se a permissão continua concedida e se
@@ -96,6 +159,17 @@ window.Storage = (function () {
     // nunca em checagem automática (silenciosa) ao abrir o app.
     async function checkHealth(opts) {
         opts = opts || {};
+        if (mode === 'gdrive') {
+            if (!gdriveCfg) return { ok: true, hasDir: false };
+            try {
+                await window.GDriveClient.testConnection();
+                return { ok: true, hasDir: true };
+            } catch (e) {
+                if (e.status === 401 || e.status === 403) return { ok: false, hasDir: true, reason: 'permission', message: e.message };
+                if (e.isNetworkError) return { ok: false, hasDir: true, reason: 'network', message: e.message };
+                return { ok: false, hasDir: true, reason: 'missing', message: e.message };
+            }
+        }
         if (!dirHandle) return { ok: true, hasDir: false };
         try {
             let perm = await dirHandle.queryPermission({ mode: 'readwrite' });
@@ -114,6 +188,13 @@ window.Storage = (function () {
     }
 
     async function forgetDirectory() {
+        if (mode === 'gdrive') {
+            window.GDriveClient.disconnect();
+            gdriveCfg = null;
+            const s = loadSettings(); delete s.gdrive; saveSettings(s);
+            mode = 'local';
+            return;
+        }
         dirHandle = null;
         await idbDel(IDB_KEY);
     }
@@ -134,6 +215,10 @@ window.Storage = (function () {
     // Cria os subdiretórios (um por categoria) dentro da pasta escolhida.
     // Cada nome pode ser um caminho com "/" (ex.: "Evidências/01 Dados gerais").
     async function ensureSubdirs(names) {
+        if (mode === 'gdrive') {
+            for (const name of names) { try { await resolveFolder(name, true); } catch (_) {} }
+            return;
+        }
         const dir = await ensureDirReady();
         for (const name of names) {
             try { await walkDir(dir, name, true); } catch (_) {}
@@ -147,6 +232,11 @@ window.Storage = (function () {
     }
 
     async function writeFile(filename, data, subdir) {
+        if (mode === 'gdrive') {
+            const parentId = await resolveFolder(subdir, true);
+            await window.GDriveClient.upsertFile(parentId, filename, data);
+            return;
+        }
         const dir = await targetDir(subdir);
         const fh = await dir.getFileHandle(filename, { create: true });
         const w = await fh.createWritable();
@@ -172,11 +262,33 @@ window.Storage = (function () {
         return dir.getDirectoryHandle(INBOX_FOLDER, { create: !!create });
     }
     async function ensureInbox() {
+        if (mode === 'gdrive') {
+            if (!gdriveCfg) return;
+            try { await resolveFolder(INBOX_FOLDER, true); } catch (_) {}
+            try { await resolveFolder(`${INBOX_FOLDER}/${PROCESSED_FOLDER}`, true); } catch (_) {}
+            return;
+        }
         const inbox = await inboxDir(true);
         await inbox.getDirectoryHandle(PROCESSED_FOLDER, { create: true });
     }
     // Lista os arquivos (PDF/imagem) pendentes na Inbox (ignora subpastas)
     async function listInbox() {
+        if (mode === 'gdrive') {
+            if (!gdriveCfg) return [];
+            const parentId = await resolveFolder(INBOX_FOLDER, false);
+            if (!parentId) return [];
+            let children; try { children = await window.GDriveClient.listChildren(parentId); } catch (_) { return []; }
+            const out = [];
+            for (const child of children) {
+                if (child.isDir) continue;
+                const m = child.name.match(/\.([^.]+)$/);
+                const ext = m ? m[1].toLowerCase() : '';
+                if (!ATTACH_EXTS.includes(ext)) continue;
+                out.push({ name: child.name, ext, size: child.size });
+            }
+            out.sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
+            return out;
+        }
         let inbox; try { inbox = await inboxDir(true); } catch (_) { return []; }
         const out = [];
         for await (const [name, h] of inbox.entries()) {
@@ -192,12 +304,36 @@ window.Storage = (function () {
         return out;
     }
     async function readInboxFile(name) {
+        if (mode === 'gdrive') {
+            if (!gdriveCfg) return null;
+            const parentId = await resolveFolder(INBOX_FOLDER, false);
+            if (!parentId) return null;
+            const fileId = await window.GDriveClient.findFile(parentId, name);
+            return fileId ? window.GDriveClient.getFileContent(fileId) : null;
+        }
         const inbox = await inboxDir(true);
         const fh = await inbox.getFileHandle(name);
         return fh.getFile();
     }
     // Move o original da Inbox para Processados; sufixa em caso de colisão.
     async function moveInboxToProcessed(name) {
+        if (mode === 'gdrive') {
+            if (!gdriveCfg) return name;
+            const inboxId = await resolveFolder(INBOX_FOLDER, true);
+            const procId = await resolveFolder(`${INBOX_FOLDER}/${PROCESSED_FOLDER}`, true);
+            const dot = name.lastIndexOf('.');
+            const base = dot > 0 ? name.slice(0, dot) : name;
+            const ext = dot > 0 ? name.slice(dot) : '';
+            const procChildren = await window.GDriveClient.listChildren(procId);
+            const existingNames = new Set(procChildren.filter((c) => !c.isDir).map((c) => c.name));
+            let target = name, n = 2;
+            while (existingNames.has(target)) { target = `${base}-${n}${ext}`; n++; }
+            const fileId = await window.GDriveClient.findFile(inboxId, name);
+            if (!fileId) return target;
+            await window.GDriveClient.moveFile(fileId, procId, inboxId);
+            if (target !== name) await window.GDriveClient.renameFile(fileId, target);
+            return target;
+        }
         const inbox = await inboxDir(true);
         const proc = await inbox.getDirectoryHandle(PROCESSED_FOLDER, { create: true });
         const dot = name.lastIndexOf('.');
@@ -221,13 +357,21 @@ window.Storage = (function () {
     async function writeAttachment(basename, fileOrBlob, subdir, ext) {
         ext = (ext || 'pdf').toLowerCase();
         for (const e of ATTACH_EXTS) if (e !== ext) {
-            try { const d = await targetDir(subdir); await d.removeEntry(`${basename}.${e}`); } catch (_) {}
+            if (mode === 'gdrive') { try { const parentId = await resolveFolder(subdir, true); await window.GDriveClient.removeFileIfExists(parentId, `${basename}.${e}`); } catch (_) {} }
+            else { try { const d = await targetDir(subdir); await d.removeEntry(`${basename}.${e}`); } catch (_) {} }
         }
         await writeFile(`${basename}.${ext}`, fileOrBlob, subdir);
     }
 
     // Remove um anexo específico (todas as extensões daquele basename).
     async function deleteEntry(basename, subdir) {
+        if (mode === 'gdrive') {
+            if (!gdriveCfg) return;
+            const parentId = await resolveFolder(subdir, false);
+            if (!parentId) return;
+            for (const ext of ATTACH_EXTS) { try { await window.GDriveClient.removeFileIfExists(parentId, `${basename}.${ext}`); } catch (_) {} }
+            return;
+        }
         if (!dirHandle) return;
         let dir;
         try { dir = await walkDir(dirHandle, subdir, false); } catch (_) { return; }
@@ -238,6 +382,22 @@ window.Storage = (function () {
 
     // Remove todos os arquivos de um item: <id>.json, <id>.<ext> e <id>-*.<ext>.
     async function deleteItemFiles(id, subdir) {
+        if (mode === 'gdrive') {
+            if (!gdriveCfg) return;
+            const parentId = await resolveFolder(subdir, false);
+            if (!parentId) return;
+            let children; try { children = await window.GDriveClient.listChildren(parentId); } catch (_) { return; }
+            for (const child of children) {
+                if (child.isDir) continue;
+                let rm = child.name === `${id}.json`;
+                if (!rm) {
+                    const m = child.name.match(/^(.*)\.([^.]+)$/);
+                    if (m) { const base = m[1], ext = m[2].toLowerCase(); rm = (base === id || base.indexOf(id + '-') === 0) && ATTACH_EXTS.includes(ext); }
+                }
+                if (rm) { try { await window.GDriveClient.deleteFile(child.id); } catch (_) {} }
+            }
+            return;
+        }
         if (!dirHandle) return;
         let dir;
         try { dir = await walkDir(dirHandle, subdir, false); } catch (_) { return; }
@@ -256,6 +416,26 @@ window.Storage = (function () {
     // Move os arquivos de um item (<id>.json, <id>.<ext>, <id>-*.<ext>) de um
     // subdiretório para outro — usado quando a CATEGORIA do item muda.
     async function moveItemFiles(id, fromSubdir, toSubdir) {
+        if (mode === 'gdrive') {
+            if (!gdriveCfg || fromSubdir === toSubdir) return;
+            const fromId = await resolveFolder(fromSubdir, false);
+            if (!fromId) return;
+            let children; try { children = await window.GDriveClient.listChildren(fromId); } catch (_) { return; }
+            const matches = children.filter((child) => {
+                if (child.isDir) return false;
+                if (child.name === `${id}.json`) return true;
+                const m = child.name.match(/^(.*)\.([^.]+)$/);
+                if (!m) return false;
+                const base = m[1], ext = m[2].toLowerCase();
+                return (base === id || base.indexOf(id + '-') === 0) && ATTACH_EXTS.includes(ext);
+            });
+            if (!matches.length) return;
+            const toId = await resolveFolder(toSubdir, true);
+            for (const child of matches) {
+                try { await window.GDriveClient.moveFile(child.id, toId, fromId); } catch (_) { /* se falhar um, segue os demais */ }
+            }
+            return;
+        }
         if (!dirHandle || fromSubdir === toSubdir) return;
         let from;
         try { from = await walkDir(dirHandle, fromSubdir, false); } catch (_) { return; }
@@ -286,6 +466,14 @@ window.Storage = (function () {
     // de categoria removida/renomeada numa migração). Não apaga se houver
     // qualquer arquivo restante, por segurança.
     async function removeSubdirIfEmpty(name) {
+        if (mode === 'gdrive') {
+            if (!gdriveCfg) return false;
+            const id = await resolveFolder(name, false);
+            if (!id) return false;
+            let children; try { children = await window.GDriveClient.listChildren(id); } catch (_) { return false; }
+            if (children.length > 0) return false;
+            try { await window.GDriveClient.deleteFile(id); delete gdriveCfg.folderCache[name]; persistGDriveConfig(); return true; } catch (_) { return false; }
+        }
         if (!dirHandle) return false;
         let sub;
         try { sub = await dirHandle.getDirectoryHandle(name); } catch (_) { return false; }
@@ -320,6 +508,21 @@ window.Storage = (function () {
     // "Exportação/Lattes XML"), movendo todo o conteúdo — a File System
     // Access API não tem rename nativo. Não faz nada se a pasta antiga não existir.
     async function renameRootFolder(oldName, newPath) {
+        if (mode === 'gdrive') {
+            if (!gdriveCfg || oldName === newPath) return false;
+            const oldId = await resolveFolder(oldName, false);
+            if (!oldId) return false;
+            const newSegs = String(newPath).split('/').filter(Boolean);
+            const newLeaf = newSegs.pop();
+            const newParentPath = newSegs.join('/');
+            const newParentId = newParentPath ? await resolveFolder(newParentPath, true) : gdriveCfg.rootFolderId;
+            try { await window.GDriveClient.moveAndRename(oldId, newParentId, gdriveCfg.rootFolderId, newLeaf); }
+            catch (_) { return false; }
+            delete gdriveCfg.folderCache[oldName];
+            gdriveCfg.folderCache[newPath] = oldId;
+            persistGDriveConfig();
+            return true;
+        }
         if (!dirHandle || oldName === newPath) return false;
         let oldHandle;
         try { oldHandle = await dirHandle.getDirectoryHandle(oldName); } catch (_) { return false; }
@@ -332,6 +535,18 @@ window.Storage = (function () {
     // caminho pai (ex.: "00 Processado" -> "Processados" dentro de "Caixa
     // de Entrada"), não na raiz do diretório.
     async function renameNestedFolder(parentPath, oldName, newName) {
+        if (mode === 'gdrive') {
+            if (!gdriveCfg || oldName === newName) return false;
+            const oldFull = parentPath ? `${parentPath}/${oldName}` : oldName;
+            const newFull = parentPath ? `${parentPath}/${newName}` : newName;
+            const oldId = await resolveFolder(oldFull, false);
+            if (!oldId) return false;
+            try { await window.GDriveClient.renameFile(oldId, newName); } catch (_) { return false; }
+            delete gdriveCfg.folderCache[oldFull];
+            gdriveCfg.folderCache[newFull] = oldId;
+            persistGDriveConfig();
+            return true;
+        }
         if (!dirHandle || oldName === newName) return false;
         let parent;
         try { parent = await walkDir(dirHandle, parentPath, false); } catch (_) { return false; }
@@ -344,6 +559,21 @@ window.Storage = (function () {
     }
 
     async function readAttachmentUrl(basename, subdir, ext) {
+        if (mode === 'gdrive') {
+            if (!gdriveCfg) return null;
+            const parentId = await resolveFolder(subdir, false);
+            if (!parentId) return null;
+            const tryExts = ext ? [ext.toLowerCase()] : ATTACH_EXTS;
+            for (const e of tryExts) {
+                try {
+                    const fileId = await window.GDriveClient.findFile(parentId, `${basename}.${e}`);
+                    if (!fileId) continue;
+                    const blob = await window.GDriveClient.getFileContent(fileId);
+                    if (blob) return URL.createObjectURL(blob);
+                } catch (_) { /* tenta próxima */ }
+            }
+            return null;
+        }
         const dir = await ensureDirReady();
         let target;
         try { target = await walkDir(dir, subdir, false); } catch (_) { return null; }
@@ -358,8 +588,24 @@ window.Storage = (function () {
         return null;
     }
 
-    // Devolve o File de um anexo (para embutir em base64 na página pública).
+    // Devolve o File (ou Blob, em modo Google Drive) de um anexo (para
+    // embutir em base64 na página pública).
     async function readAttachmentFile(basename, subdir, ext) {
+        if (mode === 'gdrive') {
+            if (!gdriveCfg) return null;
+            const parentId = await resolveFolder(subdir, false);
+            if (!parentId) return null;
+            const tryExts = ext ? [ext.toLowerCase()] : ATTACH_EXTS;
+            for (const e of tryExts) {
+                try {
+                    const fileId = await window.GDriveClient.findFile(parentId, `${basename}.${e}`);
+                    if (!fileId) continue;
+                    const blob = await window.GDriveClient.getFileContent(fileId);
+                    if (blob) return blob;
+                } catch (_) { /* tenta próxima */ }
+            }
+            return null;
+        }
         const dir = await ensureDirReady();
         let target;
         try { target = await walkDir(dir, subdir, false); } catch (_) { return null; }
@@ -373,6 +619,28 @@ window.Storage = (function () {
 
     // Reconstrói o catálogo a partir dos *.json (raiz e subdiretórios de categoria)
     async function scanDirectory() {
+        if (mode === 'gdrive') {
+            if (!gdriveCfg) return [];
+            const items = [];
+            async function scanOne(folderId) {
+                let children; try { children = await window.GDriveClient.listChildren(folderId); } catch (_) { return; }
+                for (const child of children) {
+                    if (child.isDir) {
+                        if (child.name === INBOX_FOLDER) continue; // não indexa a bandeja de entrada
+                        await scanOne(child.id);
+                    } else if (child.name.toLowerCase().endsWith('.json') && child.name !== 'catalogo.json' && child.name.indexOf('latteszen-') !== 0) {
+                        try {
+                            const blob = await window.GDriveClient.getFileContent(child.id);
+                            if (!blob) continue;
+                            const obj = JSON.parse(await blob.text());
+                            if (obj && obj.id) items.push(obj);
+                        } catch (_) { /* ignora inválidos */ }
+                    }
+                }
+            }
+            await scanOne(gdriveCfg.rootFolderId);
+            return items;
+        }
         const dir = await ensureDirReady();
         const items = [];
         async function scanOne(handle) {
@@ -425,6 +693,8 @@ window.Storage = (function () {
         // diretório
         chooseDirectory, restoreDirectory, ensureDirReady, hasDirectory,
         directoryName, forgetDirectory, verifyPermission, checkHealth,
+        // Google Drive
+        storageMode, connectGoogleDrive,
         // arquivos
         writeJson, writeFile, writeAttachment, deleteEntry, deleteItemFiles, moveItemFiles, removeSubdirIfEmpty, renameRootFolder, renameNestedFolder, readAttachmentUrl, readAttachmentFile, scanDirectory, ensureSubdirs,
         // bandeja de entrada (inbox)
