@@ -195,5 +195,76 @@ window.LzBibRis = (function () {
         return { formato: 'desconhecido', entradas: [] };
     }
 
-    return { parse };
+    /* ----------------------------- Exportação ------------------------------
+       Sentido inverso do parse: recebe registros normalizados (mesmo formato
+       usado internamente para o parse, mais `tipoBibtex`/`tipoRis` já
+       resolvidos pelo chamador — este módulo não conhece a taxonomia do
+       Lattes) e devolve o texto do arquivo .bib ou .ris.
+       ------------------------------------------------------------------- */
+    function limpar(s) { return String(s == null ? '' : s).replace(/[{}]/g, '').replace(/[\r\n]+/g, ' ').trim(); }
+    // "Nome Completo" (ordem natural) → "Sobrenome, Resto" (convenção
+    // BibTeX/RIS) — heurística: a ÚLTIMA palavra é o sobrenome. Imperfeita
+    // para sobrenomes compostos, mas é a mesma heurística usada na
+    // importação (na direção inversa), então o round-trip fica consistente.
+    function autorParaSobrenomeNome(nome) {
+        const partes = String(nome || '').trim().split(/\s+/).filter(Boolean);
+        if (partes.length < 2) return partes.join(' ');
+        const sobrenome = partes.pop();
+        return `${sobrenome}, ${partes.join(' ')}`;
+    }
+    function bibCitekey(registro, usados) {
+        const primeiroAutor = (registro.autores && registro.autores[0]) || '';
+        const sobrenome = primeiroAutor.trim().split(/\s+/).filter(Boolean).pop() || 'semautor';
+        let base = `${sobrenome}${registro.ano || 'sd'}`.toLowerCase()
+            .normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]/g, '');
+        if (!base) base = 'ref';
+        let chave = base, i = 1;
+        while (usados.has(chave)) { chave = base + String.fromCharCode(96 + i); i++; }
+        usados.add(chave);
+        return chave;
+    }
+    function toBibTeX(registros) {
+        const usados = new Set();
+        return registros.map((r) => {
+            const chave = bibCitekey(r, usados);
+            const linhas = [`@${r.tipoBibtex}{${chave},`];
+            const campo = (nome, valor) => { const v = limpar(valor); if (v) linhas.push(`  ${nome} = {${v}},`); };
+            campo('title', r.titulo);
+            if (r.autores && r.autores.length) campo('author', r.autores.map(autorParaSobrenomeNome).join(' and '));
+            campo('year', r.ano);
+            campo('journal', r.periodico);
+            campo('volume', r.volume);
+            campo('number', r.fasciculo);
+            if (r.paginaInicial || r.paginaFinal) campo('pages', [r.paginaInicial, r.paginaFinal].filter(Boolean).join('--'));
+            campo('issn', r.issn);
+            campo('isbn', r.isbn);
+            campo('publisher', r.editora);
+            campo('doi', r.doi);
+            campo('url', r.url);
+            linhas.push('}');
+            return linhas.join('\n');
+        }).join('\n\n') + '\n';
+    }
+    function toRIS(registros) {
+        return registros.map((r) => {
+            const linhas = [`TY  - ${r.tipoRis}`];
+            (r.autores || []).forEach((nome) => { const v = limpar(nome); if (v) linhas.push(`AU  - ${autorParaSobrenomeNome(v)}`); });
+            const campo = (tag, valor) => { const v = limpar(valor); if (v) linhas.push(`${tag}  - ${v}`); };
+            campo('TI', r.titulo);
+            campo('T2', r.periodico);
+            campo('PY', r.ano);
+            campo('VL', r.volume);
+            campo('IS', r.fasciculo);
+            campo('SP', r.paginaInicial);
+            campo('EP', r.paginaFinal);
+            campo('SN', r.issn || r.isbn);
+            campo('PB', r.editora);
+            campo('DO', r.doi);
+            campo('UR', r.url);
+            linhas.push('ER  - ');
+            return linhas.join('\n');
+        }).join('\n\n') + '\n';
+    }
+
+    return { parse, toBibTeX, toRIS };
 })();
