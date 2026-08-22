@@ -3,8 +3,12 @@
    ========================================================================== */
 window.APP_CONFIG = {
     name: 'lattesZen',
-    version: 'v0.2.6',
-    lastModified: '19/08/2026',
+    // Versionamento: <versão>.<marco do projeto>.<contador de issues fechadas>.
+    // Os dois primeiros números são atualizados manualmente; o terceiro (2
+    // dígitos) é incrementado a cada issue fechada no GitHub — ver política
+    // completa em CLAUDE.md e o histórico em notas-de-versao.html.
+    version: 'v0.6.01',
+    lastModified: '22/08/2026',
     author: {
         nome: 'Alexsandro Cardoso Carvalho',
         github: 'https://github.com/alexsandroccarv',
