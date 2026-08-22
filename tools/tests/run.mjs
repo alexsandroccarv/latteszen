@@ -12,6 +12,7 @@ import './specs/sincronizacao.mjs';
 import './specs/rsc-datas.mjs';
 import './specs/resumo-conformidade.mjs';
 import './specs/atalhos-teclado.mjs';
+import './specs/datas-agrupadas.mjs';
 
 console.log('Rodando suíte de testes de regressão (Playwright)...\n');
 await runAll();

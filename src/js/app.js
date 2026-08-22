@@ -1403,7 +1403,7 @@
         const tag = `data-repeater-input="${fkey}:${c.key}"`;
         if (c.type === 'checkbox') return `<label class="flex items-center gap-1 text-xs whitespace-nowrap"><input type="checkbox" ${tag}> ${esc(c.label)}</label>`;
         if (c.type === 'select') return `<select ${tag} class="${base}"><option value="">${esc(c.label)}</option>${(c.options || []).map(o => `<option value="${esc(o)}">${esc(o)}</option>`).join('')}</select>`;
-        if (c.type === 'datebr') return `<input type="text" ${tag} inputmode="numeric" maxlength="10" placeholder="${esc(c.label)}" data-datebr class="${base}" style="min-width:7rem">`;
+        if (c.type === 'datebr') return `<input type="text" ${tag} inputmode="numeric" maxlength="10" placeholder="${esc(c.label)}" data-datebr class="${base}" style="width:7rem">`;
         const t = c.type === 'number' ? 'number' : 'text';
         return `<input type="${t}" ${tag} placeholder="${esc(c.label)}" class="${base}" style="min-width:9rem">`;
     }
@@ -1437,7 +1437,10 @@
             const iso = dv.match(/^(\d{4})-(\d{2})-(\d{2})$/);
             if (iso) dv = `${iso[3]}/${iso[2]}/${iso[1]}`;
             const dph = compact ? 'aaaa' : 'aaaa, mm/aaaa ou dd/mm/aaaa';
-            input = `<input type="text" name="${f.key}" value="${esc(dv)}" ${req} inputmode="numeric" maxlength="10" placeholder="${dph}" data-datebr class="${base}">`;
+            // Largura fixa (não w-full): o valor nunca passa de 10 caracteres
+            // (dd/mm/aaaa), então o campo não deve esticar para preencher a linha.
+            const dateBase = base.replace('w-full', 'w-32');
+            input = `<input type="text" name="${f.key}" value="${esc(dv)}" ${req} inputmode="numeric" maxlength="10" placeholder="${dph}" data-datebr class="${dateBase}">`;
         } else if (f.type === 'checkboxes') {
             const selected = String(val || '').split(/[;,]/).map(s => s.trim()).filter(Boolean);
             input = `<div class="flex flex-wrap gap-x-4 gap-y-1 pt-1">
