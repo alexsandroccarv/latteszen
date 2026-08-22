@@ -9,6 +9,7 @@ import './specs/conformidade.mjs';
 import './specs/visibilidade.mjs';
 import './specs/lixeira.mjs';
 import './specs/sincronizacao.mjs';
+import './specs/rsc-datas.mjs';
 
 console.log('Rodando suíte de testes de regressão (Playwright)...\n');
 await runAll();

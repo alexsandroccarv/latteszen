@@ -121,7 +121,12 @@ window.LzRSC = (function () {
         const d = +m[1], mo = +m[2], y = +m[3];
         if (mo < 1 || mo > 12 || d < 1 || d > 31) return null;
         const dt = new Date(y, mo - 1, d);
-        return isNaN(dt.getTime()) ? null : dt;
+        if (isNaN(dt.getTime())) return null;
+        // new Date() "rola" dias inexistentes pro mês seguinte em vez de
+        // rejeitar (ex.: 31/02 vira 02 ou 03/03) — confere se o que voltou
+        // bate com o que foi pedido; senão, a data não existe de verdade.
+        if (dt.getFullYear() !== y || dt.getMonth() !== mo - 1 || dt.getDate() !== d) return null;
+        return dt;
     }
     // Meses de calendário entre duas datas dd/mm/aaaa (inclusivo por dia)
     function mesesEntre(ini, fim) {
