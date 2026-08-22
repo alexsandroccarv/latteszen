@@ -591,7 +591,7 @@ window.LattesXMLExport = (function () {
             const det = el('DETALHAMENTO-DO-TRABALHO', {
                 'CLASSIFICACAO-DO-EVENTO': CLASSIFICACAO_EVENTO_TOKEN[f.classificacaoEvento] || '', 'NOME-DO-EVENTO': f.evento, 'CIDADE-DO-EVENTO': f.cidade, 'ANO-DE-REALIZACAO': year(f.anoEvento),
                 'TITULO-DOS-ANAIS-OU-PROCEEDINGS': f.anais, 'VOLUME': f.volume, 'FASCICULO': f.fasciculo, 'SERIE': f.serie, 'PAGINA-INICIAL': pIni, 'PAGINA-FINAL': pFim,
-                'ISBN': f.isbn, 'NOME-DA-EDITORA': f.editora, 'CIDADE-DA-EDITORA': f.cidadeEditora,
+                'ISBN': f.isbn, 'NOME-DA-EDITORA': f.editora, 'CIDADE-DA-EDITORA': f.cidade,
             });
             const autoresXml = (Array.isArray(f.autoresLista) && f.autoresLista.length) ? autoresListaEls(f.autoresLista) : autoresEls(f.autores);
             const extra = palavrasChaveEl(f.palavrasChave) + areaDoConhecimentoEl(f) + setoresAtividadeEl(f.setores) + informacoesAdicionaisEl(f.outrasInfo);

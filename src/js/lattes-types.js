@@ -560,7 +560,7 @@ const TYPES = {
         { key: 'divulgacaoCT', label: 'É uma produção para educação e popularização de C&T?', type: 'checkbox' },
         { key: 'classificacaoEvento', label: 'Classificação do evento', type: 'select', options: ['Internacional', 'Nacional', 'Regional', 'Local'] },
         { key: 'evento', label: 'Nome do evento', type: 'text', required: true },
-        { key: 'cidade', label: 'Cidade do evento', type: 'text' },
+        { key: 'cidade', label: 'Cidade', type: 'text' },
         { key: 'anoEvento', label: 'Ano do evento', type: 'datebr' },
         { key: 'anais', label: 'Título dos anais do evento', type: 'text' },
         { key: 'volume', label: 'Volume', type: 'text' },
@@ -570,7 +570,6 @@ const TYPES = {
         { key: 'paginaFinal', label: 'Página final', type: 'text' },
         { key: 'isbn', label: 'ISBN/ISSN', type: 'text', validate: 'isbnIssn', placeholder: 'ISBN-10, ISBN-13 ou ISSN' },
         { key: 'editora', label: 'Nome da editora', type: 'text' },
-        { key: 'cidadeEditora', label: 'Cidade da editora', type: 'text' },
         { key: 'autoresLista', label: 'Autores', type: 'repeater', addLabel: 'Adicionar autor', columns: [
             { key: 'nomeCompleto', label: 'Nome completo', type: 'text', required: true },
             { key: 'nomeCitacao', label: 'Nome como citado', type: 'text' },

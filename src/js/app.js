@@ -1303,11 +1303,11 @@
     // Campos que ganham autocomplete (combobox): escolha da lista OU digitação
     // de um valor novo. Sugestões = lista curada (editável em Configurações) +
     // valores já usados no catálogo.
-    const AUTOCOMPLETE_KEYS = ['instituicao', 'financiador', 'entidade', 'orgao', 'editora', 'periodico', 'evento', 'evidenciaTag', 'cidade', 'cidadeEditora'];
+    const AUTOCOMPLETE_KEYS = ['instituicao', 'financiador', 'entidade', 'orgao', 'editora', 'periodico', 'evento', 'evidenciaTag', 'cidade'];
     const VOCAB_LABELS = {
         instituicao: 'Instituições', financiador: 'Financiadores / Agências', entidade: 'Entidades',
         orgao: 'Órgãos', editora: 'Editoras', periodico: 'Periódicos / Revistas', evento: 'Eventos',
-        evidenciaTag: 'Tags de evidências', cidade: 'Cidades', cidadeEditora: 'Cidades (editora)',
+        evidenciaTag: 'Tags de evidências', cidade: 'Cidades',
     };
     // Tags sugeridas por padrão para categorizar evidências (documentos anexados).
     // Qualquer outro valor digitado pelo usuário também é aprendido (collectSuggestions).
