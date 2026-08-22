@@ -92,6 +92,19 @@ export async function runAll() {
     const falhas = [];
     for (const { name, fn } of TESTS) {
         const context = await browser.newContext();
+        // Marca o aviso de 1ª execução como já visto: com o Tailwind CDN
+        // bloqueado (sandbox), o modal fica sem CSS e não intercepta cliques,
+        // mas com o CDN acessível (CI/produção) ele vira um overlay real que
+        // bloqueia toda a página até o usuário clicar "OK" — sem isto, os
+        // testes travam esperando cliques em elementos cobertos pelo modal.
+        await context.addInitScript(() => {
+            try {
+                const raw = localStorage.getItem('lz_settings');
+                const s = raw ? JSON.parse(raw) : {};
+                s.avisoDevVisto = true;
+                localStorage.setItem('lz_settings', JSON.stringify(s));
+            } catch (_) {}
+        });
         const page = await context.newPage();
         const pageErrors = [];
         page.on('pageerror', (e) => pageErrors.push(e.message));
