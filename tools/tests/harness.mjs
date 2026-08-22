@@ -16,6 +16,7 @@
 import { chromium } from 'playwright';
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
 import { join, extname, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -77,9 +78,13 @@ export async function runAll() {
     const server = await startServer();
     const { port } = server.address();
     const baseUrl = `http://127.0.0.1:${port}`;
-    const execPath = process.env.PW_CHROMIUM_PATH || '/opt/pw-browsers/chromium';
-    const browser = await chromium.launch({ executablePath: execPath }).catch(async (e) => {
-        console.error(`Falha ao abrir o Chromium em "${execPath}" (defina PW_CHROMIUM_PATH se necessário): ${e.message}`);
+    // Em sandboxes com um Chromium pré-instalado num caminho fixo, usa-o; caso
+    // contrário (CI, máquina local comum) deixa o Playwright resolver sozinho
+    // o navegador que ele mesmo instalou (via "playwright install").
+    const sandboxPath = '/opt/pw-browsers/chromium';
+    const execPath = process.env.PW_CHROMIUM_PATH || (existsSync(sandboxPath) ? sandboxPath : undefined);
+    const browser = await chromium.launch(execPath ? { executablePath: execPath } : {}).catch(async (e) => {
+        console.error(`Falha ao abrir o Chromium${execPath ? ` em "${execPath}"` : ''} (defina PW_CHROMIUM_PATH se necessário): ${e.message}`);
         throw e;
     });
 
