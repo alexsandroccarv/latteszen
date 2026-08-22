@@ -72,6 +72,11 @@ node build.mjs
 # Validar a exportação XML contra o schema XSD e o DTD LMPL (importação)
 node tools/xml-export-harness.mjs      # amostra com todos os tipos
 node tools/xml-export-branches.mjs     # todos os subtipos/ramos
+
+# Suíte de testes de regressão de UI (Playwright) — cobre bugs já corrigidos
+# no passado, pra não voltarem a acontecer numa mudança futura
+npm install        # instala o Playwright (só para desenvolvimento/testes)
+npm test           # roda a suíte inteira
 ```
 
 Para rodar localmente, sirva a pasta `src/` (ou `dist/`) por um servidor

@@ -32,6 +32,21 @@ jobs:
       - name: Verificar sintaxe dos módulos JS
         run: for f in src/js/*.js; do node --check "$f"; done
 
+      - name: Instalar dependências de teste (Playwright)
+        run: npm ci
+
+      - name: Instalar o navegador do Playwright (Chromium)
+        run: npx playwright install --with-deps chromium
+
+      - name: Rodar a suíte de testes de regressão (UI, Playwright)
+        run: npm test
+
+      - name: Garantir xmllint disponível (validação de XML)
+        run: command -v xmllint >/dev/null || (sudo apt-get update && sudo apt-get install -y libxml2-utils)
+
+      - name: Validar exportação XML contra o schema oficial (XSD/DTD)
+        run: npm run test:xml
+
       - name: Montar a pasta publicável (dist/)
         run: node build.mjs
 
