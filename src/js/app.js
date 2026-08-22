@@ -1601,16 +1601,19 @@
         if (/^10\.\d{4,9}\/\S+$/.test(d)) return { ok: true, value: d };
         return { ok: false, msg: 'DOI inválido — formato esperado 10.xxxx/sufixo (ex.: 10.1000/xyz123).' };
     }
-    // URL: adiciona esquema https:// quando ausente e valida http(s).
+    // URL: adiciona o esquema https:// quando ausente; se o usuário já
+    // escreveu um esquema (http://, ftp://, magnet:, mailto:, etc.), respeita
+    // como está — não força https:// por cima nem restringe a http(s). Um
+    // "esquema" de 1-2 letras (ex.: "C:\...") quase sempre é um caminho de
+    // arquivo do Windows colado por engano, não uma URL de verdade — nesse
+    // caso também assume https://, pra não aceitar isso como se fosse válido.
     function validateURL(v) {
         const s = String(v || '').trim();
         if (!s) return { ok: true, value: '' };
-        const u = /^[a-z][a-z0-9+.\-]*:\/\//i.test(s) ? s : 'https://' + s;
-        try {
-            const parsed = new URL(u);
-            if (!/^https?:$/.test(parsed.protocol)) return { ok: false, msg: 'URL inválida — use http:// ou https://.' };
-            return { ok: true, value: u };
-        } catch (_) { return { ok: false, msg: 'URL inválida.' }; }
+        const temEsquema = /^[a-z][a-z0-9+.-]{2,}:/i.test(s);
+        const u = temEsquema ? s : 'https://' + s;
+        try { new URL(u); return { ok: true, value: u }; }
+        catch (_) { return { ok: false, msg: 'URL inválida.' }; }
     }
     function validateField(kind, value) {
         if (kind === 'issn') return validateISSN(value);
