@@ -6,7 +6,8 @@
      existente) ou "Salvar e novo" (se estiver criando um item sem "próximo"
      disponível).
    - Alt+↓ / Alt+↑, enquanto edita um item existente, navegam para o
-     próximo/anterior item da mesma lista/recorte de Conformidade SEM salvar.
+     próximo/anterior item da mesma CATEGORIA (ordem sequencial e circular)
+     SEM salvar.
    ========================================================================== */
 import { test, assert, assertEqual, makeItem, seedCatalog } from '../harness.mjs';
 
@@ -98,4 +99,39 @@ test('Alt+↓ / Alt+↑ navegam entre itens em edição sem salvar', async ({ pa
     // Não deve ter salvo nada durante a navegação (só abriu os itens).
     const catalogoIntacto = await page.evaluate(() => JSON.parse(localStorage.getItem('lz_catalog') || '[]').map((i) => i.fields.titulo).sort());
     assertEqual(catalogoIntacto, ['Curso Seta A', 'Curso Seta B'], 'Navegar com Alt+seta não deveria alterar o catálogo');
+});
+
+test('Alt+↓ circula do último item de volta ao primeiro da mesma categoria', async ({ page, baseUrl }) => {
+    const items = [
+        makeItem('FORMACAO_COMPLEMENTAR', 'FORMACAO', { titulo: 'Curso Circular A', instituicao: 'X', anoFim: '2024' }),
+        makeItem('FORMACAO_COMPLEMENTAR', 'FORMACAO', { titulo: 'Curso Circular B', instituicao: 'X', anoFim: '2023' }),
+    ];
+    await seedCatalog(page, baseUrl, items);
+    await page.click('[data-tab="conformidade"]');
+    await page.waitForTimeout(300);
+    await clickAct(page, 'Curso Circular B', 'edit'); // último na ordenação padrão (desc por ano)
+
+    await page.keyboard.press('Alt+ArrowDown');
+    await page.waitForTimeout(300);
+    assertEqual(await page.$eval('[name="titulo"]', (el) => el.value), 'Curso Circular A', 'Alt+↓ no último item da categoria deveria circular de volta ao primeiro');
+
+    await page.keyboard.press('Alt+ArrowUp');
+    await page.waitForTimeout(300);
+    assertEqual(await page.$eval('[name="titulo"]', (el) => el.value), 'Curso Circular B', 'Alt+↑ no primeiro item da categoria deveria circular de volta ao último');
+});
+
+test('Navegação por Alt+↓/↑ ignora itens de outra categoria', async ({ page, baseUrl }) => {
+    const items = [
+        makeItem('FORMACAO_COMPLEMENTAR', 'FORMACAO', { titulo: 'Curso Único da Formação', instituicao: 'X', anoFim: '2024' }),
+        makeItem('ARTIGO_PERIODICO', 'PRODUCOES', { titulo: 'Artigo de Outra Categoria', ano: '2024', periodico: 'Revista X' }),
+    ];
+    await seedCatalog(page, baseUrl, items);
+    await page.click('[data-tab="conformidade"]');
+    await page.waitForTimeout(300);
+    await clickAct(page, 'Curso Único da Formação', 'edit');
+
+    await page.keyboard.press('Alt+ArrowDown');
+    await page.waitForTimeout(300);
+    const tituloNoForm = await page.$eval('[name="titulo"]', (el) => el.value);
+    assertEqual(tituloNoForm, 'Curso Único da Formação', 'Sem outro item na MESMA categoria, não deveria pular para um item de outra categoria');
 });

@@ -1112,7 +1112,7 @@
                     <button type="button" id="btnSalvarNovo" class="px-4 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm" title="Salva e abre um novo item na mesma categoria/tipo. Atalho: Ctrl+Enter (Cmd+Enter no Mac), quando não há um item em edição">
                         <i aria-hidden="true" class="fa-solid fa-plus mr-1"></i> Salvar e novo
                     </button>
-                    ${editing ? `<button type="button" id="btnSalvarProximo" class="px-4 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm" title="Salva e abre o próximo item da lista de Conformidade (mesmo filtro/busca/ordenação de lá). Atalho: Ctrl+Enter (Cmd+Enter no Mac)">
+                    ${editing ? `<button type="button" id="btnSalvarProximo" class="px-4 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm" title="Salva e abre o próximo item da mesma categoria (ordem sequencial e circular). Atalho: Ctrl+Enter (Cmd+Enter no Mac)">
                         <i aria-hidden="true" class="fa-solid fa-forward mr-1"></i> Salvar e próximo
                     </button>` : ''}
                     <button type="button" id="btnLimpar" class="px-4 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm" title="Limpa o formulário e começa um novo item em branco">
@@ -2201,7 +2201,7 @@
         // acabou de corrigir o problema que motivou o filtro), ainda avança
         // pro item que era o seguinte na lista de antes, em vez de "perder a
         // posição" porque o item editado não bate mais no filtro.
-        const proximoAlvo = (editing && saveNext) ? nextItemAfter(item.id) : null;
+        const proximoAlvo = (editing && saveNext) ? nextItemAfter(item.id, categoryKey) : null;
         const prevCat = item.categoryKey || null;              // categoria ANTES da edição
         const prevEvid = evListFromItem(item); // estado anterior (p/ apagar removidas)
         item.lattesItem = !naoLattes;
@@ -2292,49 +2292,47 @@
         state.editingId = null; state.evEditing = []; state.formDirty = false;
         // "Salvar" / "Salvar alterações": reabre o item recém-salvo (novo ou editado),
         // para revisar/anexar evidência. "Salvar e novo": abre um item em branco
-        // (mesma cat/tipo). "Salvar e próximo": abre o item que era o seguinte na
-        // lista de Conformidade (filtro de ícone/cartão, busca e ordenação de lá),
-        // capturado antes desta edição — sem próximo, cai no comportamento padrão.
-        if (saveNext && !proximoAlvo) toast('Não há um próximo item nesse recorte de Conformidade.', 'info');
+        // (mesma cat/tipo). "Salvar e próximo": abre o item seguinte dentro da
+        // MESMA CATEGORIA (ordem sequencial e circular — ver itemsDaCategoria).
+        if (saveNext && !proximoAlvo) toast('Não há outro item nessa categoria para navegar.', 'info');
         if (proximoAlvo) buildForm(proximoAlvo, { focus: false });
         else if (!saveNew) buildForm(state.items.find(i => i.id === item.id), { focus: false });
         else buildForm(undefined, { focus: true, keepType: true });
         renderItemList();
     }
-    // Lista filtrada/ordenada exatamente como aparece em Conformidade (mesmo
-    // recorte de ícone/cartão, mesma busca, mesma ordenação) — usada pelo
-    // "Salvar e próximo" pra navegar item a item na mesma ordem de lá.
-    function itemsFiltradosOrdenados() {
-        const q = ($('#filterBox') && $('#filterBox').value || '').toLowerCase();
+    // Todos os itens de uma categoria (categoryKey), em ordem sequencial fixa
+    // (mesma ordenação por ano da lista de Conformidade) — usada por "Salvar e
+    // próximo" e pelos atalhos Alt+↓/Alt+↑ para percorrer a categoria inteira,
+    // independente do filtro/busca/ordenação em uso na tela de Conformidade
+    // naquele momento (evita "perder" itens que não batem no filtro atual).
+    function itemsDaCategoria(categoryKey) {
         const asc = (state.sortOrder || 'desc') === 'asc';
-        const view = state.viewFilter && VIEW_PREDICATE[state.viewFilter] ? state.viewFilter : 'todos';
-        let items = state.items.filter(VIEW_PREDICATE[view]).filter(i => !LattesTypes.isPerfilType(i.typeKey));
-        if (q) items = items.filter(i => (LattesTypes.itemTitle(i) + ' ' + LattesTypes.label(i.typeKey) + ' ' + LattesTypes.categoryLabel(i.categoryKey)).toLowerCase().includes(q));
+        const items = state.items.filter(i => i.categoryKey === categoryKey && !LattesTypes.isPerfilType(i.typeKey));
         return sortByYear(items, asc);
     }
-    // Próximo/anterior item na lista/ordem atual de Conformidade — null se o
-    // item não estiver nela ou já for a ponta (usado por "Salvar e próximo"
-    // e pelos atalhos de teclado Alt+↓/Alt+↑).
-    function nextItemAfter(id) {
-        const list = itemsFiltradosOrdenados();
+    // Próximo/anterior item dentro da MESMA categoria, de forma circular (do
+    // último volta pro primeiro, e vice-versa) — null só se a categoria tiver
+    // um único item (nada pra navegar) ou o item não estiver nela.
+    function nextItemAfter(id, categoryKey) {
+        const list = itemsDaCategoria(categoryKey);
         const idx = list.findIndex(i => i.id === id);
-        if (idx === -1 || idx === list.length - 1) return null;
-        return list[idx + 1];
+        if (idx === -1 || list.length < 2) return null;
+        return list[(idx + 1) % list.length];
     }
-    function prevItemBefore(id) {
-        const list = itemsFiltradosOrdenados();
+    function prevItemBefore(id, categoryKey) {
+        const list = itemsDaCategoria(categoryKey);
         const idx = list.findIndex(i => i.id === id);
-        if (idx <= 0) return null;
-        return list[idx - 1];
+        if (idx === -1 || list.length < 2) return null;
+        return list[(idx - 1 + list.length) % list.length];
     }
     // Atalhos de teclado em Catalogar:
     //  - Ctrl/Cmd+S: salva o item em edição (mesmo efeito do botão "Salvar").
     //  - Ctrl/Cmd+Enter: "Salvar e próximo" (ou "Salvar e novo" se estiver
     //    criando um item novo — não há "próximo" nesse caso).
     //  - Alt+↓ / Alt+↑: enquanto edita um item existente, pula pro
-    //    próximo/anterior item da mesma lista de Conformidade (mesmo recorte
-    //    de filtro/busca/ordenação de lá) SEM salvar — útil pra revisar
-    //    vários itens de um filtro em sequência antes de decidir o que
+    //    próximo/anterior item da MESMA CATEGORIA (ordem sequencial e
+    //    circular — ver itemsDaCategoria) SEM salvar — útil pra revisar
+    //    todos os itens de uma categoria em sequência antes de decidir o que
     //    corrigir em cada um.
     function wireKeyboardShortcuts() {
         document.addEventListener('keydown', (e) => {
@@ -2359,9 +2357,11 @@
             }
             if (e.altKey && !ctrlOrCmd && (e.key === 'ArrowDown' || e.key === 'ArrowUp') && state.editingId) {
                 e.preventDefault();
-                const alvo = e.key === 'ArrowDown' ? nextItemAfter(state.editingId) : prevItemBefore(state.editingId);
+                const editingItem = state.items.find(i => i.id === state.editingId);
+                const catKey = editingItem ? editingItem.categoryKey : null;
+                const alvo = e.key === 'ArrowDown' ? nextItemAfter(state.editingId, catKey) : prevItemBefore(state.editingId, catKey);
                 if (!alvo) {
-                    toast(e.key === 'ArrowDown' ? 'Não há um próximo item nesse recorte de Conformidade.' : 'Não há um item anterior nesse recorte de Conformidade.', 'info');
+                    toast('Não há outro item nessa categoria para navegar.', 'info');
                     return;
                 }
                 if (state.formDirty && !confirm('Há alterações não salvas no formulário. Sair mesmo assim?')) return;
