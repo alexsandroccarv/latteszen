@@ -376,6 +376,15 @@ window.Storage = (function () {
         localStorage.setItem(K.catalog, JSON.stringify(items));
     }
 
+    /* ------------------------- Lixeira (localStorage) --------------------- */
+    function loadTrash() {
+        try { return JSON.parse(localStorage.getItem(K.trash)) || []; }
+        catch (_) { return []; }
+    }
+    function saveTrash(items) {
+        localStorage.setItem(K.trash, JSON.stringify(items));
+    }
+
     /* ----------------------- Configurações gerais ------------------------ */
     function loadSettings() {
         try { return JSON.parse(localStorage.getItem(K.settings)) || {}; }
@@ -394,7 +403,7 @@ window.Storage = (function () {
         writeJson, writeFile, writeAttachment, deleteEntry, deleteItemFiles, moveItemFiles, removeSubdirIfEmpty, renameRootFolder, renameNestedFolder, readAttachmentUrl, readAttachmentFile, scanDirectory, ensureSubdirs,
         // bandeja de entrada (inbox)
         ensureInbox, listInbox, readInboxFile, moveInboxToProcessed,
-        // catálogo + settings
-        loadCatalog, saveCatalog, loadSettings, saveSettings,
+        // catálogo + lixeira + settings
+        loadCatalog, saveCatalog, loadTrash, saveTrash, loadSettings, saveSettings,
     };
 })();

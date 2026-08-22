@@ -15,6 +15,7 @@
     /* ----------------------------- Estado ------------------------------- */
     const state = {
         items: [],          // catálogo
+        trash: [],          // itens excluídos (lixeira), aguardando restauração ou purga
         editingId: null,    // item em edição
         evEditing: [],      // evidências do item em edição (array de trabalho)
         lattesParsed: null, // resultado do parse do XML
@@ -136,6 +137,13 @@
             return false;
         }
     }
+    function saveTrash() {
+        try { Storage.saveTrash(state.trash); return true; }
+        catch (e) {
+            toast('Não foi possível salvar a lixeira (armazenamento cheio).', 'erro');
+            return false;
+        }
+    }
     function saveVocab() {
         const s = Storage.loadSettings();
         s.vocab = state.vocab;
@@ -239,11 +247,70 @@
         return [];
     }
 
+    // Lixeira: itens excluídos ficam aqui por TRASH_RETENTION_DIAS antes da
+    // purga automática (ver purgeOldTrash(), rodado uma vez a cada início).
+    const TRASH_RETENTION_DIAS = 30;
+
+    // "Exclusão" move o item para a lixeira (state.trash) em vez de apagar de
+    // vez — os arquivos, se houver diretório configurado, vão para a pasta
+    // "Lixeira" (não são removidos). Restaurar (restoreItem) desfaz os dois.
     async function deleteItem(id) {
-        const item = state.items.find(i => i.id === id);
-        state.items = state.items.filter(i => i.id !== id);
+        const idx = state.items.findIndex(i => i.id === id);
+        if (idx === -1) return;
+        const item = state.items[idx];
+        state.items.splice(idx, 1);
         saveCatalog();
-        try { await Storage.deleteItemFiles(id, item ? LattesTypes.categoryFolder(item.categoryKey) : null); } catch (_) {}
+        const fromFolder = LattesTypes.categoryFolder(item.categoryKey);
+        item.deletedAt = nowISO();
+        item.trashFromFolder = fromFolder; // pra saber de onde restaurar depois
+        state.trash.unshift(item);
+        saveTrash();
+        if (Storage.hasDirectory()) {
+            try { await Storage.moveItemFiles(id, fromFolder, LattesTypes.lixeiraFolder()); } catch (_) {}
+        }
+    }
+
+    // Restaura um item da lixeira de volta ao catálogo (e move os arquivos de
+    // volta para a pasta original da categoria, se houver diretório).
+    async function restoreItem(id) {
+        const idx = state.trash.findIndex(i => i.id === id);
+        if (idx === -1) return;
+        const item = state.trash[idx];
+        state.trash.splice(idx, 1);
+        saveTrash();
+        const toFolder = item.trashFromFolder || LattesTypes.categoryFolder(item.categoryKey);
+        delete item.deletedAt; delete item.trashFromFolder;
+        state.items.push(item);
+        saveCatalog();
+        if (Storage.hasDirectory()) {
+            try { await Storage.moveItemFiles(id, LattesTypes.lixeiraFolder(), toFolder); } catch (_) {}
+        }
+    }
+
+    // Exclui definitivamente um item já na lixeira (não pode mais ser desfeito).
+    async function purgeTrashItem(id) {
+        const idx = state.trash.findIndex(i => i.id === id);
+        if (idx === -1) return;
+        state.trash.splice(idx, 1);
+        saveTrash();
+        try { await Storage.deleteItemFiles(id, LattesTypes.lixeiraFolder()); } catch (_) {}
+    }
+
+    // Esvazia a lixeira inteira (usado pelo botão "Esvaziar lixeira" e pela
+    // purga automática de itens antigos no início do app).
+    async function emptyTrash(ids) {
+        const alvo = ids || state.trash.map(i => i.id);
+        for (const id of alvo) { try { await Storage.deleteItemFiles(id, LattesTypes.lixeiraFolder()); } catch (_) {} }
+        state.trash = state.trash.filter(i => !alvo.includes(i.id));
+        saveTrash();
+    }
+
+    // Purga automática: itens na lixeira há mais de TRASH_RETENTION_DIAS.
+    // Roda uma vez no início do app (init()).
+    async function purgeOldTrash() {
+        const limite = Date.now() - TRASH_RETENTION_DIAS * 24 * 60 * 60 * 1000;
+        const vencidos = state.trash.filter(i => new Date(i.deletedAt).getTime() < limite).map(i => i.id);
+        if (vencidos.length) await emptyTrash(vencidos);
     }
 
     /* =====================================================================
@@ -2402,9 +2469,9 @@
         } else if (btn.dataset.act === 'dup') {
             await duplicateItem(id);
         } else if (btn.dataset.act === 'del') {
-            if (!confirm(`Excluir "${LattesTypes.itemTitle(item)}"? Os arquivos ${id}.pdf/.json também serão removidos.`)) return;
+            if (!confirm(`Mover "${LattesTypes.itemTitle(item)}" para a lixeira? Pode ser restaurado depois em Configurações › Lixeira.`)) return;
             await deleteItem(id);
-            toast('Item excluído.', 'ok');
+            toast('Item movido para a lixeira.', 'ok');
             renderItemList();
         }
     }
@@ -2823,9 +2890,9 @@
         $$('[data-doc-del]', list).forEach(b => b.addEventListener('click', async () => {
             const item = state.items.find(i => i.id === b.dataset.docDel);
             if (!item) return;
-            if (!confirm(`Excluir "${LattesTypes.itemTitle(item)}"? Os arquivos também serão removidos.`)) return;
+            if (!confirm(`Mover "${LattesTypes.itemTitle(item)}" para a lixeira? Pode ser restaurado depois em Configurações › Lixeira.`)) return;
             await deleteItem(item.id);
-            toast('Documento excluído.', 'ok');
+            toast('Documento movido para a lixeira.', 'ok');
             refreshDocumentoPessoalList(sec);
             renderItemList();
         }));
@@ -2915,7 +2982,7 @@
         $$('[data-area-del]', list).forEach(b => b.addEventListener('click', async () => {
             const item = state.items.find(i => i.id === b.dataset.areaDel);
             if (!item) return;
-            if (!confirm(`Remover "${LattesTypes.itemTitle(item)}"?`)) return;
+            if (!confirm(`Mover "${LattesTypes.itemTitle(item)}" para a lixeira?`)) return;
             await deleteItem(item.id);
             const form = sec.querySelector('#areaAtuacaoForm');
             if (form.dataset.editingId === item.id) areaAtuacaoResetForm(form);
@@ -3091,6 +3158,59 @@
         return `<h2 class="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 flex items-center gap-2 pt-3 pb-1 border-b border-gray-200 dark:border-gray-700"><i class="fa-solid ${icon}"></i> ${esc(title)}</h2>`;
     }
 
+    // Uma linha da lista da Lixeira: título, categoria, há quantos dias foi
+    // excluído, e os botões de Restaurar / Excluir definitivamente.
+    function trashItemRowHtml(item) {
+        const dias = Math.max(0, Math.floor((Date.now() - new Date(item.deletedAt).getTime()) / 86400000));
+        return `<li class="flex items-center justify-between gap-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded px-3 py-2 text-sm">
+            <div class="min-w-0">
+                <div class="font-medium truncate">${esc(LattesTypes.itemTitle(item))}</div>
+                <div class="text-xs text-gray-500">${esc(LattesTypes.categoryLabel(item.categoryKey))} · excluído há ${dias} dia${dias === 1 ? '' : 's'}</div>
+            </div>
+            <div class="flex gap-1.5 shrink-0">
+                <button data-restaurar="${item.id}" class="px-2.5 py-1.5 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-xs whitespace-nowrap"><i class="fa-solid fa-rotate-left mr-1"></i> Restaurar</button>
+                <button data-purgar="${item.id}" class="px-2.5 py-1.5 rounded border border-red-300 dark:border-red-700 text-red-700 dark:text-red-400 text-xs whitespace-nowrap"><i class="fa-solid fa-trash mr-1"></i> Excluir definitivamente</button>
+            </div>
+        </li>`;
+    }
+    function lixeiraSectionHtml() {
+        return `
+            <section class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+                <h2 class="text-lg font-bold mb-2 flex items-center gap-2">
+                    <i class="fa-solid fa-trash-can text-govbr-600 dark:text-unifesp-400"></i> Lixeira <span class="text-sm font-normal text-gray-500">(${state.trash.length})</span>
+                </h2>
+                <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">Itens excluídos ficam aqui por até ${TRASH_RETENTION_DIAS} dias antes de serem removidos definitivamente. Os arquivos (quando há diretório configurado) vão para a pasta “${esc(LattesTypes.lixeiraFolder())}”, não são apagados na hora.</p>
+                ${state.trash.length ? `
+                <div class="flex justify-end mb-2">
+                    <button id="btnEsvaziarLixeira" class="px-3 py-1.5 rounded border border-red-300 dark:border-red-700 text-red-700 dark:text-red-400 text-xs"><i class="fa-solid fa-trash mr-1"></i> Esvaziar lixeira</button>
+                </div>
+                <ul class="space-y-2">${state.trash.map(trashItemRowHtml).join('')}</ul>` : `
+                <p class="text-sm text-gray-500 italic">A lixeira está vazia.</p>`}
+            </section>`;
+    }
+    function wireLixeiraSection() {
+        $$('[data-restaurar]').forEach(b => b.addEventListener('click', async () => {
+            await restoreItem(b.dataset.restaurar);
+            toast('Item restaurado.', 'ok');
+            renderItemList();
+            renderConfig();
+        }));
+        $$('[data-purgar]').forEach(b => b.addEventListener('click', async () => {
+            const item = state.trash.find(i => i.id === b.dataset.purgar);
+            if (item && !confirm(`Excluir definitivamente "${LattesTypes.itemTitle(item)}"? Esta ação não pode ser desfeita.`)) return;
+            await purgeTrashItem(b.dataset.purgar);
+            toast('Item excluído definitivamente.', 'ok');
+            renderConfig();
+        }));
+        const btnEmpty = $('#btnEsvaziarLixeira');
+        if (btnEmpty) btnEmpty.addEventListener('click', async () => {
+            if (!confirm(`Excluir definitivamente os ${state.trash.length} item(ns) da lixeira? Esta ação não pode ser desfeita.`)) return;
+            await emptyTrash();
+            toast('Lixeira esvaziada.', 'ok');
+            renderConfig();
+        });
+    }
+
     async function renderConfig() {
         updateHeaderIdentity(); // reflete edições no nome (Identificação, import, limpar catálogo…)
         const panel = $('#tab-config');
@@ -3201,6 +3321,9 @@
                     </div>
                 </section>
 
+                ${cfgGroup('fa-trash-can', 'Lixeira')}
+                ${lixeiraSectionHtml()}
+
                 ${cfgGroup('fa-triangle-exclamation', 'Zona de risco')}
                 <section class="bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800 p-4">
                     <button id="btnClear" class="px-3 py-2 rounded bg-red-600 text-white text-sm"><i class="fa-solid fa-trash mr-1"></i> Limpar catálogo (índice local)</button>
@@ -3210,6 +3333,7 @@
         wirePerfilSection();
         wireRscConfig();
         wireExportLattes();
+        wireLixeiraSection();
         $('#xmlInput').addEventListener('change', onXmlSelected);
         $('#idPrefix').addEventListener('input', (e) => {
             $('#idPrefixEx').textContent = `${sanitizePrefix(e.target.value)}-k7p`;
@@ -4102,6 +4226,7 @@
 
         // Carrega catálogo, vocabulários e restaura diretório
         state.items = Storage.loadCatalog();
+        state.trash = Storage.loadTrash();
         const cfg = Storage.loadSettings();
         state.vocab = cfg.vocab || {};
         // Semeia a lista curada de tags de evidências uma única vez (1ª execução);
@@ -4116,6 +4241,7 @@
         updateHeaderIdentity();
         applyRscVisibility();
         try { await Storage.restoreDirectory(); } catch (_) {}
+        try { await purgeOldTrash(); } catch (_) {}
         // Move os arquivos das Conexões migradas da pasta antiga (98) p/ Dados gerais (01)
         if (conexoesMigradas.length && Storage.hasDirectory()) {
             const destino = LattesTypes.categoryFolder('DADOS_GERAIS');

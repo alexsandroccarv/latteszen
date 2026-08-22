@@ -956,7 +956,8 @@ window.LattesTypes = (function () {
     const LATTES_XML_FOLDER = 'Exportação/Lattes XML';
     const EXPORT_FOLDERS = ['Exportação/RSC-PCCTAE', 'Exportação/Progressão Docentes', 'Exportação/Súmula Curricular FAPESP', LATTES_XML_FOLDER];
     const PUBLICACAO_FOLDER = 'Publicação para Web';
-    const EXTRA_FOLDERS = [PUBLICACAO_FOLDER, 'Relatórios'];
+    const LIXEIRA_FOLDER = 'Lixeira';
+    const EXTRA_FOLDERS = [PUBLICACAO_FOLDER, 'Relatórios', LIXEIRA_FOLDER];
 
     function slugFolder(cat) {
         // Nome de pasta seguro para o sistema de arquivos, legível e ordenável
@@ -985,6 +986,7 @@ window.LattesTypes = (function () {
         backupFolder() { return BACKUP_FOLDER; },
         publicacaoFolder() { return PUBLICACAO_FOLDER; },
         lattesXmlFolder() { return LATTES_XML_FOLDER; },
+        lixeiraFolder() { return LIXEIRA_FOLDER; },
         getType(typeKey) { return TYPES[typeKey] || (typeKey === 'NAO_LATTES' ? NAO_LATTES_TYPE : null); },
         // compat: get() devolve o tipo (independe de categoria)
         get(typeKey) { return this.getType(typeKey); },

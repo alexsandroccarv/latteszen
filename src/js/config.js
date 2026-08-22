@@ -17,6 +17,7 @@ window.APP_CONFIG = {
     // Chaves de armazenamento local
     storageKeys: {
         catalog: 'lz_catalog',       // índice de itens (backup em localStorage)
+        trash: 'lz_trash',           // itens excluídos, aguardando restauração ou purga
         settings: 'lz_settings',     // preferências gerais
         theme: 'tema',
         highContrast: 'altoContraste',
