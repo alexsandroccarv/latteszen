@@ -182,6 +182,21 @@
         Storage.saveSettings(s);
     }
 
+    // Sincroniza o catálogo local a partir dos arquivos *.json do diretório:
+    // mescla por id (nunca remove itens que só existem no índice local —
+    // sincronizar só pode ACRESCENTAR/atualizar, não apagar nada). Usada tanto
+    // pelo botão manual "Sincronizar do diretório" quanto pela sincronização
+    // automática (ao escolher a pasta, e quando o índice local está vazio mas
+    // já existe um diretório configurado — ver init()).
+    async function syncFromDirectory() {
+        const found = await Storage.scanDirectory();
+        const byId = new Map(state.items.map(i => [i.id, i]));
+        found.forEach(f => byId.set(f.id, f));
+        state.items = Array.from(byId.values());
+        saveCatalog();
+        return { encontrados: found.length };
+    }
+
     // Lembrete de backup: conta gravações desde o último export e avisa a cada 20.
     function bumpBackupReminder() {
         const s = Storage.loadSettings();
@@ -3386,18 +3401,27 @@
                 await Storage.chooseDirectory();
                 await Storage.ensureSubdirs(LattesTypes.allFolders()); // cria a estrutura de pastas
                 try { await Storage.ensureInbox(); } catch (_) {}      // cria "Caixa de Entrada" / "00 Processado"
-                toast('Diretório configurado (estrutura de pastas criada).', 'ok');
+                state.dirHealth = null; // acabou de ser escolhida; revalidada no próximo render
+                // Sincroniza na hora: se a pasta já tinha itens (ex.: pasta de
+                // outro computador, ou reconfigurando após limpar o navegador),
+                // o catálogo local não precisa esperar um clique extra em
+                // "Sincronizar do diretório" pra aparecer.
+                let msg = 'Diretório configurado (estrutura de pastas criada).';
+                try {
+                    const { encontrados } = await syncFromDirectory();
+                    msg += encontrados
+                        ? ` ${encontrados} item(ns) já cadastrado(s) na pasta foram sincronizados automaticamente.`
+                        : ' Pasta vazia — pronta para uso.';
+                } catch (_) {}
+                toast(msg, 'ok');
+                renderItemList();
                 renderConfig();
             } catch (e) { if (e.name !== 'AbortError') toast(e.message, 'erro'); }
         });
         $('#btnSync').addEventListener('click', async () => {
             try {
-                const found = await Storage.scanDirectory();
-                const byId = new Map(state.items.map(i => [i.id, i]));
-                found.forEach(f => byId.set(f.id, f));
-                state.items = Array.from(byId.values());
-                saveCatalog();
-                toast(`${found.length} arquivo(s) .json lido(s) do diretório.`, 'ok');
+                const { encontrados } = await syncFromDirectory();
+                toast(`${encontrados} arquivo(s) .json lido(s) do diretório.`, 'ok');
                 renderItemList();
             } catch (e) { toast(e.message, 'erro'); }
         });
@@ -4292,6 +4316,17 @@
         applyRscVisibility();
         try { await Storage.restoreDirectory(); } catch (_) {}
         try { await checkDirHealth(); } catch (_) {} // silencioso: sem pedir permissão de novo sem um clique do usuário
+        // Catálogo local vazio mas já há um diretório configurado e acessível:
+        // pode ser um navegador/perfil novo, ou dados locais limpos, apontando
+        // pra uma pasta que já tinha itens — sincroniza automaticamente em vez
+        // de deixar a lista vazia até o usuário lembrar de clicar em
+        // "Sincronizar do diretório".
+        if (state.items.length === 0 && Storage.hasDirectory() && state.dirHealth && state.dirHealth.ok) {
+            try {
+                const { encontrados } = await syncFromDirectory();
+                if (encontrados) toast(`${encontrados} item(ns) encontrado(s) na pasta configurada e sincronizados automaticamente.`, 'ok');
+            } catch (_) {}
+        }
         try { await purgeOldTrash(); } catch (_) {}
         // Move os arquivos das Conexões migradas da pasta antiga (98) p/ Dados gerais (01)
         if (conexoesMigradas.length && Storage.hasDirectory()) {
