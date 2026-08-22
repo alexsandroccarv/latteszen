@@ -473,10 +473,11 @@
         return `
             <div class="bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800 rounded-lg p-4 mb-5">
                 <h3 class="font-bold text-sm flex items-center gap-2 mb-3"><i aria-hidden="true" class="fa-solid fa-award text-amber-600"></i> RSC-PCCTAE — itens usáveis</h3>
-                <div class="grid grid-cols-3 gap-2">
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
                     ${chip('rscUsavel', usaveis.length)}
                     ${chip('rscMarcado', marcados)}
                     ${chip('rscElegivel', elegiveis)}
+                    ${chip('rscForaPeriodo', state.items.filter(VIEW_PREDICATE.rscForaPeriodo).length)}
                 </div>
             </div>`;
     }
@@ -510,10 +511,28 @@
                 <p class="text-xs text-gray-500">${m.desc}</p>
             </button>`;
         };
+        // Chip compacto (mesmo padrão do quadro do RSC) — usado no resumo de
+        // "outras pendências" abaixo, que não cabiam nos 4 cartões principais.
+        const chip = (key) => {
+            const m = VIEW_META[key];
+            const active = state.viewFilter === key;
+            return `<button type="button" data-view="${key}" title="Filtrar: ${m.titulo}"
+                class="text-left bg-white dark:bg-gray-900 border rounded px-3 py-2 hover:shadow transition ${active ? `border-${m.cor}-500 ring-2 ring-${m.cor}-500/40` : 'border-gray-200 dark:border-gray-700'}">
+                <span class="block text-xl font-bold text-${m.cor}-600 dark:text-${m.cor}-400">${count(key)}</span>
+                <span class="block text-xs text-gray-600 dark:text-gray-400">${m.titulo}</span>
+            </button>`;
+        };
 
         panel.innerHTML = `
             <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
                 ${card('comprovados')}${card('semPdf')}${card('naoLattes')}${card('descObrig')}
+            </div>
+
+            <div class="bg-gray-50 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700 rounded-lg p-4 mb-5">
+                <h3 class="font-bold text-sm flex items-center gap-2 mb-3"><i aria-hidden="true" class="fa-solid fa-list-check text-gray-500"></i> Outras pendências</h3>
+                <div class="grid grid-cols-3 gap-2">
+                    ${chip('chVermelho')}${chip('exportLattesNao')}${chip('pubWebNao')}
+                </div>
             </div>
 
             <div class="grid sm:grid-cols-2 gap-x-6 gap-y-3 mb-5">
