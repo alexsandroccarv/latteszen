@@ -71,7 +71,8 @@
       .cafe-doc .amount-btn:hover{border-color:var(--cafe-accent);color:var(--cafe-accent)}
       .cafe-doc .amount-btn.active{background:var(--cafe-accent);border-color:var(--cafe-accent);color:#fff}
       .cafe-doc .pix-code{background:var(--cafe-code);border:1px solid var(--cafe-line);border-radius:8px;padding:10px 12px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.78rem;word-break:break-all;color:var(--cafe-muted)}
-      .cafe-doc .aff-card{background:var(--cafe-surface);border:1px solid var(--cafe-line);border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:8px}
+      .cafe-doc .aff-card{background:var(--cafe-surface);border:1px solid var(--cafe-line);border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:8px;position:relative}
+      .cafe-doc .aff-badge{position:absolute;top:10px;right:10px;font-size:.68rem;font-weight:600;color:var(--cafe-accent);background:var(--cafe-code);border-radius:20px;padding:2px 8px;display:inline-flex;align-items:center;gap:4px}
       .cafe-doc .aff-icon{width:2.4em;height:2.4em;border-radius:8px;display:flex;align-items:center;justify-content:center;background:var(--cafe-code);color:var(--cafe-accent);font-size:1.1em}
       .cafe-doc .pill-soon{display:inline-block;font-size:.72rem;font-weight:600;color:var(--cafe-muted);background:var(--cafe-code);border-radius:20px;padding:2px 10px}
       .cafe-doc .copied{color:#16a34a !important;border-color:#16a34a !important}
@@ -177,8 +178,12 @@
 
         <section class="card" id="parcerias">
           <h2><i aria-hidden="true" class="fa-solid fa-handshake text-govbr-600 dark:text-unifesp-400"></i> Parcerias e afiliados</h2>
-          <p>Outra forma de apoiar sem gastar nada a mais: usar os links/códigos de parceiros abaixo quando for contratar algo que você já ia contratar mesmo.</p>
+          <p>Outra forma de apoiar sem gastar nada a mais: usar os links/códigos de parceiros abaixo quando for contratar algo que você já ia contratar mesmo. São parcerias comerciais — ao usá-los, o lattesZen pode receber uma comissão, que ajuda a cobrir os custos de manutenção e hospedagem do projeto.</p>
           <div class="grid sm:grid-cols-2 md:grid-cols-3 gap-3 mt-3" id="affGrid"></div>
+          <p class="text-xs text-gray-500 dark:text-gray-400 mt-3 flex items-start gap-2">
+            <i aria-hidden="true" class="fa-solid fa-circle-info mt-0.5"></i>
+            <span><strong>Transparência:</strong> os links/códigos acima são de afiliados. Isso não muda o preço que você paga, e não influencia em nada o funcionamento do lattesZen — que continua sendo software livre e independente.</span>
+          </p>
         </section>
       </div>
     </main>
@@ -379,6 +384,7 @@
                         : '')
                     : '<span class="pill-soon w-fit">Em breve</span>';
                 return '<div class="aff-card">'
+                    + '<span class="aff-badge"><i aria-hidden="true" class="fa-solid fa-handshake"></i> Parceria</span>'
                     + '<div class="aff-icon"><i aria-hidden="true" class="' + a.icon + '"></i></div>'
                     + '<div class="font-bold">' + a.nome + '</div>'
                     + '<p class="text-sm text-gray-500 dark:text-gray-400 flex-1">' + a.desc + '</p>'
