@@ -1203,6 +1203,7 @@
             wireConditional($('#dynFields'), def);       // campos bloqueados por condição
             wireDynamicLabels($('#dynFields'), def);     // rótulos que mudam conforme outro campo
             wireRepeater($('#dynFields'), def);          // listas (Equipe, Financiadores, Produção C&T...)
+            wireCrossrefButton($('#dynFields'), def);    // "Buscar metadados" no campo DOI (Crossref)
             renderRscBlock(item);                        // camada RSC (se habilitado)
             renderVisibilidadeBlock(item);                // Exportar Lattes / visibilidade / Publicar na Web
             const semEvidencia = !!(def && def.noEvidence);
@@ -1519,6 +1520,15 @@
                     <input type="checkbox" data-na="${f.key}" ${na ? 'checked' : ''}> N/A
                 </label>
             </div>`;
+        } else if (f.key === 'doi') {
+            // Campo DOI com botão "Buscar metadados" (Crossref) ao lado —
+            // autopreenche título/ano/periódico/autores etc. do tipo atual
+            // (issue #5). Feedback de carregamento/erro fica no <p> abaixo.
+            input = `<div class="flex items-center gap-2">
+                <input type="text" name="doi" value="${esc(val)}" data-validate="doi" maxlength="500" placeholder="${esc(f.placeholder || '10.xxxx/xxxxx')}" class="${base} flex-1">
+                <button type="button" data-crossref-btn class="px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 text-xs whitespace-nowrap shrink-0"><i aria-hidden="true" class="fa-solid fa-magnifying-glass mr-1"></i>Buscar metadados</button>
+            </div>
+            <p class="text-xs text-gray-500 mt-0.5" data-crossref-status></p>`;
         } else {
             const t = (f.type === 'url' ? 'url' : (f.type === 'number' ? 'number' : (f.type === 'date' ? 'date' : 'text')));
             const listAttr = (t === 'text' && AUTOCOMPLETE_KEYS.includes(f.key)) ? `list="dl-${f.key}"` : '';
@@ -1782,6 +1792,7 @@
                 }));
             };
             const setRows = (rows) => { hidden.value = JSON.stringify(rows); list.innerHTML = repeaterListHtml(f, rows); wireRowRemove(); };
+            wrap._setRows = setRows; // exposto para preenchimento programático (ex.: Crossref)
             wireRowRemove();
             // Coluna com `enabledWhenCol: { key, equals }`: só habilita (e limpa
             // ao desabilitar) quando OUTRA coluna do mesmo formulário de
@@ -1822,6 +1833,118 @@
             });
         });
     }
+
+    /* =====================================================================
+       BUSCAR METADADOS NO CROSSREF (a partir do DOI) — issue #5
+       ---------------------------------------------------------------------
+       Ao clicar em "Buscar metadados" no campo DOI, consulta a API pública
+       do Crossref (sem chave) e autopreenche os campos do tipo ATUAL do
+       formulário (título, ano, periódico/ISSN, volume/fascículo/páginas,
+       autores) — só os campos que aquele tipo realmente tem. Só sobrescreve
+       campo já preenchido se a usuária confirmar.
+       ===================================================================== */
+    async function fetchCrossrefMetadata(doi) {
+        const clean = String(doi || '').trim().replace(/^\s*(https?:\/\/)?(dx\.)?doi\.org\//i, '').trim();
+        if (!/^10\.\d{4,9}\/\S+$/.test(clean)) throw new Error('Preencha um DOI válido (formato 10.xxxx/sufixo) antes de buscar.');
+        let resp;
+        try { resp = await fetch(`https://api.crossref.org/works/${encodeURIComponent(clean)}`, { headers: { 'Accept': 'application/json' } }); }
+        catch (_) { throw new Error('Não foi possível conectar ao Crossref — verifique sua conexão com a internet.'); }
+        if (resp.status === 404) throw new Error('DOI não encontrado no Crossref.');
+        if (!resp.ok) throw new Error(`Crossref retornou um erro (HTTP ${resp.status}).`);
+        const data = await resp.json();
+        return (data && data.message) || {};
+    }
+    // Converte a resposta do Crossref (`message`) nos campos do tipo ATUAL
+    // (`def`) — só preenche o que o tipo realmente tem (ex.: só ARTIGO_PERIODICO
+    // tem "periodico"; TRABALHO_EVENTO não tem, mas tem volume/fascículo).
+    function crossrefToFields(def, message) {
+        const temCampo = (k) => def && def.fields.some((f) => f.key === k);
+        const fields = {};
+        const titulo = Array.isArray(message.title) ? message.title[0] : '';
+        if (titulo && temCampo('titulo')) fields.titulo = titulo;
+
+        const datas = message.published || message['published-print'] || message['published-online'] || message.issued || {};
+        const ano = datas['date-parts'] && datas['date-parts'][0] && datas['date-parts'][0][0];
+        if (ano && temCampo('ano')) fields.ano = String(ano);
+
+        const periodico = Array.isArray(message['container-title']) ? message['container-title'][0] : '';
+        if (periodico && temCampo('periodico')) fields.periodico = periodico;
+
+        const issn = Array.isArray(message.ISSN) ? message.ISSN[0] : '';
+        if (issn && temCampo('issn')) fields.issn = issn;
+
+        if (message.volume && temCampo('volume')) fields.volume = String(message.volume);
+        if (message.issue && temCampo('fasciculo')) fields.fasciculo = String(message.issue);
+
+        if (message.page) {
+            const [ini, fim] = String(message.page).split('-').map((s) => s.trim());
+            if (ini && temCampo('paginaInicial')) fields.paginaInicial = ini;
+            if (fim && temCampo('paginaFinal')) fields.paginaFinal = fim;
+        }
+
+        if (Array.isArray(message.author) && message.author.length && temCampo('autoresLista')) {
+            const nomes = message.author.map((a) => `${a.given || ''} ${a.family || ''}`.trim()).filter(Boolean);
+            if (nomes.length) fields.autoresLista = nomes.map((nome) => ({ nomeCompleto: nome, nomeCitacao: '' }));
+        }
+        return fields;
+    }
+    function wireCrossrefButton(container, def) {
+        const btn = container.querySelector('[data-crossref-btn]');
+        if (!btn) return;
+        const statusEl = container.querySelector('[data-crossref-status]');
+        const setStatus = (msg, isErr) => {
+            if (!statusEl) return;
+            statusEl.textContent = msg || '';
+            statusEl.classList.toggle('text-red-600', !!isErr);
+            statusEl.classList.toggle('dark:text-red-400', !!isErr);
+        };
+        btn.addEventListener('click', async () => {
+            const doiInput = container.querySelector('[name="doi"]');
+            const original = btn.innerHTML;
+            btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i>Buscando…';
+            setStatus('');
+            try {
+                const message = await fetchCrossrefMetadata(doiInput ? doiInput.value : '');
+                const novos = crossrefToFields(def, message);
+                const chaves = Object.keys(novos);
+                if (!chaves.length) { setStatus('Nenhum dado aproveitável encontrado para esse DOI.', true); return; }
+
+                const estaPreenchido = (k) => {
+                    if (k === 'autoresLista') {
+                        const wrap = container.querySelector('[data-repeater-wrap="autoresLista"]');
+                        const hidden = wrap && wrap.querySelector('[data-repeater="autoresLista"]');
+                        try { return hidden && JSON.parse(hidden.value || '[]').length > 0; } catch (_) { return false; }
+                    }
+                    const el = container.querySelector(`[name="${k}"]`);
+                    return !!(el && el.value.trim());
+                };
+                const conflitantes = chaves.filter(estaPreenchido);
+                let substituir = true;
+                if (conflitantes.length) {
+                    const rotulos = conflitantes.map((k) => (def.fields.find((f) => f.key === k) || {}).label || k).join(', ');
+                    substituir = confirm(`${conflitantes.length} campo(s) já preenchido(s) (${rotulos}). Substituir também esses pelos dados do Crossref?`);
+                }
+                let aplicados = 0;
+                chaves.forEach((k) => {
+                    if (!substituir && conflitantes.includes(k)) return;
+                    if (k === 'autoresLista') {
+                        const wrap = container.querySelector('[data-repeater-wrap="autoresLista"]');
+                        if (wrap && wrap._setRows) { wrap._setRows(novos.autoresLista); aplicados++; }
+                        return;
+                    }
+                    const el = container.querySelector(`[name="${k}"]`);
+                    if (el) { el.value = novos[k]; aplicados++; }
+                });
+                state.formDirty = true;
+                setStatus(`${aplicados} campo(s) preenchido(s) a partir do Crossref.`);
+            } catch (e) {
+                setStatus(e.message, true);
+            } finally {
+                btn.disabled = false; btn.innerHTML = original;
+            }
+        });
+    }
+
     // Checkbox "N/A" (Não se aplica): bloqueia/limpa o input associado.
     // Usado nos campos URL e em qualquer campo com `na: true` na definição.
     function wireNA(container) {

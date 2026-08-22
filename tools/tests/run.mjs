@@ -14,6 +14,7 @@ import './specs/resumo-conformidade.mjs';
 import './specs/atalhos-teclado.mjs';
 import './specs/datas-agrupadas.mjs';
 import './specs/importar-orcid.mjs';
+import './specs/crossref-doi.mjs';
 
 console.log('Rodando suíte de testes de regressão (Playwright)...\n');
 await runAll();
