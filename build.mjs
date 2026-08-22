@@ -7,12 +7,13 @@
    abrindo só o index.html "solto": é preciso o diretório inteiro.
 
    Este build apenas MONTA a pasta dist/ (o que vai para o servidor) copiando
-   fielmente os arquivos de src/ — sem embutir/inlinar nada — mais eventuais
-   assets e páginas de apoio da raiz do repositório.
+   fielmente os arquivos de src/ — sem embutir/inlinar nada. Todo o site
+   (index.html, páginas de apoio, favicon, manifest, css/, js/) já vive
+   dentro de src/, então este passo único é suficiente.
 
    Uso:  node build.mjs
    ========================================================================== */
-import { cpSync, rmSync, mkdirSync, existsSync, readdirSync } from 'node:fs';
+import { cpSync, rmSync, mkdirSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
@@ -26,12 +27,6 @@ mkdirSync(dist, { recursive: true });
 
 // 2) Copia TODO o conteúdo de src/ (index.html, css/, js/, images/…) para dist/
 cpSync(src, dist, { recursive: true });
-
-// 3) Copia assets e páginas de apoio opcionais que vivam na raiz do repositório
-for (const name of ['images', 'termodeuso.html', 'politicadeprivacidade.html', 'ajuda.html', 'favicon.ico']) {
-    const p = join(root, name);
-    if (existsSync(p)) cpSync(p, join(dist, name), { recursive: true });
-}
 
 console.log('OK: dist/ montado (site multi-arquivo).');
 console.log('Conteúdo de dist/: ' + readdirSync(dist).join('  '));
