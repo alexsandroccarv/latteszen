@@ -563,24 +563,39 @@
 
         $('#sortOrder').value = state.sortOrder || 'desc';
         renderItemList();
-        $('#filterBox').addEventListener('input', renderItemList);
+        // Busca com debounce: currículos com centenas de itens reconstroem uma
+        // árvore grande (categoria › tipo/instituição › itens) a cada chamada
+        // — sem isso, cada tecla digitada refaz tudo na hora, o que fica
+        // perceptível. Só a lista é adiada; os demais controles seguem
+        // instantâneos (não dependem de digitação caractere a caractere).
+        let filterTimer = null;
+        $('#filterBox').addEventListener('input', () => {
+            clearTimeout(filterTimer);
+            filterTimer = setTimeout(renderItemList, 200);
+        });
         $('#sortOrder').addEventListener('change', (e) => { state.sortOrder = e.target.value; renderItemList(); });
         $('#btnExpandAll').addEventListener('click', () => $$('#itemList details').forEach(d => d.open = true));
         $('#btnCollapseAll').addEventListener('click', () => $$('#itemList details').forEach(d => d.open = false));
         $('#btnImprimir').addEventListener('click', () => window.print());
-        // Delegação (em vez de ligar em cada [data-view] individualmente):
-        // os ícones de status de cada item ficam dentro de #itemList, que é
-        // reconstruído sozinho (busca/ordenar) sem passar de novo por aqui —
-        // um listener direto nos botões se perderia nesse caso. Ligado uma
-        // única vez em #tab-conformidade (nó estável, nunca recriado).
-        if (!panel.dataset.viewDelegado) {
-            panel.dataset.viewDelegado = '1';
+        // Delegação (em vez de ligar em cada botão individualmente): os itens
+        // (ícones de status [data-view] e ações [data-act]: editar/duplicar/
+        // excluir) ficam dentro de #itemList, que é reconstruído sozinho
+        // (busca/ordenar) sem passar de novo por aqui — listeners diretos nos
+        // botões se perderiam nesse caso, e recriá-los a cada render custaria
+        // caro em listas grandes. Ligado uma única vez em #tab-conformidade
+        // (nó estável, nunca recriado).
+        if (!panel.dataset.itemDelegado) {
+            panel.dataset.itemDelegado = '1';
             panel.addEventListener('click', (e) => {
-                const b = e.target.closest('[data-view]');
-                if (!b) return;
-                const k = b.dataset.view;
-                state.viewFilter = (state.viewFilter === k) ? 'todos' : k; // clicar de novo limpa
-                renderConformidade();
+                const viewBtn = e.target.closest('[data-view]');
+                if (viewBtn) {
+                    const k = viewBtn.dataset.view;
+                    state.viewFilter = (state.viewFilter === k) ? 'todos' : k; // clicar de novo limpa
+                    renderConformidade();
+                    return;
+                }
+                const actBtn = e.target.closest('[data-act]');
+                if (actBtn) onItemAction(actBtn);
             });
         }
     }
@@ -2452,10 +2467,6 @@
             </details>`;
         }).join('');
     }
-    function bindItemActions(container) {
-        $$('[data-act]', container).forEach(btn => btn.addEventListener('click', onItemAction));
-    }
-
     function renderItemList() {
         const list = $('#itemList');
         if (!list) return; // aba Conformidade não está montada
@@ -2493,11 +2504,12 @@
             return;
         }
         list.innerHTML = buildGroupedHtml(sortByYear(items, asc));
-        bindItemActions(list);
     }
 
-    async function onItemAction(e) {
-        const btn = e.currentTarget;
+    // Chamada pela delegação de clique em #tab-conformidade (ver
+    // renderConformidade) — recebe o próprio botão [data-act], não o evento,
+    // já que não há mais um listener direto por botão.
+    async function onItemAction(btn) {
         const id = btn.dataset.id;
         const item = state.items.find(i => i.id === id);
         if (!item) return;
