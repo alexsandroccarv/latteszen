@@ -19,6 +19,7 @@
         editingId: null,    // item em edição
         evEditing: [],      // evidências do item em edição (array de trabalho)
         lattesParsed: null, // resultado do parse do XML
+        orcidParsed: null,  // resultado da busca de publicações no ORCID
         currentPdfUrl: null,// URL (blob) do PDF exibido no painel lateral
         sortOrder: 'desc',  // ordenação por ano na Conformidade
         viewFilter: 'todos',// recorte da lista (todos/comprovados/semPdf/naoLattes/descObrig)
@@ -2891,6 +2892,184 @@
     }
 
     /* =====================================================================
+       IMPORTAR PUBLICAÇÕES DO ORCID — seção dentro de Configurações
+       ---------------------------------------------------------------------
+       Busca as obras públicas de um ORCID iD (API pública, sem autenticação)
+       e reaproveita a mesma tela de revisão/seleção e a mesma deduplicação
+       por assinatura de conteúdo (itemSignature/existingSignatureMap) já
+       usadas na importação do XML do Lattes — só a origem dos dados muda.
+       ===================================================================== */
+    // Tipo de obra do ORCID → tipo do lattesZen. Cobre os tipos mais comuns;
+    // qualquer tipo não mapeado cai em OUTRA_BIBLIOGRAFICA (catch-all seguro).
+    const ORCID_TYPE_MAP = {
+        'journal-article': 'ARTIGO_PERIODICO', 'journal-issue': 'ARTIGO_PERIODICO',
+        'book': 'LIVROS', 'edited-book': 'LIVROS',
+        'book-chapter': 'CAPITULOS_LIVRO',
+        'conference-paper': 'TRABALHO_EVENTO', 'conference-abstract': 'TRABALHO_EVENTO', 'conference-poster': 'TRABALHO_EVENTO',
+        'lecture-speech': 'APRESENTACAO',
+        'magazine-article': 'TEXTO_JORNAL', 'newsletter-article': 'TEXTO_JORNAL', 'newspaper-article': 'TEXTO_JORNAL', 'online-resource': 'TEXTO_JORNAL',
+        'translation': 'TRADUCAO',
+        'software': 'SOFTWARE_SEM_REGISTRO',
+        'patent': 'PATENTE',
+        'trademark': 'MARCA',
+        'artistic-performance': 'ARTES_CENICAS',
+        'cartographic-material': 'CARTA_MAPA',
+        'image': 'OUTRA_ARTISTICA', 'video': 'OUTRA_ARTISTICA',
+        'report': 'RELATORIO_PESQUISA', 'working-paper': 'RELATORIO_PESQUISA', 'preprint': 'RELATORIO_PESQUISA',
+    };
+    const ORCID_FALLBACK_TYPE = 'OUTRA_BIBLIOGRAFICA';
+
+    function orcidImportSectionHtml() {
+        const perfil = (state.items.find(i => i.typeKey === 'IDENTIFICACAO') || {}).fields || {};
+        return `
+            <section id="importOrcidSection" class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+                <h2 class="text-lg font-bold mb-2 flex items-center gap-2">
+                    <i aria-hidden="true" class="fa-brands fa-orcid text-green-600"></i> Importar publicações do ORCID
+                </h2>
+                <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                    Busca as obras públicas registradas no seu <strong>ORCID iD</strong> (API pública do ORCID — nenhuma senha é necessária) e lista para você escolher quais importar, do mesmo jeito que a importação do XML do Lattes.
+                </p>
+                <div class="text-sm rounded-md border-l-4 border-amber-500 bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-300 px-3 py-2 mb-3 flex gap-2">
+                    <i class="fa-solid fa-triangle-exclamation mt-0.5"></i>
+                    <span>O ORCID não fornece a lista de <strong>autores</strong> nesta consulta — preencha esse campo depois de importar, em cada item. O <strong>tipo</strong> de cada obra é inferido automaticamente e pode precisar de ajuste.</span>
+                </div>
+                <div class="flex flex-wrap items-end gap-2">
+                    <div>
+                        <label class="block text-xs font-semibold mb-1" for="orcidInput">ORCID iD</label>
+                        <input type="text" id="orcidInput" placeholder="0000-0000-0000-0000" value="${esc(perfil.orcid || '')}"
+                               class="text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 w-48">
+                    </div>
+                    <button id="btnOrcidBuscar" class="px-3 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm font-semibold">
+                        <i class="fa-solid fa-magnifying-glass mr-1"></i> Buscar publicações
+                    </button>
+                </div>
+                <div id="orcidResult" class="mt-3"></div>
+            </section>`;
+    }
+
+    // Extrai um external-id específico (ex.: 'doi', 'uri') do work-summary do ORCID.
+    function orcidExternalId(summary, kind) {
+        const ids = summary['external-ids'] && summary['external-ids']['external-id'];
+        if (!Array.isArray(ids)) return '';
+        const found = ids.find((x) => x['external-id-type'] === kind);
+        return found ? String(found['external-id-value'] || '').trim() : '';
+    }
+    // Converte um work-summary do ORCID num item do lattesZen (typeKey/categoryKey/fields).
+    function orcidWorkToItem(summary) {
+        const typeKey = ORCID_TYPE_MAP[summary.type] || ORCID_FALLBACK_TYPE;
+        const titulo = (summary.title && summary.title.title && summary.title.title.value) || '';
+        const ano = (summary['publication-date'] && summary['publication-date'].year && summary['publication-date'].year.value) || '';
+        const doi = orcidExternalId(summary, 'doi');
+        const url = (summary.url && summary.url.value) || orcidExternalId(summary, 'uri') || '';
+        const journal = (summary['journal-title'] && summary['journal-title'].value) || '';
+        const def = LattesTypes.getType(typeKey);
+        const temCampo = (k) => def && def.fields.some((f) => f.key === k);
+        const fields = {};
+        if (temCampo('titulo')) fields.titulo = titulo;
+        if (temCampo('ano')) fields.ano = ano;
+        if (temCampo('doi')) fields.doi = doi;
+        if (temCampo('url')) fields.url = url;
+        if (typeKey === 'ARTIGO_PERIODICO' || typeKey === 'ARTIGO_ACEITO') fields.periodico = journal;
+        return { typeKey, categoryKey: LattesTypes.primaryCategory(typeKey), fields, putCode: summary['put-code'] };
+    }
+    // Busca as obras públicas de um ORCID iD. Lança erro (mensagem em pt-BR) se
+    // o formato for inválido ou a consulta falhar.
+    async function fetchOrcidWorks(orcid) {
+        const clean = String(orcid || '').trim().toUpperCase();
+        if (!/^\d{4}-\d{4}-\d{4}-\d{3}[\dX]$/.test(clean)) throw new Error('ORCID iD inválido — use o formato 0000-0000-0000-0000.');
+        let resp;
+        try { resp = await fetch(`https://pub.orcid.org/v3.0/${clean}/works`, { headers: { 'Accept': 'application/json' } }); }
+        catch (_) { throw new Error('Não foi possível conectar ao ORCID — verifique sua conexão com a internet.'); }
+        if (!resp.ok) throw new Error(`ORCID retornou um erro (HTTP ${resp.status}) — confira se o ORCID iD existe e é público.`);
+        const data = await resp.json();
+        const groups = Array.isArray(data.group) ? data.group : [];
+        return groups
+            .map((g) => (g['work-summary'] && g['work-summary'][0]) || null)
+            .filter(Boolean)
+            .map(orcidWorkToItem);
+    }
+
+    function renderOrcidResult(items) {
+        const box = $('#orcidResult');
+        if (!items.length) { box.innerHTML = `<p class="text-sm text-gray-500 italic">Nenhuma obra pública encontrada para esse ORCID iD.</p>`; return; }
+        const sigMap = existingSignatureMap();
+        const isDup = (it) => (LattesTypes.isSingleton(it.typeKey) && state.items.some((x) => x.typeKey === it.typeKey)) || sigMap.has(itemSignature(it.typeKey, it.fields || {}));
+        const novos = items.filter((it) => !isDup(it)).length;
+        box.innerHTML = `
+            <div class="mb-3">
+                <p class="text-sm mb-1">${items.length} obra(s) encontrada(s) — <strong class="text-green-700 dark:text-green-400">${novos} novas</strong>, ${items.length - novos} já catalogada(s).</p>
+            </div>
+            <div class="flex items-center gap-2 mb-2 flex-wrap">
+                <button id="btnOrcidSelNovos" class="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600">Selecionar novos</button>
+                <button id="btnOrcidSelAll" class="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600">Todos</button>
+                <button id="btnOrcidSelNone" class="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600">Nenhum</button>
+                <button id="btnOrcidImport" class="ml-auto px-4 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm font-semibold">
+                    <i class="fa-solid fa-download mr-1"></i> Importar selecionados
+                </button>
+            </div>
+            <div class="space-y-1 scroll-area max-h-[60vh] overflow-y-auto pr-1">
+                ${items.map((it, idx) => {
+                    const dup = isDup(it);
+                    return `<label class="flex items-start gap-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded p-2 text-sm ${dup ? 'opacity-60' : ''}">
+                        <input type="checkbox" class="orcidchk mt-1" data-idx="${idx}" ${dup ? '' : 'checked'}>
+                        <span class="min-w-0">
+                            <span class="font-medium">${esc(it.fields.titulo || '(sem título)')}</span>
+                            <span class="block text-xs text-gray-500">${esc(LattesTypes.label(it.typeKey))} ${it.fields.ano ? '· ' + esc(it.fields.ano) : ''} ${dup ? '· <em>já catalogado</em>' : ''}</span>
+                        </span>
+                    </label>`;
+                }).join('')}
+            </div>`;
+
+        $('#btnOrcidSelNovos').addEventListener('click', () => $$('.orcidchk').forEach((c) => { c.checked = !isDup(items[+c.dataset.idx]); }));
+        $('#btnOrcidSelAll').addEventListener('click', () => $$('.orcidchk').forEach((c) => c.checked = true));
+        $('#btnOrcidSelNone').addEventListener('click', () => $$('.orcidchk').forEach((c) => c.checked = false));
+        $('#btnOrcidImport').addEventListener('click', importOrcidSelected);
+    }
+
+    async function importOrcidSelected() {
+        const chosen = $$('.orcidchk').filter((c) => c.checked).map((c) => parseInt(c.dataset.idx, 10));
+        if (!chosen.length) { toast('Nenhum item selecionado.', 'aviso'); return; }
+        const sigMap = existingSignatureMap();
+        let n = 0, ignorados = 0;
+        for (const idx of chosen) {
+            const src = state.orcidParsed[idx];
+            const sig = itemSignature(src.typeKey, src.fields || {});
+            if (sig && sigMap.has(sig)) { ignorados++; continue; } // já existe (mesma assinatura) — não duplica
+            const item = {
+                id: uid(), createdAt: nowISO(), updatedAt: nowISO(),
+                lattesItem: true, typeKey: src.typeKey, categoryKey: src.categoryKey,
+                fields: src.fields, source: 'orcid', lattesRef: null,
+                hasPdf: false, pdfName: null, evidencias: [],
+            };
+            await persistItem(item);
+            if (sig) sigMap.set(sig, item);
+            n++;
+        }
+        toast(`${n} item(ns) importado(s) do ORCID${ignorados ? ` — ${ignorados} já existente(s) ignorado(s)` : ''}.`, 'ok');
+        renderOrcidResult(state.orcidParsed);
+        renderItemList();
+    }
+
+    function wireOrcidImport() {
+        const btn = $('#btnOrcidBuscar');
+        if (!btn) return;
+        btn.addEventListener('click', async () => {
+            const input = $('#orcidInput');
+            btn.disabled = true; btn.textContent = 'Buscando…';
+            try {
+                const items = await fetchOrcidWorks(input.value);
+                state.orcidParsed = items;
+                renderOrcidResult(items);
+            } catch (e) {
+                $('#orcidResult').innerHTML = '';
+                toast(e.message, 'erro');
+            } finally {
+                btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-magnifying-glass mr-1"></i> Buscar publicações';
+            }
+        });
+    }
+
+    /* =====================================================================
        ABA: CONFIGURAÇÕES
        ===================================================================== */
     /* =====================================================================
@@ -3398,6 +3577,9 @@
                 ${cfgGroup('fa-arrow-right-arrow-left', 'Plataforma Lattes')}
                 ${importLattesSectionHtml()}
                 ${exportLattesSectionHtml()}
+
+                ${cfgGroup('fa-id-badge', 'Outras fontes')}
+                ${orcidImportSectionHtml()}
                 <section class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
                     <h2 class="text-lg font-bold mb-2 flex items-center gap-2"><i class="fa-solid fa-language text-govbr-600 dark:text-unifesp-400"></i> Compatibilidade com o Lattes (ISO-8859-1)</h2>
                     <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
@@ -3472,6 +3654,7 @@
         wireRscConfig();
         wireExportLattes();
         wireLixeiraSection();
+        wireOrcidImport();
         $('#xmlInput').addEventListener('change', onXmlSelected);
         $('#idPrefix').addEventListener('input', (e) => {
             $('#idPrefixEx').textContent = `${sanitizePrefix(e.target.value)}-k7p`;
@@ -3528,6 +3711,7 @@
             saveCatalog();
             clearDraft();                 // rascunho não salvo (lz_draft)
             state.lattesParsed = null;    // prévia de importação do XML
+            state.orcidParsed = null;     // prévia de importação do ORCID
             state.editingId = null;       // sai de qualquer edição em curso
             state.evEditing = [];         // evidências em edição
             state.vocab = {};             // listas de autocomplete (curadas)
