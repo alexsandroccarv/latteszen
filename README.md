@@ -1,7 +1,7 @@
 # lattesZen
 
 Organizador do **Currículo Lattes** que roda inteiramente no navegador, com
-importação e exportação fiéis ao XML oficial do CNPq e anexação de evidências
+importação fiel ao XML oficial do CNPq e anexação de evidências
 (comprovações) diretamente numa pasta local do seu computador.
 
 > Versão 0.2.0 · UNIFESP
@@ -20,10 +20,9 @@ dados ficam **no seu navegador e numa pasta que você escolhe**.
   Atuação, Projetos, Produções, Patentes/Registros, Inovação, Educação e
   Popularização de C&T, Eventos, Orientações, Bancas) com **máxima
   correspondência de campos** com a Plataforma Lattes.
-- **Importar o XML do Lattes** e **exportar de volta** no formato oficial
-  (schema `CurriculoLattes.xsd` e gramática de importação `LMPL`, em
-  ISO-8859-1), com **round-trip sem perdas** e **deduplicação por assinatura de
-  conteúdo** (reimportar o XML não cria itens duplicados).
+- **Importar o XML do Lattes** no formato oficial (schema `CurriculoLattes.xsd`
+  e gramática de importação `LMPL`, em ISO-8859-1), com **deduplicação por
+  assinatura de conteúdo** (reimportar o XML não cria itens duplicados).
 - **Anexar evidências** (PDFs/imagens) a cada item, gravadas por categoria numa
   pasta local via *File System Access API*.
 - **Conformidade**: painel que mostra o que está comprovado, o que falta de

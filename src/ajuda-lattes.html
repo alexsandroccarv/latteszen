@@ -143,10 +143,10 @@
       <div class="help-doc">
         <p style="margin:0 0 10px"><a href="ajuda-rsc.html">Ver ajuda do módulo RSC-PCCTAE →</a></p>
         <h1>Como usar o lattesZen</h1>
-        <p class="lead">Guia dos procedimentos para organizar, comprovar e exportar seu Currículo Lattes. O módulo <strong>RSC-PCCTAE</strong> tem uma <a href="ajuda-rsc.html">página de ajuda própria</a>.</p>
+        <p class="lead">Guia dos procedimentos para organizar, comprovar e publicar seu Currículo Lattes. O módulo <strong>RSC-PCCTAE</strong> tem uma <a href="ajuda-rsc.html">página de ajuda própria</a>.</p>
 
         <div class="note">
-          <strong>Em uma frase:</strong> você escolhe uma <em>pasta no seu computador</em> → importa o XML do Lattes (ou cadastra manualmente) → anexa os PDFs de comprovação → acompanha o que falta na aba <em>Conformidade</em> → e pode exportar tudo de volta como XML do Lattes ou como página pública.
+          <strong>Em uma frase:</strong> você escolhe uma <em>pasta no seu computador</em> → importa o XML do Lattes (ou cadastra manualmente) → anexa os PDFs de comprovação → acompanha o que falta na aba <em>Conformidade</em> → e pode publicar tudo como uma página pública do currículo.
         </div>
 
         <nav class="toc">
@@ -159,7 +159,7 @@
             <li><a href="#catalogar">4. Preencher os campos (Catalogar)</a></li>
             <li><a href="#atalhos">5. Atalhos de teclado</a></li>
             <li><a href="#conformidade">6. A aba Conformidade</a></li>
-            <li><a href="#exportar">7. Exportar de volta (XML)</a></li>
+            <li><a href="#exportar">7. Publicar a página pública</a></li>
             <li><a href="#backup">Backup e codificação</a></li>
           </ol>
         </nav>
@@ -173,7 +173,7 @@
             <li><strong>Importar o XML</strong> exportado da Plataforma Lattes — traz seus itens automaticamente.</li>
             <li><strong>Anexar as evidências</strong> (PDFs) a cada item, usando a pasta de entrada.</li>
             <li><strong>Conferir na aba Conformidade</strong> o que ainda falta (comprovação ou campos).</li>
-            <li><strong>Exportar</strong> quando quiser: XML atualizado para o Lattes ou página pública.</li>
+            <li><strong>Publique</strong> quando quiser: gere a página pública do currículo a partir da mesma base.</li>
           </ol>
           <div class="warn">
             <strong>Navegador:</strong> a gravação em pasta usa a <em>File System Access API</em>, disponível no <strong>Google Chrome</strong> e no <strong>Microsoft Edge</strong> (computador). Em navegadores sem suporte, você ainda pode cadastrar itens e usar o <em>Backup em JSON</em>, mas não a gravação automática de <code>PDF</code>/<code>JSON</code> na pasta.
@@ -255,8 +255,8 @@
             <li>Marque os que deseja trazer (há atalhos <em>Selecionar novos / Todos / Nenhum</em>) e clique em <strong>Importar selecionados</strong>.</li>
           </ol>
           <div class="ok"><strong>Sem duplicar:</strong> a cada importação o lattesZen reconhece itens já existentes (por assinatura de conteúdo) e não os duplica — mesmo os que você editou ou criou manualmente. Eles aparecem como “já catalogado”, desmarcados por padrão. Depois de importar, é só anexar os PDFs de cada um.</div>
-          <div class="warn"><strong>Para manter a consistência:</strong> depois de adotar o lattesZen, faça as <strong>edições aqui no lattesZen</strong> e não mais diretamente na Plataforma Lattes — o lattesZen passa a ser sua fonte de referência e você exporta o XML para atualizar o Lattes. Corrigir um item direto na Plataforma Lattes muda o identificador dele e pode gerar duplicação na próxima importação.</div>
-          <div class="note"><strong>Acentuação:</strong> o Lattes usa a codificação <code>ISO-8859-1</code>. O lattesZen decodifica corretamente na importação e reconverte na exportação, preservando acentos e caracteres especiais.</div>
+          <div class="warn"><strong>Para manter a consistência:</strong> depois de adotar o lattesZen, faça as <strong>edições aqui no lattesZen</strong> e não mais diretamente na Plataforma Lattes — o lattesZen passa a ser sua fonte de referência para os próximos ciclos de importação. Corrigir um item direto na Plataforma Lattes muda o identificador dele e pode gerar duplicação na próxima importação.</div>
+          <div class="note"><strong>Acentuação:</strong> o Lattes usa a codificação <code>ISO-8859-1</code>. O lattesZen decodifica corretamente os arquivos importados, preservando acentos e caracteres especiais.</div>
         </section>
 
         <section class="card" id="catalogar">
@@ -317,14 +317,8 @@
         </section>
 
         <section class="card" id="exportar">
-          <h2><span class="step-num">7</span> Exportar de volta</h2>
-          <p>Na aba <span class="pill">Publicar na Web</span> há duas saídas:</p>
-          <ul>
-            <li><strong>Página pública do currículo</strong> — um único arquivo HTML autossuficiente, com as evidências marcadas como “públicas” embutidas. Pode ser hospedado ou compartilhado.</li>
-            <li><strong>Exportar para a Plataforma Lattes (XML)</strong> — gera o <code>curriculo.xml</code> no formato oficial do CNPq (schema <em>CurriculoLattes</em>, codificação <code>ISO-8859-1</code>). Inclui apenas as categorias do Lattes; itens de RSC, Conexões e Registros pessoais não entram. As evidências (PDFs) não fazem parte do XML.</li>
-          </ul>
-          <div class="note">Você pode baixar o XML ou salvá-lo direto na pasta, em <code>Publicação/curriculo.xml</code>.</div>
-          <div class="warn"><strong>Fluxo recomendado:</strong> mantenha o lattesZen como fonte de referência — edite aqui e use o XML exportado para atualizar a Plataforma Lattes, evitando editar nos dois lugares. Assim as reimportações não geram duplicatas.</div>
+          <h2><span class="step-num">7</span> Publicar a página pública</h2>
+          <p>Na aba <span class="pill">Publicar na Web</span> você gera a <strong>página pública do currículo</strong> — um único arquivo HTML autossuficiente, com as evidências marcadas como “públicas” embutidas. Pode ser hospedado ou compartilhado.</p>
         </section>
 
         <section class="card" id="backup">

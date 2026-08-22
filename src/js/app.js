@@ -4316,8 +4316,8 @@
                         <p class="text-sm text-gray-600 dark:text-gray-400">
                             O lattesZen organiza seu currículo acadêmico — formação, produções, atuação, projetos, eventos e muito mais —
                             num só lugar, no seu computador, com as evidências (PDFs) já guardadas junto de cada item. A partir dessa base
-                            você verifica o que falta para ficar em conformidade com o Lattes, monta o dossiê de RSC-PCCTAE, exporta um XML
-                            para atualizar a Plataforma Lattes e publica uma página do currículo na web — tudo sem depender de servidor.
+                            você verifica o que falta para ficar em conformidade com o Lattes, monta o dossiê de RSC-PCCTAE
+                            e publica uma página do currículo na web — tudo sem depender de servidor.
                         </p>
                     </div>
                 </section>
@@ -4325,7 +4325,7 @@
                 <section class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
                     <h2 class="text-lg font-bold mb-3 flex items-center gap-2"><i class="fa-solid fa-heart-pulse text-govbr-600 dark:text-unifesp-400"></i> Que dores o lattesZen busca resolver</h2>
                     <div class="grid sm:grid-cols-2 gap-3 text-sm">
-                        <div class="flex gap-2"><i class="fa-solid fa-rotate text-govbr-600 dark:text-unifesp-400 mt-1"></i><span><strong>Chega de retrabalho:</strong> cadastre uma vez e reaproveite — exporte o XML para a Plataforma Lattes e gere a página pública do currículo a partir da mesma base.</span></div>
+                        <div class="flex gap-2"><i class="fa-solid fa-rotate text-govbr-600 dark:text-unifesp-400 mt-1"></i><span><strong>Chega de retrabalho:</strong> cadastre uma vez e reaproveite — gere a página pública do currículo a partir da mesma base usada em tudo o mais.</span></div>
                         <div class="flex gap-2"><i class="fa-solid fa-paperclip text-govbr-600 dark:text-unifesp-400 mt-1"></i><span><strong>Evidências organizadas:</strong> cada item guarda seu comprovante (PDF) já na pasta certa — nada de procurar arquivo solto na hora de comprovar algo.</span></div>
                         <div class="flex gap-2"><i class="fa-solid fa-clipboard-check text-govbr-600 dark:text-unifesp-400 mt-1"></i><span><strong>Conformidade visível:</strong> ícones mostram, item a item, o que falta (carga horária, descrição, prazos) — sem caçar campo por campo.</span></div>
                         <div class="flex gap-2"><i class="fa-solid fa-award text-govbr-600 dark:text-unifesp-400 mt-1"></i><span><strong>RSC sem planilha:</strong> simulador de pontuação e memorial descritivo do RSC-PCCTAE prontos a partir dos itens já cadastrados.</span></div>
