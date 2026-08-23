@@ -7,7 +7,7 @@ window.APP_CONFIG = {
     // Os dois primeiros números são atualizados manualmente; o terceiro (2
     // dígitos) é incrementado a cada issue fechada no GitHub — ver política
     // completa em CLAUDE.md e o histórico em notas-de-versao.html.
-    version: 'v0.6.06',
+    version: 'v0.6.07',
     lastModified: '23/08/2026',
     author: {
         nome: 'Alexsandro Cardoso Carvalho',
@@ -47,4 +47,17 @@ window.APP_CONFIG = {
     // Enquanto ficar vazio, a seção "Google Drive" em Configurações aparece
     // desabilitada com um aviso, em vez de quebrar.
     googleDriveClientId: (typeof window !== 'undefined' && window.__LZ_TEST_GDRIVE_CLIENT_ID) || '',
+    // Google Analytics (GA4) — opcional, desligado por padrão. Passo a passo
+    // pra gerar o seu ID de mensuração:
+    //   1. https://analytics.google.com/ → Administrador → "Criar propriedade".
+    //   2. Preencha nome da propriedade, fuso horário e moeda; em "Detalhes do
+    //      negócio", categoria e tamanho não importam muito pra um site pessoal.
+    //   3. Em "Fluxo de dados" → "Web", informe a URL onde o lattesZen está
+    //      publicado (ex.: https://seusite.com) e um nome pro fluxo.
+    //   4. O painel do fluxo mostra o "ID de mensuração" no formato
+    //      "G-XXXXXXXXXX" — copie e cole abaixo.
+    // Enquanto ficar com o valor de exemplo "G-XXXXXXXXXX" (ou vazio),
+    // js/analytics.js não carrega nada — nenhum tráfego é enviado ao Google
+    // até você colar o ID real da sua propriedade.
+    analyticsId: (typeof window !== 'undefined' && window.__LZ_TEST_ANALYTICS_ID) || 'G-XXXXXXXXXX',
 };

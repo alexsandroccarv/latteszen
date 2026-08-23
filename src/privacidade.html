@@ -199,8 +199,8 @@
           <ul>
             <li>Não tem servidor, backend ou banco de dados próprio para onde seus dados sejam enviados.</li>
             <li>Não pede conta, login, senha ou e-mail para uso.</li>
-            <li>Não usa cookies de rastreamento nem ferramentas de analytics/métricas (Google Analytics, Meta Pixel, e afins).</li>
-            <li>Não vende, aluga, compartilha ou cede dados a terceiros — não há com quem compartilhar, já que não coletamos nada.</li>
+            <li>Não usa ferramentas de publicidade nem pixels de redes sociais (Meta Pixel e afins). O site usa <strong>Google Analytics</strong> para métricas de acesso — ver detalhes na seção 4, abaixo.</li>
+            <li>Não vende, aluga, compartilha ou cede dados a terceiros. O Google Analytics é a exceção pontual descrita na seção 4 — fora dele, não há com quem compartilhar, já que não coletamos mais nada.</li>
             <li>Não envia nada automaticamente para a Plataforma Lattes ou qualquer outro serviço — toda exportação/publicação é uma ação explícita sua.</li>
           </ul>
         </section>
@@ -214,6 +214,8 @@
             <li><strong>Fonte Rawline</strong> e <strong>logo Gov.br</strong> (<code>cdngovbr-ds.estaleiro.serpro.gov.br</code>) — identidade visual do padrão Governo Federal.</li>
           </ul>
           <p>Essas requisições seguem o funcionamento normal da web: os provedores podem registrar metadados padrão de acesso (como endereço IP e navegador utilizado), segundo suas próprias políticas — o lattesZen não envia nenhum dado adicional a eles, e não tem controle sobre esses registros. Se algum desses recursos não carregar (rede lenta, bloqueio de firewall), o app continua funcionando com um estilo mais simples.</p>
+          <h3>Google Analytics (GA4)</h3>
+          <p>Diferente dos recursos acima (que só carregam bibliotecas visuais), o Google Analytics <strong>coleta e registra dados de navegação</strong>: páginas visitadas, duração da sessão, tipo de dispositivo/navegador, endereço IP (usado para estimar região aproximada) e site de origem. Esses dados vão para o Google, sob a <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">política de privacidade do Google</a>, e ficam disponíveis de forma agregada para quem mantém o lattesZen — <strong>não incluem o conteúdo do seu currículo</strong> (itens cadastrados, PDFs, dados do RSC), que continua exclusivamente no seu navegador/computador, como descrito nas seções 1 e 2. O Google Analytics usa cookies (ex.: <code>_ga</code>) para diferenciar sessões de acesso.</p>
         </section>
 
         <section class="card" id="fora">
@@ -227,7 +229,8 @@
 
         <section class="card" id="base">
           <h2><i class="fa-solid fa-scale-balanced text-govbr-600 dark:text-unifesp-400"></i> 6. Base legal (LGPD)</h2>
-          <p>Como o lattesZen processa os dados <strong>integralmente no dispositivo do próprio titular</strong>, sem coleta ou tratamento centralizado por parte do desenvolvedor, o uso normal do app se enquadra no tratamento de dados realizado por pessoa natural para fins <strong>exclusivamente particulares</strong> (art. 4º, §1º, da LGPD), fora do alcance das hipóteses de tratamento que a lei impõe a controladores de dados de terceiros.</p>
+          <p>O <strong>conteúdo do seu currículo</strong> (itens cadastrados, PDFs, dados do RSC) é processado <strong>integralmente no seu dispositivo</strong>, sem coleta ou tratamento centralizado por parte do desenvolvedor — esse uso se enquadra no tratamento de dados realizado por pessoa natural para fins <strong>exclusivamente particulares</strong> (art. 4º, §1º, da LGPD), fora do alcance das hipóteses de tratamento que a lei impõe a controladores de dados de terceiros.</p>
+          <p>Já as <strong>métricas de acesso ao site</strong> (Google Analytics, seção 4) são um tratamento à parte, de responsabilidade de quem mantém o lattesZen, com base no <strong>legítimo interesse</strong> (art. 7º, IX, da LGPD) em entender o uso da ferramenta para melhorá-la — limitado a dados de navegação, nunca ao conteúdo do seu currículo.</p>
           <p>Quando você opta por atividades que envolvem serviços de terceiros — importar da Plataforma Lattes, hospedar a página pública, doar via Pix ou usar um link de parceiro — aplica-se a política de privacidade e a base legal de cada serviço utilizado, não a deste documento.</p>
         </section>
 
@@ -304,6 +307,7 @@
 
     <!-- Cabeçalho/rodapé dinâmicos: versão, nome do titular e alternadores de tema (mesmo comportamento do app) -->
     <script src="js/config.js"></script>
+    <script src="js/analytics.js"></script>
     <script src="js/pwa.js"></script>
     <script>
         (function () {
