@@ -77,5 +77,165 @@ window.AppCore = (function () {
     // pelos filtros da Conformidade quanto pela geração da página pública.
     const publicarWebOk = (it) => !(it.visibilidade && it.visibilidade.publicarWeb === false);
 
-    return { state, $, $$, esc, toast, anoDe, isImageExt, itemYear, sortByYear, publicarWebOk };
+    // Categorias 12–19 ("Além do Lattes") e tipos/categorias não-Lattes nunca
+    // entram na exportação XML do Lattes — usado tanto pelo formulário
+    // (bloco de Visibilidade) quanto pelos filtros da Conformidade.
+    function elegivelAoLattes(typeKey, catKey) {
+        if (!typeKey) return false;
+        if (LattesTypes.isNaoLattesType(typeKey) || LattesTypes.isNaoLattesCategory(catKey)) return false;
+        const cat = LattesTypes.categoryByKey(catKey);
+        const catNum = cat ? parseInt(cat.num, 10) : NaN;
+        if (catNum >= 12 && catNum <= 19) return false;
+        return true;
+    }
+    // Itens do catálogo que usam exatamente `value` no campo `key`.
+    function itemsUsingValue(key, value) {
+        const v = String(value == null ? '' : value).trim();
+        if (!v) return [];
+        if (key === 'evidenciaTag') return state.items.filter(i => (i.evidencias || []).some(e => String(e.tag == null ? '' : e.tag).trim() === v));
+        return state.items.filter(i => i.fields && String(i.fields[key] == null ? '' : i.fields[key]).trim() === v);
+    }
+
+    // Normaliza um nome para comparação (sem acentos, maiúsculas, espaços)
+    function normNome(s) {
+        return String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().replace(/\s+/g, ' ').trim();
+    }
+
+    /* --------- Validação de ISSN / ISBN (com dígito verificador) --------- */
+    // Retorna { ok, value?, msg? }. Vazio é considerado válido (campos opcionais).
+    function validateISSN(v) {
+        const s = String(v || '').trim();
+        if (!s) return { ok: true, value: '' };
+        const d = s.toUpperCase().replace(/[\s-]/g, '');
+        if (!/^\d{7}[\dX]$/.test(d)) return { ok: false, msg: 'ISSN inválido — use 8 dígitos no formato NNNN-NNNC (ex.: 0378-5955).' };
+        let sum = 0; for (let i = 0; i < 7; i++) sum += (8 - i) * Number(d[i]);
+        const chk = d[7] === 'X' ? 10 : Number(d[7]);
+        if (((11 - (sum % 11)) % 11) !== chk) return { ok: false, msg: 'ISSN inválido — dígito verificador não confere.' };
+        return { ok: true, value: d.slice(0, 4) + '-' + d.slice(4) };
+    }
+    function validateISBN(v) {
+        const s = String(v || '').trim();
+        if (!s) return { ok: true, value: '' };
+        const d = s.toUpperCase().replace(/[\s-]/g, '');
+        if (/^\d{9}[\dX]$/.test(d)) { // ISBN-10
+            let sum = 0; for (let i = 0; i < 10; i++) sum += (d[i] === 'X' ? 10 : Number(d[i])) * (10 - i);
+            if (sum % 11 !== 0) return { ok: false, msg: 'ISBN-10 inválido — dígito verificador não confere.' };
+            return { ok: true, value: s }; // preserva a hifenização do usuário
+        }
+        if (/^\d{13}$/.test(d)) { // ISBN-13 (EAN)
+            let sum = 0; for (let i = 0; i < 13; i++) sum += Number(d[i]) * (i % 2 ? 3 : 1);
+            if (sum % 10 !== 0) return { ok: false, msg: 'ISBN-13 inválido — dígito verificador não confere.' };
+            return { ok: true, value: s }; // preserva a hifenização do usuário
+        }
+        return { ok: false, msg: 'ISBN inválido — informe 10 ou 13 dígitos.' };
+    }
+    // Anais de eventos: aceita ISBN (10/13 dígitos) OU ISSN (8 dígitos) no mesmo campo.
+    function validateISBNorISSN(v) {
+        const s = String(v || '').trim();
+        if (!s) return { ok: true, value: '' };
+        const d = s.toUpperCase().replace(/[\s-]/g, '');
+        if (/^\d{7}[\dX]$/.test(d)) return validateISSN(v);
+        return validateISBN(v);
+    }
+    // DOI: aceita o identificador puro ou colado como URL do resolver; normaliza p/ puro.
+    function validateDOI(v) {
+        const s = String(v || '').trim();
+        if (!s) return { ok: true, value: '' };
+        const d = s.replace(/^\s*(https?:\/\/)?(dx\.)?doi\.org\//i, '').trim();
+        if (/^10\.\d{4,9}\/\S+$/.test(d)) return { ok: true, value: d };
+        return { ok: false, msg: 'DOI inválido — formato esperado 10.xxxx/sufixo (ex.: 10.1000/xyz123).' };
+    }
+    // URL: adiciona o esquema https:// quando ausente; se o usuário já
+    // escreveu um esquema (http://, ftp://, magnet:, mailto:, etc.), respeita
+    // como está — não força https:// por cima nem restringe a http(s). Um
+    // "esquema" de 1-2 letras (ex.: "C:\...") quase sempre é um caminho de
+    // arquivo do Windows colado por engano, não uma URL de verdade — nesse
+    // caso também assume https://, pra não aceitar isso como se fosse válido.
+    function validateURL(v) {
+        const s = String(v || '').trim();
+        if (!s) return { ok: true, value: '' };
+        const temEsquema = /^[a-z][a-z0-9+.-]{2,}:/i.test(s);
+        const u = temEsquema ? s : 'https://' + s;
+        try { new URL(u); return { ok: true, value: u }; }
+        catch (_) { return { ok: false, msg: 'URL inválida.' }; }
+    }
+    function validateField(kind, value) {
+        if (kind === 'issn') return validateISSN(value);
+        if (kind === 'isbn') return validateISBN(value);
+        if (kind === 'isbnIssn') return validateISBNorISSN(value);
+        if (kind === 'doi') return validateDOI(value);
+        if (kind === 'url') return validateURL(value);
+        return { ok: true, value: value };
+    }
+    // Feedback visual (borda vermelha + mensagem + aria-invalid)
+    function setFieldError(el, msg) {
+        el.classList.toggle('border-red-500', !!msg);
+        el.classList.toggle('ring-1', !!msg);
+        el.classList.toggle('ring-red-500', !!msg);
+        el.setAttribute('aria-invalid', msg ? 'true' : 'false');
+        let p = el.parentElement.querySelector('.validate-msg');
+        if (msg) {
+            if (!p) { p = document.createElement('p'); p.className = 'validate-msg text-xs text-red-600 dark:text-red-400 mt-0.5'; el.parentElement.appendChild(p); }
+            p.textContent = msg;
+        } else if (p) p.remove();
+    }
+    // Associa <label> aos controles (for/id) e marca aria-required — a11y.
+    // Campos agrupados na mesma linha (dynFieldsHtml/`f.row`) ficam num
+    // wrapper flex sem <label> próprio — desce um nível para achar cada
+    // [data-field] real dentro dele.
+    function associateLabels(container) {
+        let n = 0;
+        const wireOne = (wrap) => {
+            const label = wrap.querySelector(':scope > label');
+            const ctrl = wrap.querySelector('input, select, textarea');
+            if (!label || !ctrl) return;
+            if (!ctrl.id) ctrl.id = `fld-${++n}-${ctrl.name || 'x'}`;
+            label.setAttribute('for', ctrl.id);
+            if (ctrl.required) ctrl.setAttribute('aria-required', 'true');
+        };
+        container.querySelectorAll(':scope > div').forEach(wrap => {
+            if (wrap.hasAttribute('data-field')) { wireOne(wrap); return; }
+            wrap.querySelectorAll(':scope > [data-field]').forEach(wireOne);
+        });
+    }
+    // Campo condicionalmente desabilitado (ex.: Título da apresentação some se
+    // "Ouvinte"; UF só habilita com País = Brasil) — QUALQUER condição bater
+    // já desabilita.
+    function isFieldDisabled(f, fields) {
+        const c = f && f.disabledWhen;
+        if (!c) return false;
+        const conds = Array.isArray(c) ? c : [c];
+        return conds.some(cond => {
+            const v = (fields || {})[cond.field];
+            if (cond.equals != null) return v === cond.equals;
+            if (Array.isArray(cond.in)) return cond.in.indexOf(v) >= 0;
+            if (cond.notEquals != null) return normNome(v) !== normNome(cond.notEquals);
+            return false;
+        });
+    }
+    // Número de evidências do item (considera formato legado hasPdf)
+    function evCount(item) {
+        return Array.isArray(item.evidencias) ? item.evidencias.length : (item.hasPdf ? 1 : 0);
+    }
+    // Estado de preenchimento da descrição de um item:
+    //   'red'   — falta ao menos um campo OBRIGATÓRIO
+    //   'amber' — obrigatórios ok, mas falta algum campo OPCIONAL
+    //   'green' — todos os campos preenchidos
+    function descState(item) {
+        const def = LattesTypes.get(item.typeKey);
+        if (!def || !def.fields || !def.fields.length) return 'green'; // tipo sem campos
+        const vals = item.fields || {};
+        const campos = def.fields.filter(f => !isFieldDisabled(f, vals));
+        const filled = f => { const v = vals[f.key]; return v != null && String(v).trim() !== ''; };
+        if (campos.some(f => f.required && !filled(f))) return 'red';
+        if (campos.some(f => !filled(f))) return 'amber';
+        return 'green';
+    }
+
+    return {
+        state, $, $$, esc, toast, anoDe, isImageExt, itemYear, sortByYear, publicarWebOk,
+        elegivelAoLattes, itemsUsingValue, normNome,
+        validateISSN, validateISBN, validateISBNorISSN, validateDOI, validateURL, validateField,
+        setFieldError, associateLabels, isFieldDisabled, evCount, descState,
+    };
 })();
