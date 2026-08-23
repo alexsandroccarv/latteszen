@@ -20,6 +20,7 @@ import './specs/exportar-bibtex-ris.mjs';
 import './specs/gdrive.mjs';
 import './specs/publicar.mjs';
 import './specs/inicio.mjs';
+import './specs/rsc.mjs';
 
 console.log('Rodando suíte de testes de regressão (Playwright)...\n');
 await runAll();
