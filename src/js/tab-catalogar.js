@@ -368,8 +368,6 @@ window.TabCatalogar = (function () {
                     <div id="rscQtdWrap" class="hidden"><label class="block text-xs font-semibold mb-1" for="rscQtd">Quantidade</label>
                         <input id="rscQtd" type="number" min="0" step="1" value="${esc(rsc.quantidade != null ? rsc.quantidade : 1)}" class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900"></div>
                 </div>
-                <label class="flex items-center gap-2 text-sm"><input type="checkbox" id="rscInteresse" ${rsc.interesse ? 'checked' : ''}> De interesse institucional</label>
-                <label class="flex items-center gap-2 text-sm"><input type="checkbox" id="rscAlem" ${rsc.alemOrdinario ? 'checked' : ''}> Além das atribuições ordinárias do cargo</label>
                 <div><label class="block text-xs font-semibold mb-1" for="rscJust">Justificativa (para o memorial)</label>
                     <textarea id="rscJust" rows="2" class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900">${esc(rsc.justificativa || '')}</textarea></div>
                 <label class="flex items-center gap-2 text-sm"><input type="checkbox" id="rscUsado" ${rsc.jaUsado ? 'checked' : ''}> Já utilizado em concessão anterior (não conta no saldo)</label>
@@ -538,7 +536,6 @@ window.TabCatalogar = (function () {
             dataFim: _rscToBR(fld('anoFim') || fld('ano'), true) || _rscToBR(dataAbrangencia, true),
             papel: val('rscPapel') || 'titular',
             quantidade: val('rscQtd') || '',
-            interesse: chk('rscInteresse'), alemOrdinario: chk('rscAlem'),
             justificativa: val('rscJust'), jaUsado: chk('rscUsado'),
         };
     }

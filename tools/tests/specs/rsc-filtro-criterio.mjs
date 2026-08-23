@@ -79,3 +79,28 @@ test('Buscador de critério RSC mostra lista clicável que filtra a cada tecla',
     const valorAposClicarFora = await page.$eval('#rscCrit', (el) => el.value);
     assertEqual(valorAposClicarFora, '3.2', 'A seleção anterior não deveria ter sido perdida');
 });
+
+test('Formulário RSC não mostra mais "De interesse institucional" nem "Além das atribuições ordinárias" (issue #31)', async ({ page, baseUrl }) => {
+    // Mesmo para um item que já tinha esses dois campos marcados, o formulário
+    // não deve renderizar os checkboxes correspondentes — são dados órfãos,
+    // sem efeito em nenhum cálculo, filtro ou exportação do RSC.
+    const items = [makeItem('FORMACAO_COMPLEMENTAR', 'FORMACAO', { titulo: 'Curso Sem Interesse', instituicao: 'X', anoFim: '2024' },
+        { rsc: { conta: true, criterio: '1.3', interesse: true, alemOrdinario: true, jaUsado: false } })];
+    await seedCatalog(page, baseUrl, items);
+    await habilitarRsc(page);
+    await page.click('[data-tab="conformidade"]');
+    await page.waitForTimeout(300);
+    await page.evaluate((t) => {
+        const cards = Array.from(document.querySelectorAll('#itemList .bg-white.dark\\:bg-gray-800.border'));
+        const card = cards.find((c) => c.textContent.includes(t));
+        card.querySelector('[data-act="edit"]').click();
+    }, 'Curso Sem Interesse');
+    await page.waitForTimeout(300);
+
+    const existemCheckboxes = await page.evaluate(() => ({
+        interesse: !!document.querySelector('#rscInteresse'),
+        alem: !!document.querySelector('#rscAlem'),
+    }));
+    assert(!existemCheckboxes.interesse, 'O checkbox "De interesse institucional" não deveria mais existir no formulário');
+    assert(!existemCheckboxes.alem, 'O checkbox "Além das atribuições ordinárias" não deveria mais existir no formulário');
+});
