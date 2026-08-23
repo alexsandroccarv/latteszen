@@ -216,6 +216,11 @@
           <p>Essas requisições seguem o funcionamento normal da web: os provedores podem registrar metadados padrão de acesso (como endereço IP e navegador utilizado), segundo suas próprias políticas — o lattesZen não envia nenhum dado adicional a eles, e não tem controle sobre esses registros. Se algum desses recursos não carregar (rede lenta, bloqueio de firewall), o app continua funcionando com um estilo mais simples.</p>
           <h3>Google Analytics (GA4)</h3>
           <p>Diferente dos recursos acima (que só carregam bibliotecas visuais), o Google Analytics <strong>coleta e registra dados de navegação</strong>: páginas visitadas, duração da sessão, tipo de dispositivo/navegador, endereço IP (usado para estimar região aproximada) e site de origem. Esses dados vão para o Google, sob a <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">política de privacidade do Google</a>, e ficam disponíveis de forma agregada para quem mantém o lattesZen — <strong>não incluem o conteúdo do seu currículo</strong> (itens cadastrados, PDFs, dados do RSC), que continua exclusivamente no seu navegador/computador, como descrito nas seções 1 e 2. O Google Analytics usa cookies (ex.: <code>_ga</code>) para diferenciar sessões de acesso.</p>
+          <div class="note">
+            <strong>Quer o máximo de privacidade possível?</strong> Por ser software livre e de código aberto, você não precisa confiar em nenhuma instância hospedada por terceiros (incluindo a oficial): baixe ou clone o
+            <a href="https://github.com/alexsandroccarv/lattesZen" target="_blank" rel="noopener">repositório</a>
+            e rode o lattesZen totalmente local, no seu próprio computador. Rodando assim, o Google Analytics continua desligado por padrão — só passa a carregar se você mesmo configurar um ID de mensuração em <code>src/js/config.js</code> — então nenhum dado de navegação sai do seu navegador. Instalado como aplicativo (PWA), o lattesZen também continua funcionando normalmente no dia a dia sem conexão com a internet.
+          </div>
         </section>
 
         <section class="card" id="fora">
