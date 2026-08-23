@@ -14,7 +14,7 @@
    Aumente CACHE_VERSION sempre que a lista PRECACHE_URLS mudar (arquivo novo
    ou removido) — isso descarta os caches antigos na próxima ativação.
    ========================================================================== */
-const CACHE_VERSION = 'v6';
+const CACHE_VERSION = 'v7';
 const PRECACHE = `lattesZen-precache-${CACHE_VERSION}`;
 const RUNTIME = `lattesZen-runtime-${CACHE_VERSION}`;
 
@@ -46,6 +46,7 @@ const PRECACHE_URLS = [
     './js/tab-rsc.js',
     './js/tab-conformidade.js',
     './js/tab-catalogar.js',
+    './js/tab-config.js',
     './js/app.js',
     './js/pwa.js',
     './icons/icon-192.png',
