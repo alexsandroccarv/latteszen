@@ -37,6 +37,24 @@ test('Categoria "Grupos de Pesquisa" só aparece no seletor com o módulo RSC ha
     assertEqual(rotulo, '20. Grupos de Pesquisa', 'O rótulo da categoria deveria ser "20. Grupos de Pesquisa"');
 });
 
+test('Categorias aparecem em ordem numérica no seletor, com "20. Grupos de Pesquisa" após a 19 (issue #36)', async ({ page, baseUrl }) => {
+    await seedCatalog(page, baseUrl, []);
+    await habilitarRsc(page);
+    await page.click('[data-tab="catalogar"]');
+    await page.waitForTimeout(200);
+
+    const numeros = await page.$$eval('#selCategoria option', (opts) => opts
+        .map((o) => o.textContent.match(/^(\d+)\./))
+        .filter(Boolean)
+        .map((m) => parseInt(m[1], 10)));
+    const ordenado = [...numeros].sort((a, b) => a - b);
+    assertEqual(numeros, ordenado, `As categorias deveriam aparecer em ordem numérica crescente — obtido [${numeros.join(', ')}]`);
+
+    const idxBancas = numeros.indexOf(11);
+    const idxGrupos = numeros.indexOf(20);
+    assert(idxBancas >= 0 && idxGrupos > idxBancas, '"20. Grupos de Pesquisa" deveria aparecer depois da categoria 11 (Bancas), não entre 11 e 12');
+});
+
 test('Categoria "RSC — Atividades administrativas" (97) foi removida (issue #34)', async ({ page, baseUrl }) => {
     await seedCatalog(page, baseUrl, []);
     await habilitarRsc(page);
@@ -88,4 +106,51 @@ test('Item de "Grupo de pesquisa/extensão registrado" pode ser contabilizado no
     const texto = await page.$eval('#tab-rsc', (el) => el.textContent);
     assert(texto.includes('Grupo de Estudos em Redes'), 'O item deveria aparecer na lista de itens contabilizados no RSC');
     assert(texto.includes('7,5'), 'Os 7,5 pontos do critério 6.6 deveriam aparecer na tela do simulador');
+});
+
+test('Campos de "Grupo de pesquisa/extensão registrado" (issue #35): Instituição, Líder(es), Vice-líder, Área, Função e Egresso/Data de desligamento', async ({ page, baseUrl }) => {
+    await seedCatalog(page, baseUrl, []);
+    await habilitarRsc(page);
+    await page.click('[data-tab="catalogar"]');
+    await page.waitForTimeout(200);
+
+    await page.selectOption('#selCategoria', 'RSC_GRUPO');
+    await page.waitForTimeout(150);
+    await page.selectOption('#selTipo', 'RSC_GRUPO_PESQUISA');
+    await page.waitForTimeout(150);
+
+    // "Data de desligamento" começa escondida (Egresso desmarcado por padrão).
+    const escondidoAntes = await page.$eval('[data-field="anoFim"]', (el) => el.classList.contains('hidden'));
+    assert(escondidoAntes, 'Sem "Egresso" marcado, "Data de desligamento" deveria ficar escondida');
+
+    await page.fill('[name="titulo"]', 'Grupo de Estudos em Educação');
+    await page.fill('[name="instituicao"]', 'UNIFESP');
+    await page.fill('[name="lideres"]', 'Fulano de Tal; Ciclana da Silva');
+    await page.fill('[name="viceLider"]', 'Beltrano Souza');
+    await page.fill('[name="area"]', 'Educação');
+    await page.selectOption('[name="papel"]', 'Pesquisador');
+    await page.fill('[name="anoInicio"]', '03/2020');
+
+    await page.check('[name="egresso"]');
+    await page.waitForTimeout(150);
+    const escondidoDepois = await page.$eval('[data-field="anoFim"]', (el) => el.classList.contains('hidden'));
+    assert(!escondidoDepois, 'Com "Egresso" marcado, "Data de desligamento" deveria aparecer');
+    await page.fill('[name="anoFim"]', '12/2023');
+
+    await page.click('button[type="submit"]');
+    await page.waitForTimeout(350);
+
+    const salvo = await page.evaluate(() => {
+        const items = JSON.parse(localStorage.getItem('lz_catalog') || '[]');
+        const it = items.find((i) => i.fields && i.fields.titulo === 'Grupo de Estudos em Educação');
+        return it ? it.fields : null;
+    });
+    assert(salvo, 'O item deveria ter sido salvo no catálogo');
+    assertEqual(salvo.instituicao, 'UNIFESP', 'Instituição salva');
+    assertEqual(salvo.lideres, 'Fulano de Tal; Ciclana da Silva', 'Líder(es) salvo(s)');
+    assertEqual(salvo.viceLider, 'Beltrano Souza', 'Vice-líder salvo');
+    assertEqual(salvo.area, 'Educação', 'Área salva');
+    assertEqual(salvo.papel, 'Pesquisador', 'Função salva');
+    assertEqual(salvo.egresso, 'Sim', 'Egresso salvo como "Sim"');
+    assert(salvo.anoFim && salvo.anoFim.includes('2023'), 'Data de desligamento salva');
 });

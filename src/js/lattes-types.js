@@ -791,11 +791,15 @@ const TYPES = {
 
     /* --- Grupos de Pesquisa (não-Lattes; só com o módulo RSC) --- */
     RSC_GRUPO_PESQUISA: { label: 'Grupo de pesquisa/extensão registrado', noExport: true, rsc: true, fields: [
-        { key: 'titulo', label: 'Nome do grupo', type: 'text', required: true },
-        { key: 'papel', label: 'Papel no grupo', type: 'select', options: ['Líder', 'Vice-líder', 'Membro'], required: true },
-        { key: 'orgao', label: 'Órgão / sistema de registro', type: 'text', placeholder: 'ex.: CNPq — Diretório dos Grupos de Pesquisa' },
-        ...periodoComSituacao(),
-        { key: 'descricao', label: 'Linha de atuação / detalhes', type: 'textarea' },
+        { key: 'titulo', label: 'Grupo de pesquisa', type: 'text', required: true },
+        { key: 'instituicao', label: 'Instituição', type: 'text', placeholder: 'ex.: UNIFESP' },
+        { key: 'lideres', label: 'Líder(es)', type: 'textarea', placeholder: 'Separe por ponto e vírgula (;) se houver mais de um' },
+        { key: 'viceLider', label: 'Vice-líder', type: 'text' },
+        { key: 'area', label: 'Área', type: 'text', placeholder: 'ex.: Educação' },
+        { key: 'papel', label: 'Função', type: 'select', options: ['Líder', 'Vice-líder', 'Pesquisador', 'Estudante', 'Técnico', 'Colaborador estrangeiro'], required: true },
+        { key: 'anoInicio', label: 'Data de inclusão', type: 'datebr' },
+        { key: 'egresso', label: 'Egresso', type: 'checkbox' },
+        { key: 'anoFim', label: 'Data de desligamento', type: 'datebr', disabledWhen: { field: 'egresso', in: ['Não'] } },
     ] },
 };
 // Garante que cada tipo conheça a própria chave
@@ -839,8 +843,6 @@ window.LATTES_CATEGORIES = [
     { num: '09', key: 'EVENTOS', label: 'Eventos', icon: 'fa-calendar-days', types: ['PARTICIPACAO_EVENTO', 'ORGANIZACAO_EVENTO'] },
     { num: '10', key: 'ORIENTACOES', label: 'Orientações', icon: 'fa-user-group', types: ['ORIENTACAO_CONCLUIDA', 'ORIENTACAO_ANDAMENTO'] },
     { num: '11', key: 'BANCAS', label: 'Bancas', icon: 'fa-gavel', types: ['BANCA_CONCLUSAO', 'BANCA_JULGADORA'] },
-    { num: '20', key: 'RSC_GRUPO', label: 'Grupos de Pesquisa', icon: 'fa-microscope', naoLattes: true, rscOnly: true,
-      types: ['RSC_GRUPO_PESQUISA'] },
     { num: '12', key: 'AL_DESENVOLVIMENTO', label: 'Desenvolvimento Pessoal e Habilidades', icon: 'fa-seedling', naoLattes: true,
       note: AL_NOTE, types: ['AL_CURSO_LIVRE', 'AL_IDIOMAS', 'AL_TREINAMENTO', 'AL_PROJETO_PESSOAL'] },
     { num: '13', key: 'AL_ENGAJAMENTO', label: 'Engajamento Comunitário e Cidadania', icon: 'fa-people-group', naoLattes: true,
@@ -857,6 +859,8 @@ window.LATTES_CATEGORIES = [
       note: AL_NOTE, types: ['AL_CONCURSO'] },
     { num: '19', key: 'AL_IMPRENSA_CAT', label: 'Imprensa', icon: 'fa-newspaper', naoLattes: true,
       note: AL_NOTE, types: ['AL_IMPRENSA_CITACAO', 'AL_IMPRENSA_ENTREVISTADO', 'AL_IMPRENSA_OUTRA'] },
+    { num: '20', key: 'RSC_GRUPO', label: 'Grupos de Pesquisa', icon: 'fa-microscope', naoLattes: true, rscOnly: true,
+      types: ['RSC_GRUPO_PESQUISA'] },
     // Fotos de Perfil e Documentos pessoais: editados em Configurações
     // (perfil), não em Catalogar — por isso `perfilOnly` (fora do seletor
     // de categoria do Catalogar), mas continuam vinculados ao Lattes.
