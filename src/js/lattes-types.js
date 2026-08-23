@@ -818,7 +818,7 @@ const TYPES = {
         { key: 'titulo', label: 'Descrição da atividade', type: 'text', required: true },
         { key: 'orgao', label: 'Órgão / unidade', type: 'text' }, { key: 'descricao', label: 'Detalhes', type: 'textarea' }] },
 
-    /* --- RSC — Grupos de pesquisa (não-Lattes; só com o módulo RSC) --- */
+    /* --- Grupos de Pesquisa (não-Lattes; só com o módulo RSC) --- */
     RSC_GRUPO_PESQUISA: { label: 'Grupo de pesquisa/extensão registrado', noExport: true, rsc: true, fields: [
         { key: 'titulo', label: 'Nome do grupo', type: 'text', required: true },
         { key: 'papel', label: 'Papel no grupo', type: 'select', options: ['Líder', 'Vice-líder', 'Membro'], required: true },
@@ -870,7 +870,7 @@ window.LATTES_CATEGORIES = [
     { num: '11', key: 'BANCAS', label: 'Bancas', icon: 'fa-gavel', types: ['BANCA_CONCLUSAO', 'BANCA_JULGADORA'] },
     { num: '97', key: 'RSC_ADMIN', label: 'RSC — Atividades administrativas', icon: 'fa-building-columns', naoLattes: true, rscOnly: true,
       types: ['RSC_COMISSAO', 'RSC_CONCURSO', 'RSC_CONTRATO', 'RSC_LICITACAO', 'RSC_SISTEMA', 'RSC_CARGO_FUNCAO', 'RSC_RESP_SETOR', 'RSC_APOIO_TECNICO', 'RSC_ADMIN_OUTRA'] },
-    { num: '98', key: 'RSC_GRUPO', label: 'RSC — Grupos de pesquisa', icon: 'fa-microscope', naoLattes: true, rscOnly: true,
+    { num: '20', key: 'RSC_GRUPO', label: 'Grupos de Pesquisa', icon: 'fa-microscope', naoLattes: true, rscOnly: true,
       types: ['RSC_GRUPO_PESQUISA'] },
     { num: '12', key: 'AL_DESENVOLVIMENTO', label: 'Desenvolvimento Pessoal e Habilidades', icon: 'fa-seedling', naoLattes: true,
       note: AL_NOTE, types: ['AL_CURSO_LIVRE', 'AL_IDIOMAS', 'AL_TREINAMENTO', 'AL_PROJETO_PESSOAL'] },

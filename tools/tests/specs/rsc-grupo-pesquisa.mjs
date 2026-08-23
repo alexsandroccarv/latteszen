@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Regressão: categoria "RSC — Grupos de pesquisa" (issue #32) — os itens 6 e
+   Regressão: categoria "Grupos de Pesquisa" (issues #32 e #33) — os itens 6 e
    7 do Requisito VI (liderança/vice-liderança e participação em grupo de
    pesquisa/extensão registrado) não tinham nenhum tipo de item onde entrar.
    Cobre: a categoria só aparece com o módulo RSC habilitado, e um item desse
@@ -17,18 +17,24 @@ async function habilitarRsc(page) {
     await page.waitForTimeout(500);
 }
 
-test('Categoria "RSC — Grupos de pesquisa" só aparece no seletor com o módulo RSC habilitado', async ({ page, baseUrl }) => {
+test('Categoria "Grupos de Pesquisa" só aparece no seletor com o módulo RSC habilitado', async ({ page, baseUrl }) => {
     await seedCatalog(page, baseUrl, []);
     await page.click('[data-tab="catalogar"]');
     await page.waitForTimeout(200);
     const semRsc = await page.$$eval('#selCategoria option', (opts) => opts.map((o) => o.value));
-    assert(!semRsc.includes('RSC_GRUPO'), 'Sem o módulo RSC habilitado, "RSC — Grupos de pesquisa" não deveria aparecer no seletor de categoria');
+    assert(!semRsc.includes('RSC_GRUPO'), 'Sem o módulo RSC habilitado, "Grupos de Pesquisa" não deveria aparecer no seletor de categoria');
 
     await habilitarRsc(page);
     await page.click('[data-tab="catalogar"]');
     await page.waitForTimeout(200);
     const comRsc = await page.$$eval('#selCategoria option', (opts) => opts.map((o) => o.value));
-    assert(comRsc.includes('RSC_GRUPO'), 'Com o módulo RSC habilitado, "RSC — Grupos de pesquisa" deveria aparecer no seletor de categoria');
+    assert(comRsc.includes('RSC_GRUPO'), 'Com o módulo RSC habilitado, "Grupos de Pesquisa" deveria aparecer no seletor de categoria');
+
+    const rotulo = await page.$eval('#selCategoria', (sel, key) => {
+        const opt = Array.from(sel.options).find((o) => o.value === key);
+        return opt ? opt.textContent : null;
+    }, 'RSC_GRUPO');
+    assertEqual(rotulo, '20. Grupos de Pesquisa', 'O rótulo da categoria deveria ser "20. Grupos de Pesquisa"');
 });
 
 test('Item de "Grupo de pesquisa/extensão registrado" pode ser contabilizado no RSC com o critério 6.6', async ({ page, baseUrl }) => {
