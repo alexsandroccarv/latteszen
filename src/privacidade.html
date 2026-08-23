@@ -199,7 +199,7 @@
           <ul>
             <li>Não tem servidor, backend ou banco de dados próprio para onde seus dados sejam enviados.</li>
             <li>Não pede conta, login, senha ou e-mail para uso.</li>
-            <li>Não usa ferramentas de publicidade nem pixels de redes sociais (Meta Pixel e afins). O site usa <strong>Google Analytics</strong> para métricas de acesso — ver detalhes na seção 4, abaixo.</li>
+            <li>Não usa ferramentas de publicidade nem pixels de redes sociais (Meta Pixel e afins). O site usa <strong>Google Analytics</strong>, mediante seu consentimento, para métricas de acesso — ver detalhes na seção 4, abaixo.</li>
             <li>Não vende, aluga, compartilha ou cede dados a terceiros. O Google Analytics é a exceção pontual descrita na seção 4 — fora dele, não há com quem compartilhar, já que não coletamos mais nada.</li>
             <li>Não envia nada automaticamente para a Plataforma Lattes ou qualquer outro serviço — toda exportação/publicação é uma ação explícita sua.</li>
           </ul>
@@ -215,11 +215,11 @@
           </ul>
           <p>Essas requisições seguem o funcionamento normal da web: os provedores podem registrar metadados padrão de acesso (como endereço IP e navegador utilizado), segundo suas próprias políticas — o lattesZen não envia nenhum dado adicional a eles, e não tem controle sobre esses registros. Se algum desses recursos não carregar (rede lenta, bloqueio de firewall), o app continua funcionando com um estilo mais simples.</p>
           <h3>Google Analytics (GA4)</h3>
-          <p>Diferente dos recursos acima (que só carregam bibliotecas visuais), o Google Analytics <strong>coleta e registra dados de navegação</strong>: páginas visitadas, duração da sessão, tipo de dispositivo/navegador, endereço IP (usado para estimar região aproximada) e site de origem. Esses dados vão para o Google, sob a <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">política de privacidade do Google</a>, e ficam disponíveis de forma agregada para quem mantém o lattesZen — <strong>não incluem o conteúdo do seu currículo</strong> (itens cadastrados, PDFs, dados do RSC), que continua exclusivamente no seu navegador/computador, como descrito nas seções 1 e 2. O Google Analytics usa cookies (ex.: <code>_ga</code>) para diferenciar sessões de acesso.</p>
+          <p>Diferente dos recursos acima (que só carregam bibliotecas visuais), o Google Analytics <strong>coleta e registra dados de navegação</strong>: páginas visitadas, duração da sessão, tipo de dispositivo/navegador, endereço IP (usado para estimar região aproximada) e site de origem — nunca <strong>o conteúdo do seu currículo</strong> (itens cadastrados, PDFs, dados do RSC), que continua exclusivamente no seu navegador/computador, como descrito nas seções 1 e 2. Antes de qualquer coleta, um <strong>aviso de cookies</strong> pergunta se você aceita; enquanto você não responder — ou se escolher "Recusar" — nenhuma requisição sai do seu navegador rumo ao Google. Ao aceitar, os dados passam a ir para o Google, sob a <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">política de privacidade do Google</a>, e ficam disponíveis de forma agregada para quem mantém o lattesZen. O Google Analytics usa cookies (ex.: <code>_ga</code>) para diferenciar sessões de acesso; sua decisão (aceitar ou recusar) também fica salva no seu navegador — para revê-la, basta apagar os dados de navegação deste site, e o aviso volta a aparecer na próxima visita.</p>
           <div class="note">
             <strong>Quer o máximo de privacidade possível?</strong> Por ser software livre e de código aberto, você não precisa confiar em nenhuma instância hospedada por terceiros (incluindo a oficial): baixe ou clone o
             <a href="https://github.com/alexsandroccarv/lattesZen" target="_blank" rel="noopener">repositório</a>
-            e rode o lattesZen totalmente local, no seu próprio computador. Rodando assim, o Google Analytics continua desligado por padrão — só passa a carregar se você mesmo configurar um ID de mensuração em <code>src/js/config.js</code> — então nenhum dado de navegação sai do seu navegador. Instalado como aplicativo (PWA), o lattesZen também continua funcionando normalmente no dia a dia sem conexão com a internet.
+            e rode o lattesZen totalmente local, no seu próprio computador. Rodando assim, o mesmo aviso de cookies continua valendo — clique em "Recusar" (ou apague o valor de <code>analyticsId</code> em <code>src/js/config.js</code> antes de rodar) para garantir que nenhum dado de navegação saia do seu navegador. Instalado como aplicativo (PWA), o lattesZen também continua funcionando normalmente no dia a dia sem conexão com a internet.
           </div>
         </section>
 
@@ -313,6 +313,7 @@
     <!-- Cabeçalho/rodapé dinâmicos: versão, nome do titular e alternadores de tema (mesmo comportamento do app) -->
     <script src="js/config.js"></script>
     <script src="js/analytics.js"></script>
+    <script src="js/cookie-consent.js"></script>
     <script src="js/pwa.js"></script>
     <script>
         (function () {

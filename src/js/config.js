@@ -7,7 +7,7 @@ window.APP_CONFIG = {
     // Os dois primeiros números são atualizados manualmente; o terceiro (2
     // dígitos) é incrementado a cada issue fechada no GitHub — ver política
     // completa em CLAUDE.md e o histórico em notas-de-versao.html.
-    version: 'v0.6.08',
+    version: 'v0.6.09',
     lastModified: '23/08/2026',
     author: {
         nome: 'Alexsandro Cardoso Carvalho',
@@ -58,6 +58,8 @@ window.APP_CONFIG = {
     //      "G-XXXXXXXXXX" — copie e cole abaixo.
     // Enquanto ficar com o valor de exemplo "G-XXXXXXXXXX" (ou vazio),
     // js/analytics.js não carrega nada — nenhum tráfego é enviado ao Google
-    // até você colar o ID real da sua propriedade.
-    analyticsId: (typeof window !== 'undefined' && window.__LZ_TEST_ANALYTICS_ID) || 'G-XXXXXXXXXX',
+    // até você colar o ID real da sua propriedade. Com um ID real configurado
+    // (como abaixo), o carregamento ainda depende do aviso de cookies (ver
+    // js/cookie-consent.js): só roda se o visitante clicar em "Aceitar".
+    analyticsId: (typeof window !== 'undefined' && window.__LZ_TEST_ANALYTICS_ID) || 'G-M4MZYCQEQK',
 };
