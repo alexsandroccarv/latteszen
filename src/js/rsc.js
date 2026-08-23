@@ -142,16 +142,23 @@ window.LzRSC = (function () {
         return Math.floor(meses / 12) + ((meses % 12) > 6 ? 1 : 0);
     }
 
-    // Quantidade conforme a unidade de cálculo do critério
+    // Quantidade conforme a unidade de cálculo do critério. Para 'ano'/'mes',
+    // o período (dataInicio/dataFim) é a fonte de verdade — só cai no campo
+    // manual (rsc.quantidade) quando as datas estiverem ausentes de vez
+    // (mesesEntre retorna null). Um período real mas curto demais (ex.: 2
+    // meses num critério "por ano ou fração > 6 meses") deve valer 0, não
+    // ser mascarado pelo padrão "1" do campo de quantidade manual (issue #26).
     function quantidade(crit, rsc) {
         if (!crit) return 0;
         if (crit.calc === 'ano') {
-            const q = anosFracao(mesesEntre(rsc.dataInicio, rsc.dataFim));
-            return q || (rsc.quantidade ? Number(rsc.quantidade) : 0);
+            const meses = mesesEntre(rsc.dataInicio, rsc.dataFim);
+            if (meses != null) return anosFracao(meses);
+            return rsc.quantidade ? Number(rsc.quantidade) : 0;
         }
         if (crit.calc === 'mes') {
-            const q = mesesEntre(rsc.dataInicio, rsc.dataFim);
-            return (q != null ? q : 0) || (rsc.quantidade ? Number(rsc.quantidade) : 0);
+            const meses = mesesEntre(rsc.dataInicio, rsc.dataFim);
+            if (meses != null) return meses;
+            return rsc.quantidade ? Number(rsc.quantidade) : 0;
         }
         return rsc.quantidade ? Number(rsc.quantidade) : 1;
     }

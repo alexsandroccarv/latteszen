@@ -145,6 +145,13 @@
             desde o marco atual.
         </p>
 
+        <section class="card" id="v0-6-05">
+          <h2><span class="pill">v0.6.05</span> <span class="data">23/08/2026</span></h2>
+          <ul>
+            <li><strong>Correção na pontuação do RSC-PCCTAE por período</strong>: critérios com unidade "por ano ou fração &gt; 6 meses" ou "por mês" calculavam a quantidade a partir do período real do item (início/fim), mas um período legitimamente curto demais (ex.: 2 meses) era mascarado pelo valor padrão do campo de quantidade manual e contava como 1 ano inteiro. Agora o período real vale mesmo quando o resultado é 0 — <a href="https://github.com/alexsandroccarv/latteszen/issues/26" target="_blank" rel="noopener">issue #26</a>.</li>
+          </ul>
+        </section>
+
         <section class="card" id="v0-6-04">
           <h2><span class="pill">v0.6.04</span> <span class="data">23/08/2026</span></h2>
           <ul>
