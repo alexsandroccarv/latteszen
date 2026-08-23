@@ -314,21 +314,37 @@ window.TabCatalogar = (function () {
         const eligivel = state.rscEnabled && typeKey && !LattesTypes.isPerfilType(typeKey) && !LattesTypes.isNaoLattesType(typeKey);
         if (!eligivel) { box.innerHTML = ''; return; }
         const rsc = (item && item.rsc) || {};
-        // Lista única com TODOS os critérios do decreto, agrupados por Requisito
-        // (optgroup). Cada opção mostra Item · descrição · unidade · pontuação.
-        const critOptgroups = Object.keys(LzRSC.REQUISITOS).map(r => {
-            const opts = LzRSC.criteriosDoRequisito(r).map(c =>
-                `<option value="${c.id}">${c.item}. ${esc(c.desc)} — ${esc(c.unidade)} · ${String(c.pontos).replace('.', ',')} pts</option>`).join('');
-            return `<optgroup label="Requisito ${esc(LzRSC.REQUISITOS[r])}">${opts}</optgroup>`;
-        }).join('');
+        // Lista única com TODOS os critérios do decreto (~50 itens), agrupados
+        // por Requisito — extensa demais pra rolar procurando um item específico
+        // (issue #24). Achatada uma vez aqui; critOptionsHtml() a filtra em
+        // tempo real conforme o usuário digita no campo de busca abaixo.
+        const todosCriterios = Object.keys(LzRSC.REQUISITOS).flatMap(r =>
+            LzRSC.criteriosDoRequisito(r).map(c => ({ ...c, reqLabel: LzRSC.REQUISITOS[r] })));
+        function critOptionsHtml(filtro) {
+            const q = normNome(filtro || '');
+            const porReq = {};
+            todosCriterios.forEach(c => {
+                const texto = normNome(`${c.item} ${c.desc} ${c.unidade}`);
+                if (q && !texto.includes(q)) return;
+                (porReq[c.reqLabel] = porReq[c.reqLabel] || []).push(c);
+            });
+            const grupos = Object.keys(porReq).map(label => {
+                const opts = porReq[label].map(c =>
+                    `<option value="${c.id}">${c.item}. ${esc(c.desc)} — ${esc(c.unidade)} · ${String(c.pontos).replace('.', ',')} pts</option>`).join('');
+                return `<optgroup label="Requisito ${esc(label)}">${opts}</optgroup>`;
+            }).join('');
+            return grupos || `<option value="" disabled>Nenhum critério encontrado</option>`;
+        }
         box.innerHTML = `
         <div class="bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800 rounded px-3 py-2 space-y-2">
             <label class="flex items-center gap-2 text-sm font-semibold"><i aria-hidden="true" class="fa-solid fa-award text-amber-600"></i>
                 <input type="checkbox" id="rscConta" ${rsc.conta ? 'checked' : ''}> Contabilizar este item no RSC-PCCTAE</label>
             <div id="rscFields" class="${rsc.conta ? '' : 'hidden'} space-y-2">
-                <div><label class="block text-xs font-semibold mb-1" for="rscCrit">Critério específico (Anexos I–VI do Decreto)</label>
-                    <select id="rscCrit" class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900"><option value="">— selecione o critério —</option>${critOptgroups}</select>
-                    <p class="text-[11px] text-gray-500 mt-0.5">Todos os critérios do decreto estão listados, agrupados por Requisito (I a VI).</p></div>
+                <div><label class="block text-xs font-semibold mb-1" for="rscCritFiltro">Critério específico (Anexos I–VI do Decreto)</label>
+                    <input type="text" id="rscCritFiltro" autocomplete="off" placeholder="Filtrar por palavra-chave..."
+                           class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 mb-1">
+                    <select id="rscCrit" class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900"><option value="">— selecione o critério —</option>${critOptionsHtml('')}</select>
+                    <p class="text-[11px] text-gray-500 mt-0.5">Todos os critérios do decreto estão listados, agrupados por Requisito (I a VI). Digite acima para filtrar.</p></div>
                 <p class="text-[11px] text-gray-500"><i aria-hidden="true" class="fa-solid fa-calendar-days mr-1"></i>Para critérios por tempo (ano/mês), o período é calculado a partir dos campos de <strong>data</strong> do item acima (início/fim).</p>
                 <div class="grid sm:grid-cols-2 gap-2">
                     <div id="rscPapelWrap" class="hidden"><label class="block text-xs font-semibold mb-1" for="rscPapel">Papel</label>
@@ -361,6 +377,21 @@ window.TabCatalogar = (function () {
         // prefill: seleciona diretamente o critério salvo (lista única com optgroups)
         if (rsc.criterio) critSel.value = rsc.criterio;
         conta.addEventListener('change', () => { fields.classList.toggle('hidden', !conta.checked); state.formDirty = true; recompute(); });
+        // Filtro do seletor de critério (issue #24): refaz as opções a cada
+        // tecla, mantendo a seleção atual se ela ainda estiver entre as
+        // filtradas (senão limpa, pra não ficar com um valor "escondido").
+        const critFiltro = $('#rscCritFiltro');
+        critFiltro.addEventListener('input', (e) => {
+            // Não deixa o evento borbulhar até o listener de #itemForm (que
+            // marca state.formDirty a qualquer "input" no formulário) — é um
+            // campo de busca, não dado do item.
+            e.stopPropagation();
+            const valorAtual = critSel.value;
+            critSel.innerHTML = `<option value="">— selecione o critério —</option>${critOptionsHtml(critFiltro.value)}`;
+            const aindaExiste = Array.from(critSel.options).some(o => o.value === valorAtual);
+            critSel.value = aindaExiste ? valorAtual : '';
+            recompute();
+        });
         ['change', 'input'].forEach(ev => $('#rscFields').addEventListener(ev, () => { state.formDirty = true; recompute(); }));
         // O período do RSC vem dos campos de data do item: recalcula ao editá-los.
         const itemForm = $('#itemForm');

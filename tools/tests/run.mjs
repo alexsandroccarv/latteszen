@@ -21,6 +21,7 @@ import './specs/gdrive.mjs';
 import './specs/publicar.mjs';
 import './specs/inicio.mjs';
 import './specs/rsc.mjs';
+import './specs/rsc-filtro-criterio.mjs';
 
 console.log('Rodando suíte de testes de regressão (Playwright)...\n');
 await runAll();
