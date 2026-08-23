@@ -1,6 +1,8 @@
 /* ==========================================================================
-   Regressão: filtro de busca no seletor de Critério específico do RSC-PCCTAE
-   (issue #24) — a lista tem ~50 critérios, rolar tudo pra achar um era ruim.
+   Regressão: busca do critério do RSC-PCCTAE mostra uma lista de resultados
+   clicável abaixo do campo, atualizada a cada tecla (issues #24 e #25) — a
+   versão anterior filtrava um <select> nativo, que só mostrava o resultado
+   depois de clicado pra abrir.
    ========================================================================== */
 import { test, assert, assertEqual, makeItem, seedCatalog } from '../harness.mjs';
 
@@ -14,53 +16,66 @@ async function habilitarRsc(page) {
     await page.waitForTimeout(500);
 }
 
-test('Filtro do critério RSC restringe as opções conforme o usuário digita', async ({ page, baseUrl }) => {
-    const items = [makeItem('FORMACAO_COMPLEMENTAR', 'FORMACAO', { titulo: 'Curso Filtro RSC', instituicao: 'X', anoFim: '2024' })];
+async function abrirFormularioRsc(page, baseUrl, titulo) {
+    const items = [makeItem('FORMACAO_COMPLEMENTAR', 'FORMACAO', { titulo, instituicao: 'X', anoFim: '2024' })];
     await seedCatalog(page, baseUrl, items);
     await habilitarRsc(page);
     await page.click('[data-tab="conformidade"]');
     await page.waitForTimeout(300);
-    await page.evaluate(() => {
+    await page.evaluate((t) => {
         const cards = Array.from(document.querySelectorAll('#itemList .bg-white.dark\\:bg-gray-800.border'));
-        const card = cards.find((c) => c.textContent.includes('Curso Filtro RSC'));
+        const card = cards.find((c) => c.textContent.includes(t));
         card.querySelector('[data-act="edit"]').click();
-    });
+    }, titulo);
     await page.waitForTimeout(300);
-
     await page.check('#rscConta');
     await page.waitForTimeout(150);
+}
 
-    const antesDoFiltro = await page.$$eval('#rscCrit option[value]:not([value=""])', (opts) => opts.length);
+test('Buscador de critério RSC mostra lista clicável que filtra a cada tecla', async ({ page, baseUrl }) => {
+    await abrirFormularioRsc(page, baseUrl, 'Curso Filtro RSC');
+
+    // Foca sem digitar nada: lista aparece com todos os ~50 critérios.
+    await page.click('#rscCritFiltro');
+    await page.waitForTimeout(150);
+    const visivelSemFiltro = await page.$eval('#rscCritLista', (el) => !el.classList.contains('hidden'));
+    assert(visivelSemFiltro, 'A lista deveria aparecer ao focar o campo, mesmo sem digitar nada');
+    const antesDoFiltro = await page.$$eval('#rscCritLista [data-crit]', (btns) => btns.length);
     assert(antesDoFiltro > 40, `Deveria listar todos os ~50 critérios sem filtro (obtido ${antesDoFiltro})`);
 
-    // Digitar no filtro não deve marcar o formulário como alterado (não é dado
-    // do item) — zera a flag (marcada ao marcar o checkbox acima) pra isolar.
+    // Digitar "premiação" já filtra a lista visível, sem precisar abrir nada.
     await page.evaluate(() => { window.AppCore.state.formDirty = false; });
-    await page.fill('#rscCritFiltro', 'ano');
-    await page.waitForTimeout(150);
-    const formDirtyAposDigitar = await page.evaluate(() => window.AppCore.state.formDirty);
-    assert(!formDirtyAposDigitar, 'Digitar no filtro do critério não deveria marcar o formulário como alterado');
-    await page.fill('#rscCritFiltro', '');
-    await page.waitForTimeout(150);
-
     await page.fill('#rscCritFiltro', 'premiação');
     await page.waitForTimeout(150);
-    const depoisDoFiltro = await page.$$eval('#rscCrit option[value]:not([value=""])', (opts) => opts.map((o) => o.textContent));
+    const depoisDoFiltro = await page.$$eval('#rscCritLista [data-crit]', (btns) => btns.map((b) => b.textContent));
     assertEqual(depoisDoFiltro.length, 3, 'Filtrar por "premiação" deveria restringir aos 3 critérios do Anexo III');
     assert(depoisDoFiltro.every((t) => /premiaç/i.test(t)), 'Todas as opções restantes deveriam mencionar "premiação"');
+    const formDirtyAoDigitar = await page.evaluate(() => window.AppCore.state.formDirty);
+    assert(!formDirtyAoDigitar, 'Digitar no filtro não deveria, por si só, marcar o formulário como alterado');
 
-    // Seleciona um critério filtrado, depois limpa o filtro: a seleção deve sobreviver.
-    await page.selectOption('#rscCrit', '3.2');
-    await page.fill('#rscCritFiltro', '');
+    // Clicar num resultado seleciona o critério (guardado em #rscCrit, oculto)
+    // e mostra o texto completo no campo de busca.
+    await page.click('#rscCritLista [data-crit="3.2"]');
     await page.waitForTimeout(150);
-    const valorAposLimpar = await page.$eval('#rscCrit', (el) => el.value);
-    assertEqual(valorAposLimpar, '3.2', 'A seleção feita durante o filtro deveria sobreviver ao limpar o filtro');
+    const valorSelecionado = await page.$eval('#rscCrit', (el) => el.value);
+    assertEqual(valorSelecionado, '3.2', 'Clicar num resultado deveria selecionar aquele critério');
+    const textoAposSelecionar = await page.$eval('#rscCritFiltro', (el) => el.value);
+    assert(textoAposSelecionar.includes('Premiação de âmbito nacional'), 'O campo deveria mostrar a descrição completa do critério escolhido');
+    const listaFechou = await page.$eval('#rscCritLista', (el) => el.classList.contains('hidden'));
+    assert(listaFechou, 'A lista deveria fechar depois de escolher um critério');
+    const formDirtyAoSelecionar = await page.evaluate(() => window.AppCore.state.formDirty);
+    assert(formDirtyAoSelecionar, 'Selecionar um critério de fato deveria marcar o formulário como alterado');
 
-    // Filtro sem nenhuma correspondência: seleção anterior é descartada (não fica "escondida").
-    await page.fill('#rscCritFiltro', 'zzz_inexistente');
+    // Digita de novo sem escolher nada e clica fora: volta a mostrar o
+    // critério que já estava selecionado (não fica com texto solto).
+    await page.fill('#rscCritFiltro', 'zzz_sem_correspondencia');
     await page.waitForTimeout(150);
-    const valorSemCorrespondencia = await page.$eval('#rscCrit', (el) => el.value);
-    assertEqual(valorSemCorrespondencia, '', 'Um filtro sem correspondência deveria limpar a seleção, não escondê-la');
-    const semOpcoes = await page.$$eval('#rscCrit option[value]:not([value=""])', (opts) => opts.length);
-    assertEqual(semOpcoes, 0, 'Sem correspondência, nenhuma opção selecionável deveria restar');
+    const semOpcoes = await page.$$eval('#rscCritLista [data-crit]', (btns) => btns.length);
+    assertEqual(semOpcoes, 0, 'Um filtro sem correspondência não deveria listar nenhum resultado clicável');
+    await page.click('#rscJust'); // clique fora do campo/lista (elemento sempre visível, sem depender de classes Tailwind)
+    await page.waitForTimeout(150);
+    const textoAposClicarFora = await page.$eval('#rscCritFiltro', (el) => el.value);
+    assert(textoAposClicarFora.includes('Premiação de âmbito nacional'), 'Clicar fora sem escolher deveria restaurar o texto do critério já selecionado');
+    const valorAposClicarFora = await page.$eval('#rscCrit', (el) => el.value);
+    assertEqual(valorAposClicarFora, '3.2', 'A seleção anterior não deveria ter sido perdida');
 });
