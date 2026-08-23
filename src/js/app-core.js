@@ -56,6 +56,11 @@ window.AppCore = (function () {
     // valor guardado pode ter dia/mês, mas eles nunca vão para o XML Lattes.
     function anoDe(v) { const m = String(v == null ? '' : v).match(/\d{4}/); return m ? m[0] : ''; }
     function isImageExt(ext) { return /^(jpe?g|png|gif|webp)$/i.test(ext || ''); }
+    function isVideoExt(ext) { return /^(mp4|webm|mov|avi|mkv)$/i.test(ext || ''); }
+    function isArchiveExt(ext) { return /^(zip|tar|gz|tgz)$/i.test(ext || ''); }
+    // Valor sentinela "Não se aplica" (campos URL): conta como preenchido na
+    // conformidade, mas na futura exportação XML do Lattes deve ir EM BRANCO.
+    const NA_VALUE = 'Não se aplica';
     function itemYear(i) {
         const y = (i.fields && (i.fields.ano || i.fields.anoFim || i.fields.anoInicio)) || '';
         const n = parseInt(anoDe(y), 10);
@@ -233,7 +238,7 @@ window.AppCore = (function () {
     }
 
     return {
-        state, $, $$, esc, toast, anoDe, isImageExt, itemYear, sortByYear, publicarWebOk,
+        state, $, $$, esc, toast, anoDe, isImageExt, isVideoExt, isArchiveExt, NA_VALUE, itemYear, sortByYear, publicarWebOk,
         elegivelAoLattes, itemsUsingValue, normNome,
         validateISSN, validateISBN, validateISBNorISSN, validateDOI, validateURL, validateField,
         setFieldError, associateLabels, isFieldDisabled, evCount, descState,

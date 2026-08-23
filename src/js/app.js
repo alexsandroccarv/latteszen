@@ -6,9 +6,6 @@
 
     // Versão do esquema dos itens (carimbada em cada item para migrações futuras)
     const SCHEMA_VERSION = 2;
-    // Valor sentinela "Não se aplica" (campos URL): conta como preenchido na
-    // conformidade, mas na futura exportação XML do Lattes deve ir EM BRANCO.
-    const NA_VALUE = 'Não se aplica';
     // Converte um valor para exportação XML (N/A vira branco). Uso futuro.
     function xmlExportValue(v) { return v === NA_VALUE ? '' : v; }
 
@@ -18,7 +15,7 @@
        aqui por referência, então o restante deste arquivo continua usando
        os mesmos identificadores de sempre, sem precisar reescrever nada. */
     const {
-        state, $, $$, esc, toast, anoDe, isImageExt, itemYear, sortByYear, publicarWebOk,
+        state, $, $$, esc, toast, anoDe, isImageExt, isVideoExt, isArchiveExt, NA_VALUE, itemYear, sortByYear, publicarWebOk,
         elegivelAoLattes, itemsUsingValue, normNome,
         validateISSN, validateISBN, validateISBNorISSN, validateDOI, validateURL, validateField,
         setFieldError, associateLabels, isFieldDisabled, evCount, descState,
@@ -51,6 +48,11 @@
         return String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 3) || 'lz';
     }
     function nowISO() { return new Date().toISOString(); }
+    // uid/nowISO publicados em AppCore para os módulos de aba já extraídos
+    // (ex.: tab-conformidade.js, ao duplicar um item) — carregam ANTES deste
+    // arquivo, então só podem ler isto em tempo de clique, nunca no topo.
+    window.AppCore.uid = uid;
+    window.AppCore.nowISO = nowISO;
 
     // Extensão do anexo a partir do tipo MIME / nome do arquivo
     const MIME_EXT = {
@@ -64,8 +66,6 @@
         const m = (file.name || '').match(/\.(\w+)$/);
         return m ? m[1].toLowerCase() : 'pdf';
     }
-    function isVideoExt(ext) { return /^(mp4|webm|mov|avi|mkv)$/i.test(ext || ''); }
-    function isArchiveExt(ext) { return /^(zip|tar|gz|tgz)$/i.test(ext || ''); }
 
     // Extensões de evidência aceitas por tipo de item (accept do <input file>).
     // Os dois tipos restritos a documento/foto continuam só PDF/imagem; os
@@ -247,6 +247,9 @@
             catch (e) { toast('Item salvo no índice, mas falhou ao gravar o JSON: ' + e.message, 'aviso'); }
         }
     }
+    // Publicado em AppCore para os módulos de aba já extraídos (ex.:
+    // tab-conformidade.js, ao duplicar um item) — mesmo motivo de uid/nowISO.
+    window.AppCore.persistItem = persistItem;
 
     // Normaliza a lista de evidências de um item (converte formato legado).
     function evListFromItem(item) {
@@ -287,6 +290,9 @@
             try { await Storage.moveItemFiles(id, fromFolder, LattesTypes.lixeiraFolder()); } catch (_) {}
         }
     }
+    // Publicado em AppCore para os módulos de aba já extraídos (ex.:
+    // tab-conformidade.js, ao excluir um item) — mesmo motivo de uid/nowISO.
+    window.AppCore.deleteItem = deleteItem;
 
     // Restaura um item da lixeira de volta ao catálogo (e move os arquivos de
     // volta para a pasta original da categoria, se houver diretório).
@@ -366,228 +372,6 @@
         maybeShowDraftBanner();
         $('#pdfClose').addEventListener('click', clearPdf);
         $('#pdfNewTab').addEventListener('click', () => { if (state.currentPdfUrl) window.open(state.currentPdfUrl, '_blank'); });
-    }
-
-    /* =====================================================================
-       ABA: CATÁLOGO (lista de itens)
-       ===================================================================== */
-    // Recortes da lista (cartões de conformidade + filtro da lista)
-    const VIEW_META = {
-        comprovados:  { cor: 'green', icone: 'fa-circle-check', titulo: 'Comprovados', desc: 'Com evidência anexada' },
-        semPdf:       { cor: 'red',   icone: 'fa-file-circle-xmark', titulo: 'Sem evidência', desc: 'Falta anexar comprovação' },
-        naoLattes:    { cor: 'purple', icone: 'fa-heart', titulo: 'Não-Lattes', desc: 'Itens pessoais' },
-        descObrig:    { cor: 'red', icone: 'fa-align-left', titulo: 'Obrigatórios pendentes', desc: 'Falta campo obrigatório' },
-        descOpcional: { cor: 'amber', icone: 'fa-align-left', titulo: 'Falta campo opcional', desc: 'Descrição incompleta (opcional)' },
-        descCompleta: { cor: 'green', icone: 'fa-align-left', titulo: 'Descrição completa', desc: 'Todos os campos preenchidos' },
-        rscUsavel:    { cor: 'amber', icone: 'fa-award', titulo: 'Usáveis para RSC', desc: 'Elegíveis dentro do período de uso' },
-        rscMarcado:   { cor: 'green', icone: 'fa-award', titulo: 'Marcados para RSC', desc: 'Já contabilizados no RSC' },
-        rscElegivel:  { cor: 'amber', icone: 'fa-award', titulo: 'Elegíveis para RSC', desc: 'Dentro do período, ainda não marcados' },
-        rscForaPeriodo: { cor: 'gray', icone: 'fa-award', titulo: 'RSC fora do período', desc: 'Fora do período de uso do RSC' },
-        chVerde:      { cor: 'green', icone: 'fa-clock', titulo: 'Com carga horária', desc: 'Carga horária preenchida' },
-        chVermelho:   { cor: 'red', icone: 'fa-clock', titulo: 'Sem carga horária', desc: 'Falta preencher a carga horária' },
-        chCinza:      { cor: 'gray', icone: 'fa-clock', titulo: 'Carga horária N/A', desc: 'Não se aplica' },
-        lattesPendente:   { cor: 'red', icone: 'fa-graduation-cap', titulo: 'Ainda não no Lattes', desc: 'Não enviado à Plataforma Lattes' },
-        lattesModificado: { cor: 'amber', icone: 'fa-graduation-cap', titulo: 'Modificado após o Lattes', desc: 'Editado localmente após ir ao Lattes' },
-        lattesEnviado:    { cor: 'green', icone: 'fa-graduation-cap', titulo: 'Já no Lattes', desc: 'Sem edições desde o envio' },
-        exportLattesSim:  { cor: 'green', icone: 'fa-file-export', titulo: 'Exportar p/ Lattes: sim', desc: 'Entra no XML gerado' },
-        exportLattesNao:  { cor: 'gray', icone: 'fa-file-export', titulo: 'Exportar p/ Lattes: não', desc: 'Fora do XML gerado' },
-        pubWebSim:        { cor: 'green', icone: 'fa-globe', titulo: 'Publicar na Web: sim', desc: 'Entra na página pública' },
-        pubWebNao:        { cor: 'gray', icone: 'fa-globe', titulo: 'Publicar na Web: não', desc: 'Fora da página pública' },
-    };
-    // Tipos que exigem evidência (ex.: Identificação, Texto inicial, Outras
-    // informações e Conexões não exigem) — usado nas métricas de conformidade.
-    function needsEvidence(item) {
-        const def = LattesTypes.get(item.typeKey);
-        return !(def && def.noEvidence);
-    }
-    const VIEW_PREDICATE = {
-        todos:          () => true,
-        comprovados:    i => i.lattesItem && needsEvidence(i) && i.hasPdf,
-        semPdf:         i => i.lattesItem && needsEvidence(i) && !i.hasPdf,
-        naoLattes:      i => !i.lattesItem,
-        descObrig:      i => descState(i) === 'red',
-        descOpcional:   i => descState(i) === 'amber',
-        descCompleta:   i => descState(i) === 'green',
-        rscUsavel:      i => { const e = rscEstado(i); return e === 'green' || e === 'amber'; },
-        rscMarcado:     i => rscEstado(i) === 'green',
-        rscElegivel:    i => rscEstado(i) === 'amber',
-        rscForaPeriodo: i => rscEstado(i) === 'gray',
-        chVerde:        i => cargaHorariaEstado(i) === 'green',
-        chVermelho:     i => cargaHorariaEstado(i) === 'red',
-        chCinza:        i => cargaHorariaEstado(i) === 'gray',
-        lattesPendente:   i => lattesEstado(i) === 'red',
-        lattesModificado: i => lattesEstado(i) === 'amber',
-        lattesEnviado:    i => lattesEstado(i) === 'green',
-        exportLattesSim:  i => elegivelAoLattes(i.typeKey, i.categoryKey) && !(i.visibilidade && i.visibilidade.exportarLattes === false),
-        exportLattesNao:  i => elegivelAoLattes(i.typeKey, i.categoryKey) && !!(i.visibilidade && i.visibilidade.exportarLattes === false),
-        pubWebSim:        i => !LattesTypes.isPerfilType(i.typeKey) && publicarWebOk(i),
-        pubWebNao:        i => !LattesTypes.isPerfilType(i.typeKey) && !publicarWebOk(i),
-    };
-
-    // Caixa de totalização/filtragem dos itens usáveis no RSC-PCCTAE (só
-    // aparece com o módulo habilitado). "Usáveis" = elegíveis e dentro do
-    // período de uso (verde + âmbar de rscEstado — exclui os cinzas, fora
-    // do período, e os tipos não elegíveis, ex. Identificação/Não-Lattes).
-    function rscConformidadeBoxHtml() {
-        const usaveis = state.items.filter(i => { const e = rscEstado(i); return e === 'green' || e === 'amber'; });
-        const marcados = usaveis.filter(i => rscEstado(i) === 'green').length;
-        const elegiveis = usaveis.length - marcados;
-        const chip = (key, n) => {
-            const m = VIEW_META[key];
-            const active = state.viewFilter === key;
-            return `<button type="button" data-view="${key}" title="Filtrar: ${m.titulo}"
-                class="text-left bg-white dark:bg-gray-900 border rounded px-3 py-2 hover:shadow transition ${active ? `border-${m.cor}-500 ring-2 ring-${m.cor}-500/40` : 'border-gray-200 dark:border-gray-700'}">
-                <span class="block text-xl font-bold text-${m.cor}-600 dark:text-${m.cor}-400">${n}</span>
-                <span class="block text-xs text-gray-600 dark:text-gray-400">${m.titulo}</span>
-            </button>`;
-        };
-        return `
-            <div class="bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800 rounded-lg p-4 mb-5">
-                <h3 class="font-bold text-sm flex items-center gap-2 mb-3"><i aria-hidden="true" class="fa-solid fa-award text-amber-600"></i> RSC-PCCTAE — itens usáveis</h3>
-                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                    ${chip('rscUsavel', usaveis.length)}
-                    ${chip('rscMarcado', marcados)}
-                    ${chip('rscElegivel', elegiveis)}
-                    ${chip('rscForaPeriodo', state.items.filter(VIEW_PREDICATE.rscForaPeriodo).length)}
-                </div>
-            </div>`;
-    }
-
-    // Aba única (antigos "Catálogo" + "Relatório/Conformidade"): painel de
-    // conformidade (cartões + barra) + lista de itens com filtro/ordenação.
-    function renderConformidade() {
-        const panel = $('#tab-conformidade');
-        const count = k => state.items.filter(VIEW_PREDICATE[k]).length;
-        const comprovados = count('comprovados');
-        // Denominador da conformidade documental: só itens que EXIGEM evidência
-        const total = state.items.filter(i => i.lattesItem && needsEvidence(i)).length;
-        const pct = total ? Math.round(comprovados / total * 100) : 0;
-        // Descrição: verde (completo) / amarelo (falta opcional) / vermelho (falta obrigatório)
-        const totalDesc = state.items.length;
-        const descG = state.items.filter(i => descState(i) === 'green').length;
-        const descA = state.items.filter(i => descState(i) === 'amber').length;
-        const descR = state.items.filter(i => descState(i) === 'red').length;
-        const wDesc = n => totalDesc ? Math.round(n / totalDesc * 100) : 0;
-        const pctDesc = wDesc(descG);
-
-        const card = (key) => {
-            const m = VIEW_META[key];
-            const active = state.viewFilter === key;
-            return `<button type="button" data-view="${key}" title="Filtrar: ${m.titulo}"
-                class="text-left bg-white dark:bg-gray-800 border rounded-lg p-4 hover:shadow transition ${active ? `border-${m.cor}-500 ring-2 ring-${m.cor}-500/40` : 'border-gray-200 dark:border-gray-700'}">
-                <div class="flex items-center gap-2 text-${m.cor}-600 dark:text-${m.cor}-400">
-                    <i class="fa-solid ${m.icone} text-xl"></i><span class="text-2xl font-bold">${count(key)}</span>
-                </div>
-                <p class="text-sm font-semibold mt-1">${m.titulo}</p>
-                <p class="text-xs text-gray-500">${m.desc}</p>
-            </button>`;
-        };
-        // Chip compacto (mesmo padrão do quadro do RSC) — usado no resumo de
-        // "outras pendências" abaixo, que não cabiam nos 4 cartões principais.
-        const chip = (key) => {
-            const m = VIEW_META[key];
-            const active = state.viewFilter === key;
-            return `<button type="button" data-view="${key}" title="Filtrar: ${m.titulo}"
-                class="text-left bg-white dark:bg-gray-900 border rounded px-3 py-2 hover:shadow transition ${active ? `border-${m.cor}-500 ring-2 ring-${m.cor}-500/40` : 'border-gray-200 dark:border-gray-700'}">
-                <span class="block text-xl font-bold text-${m.cor}-600 dark:text-${m.cor}-400">${count(key)}</span>
-                <span class="block text-xs text-gray-600 dark:text-gray-400">${m.titulo}</span>
-            </button>`;
-        };
-
-        panel.innerHTML = `
-            <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
-                ${card('comprovados')}${card('semPdf')}${card('naoLattes')}${card('descObrig')}
-            </div>
-
-            <div class="bg-gray-50 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700 rounded-lg p-4 mb-5">
-                <h3 class="font-bold text-sm flex items-center gap-2 mb-3"><i aria-hidden="true" class="fa-solid fa-list-check text-gray-500"></i> Outras pendências</h3>
-                <div class="grid grid-cols-3 gap-2">
-                    ${chip('chVermelho')}${chip('exportLattesNao')}${chip('pubWebNao')}
-                </div>
-            </div>
-
-            <div class="grid sm:grid-cols-2 gap-x-6 gap-y-3 mb-5">
-                <div>
-                    <div class="flex justify-between text-sm mb-1"><span class="font-semibold"><i class="fa-solid fa-file-pdf text-gray-400 mr-1"></i>Conformidade documental (evidência)</span><span>${pct}% (${comprovados}/${total})</span></div>
-                    <div class="w-full h-3 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                        <div class="h-full ${pct === 100 ? 'bg-green-500' : 'bg-red-500'}" style="width:${pct}%"></div>
-                    </div>
-                </div>
-                <div>
-                    <div class="flex justify-between text-sm mb-1"><span class="font-semibold"><i class="fa-solid fa-align-left text-gray-400 mr-1"></i>Descrição completa (campos)</span><span>${pctDesc}% (${descG}/${totalDesc})</span></div>
-                    <div class="w-full h-3 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden flex" title="Verde: completo · Amarelo: falta opcional · Vermelho: falta obrigatório">
-                        <div class="h-full bg-green-500" style="width:${wDesc(descG)}%"></div>
-                        <div class="h-full bg-amber-500" style="width:${wDesc(descA)}%"></div>
-                        <div class="h-full bg-red-500" style="width:${wDesc(descR)}%"></div>
-                    </div>
-                    <p class="text-xs text-gray-500 mt-0.5">${descG} completos · ${descA} falta opcional · ${descR} falta obrigatório</p>
-                </div>
-            </div>
-
-            ${state.rscEnabled ? rscConformidadeBoxHtml() : ''}
-
-            <div class="flex items-center justify-between mb-3 gap-2 flex-wrap">
-                <h2 class="text-lg font-bold flex items-center gap-2">
-                    <i aria-hidden="true" class="fa-solid fa-list text-govbr-600 dark:text-unifesp-400"></i>
-                    Itens <span id="itemCount" class="text-sm font-normal text-gray-500"></span>
-                    <span id="viewChip" class="hidden text-xs font-normal"></span>
-                </h2>
-                <div class="print:hidden flex items-center gap-2 flex-wrap">
-                    <label class="text-xs text-gray-500 flex items-center gap-1">
-                        <i aria-hidden="true" class="fa-solid fa-arrow-down-wide-short"></i> Ordenar por ano
-                        <select id="sortOrder" class="text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900">
-                            <option value="desc">Decrescente (recente → antigo)</option>
-                            <option value="asc">Crescente (antigo → recente)</option>
-                        </select>
-                    </label>
-                    <input id="filterBox" type="search" placeholder="Filtrar..."
-                           class="text-sm px-3 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 w-full sm:w-56">
-                </div>
-            </div>
-            <div class="print:hidden flex gap-2 mb-3 flex-wrap">
-                <button id="btnExpandAll" class="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600">Expandir todas</button>
-                <button id="btnCollapseAll" class="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600">Recolher todas</button>
-                <button id="btnImprimir" class="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600 ml-auto"><i class="fa-solid fa-print mr-1"></i> Imprimir / PDF</button>
-            </div>
-            <div id="itemList" class="space-y-3"></div>`;
-
-        $('#sortOrder').value = state.sortOrder || 'desc';
-        renderItemList();
-        // Busca com debounce: currículos com centenas de itens reconstroem uma
-        // árvore grande (categoria › tipo/instituição › itens) a cada chamada
-        // — sem isso, cada tecla digitada refaz tudo na hora, o que fica
-        // perceptível. Só a lista é adiada; os demais controles seguem
-        // instantâneos (não dependem de digitação caractere a caractere).
-        let filterTimer = null;
-        $('#filterBox').addEventListener('input', () => {
-            clearTimeout(filterTimer);
-            filterTimer = setTimeout(renderItemList, 200);
-        });
-        $('#sortOrder').addEventListener('change', (e) => { state.sortOrder = e.target.value; renderItemList(); });
-        $('#btnExpandAll').addEventListener('click', () => $$('#itemList details').forEach(d => d.open = true));
-        $('#btnCollapseAll').addEventListener('click', () => $$('#itemList details').forEach(d => d.open = false));
-        $('#btnImprimir').addEventListener('click', () => window.print());
-        // Delegação (em vez de ligar em cada botão individualmente): os itens
-        // (ícones de status [data-view] e ações [data-act]: editar/duplicar/
-        // excluir) ficam dentro de #itemList, que é reconstruído sozinho
-        // (busca/ordenar) sem passar de novo por aqui — listeners diretos nos
-        // botões se perderiam nesse caso, e recriá-los a cada render custaria
-        // caro em listas grandes. Ligado uma única vez em #tab-conformidade
-        // (nó estável, nunca recriado).
-        if (!panel.dataset.itemDelegado) {
-            panel.dataset.itemDelegado = '1';
-            panel.addEventListener('click', (e) => {
-                const viewBtn = e.target.closest('[data-view]');
-                if (viewBtn) {
-                    const k = viewBtn.dataset.view;
-                    state.viewFilter = (state.viewFilter === k) ? 'todos' : k; // clicar de novo limpa
-                    renderConformidade();
-                    return;
-                }
-                const actBtn = e.target.closest('[data-act]');
-                if (actBtn) onItemAction(actBtn);
-            });
-        }
     }
 
     /* =====================================================================
@@ -1246,6 +1030,11 @@
         state.formDirty = false;                         // form recém-montado = limpo
         if (opts.focus) { const first = $('#dynFields').querySelector('input, select, textarea'); if (first) first.focus(); }
     }
+    // Publicado em AppCore para os módulos de aba já extraídos (ex.:
+    // tab-conformidade.js) poderem abrir um item no formulário — eles
+    // carregam ANTES deste arquivo, então só podem ler isto em tempo de
+    // clique, nunca no topo.
+    window.AppCore.buildForm = buildForm;
 
     // Opções de ano para os seletores (decrescente). Inclui uma folga futura
     // (conclusões previstas) e garante que o valor já salvo apareça, mesmo
@@ -1325,7 +1114,7 @@
         state.vocab[key] = Array.from(set).sort((a, b) => a.localeCompare(b, 'pt-BR'));
         saveVocab();
 
-        renderItemList();
+        window.AppCore.renderItemList();
         renderConfig();
         if (falhas) toast(`Renomeado em ${alvo.length} item(ns), mas ${falhas} JSON(s) não puderam ser regravados (verifique o diretório).`, 'aviso');
         else toast(`"${f}" → "${t}" aplicado a ${alvo.length} item(ns).`, 'ok');
@@ -2116,7 +1905,7 @@
         if (proximoAlvo) buildForm(proximoAlvo, { focus: false });
         else if (!saveNew) buildForm(state.items.find(i => i.id === item.id), { focus: false });
         else buildForm(undefined, { focus: true, keepType: true });
-        renderItemList();
+        window.AppCore.renderItemList();
     }
     // Todos os itens de uma categoria (categoryKey), em ordem sequencial fixa
     // (mesma ordenação por ano da lista de Conformidade) — usada por "Salvar e
@@ -2186,359 +1975,6 @@
                 buildForm(alvo, { focus: false });
             }
         });
-    }
-
-    // Ícone de arquivo conforme o tipo de evidência (pdf/imagem/vídeo/zip-tar.gz/link)
-    function evidenceExtIcon(ext) {
-        if (ext === 'url') return 'fa-link';
-        if (isImageExt(ext)) return 'fa-image';
-        if (isVideoExt(ext)) return 'fa-file-video';
-        if (isArchiveExt(ext)) return 'fa-file-zipper';
-        return 'fa-file-pdf';
-    }
-    // Ícones de evidência do cartão: um por evidência anexada (cor única no
-    // conjunto — verde se há alguma pública, âmbar se há evidência mas nenhuma
-    // pública); sem evidência, mostra um único indicador vermelho.
-    function evidenceIconsHtml(item) {
-        const def = LattesTypes.get(item.typeKey);
-        if (def && def.noEvidence) return '';
-        const evid = Array.isArray(item.evidencias) ? item.evidencias : [];
-        if (!evid.length) {
-            return `<span title="Sem evidência anexada" class="inline-flex items-center justify-center w-6 h-6 text-red-600 dark:text-red-500"><i class="fa-solid fa-file-circle-xmark"></i></span>`;
-        }
-        const cor = evid.some(e => e.publica) ? 'text-green-600 dark:text-green-500' : 'text-amber-600 dark:text-amber-500';
-        // Agrupa por tipo de ícone (pdf/imagem/vídeo/zip-tar.gz/link): mesmo
-        // tipo não repete o ícone, só soma no badge de contagem.
-        const groups = new Map();
-        evid.forEach(e => {
-            const icon = evidenceExtIcon(e.ext);
-            if (!groups.has(icon)) groups.set(icon, { count: 0, names: [], publica: false });
-            const g = groups.get(icon);
-            g.count++; g.names.push(e.name || ''); if (e.publica) g.publica = true;
-        });
-        return Array.from(groups.entries()).map(([icon, g]) => {
-            const title = g.names.join(', ') + (g.publica ? ' (pública)' : '');
-            const badge = g.count > 1 ? `<span class="absolute -bottom-1 -right-1 min-w-[14px] h-3.5 px-0.5 bg-gray-700 dark:bg-gray-300 text-white dark:text-gray-900 text-[9px] leading-[14px] rounded-full text-center">${g.count}</span>` : '';
-            return `<button type="button" data-act="pdf" data-id="${item.id}" title="${esc(title)}" class="relative inline-flex items-center justify-center w-6 h-6 rounded hover:bg-gray-100 dark:hover:bg-gray-700 ${cor}"><i class="fa-solid ${icon}"></i>${badge}</button>`;
-        }).join('');
-    }
-    // Estado do item em relação ao RSC: 'green' (marcado/em uso), 'amber'
-    // (elegível, dentro do período de uso, ainda não marcado), 'gray' (fora
-    // do período de uso) ou null (módulo desligado ou tipo não elegível).
-    // Alguns tipos só contam no RSC com carga horária ≥10h (Anexo II,
-    // critérios 2.9 — formação continuada — e 2.11 — capacitação/evento):
-    // Participação em eventos como "Ouvinte" (só assistiu, não gera produção
-    // própria) e Formação complementar. Descarta (além da checagem de data,
-    // que roda em seguida) quando a carga horária é conhecida e menor que
-    // 10h, ou marcada N/A; mantém quando está em branco (não dá pra afirmar
-    // que é < 10h).
-    function cargaHorariaAbaixoDoMinimoRSC(item) {
-        const f = item.fields || {};
-        let ch;
-        if (item.typeKey === 'PARTICIPACAO_EVENTO' && f.formaParticipacao === 'Ouvinte') ch = f.cargaHoraria;
-        else if (item.typeKey === 'FORMACAO_COMPLEMENTAR') ch = f.cargaHoraria;
-        else return false;
-        const s = String(ch || '').trim();
-        if (!s) return false;
-        if (s === NA_VALUE) return true;
-        const m = s.match(/\d+(?:[.,]\d+)?/);
-        if (!m) return false;
-        return parseFloat(m[0].replace(',', '.')) < 10;
-    }
-    function rscEstado(item) {
-        if (!state.rscEnabled) return null;
-        const eligivel = item.typeKey && !LattesTypes.isPerfilType(item.typeKey) && !LattesTypes.isNaoLattesType(item.typeKey);
-        if (!eligivel) return null;
-        if (cargaHorariaAbaixoDoMinimoRSC(item)) return null;
-        if (item.rsc && item.rsc.conta) return 'green';
-        const inicioAno = parseInt(anoDe((state.rscCfg && state.rscCfg.dataInicioContagem) || ''), 10);
-        const itemAno = itemYear(item);
-        const foraDoPeriodo = !isNaN(inicioAno) && itemAno != null && itemAno < inicioAno;
-        return foraDoPeriodo ? 'gray' : 'amber';
-    }
-    // Cores compartilhadas pelos ícones de status do card do item.
-    const ICON_COLOR_CLASS = {
-        green: 'text-green-600 dark:text-green-500', amber: 'text-amber-600 dark:text-amber-500',
-        red: 'text-red-600 dark:text-red-500', gray: 'text-gray-400 dark:text-gray-500',
-    };
-    // Ícone de status clicável: mesma aparência de sempre, mas agora é um
-    // botão com data-view — clicar filtra a lista para só os itens com esse
-    // mesmo estado (reaproveita o mecanismo dos cartões de filtro do topo:
-    // VIEW_PREDICATE/VIEW_META + a delegação de clique em #tab-conformidade).
-    function iconBtnHtml(viewKey, estado, title, iconClass) {
-        const active = state.viewFilter === viewKey;
-        return `<button type="button" data-view="${viewKey}" title="${esc(title)}"
-            class="inline-flex items-center justify-center w-6 h-6 rounded hover:bg-gray-100 dark:hover:bg-gray-700 ${ICON_COLOR_CLASS[estado]} ${active ? 'ring-2 ring-current' : ''}"><i class="fa-solid ${iconClass}"></i></button>`;
-    }
-    // Ícone do RSC: verde (marcado), âmbar (elegível, dentro do período de uso,
-    // ainda não marcado) ou cinza (fora do período de uso). Some quando o
-    // módulo está desligado ou o tipo não é elegível ao RSC.
-    function rscIconHtml(item) {
-        const estado = rscEstado(item);
-        if (!estado) return '';
-        const title = estado === 'green' ? 'Marcado para uso no RSC'
-            : estado === 'amber' ? 'Dentro do período de uso do RSC — ainda não marcado'
-            : 'Fora do período de uso do RSC';
-        const key = estado === 'green' ? 'rscMarcado' : estado === 'amber' ? 'rscElegivel' : 'rscForaPeriodo';
-        return iconBtnHtml(key, estado, title, 'fa-award');
-    }
-    // Estado do item em relação ao Lattes: 'red' (ainda não enviado), 'amber'
-    // (enviado, mas modificado localmente depois), 'green' (enviado, sem
-    // edições) ou null (item Não-Lattes — nunca vai pro XML).
-    function lattesEstado(item) {
-        if (!item.lattesItem) return null;
-        if (!item.lattesRef) return 'red';
-        if (item.updatedAt && item.createdAt && item.updatedAt !== item.createdAt) return 'amber';
-        return 'green';
-    }
-    // Ícone Lattes: vermelho (ainda não está no Lattes), âmbar (está no Lattes
-    // mas foi modificado localmente) ou verde (já está no Lattes, sem edições
-    // desde a importação/adoção). Some para itens Não-Lattes (nunca exportados).
-    function lattesIconHtml(item) {
-        const estado = lattesEstado(item);
-        if (!estado) return '';
-        const title = estado === 'red' ? 'Ainda não está no Lattes'
-            : estado === 'amber' ? 'Está no Lattes, mas sofreu modificação local'
-            : 'Já está no Lattes';
-        const key = estado === 'red' ? 'lattesPendente' : estado === 'amber' ? 'lattesModificado' : 'lattesEnviado';
-        return iconBtnHtml(key, estado, title, 'fa-graduation-cap');
-    }
-    // Estado da carga horária do item: 'green' (tem), 'red' (falta), 'gray'
-    // (não se aplica — campo desabilitado por outra condição do próprio
-    // tipo, ex. Formação Acadêmica fora de Aperfeiçoamento/Especialização,
-    // ou marcado "N/A") ou null (tipo sem campo "cargaHoraria").
-    function cargaHorariaEstado(item) {
-        const def = LattesTypes.getType(item.typeKey);
-        const f = def && def.fields && def.fields.find(fld => fld.key === 'cargaHoraria');
-        if (!f) return null;
-        const vals = item.fields || {};
-        const v = String(vals.cargaHoraria || '').trim();
-        if (isFieldDisabled(f, vals) || v === NA_VALUE) return 'gray';
-        return v ? 'green' : 'red';
-    }
-    // Ícone de carga horária: verde (tem carga horária), vermelho (não tem)
-    // ou cinza (não se aplica). Some para tipos sem campo "cargaHoraria".
-    function cargaHorariaIconHtml(item) {
-        const estado = cargaHorariaEstado(item);
-        if (!estado) return '';
-        const v = String((item.fields || {}).cargaHoraria || '').trim();
-        const title = estado === 'gray' ? 'Carga horária: não se aplica' : estado === 'green' ? 'Tem carga horária: ' + v : 'Sem carga horária';
-        const key = estado === 'green' ? 'chVerde' : estado === 'red' ? 'chVermelho' : 'chCinza';
-        return iconBtnHtml(key, estado, title, 'fa-clock');
-    }
-    // Ícone "Exportar para Lattes": verde (entra no XML), cinza (desmarcado
-    // no item — fica de fora mesmo sendo de tipo/categoria exportável). Some
-    // para tipos/categorias que não vão pro Lattes de jeito nenhum (categorias
-    // 12+/"Além do Lattes", tipos marcados naoLattes) — nada a mostrar ali.
-    function exportarLattesIconHtml(item) {
-        if (!elegivelAoLattes(item.typeKey, item.categoryKey)) return '';
-        const on = !(item.visibilidade && item.visibilidade.exportarLattes === false);
-        const title = on ? 'Exportado para o Lattes (XML)' : 'Fora da exportação para o Lattes (XML)';
-        return iconBtnHtml(on ? 'exportLattesSim' : 'exportLattesNao', on ? 'green' : 'gray', title, 'fa-file-export');
-    }
-    // Ícone "Publicar na Web": verde (entra na página HTML própria), cinza
-    // (desmarcado no item). Some para tipos de perfil (não são itens da
-    // página pública). Independente do Lattes — não usa elegivelAoLattes.
-    function publicarWebIconHtml(item) {
-        if (LattesTypes.isPerfilType(item.typeKey)) return '';
-        const on = publicarWebOk(item);
-        const title = on ? 'Publicado na página Web' : 'Fora da página Web (Publicar na Web)';
-        return iconBtnHtml(on ? 'pubWebSim' : 'pubWebNao', on ? 'green' : 'gray', title, 'fa-globe');
-    }
-    // Ícone de descrição: reaproveita o estado de completude (descState).
-    function descIconHtml(item) {
-        const estado = descState(item);
-        const title = estado === 'green' ? 'Descrição completa' : estado === 'amber' ? 'Descrição incompleta (falta campo opcional)' : 'Sem descrição (falta campo obrigatório)';
-        const key = estado === 'green' ? 'descCompleta' : estado === 'amber' ? 'descOpcional' : 'descObrig';
-        return iconBtnHtml(key, estado, title, 'fa-align-left');
-    }
-
-    function itemCardHtml(i) {
-        const anoNum = itemYear(i);
-        const ano = anoNum != null ? String(anoNum) : '—';
-        const titulo = esc(LattesTypes.itemTitle(i));
-        const tipo = esc(LattesTypes.label(i.typeKey));
-        const sep = `<span class="w-px h-5 bg-gray-200 dark:bg-gray-600 shrink-0 mx-0.5"></span>`;
-        return `
-            <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded px-2.5 py-1.5">
-                <div class="flex items-center gap-x-2 gap-y-1 flex-wrap">
-                    <span class="text-xs font-mono text-gray-500 shrink-0 w-9 text-right tabular-nums">${ano}</span>
-                    <span class="text-sm font-medium truncate flex-1 min-w-[8rem]" title="${tipo} · ${titulo}">${titulo}</span>
-                    <div class="flex items-center gap-0.5 shrink-0 ml-auto">
-                        ${evidenceIconsHtml(i)}
-                        ${sep}
-                        ${cargaHorariaIconHtml(i)}${rscIconHtml(i)}${lattesIconHtml(i)}${exportarLattesIconHtml(i)}${publicarWebIconHtml(i)}${descIconHtml(i)}
-                        <span class="print:hidden contents">
-                            ${sep}
-                            <button data-act="edit" data-id="${i.id}" title="Abrir / Editar" class="w-7 h-7 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-govbr-600 dark:text-unifesp-400"><i class="fa-solid fa-pen"></i></button>
-                            ${LattesTypes.isSingleton(i.typeKey) ? '' : `<button data-act="dup" data-id="${i.id}" title="Duplicar" class="w-7 h-7 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400"><i class="fa-solid fa-clone"></i></button>`}
-                            <button data-act="del" data-id="${i.id}" title="Excluir" class="w-7 h-7 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-red-600"><i class="fa-solid fa-trash"></i></button>
-                        </span>
-                    </div>
-                </div>
-            </div>`;
-    }
-
-    // Monta o HTML segmentado em 2 níveis: categoria (01..11, 99) → tipo de item.
-    // Só categorias/tipos com itens são exibidos. Reutilizado em Catálogo e Relatório.
-    function buildGroupedHtml(items) {
-        const order = LattesTypes.categories.map(c => c.key).concat('NAO_LATTES');
-        const groups = {};
-        items.forEach(i => { (groups[i.categoryKey] = groups[i.categoryKey] || []).push(i); });
-        const typeOrderOf = (catKey) => {
-            const c = LattesTypes.categoryByKey(catKey);
-            if (!c) return [];
-            return c.groups ? c.groups.flatMap(g => g.types) : (c.types || []);
-        };
-        // Monta as subdivisões por tipo de item (nível interno reutilizável)
-        const typesHtmlFor = (arr, catKey) => {
-            const byType = {};
-            arr.forEach(i => { (byType[i.typeKey] = byType[i.typeKey] || []).push(i); });
-            const seq = typeOrderOf(catKey);
-            const typeKeys = Object.keys(byType).sort((a, b) => {
-                const ia = seq.indexOf(a), ib = seq.indexOf(b);
-                return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib);
-            });
-            return typeKeys.map(tk => `
-                <details open class="border border-gray-100 dark:border-gray-700/60 rounded">
-                    <summary class="cursor-pointer select-none px-2 py-1.5 bg-gray-50 dark:bg-gray-800/60 text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
-                        <i aria-hidden="true" class="fa-solid fa-angle-right text-xs text-gray-400"></i>
-                        ${esc(LattesTypes.label(tk))}
-                        <span class="text-xs font-normal text-gray-500">(${byType[tk].length})</span>
-                    </summary>
-                    <div class="p-1.5 space-y-1">${byType[tk].map(itemCardHtml).join('')}</div>
-                </details>`).join('');
-        };
-
-        // Em "03 Atuação", agrupa por Instituição e, dentro dela, mantém as
-        // subdivisões por tipo de item (Atuação profissional, atividades, etc.).
-        const SEM_INST = ' ';
-        const instHtmlFor = (arr, catKey) => {
-            const byInst = {};
-            const labelOf = {};
-            arr.forEach(i => {
-                const raw = ((i.fields && i.fields.instituicao) || '').trim();
-                const ik = raw ? normNome(raw) : SEM_INST;
-                if (!byInst[ik]) { byInst[ik] = []; labelOf[ik] = raw; }
-                byInst[ik].push(i);
-            });
-            const instKeys = Object.keys(byInst).sort((a, b) => {
-                if (a === SEM_INST) return 1;
-                if (b === SEM_INST) return -1;
-                return labelOf[a].localeCompare(labelOf[b], 'pt-BR', { sensitivity: 'base' });
-            });
-            return instKeys.map(ik => `
-                <details open class="border border-gray-200 dark:border-gray-700/70 rounded-md">
-                    <summary class="cursor-pointer select-none px-2.5 py-1.5 bg-gray-100/70 dark:bg-gray-800/80 text-sm font-semibold text-gray-700 dark:text-gray-200 flex items-center gap-2">
-                        <i aria-hidden="true" class="fa-solid fa-building text-govbr-600 dark:text-unifesp-400 text-xs"></i>
-                        ${esc(ik === SEM_INST ? '(Sem instituição informada)' : labelOf[ik])}
-                        <span class="text-xs font-normal text-gray-500">(${byInst[ik].length})</span>
-                    </summary>
-                    <div class="p-1.5 space-y-1.5">${typesHtmlFor(byInst[ik], catKey)}</div>
-                </details>`).join('');
-        };
-
-        return order.filter(k => groups[k] && groups[k].length).map(k => {
-            const g = groups[k];
-            const bodyHtml = (k === 'ATUACAO') ? instHtmlFor(g, k) : typesHtmlFor(g, k);
-            return `
-            <details open class="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
-                <summary class="cursor-pointer select-none px-3 py-2 bg-gray-100 dark:bg-gray-800 font-semibold text-sm flex items-center gap-2">
-                    <i aria-hidden="true" class="fa-solid ${esc((LattesTypes.categoryByKey(k) || {}).icon || 'fa-folder')} text-govbr-600 dark:text-unifesp-400"></i>
-                    ${esc(LattesTypes.categoryNumLabel(k))}
-                    <span class="text-xs font-normal text-gray-500">(${g.length})</span>
-                </summary>
-                <div class="p-2 space-y-2">${bodyHtml}</div>
-            </details>`;
-        }).join('');
-    }
-    function renderItemList() {
-        const list = $('#itemList');
-        if (!list) return; // aba Conformidade não está montada
-        const q = ($('#filterBox') && $('#filterBox').value || '').toLowerCase();
-        const asc = (state.sortOrder || 'desc') === 'asc';
-        const view = state.viewFilter && VIEW_PREDICATE[state.viewFilter] ? state.viewFilter : 'todos';
-
-        // Recorte (cartão) atualmente selecionado
-        const chip = $('#viewChip');
-        if (chip) {
-            if (view === 'todos') { chip.classList.add('hidden'); chip.textContent = ''; }
-            else {
-                const m = VIEW_META[view];
-                chip.className = `text-xs font-normal badge bg-${m.cor}-100 text-${m.cor}-800 dark:bg-${m.cor}-900/40 dark:text-${m.cor}-300`;
-                chip.innerHTML = `<i class="fa-solid ${m.icone}"></i> ${m.titulo} · <button type="button" id="viewClear" class="underline">ver todos</button>`;
-                const clr = $('#viewClear'); if (clr) clr.addEventListener('click', () => { state.viewFilter = 'todos'; renderConformidade(); });
-            }
-        }
-
-        // Tipos de perfil (Identificação, Foto, Endereço, Texto inicial,
-        // Outras informações, Áreas de atuação, Documentos pessoais) são
-        // editados em Configurações e não aparecem na lista de Conformidade.
-        let items = state.items.filter(VIEW_PREDICATE[view])
-            .filter(i => !LattesTypes.isPerfilType(i.typeKey));
-        if (q) items = items.filter(i => (LattesTypes.itemTitle(i) + ' ' + LattesTypes.label(i.typeKey) + ' ' + LattesTypes.categoryLabel(i.categoryKey)).toLowerCase().includes(q));
-
-        const cnt = $('#itemCount');
-        if (cnt) cnt.textContent = (view === 'todos' && !q) ? `(${state.items.length})` : `(${items.length} de ${state.items.length})`;
-
-        if (!items.length) {
-            const vazio = !state.items.length
-                ? 'Nenhum item ainda. Adicione pelo formulário ou importe o XML do Lattes.'
-                : (view === 'todos' ? 'Nenhum item corresponde ao filtro.' : 'Nenhum item neste recorte.');
-            list.innerHTML = `<p class="text-sm text-gray-500 italic py-6 text-center">${vazio}</p>`;
-            return;
-        }
-        list.innerHTML = buildGroupedHtml(sortByYear(items, asc));
-    }
-
-    // Chamada pela delegação de clique em #tab-conformidade (ver
-    // renderConformidade) — recebe o próprio botão [data-act], não o evento,
-    // já que não há mais um listener direto por botão.
-    async function onItemAction(btn) {
-        const id = btn.dataset.id;
-        const item = state.items.find(i => i.id === id);
-        if (!item) return;
-        if (btn.dataset.act === 'edit' || btn.dataset.act === 'pdf') {
-            // Itens de perfil (Identificação, Foto, Endereço, etc.) são editados em Configurações
-            if (LattesTypes.isPerfilType(item.typeKey)) {
-                switchTab('config');
-                const sec = $('#perfilSection');
-                if (sec) sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                return;
-            }
-            // Abre o item na aba Catalogar
-            switchTab('catalogar');
-            buildForm(item);
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        } else if (btn.dataset.act === 'dup') {
-            await duplicateItem(id);
-        } else if (btn.dataset.act === 'del') {
-            if (!confirm(`Mover "${LattesTypes.itemTitle(item)}" para a lixeira? Pode ser restaurado depois em Configurações › Lixeira.`)) return;
-            await deleteItem(id);
-            toast('Item movido para a lixeira.', 'ok');
-            renderItemList();
-        }
-    }
-
-    // Duplica um item: mesma categoria/tipo/campos, mas sem evidências (cada
-    // uma comprova um documento real específico, não faz sentido copiá-las)
-    // e sem lattesRef (evita colidir com a deduplicação de reimportação do
-    // XML). O campo-título do tipo ganha o sufixo " (cópia)".
-    async function duplicateItem(id) {
-        const orig = state.items.find(i => i.id === id);
-        if (!orig || LattesTypes.isSingleton(orig.typeKey)) return;
-        const fields = Object.assign({}, orig.fields);
-        const labelKey = ['titulo', 'orientando', 'candidato', 'especialidade', 'subarea', 'area', 'instituicao']
-            .find(k => fields[k] && String(fields[k]).trim());
-        if (labelKey) fields[labelKey] = `${fields[labelKey]} (cópia)`;
-        const copy = {
-            id: uid(), createdAt: nowISO(), updatedAt: nowISO(), source: 'local',
-            lattesItem: orig.lattesItem, typeKey: orig.typeKey, categoryKey: orig.categoryKey,
-            fields, evidencias: [], hasPdf: false, pdfName: null, fileExt: null, lattesRef: null,
-        };
-        await persistItem(copy);
-        toast('Item duplicado — revise os dados e anexe a evidência.', 'ok');
-        renderItemList();
     }
 
     /* =====================================================================
@@ -2798,7 +2234,7 @@
         toast(`${n} item(ns) importado(s)${extras ? ' — ' + extras : ''}.`, 'ok');
         xmlConsistencyToast();
         renderXmlResult(state.lattesParsed);
-        renderItemList();
+        window.AppCore.renderItemList();
     }
 
     /* =====================================================================
@@ -3002,7 +2438,7 @@
         }
         toast(`${n} item(ns) importado(s) do ORCID${ignorados ? ` — ${ignorados} já existente(s) ignorado(s)` : ''}.`, 'ok');
         renderOrcidResult(state.orcidParsed);
-        renderItemList();
+        window.AppCore.renderItemList();
     }
 
     function wireOrcidImport() {
@@ -3193,7 +2629,7 @@
         }
         toast(`${n} item(ns) importado(s)${ignorados ? ` — ${ignorados} já existente(s) ignorado(s)` : ''}.`, 'ok');
         renderBibResult(state.bibParsed);
-        renderItemList();
+        window.AppCore.renderItemList();
     }
 
     // Sentido inverso de BIB_RIS_TYPE_MAP — só os tipos que também são
@@ -3388,7 +2824,7 @@
             await deleteItem(item.id);
             toast('Documento movido para a lixeira.', 'ok');
             refreshDocumentoPessoalList(sec);
-            renderItemList();
+            window.AppCore.renderItemList();
         }));
     }
     function refreshDocumentoPessoalList(sec) {
@@ -3481,7 +2917,7 @@
             const form = sec.querySelector('#areaAtuacaoForm');
             if (form.dataset.editingId === item.id) areaAtuacaoResetForm(form);
             refreshAreaAtuacaoList(sec);
-            renderItemList();
+            window.AppCore.renderItemList();
         }));
     }
     function wireAreaAtuacaoSection(sec) {
@@ -3513,7 +2949,7 @@
             if (encResid) toast(`Atenção: ${encResid} caractere(s) fora do ISO-8859-1 permanecem (ex.: emoji).`, 'aviso');
             areaAtuacaoResetForm(form);
             refreshAreaAtuacaoList(sec);
-            renderItemList();
+            window.AppCore.renderItemList();
         });
     }
 
@@ -3644,7 +3080,7 @@
         toast(`${def.label} salvo.`, 'ok');
         if (encResid) toast(`Atenção: ${encResid} caractere(s) fora do ISO-8859-1 permanecem (ex.: emoji).`, 'aviso');
         renderConfig();
-        renderItemList();
+        window.AppCore.renderItemList();
     }
 
     // Cabeçalho de grupo das Configurações (divisor de seções)
@@ -3686,7 +3122,7 @@
         $$('[data-restaurar]').forEach(b => b.addEventListener('click', async () => {
             await restoreItem(b.dataset.restaurar);
             toast('Item restaurado.', 'ok');
-            renderItemList();
+            window.AppCore.renderItemList();
             renderConfig();
         }));
         $$('[data-purgar]').forEach(b => b.addEventListener('click', async () => {
@@ -3885,7 +3321,7 @@
                         : ' Pasta vazia — pronta para uso.';
                 } catch (_) {}
                 toast(msg, 'ok');
-                renderItemList();
+                window.AppCore.renderItemList();
                 renderConfig();
             } catch (e) { if (e.name !== 'AbortError') toast(e.message, 'erro'); }
         });
@@ -3893,7 +3329,7 @@
             try {
                 const { encontrados } = await syncFromDirectory();
                 toast(`${encontrados} arquivo(s) .json lido(s) do diretório.`, 'ok');
-                renderItemList();
+                window.AppCore.renderItemList();
             } catch (e) { toast(e.message, 'erro'); }
         });
         $('#btnForget').addEventListener('click', async () => { await Storage.forgetDirectory(); state.dirHealth = null; renderDirBanner(); toast('Pasta esquecida.', 'ok'); renderConfig(); });
@@ -3923,7 +3359,7 @@
                         : ' Pasta vazia — pronta para uso.';
                 } catch (_) {}
                 toast(msg, 'ok');
-                renderItemList();
+                window.AppCore.renderItemList();
                 renderConfig();
             } catch (e) {
                 if (statusEl) statusEl.innerHTML = `<span class="text-red-700 dark:text-red-400"><i aria-hidden="true" class="fa-solid fa-triangle-exclamation mr-1"></i> ${esc(e.message)}</span>`;
@@ -3950,7 +3386,7 @@
             const s = Storage.loadSettings(); s.vocab = {}; s.rsc = {}; Storage.saveSettings(s);
             resetBackupReminder();        // zera o contador de backup
             toast('Índice local limpo (itens, listas e RSC).', 'ok');
-            renderItemList();
+            window.AppCore.renderItemList();
             renderConfig();               // re-renderiza a aba (Perfil, listas, RSC, contadores)
         });
         // Renomear/normalizar valores de autocomplete em todos os itens
@@ -4028,7 +3464,7 @@
             }
         }
         toast(`Pontuação normalizada em ${alterados} item(ns).`, 'ok');
-        renderItemList();
+        window.AppCore.renderItemList();
         verificarCodificacao();
     }
 
@@ -4115,7 +3551,7 @@
                 restaurouConfig = true;
             }
             toast(`${items.length} item(ns) importado(s) do JSON.${restaurouConfig ? ' Configurações do sistema restauradas.' : ''}`, 'ok');
-            renderItemList();
+            window.AppCore.renderItemList();
             renderConfig();
         } catch (err) { toast('Falha ao importar: ' + err.message, 'erro'); }
         e.target.value = '';
@@ -4125,7 +3561,7 @@
        Navegação por abas
        ===================================================================== */
     const RENDERERS = {
-        inicio: TabInicio.render, catalogar: renderCatalogar, conformidade: renderConformidade,
+        inicio: TabInicio.render, catalogar: renderCatalogar, conformidade: TabConformidade.render,
         publicar: TabPublicar.render, rsc: TabRsc.render, config: renderConfig,
     };
     // Mostra/oculta a aba RSC conforme o módulo esteja habilitado
