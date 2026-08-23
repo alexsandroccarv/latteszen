@@ -37,6 +37,15 @@ test('Categoria "Grupos de Pesquisa" só aparece no seletor com o módulo RSC ha
     assertEqual(rotulo, '20. Grupos de Pesquisa', 'O rótulo da categoria deveria ser "20. Grupos de Pesquisa"');
 });
 
+test('Categoria "RSC — Atividades administrativas" (97) foi removida (issue #34)', async ({ page, baseUrl }) => {
+    await seedCatalog(page, baseUrl, []);
+    await habilitarRsc(page);
+    await page.click('[data-tab="catalogar"]');
+    await page.waitForTimeout(200);
+    const opcoes = await page.$$eval('#selCategoria option', (opts) => opts.map((o) => o.value));
+    assert(!opcoes.includes('RSC_ADMIN'), 'A categoria "RSC — Atividades administrativas" não deveria mais existir no seletor de categoria');
+});
+
 test('Item de "Grupo de pesquisa/extensão registrado" pode ser contabilizado no RSC com o critério 6.6', async ({ page, baseUrl }) => {
     await seedCatalog(page, baseUrl, []);
     await habilitarRsc(page);
