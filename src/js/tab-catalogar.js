@@ -519,18 +519,23 @@ window.TabCatalogar = (function () {
     }
     // Lê a camada RSC do formulário → objeto rsc (ou {conta:false}). O período
     // (início/fim) é derivado dos campos de data do próprio item, não mais de
-    // campos de data no bloco RSC (evita redundância).
+    // campos de data no bloco RSC (evita redundância). Itens ainda em
+    // exercício (situação "Atual (não finalizado)") não têm data de fim
+    // própria — nesse caso, o fim do período usado no cálculo é a "Data de
+    // abrangência (final)" configurada em Configurações › RSC (issue #27):
+    // sem isso, esses itens nunca teriam o tempo decorrido contado.
     function collectRsc(form) {
         const conta = form.querySelector('#rscConta');
         if (!conta) return null;
         const val = id => { const el = form.querySelector('#' + id); return el ? el.value.trim() : ''; };
         const chk = id => { const el = form.querySelector('#' + id); return !!(el && el.checked); };
         const fld = name => { const el = form.elements ? form.elements[name] : null; return (el && typeof el.value === 'string') ? el.value.trim() : ''; };
+        const dataAbrangencia = (state.rscCfg && state.rscCfg.dataAbrangenciaFinal) || '';
         return {
             conta: conta.checked,
             criterio: val('rscCrit'),
             dataInicio: _rscToBR(fld('anoInicio'), false),
-            dataFim: _rscToBR(fld('anoFim') || fld('ano'), true),
+            dataFim: _rscToBR(fld('anoFim') || fld('ano'), true) || _rscToBR(dataAbrangencia, true),
             papel: val('rscPapel') || 'titular',
             quantidade: val('rscQtd') || '',
             interesse: chk('rscInteresse'), alemOrdinario: chk('rscAlem'),

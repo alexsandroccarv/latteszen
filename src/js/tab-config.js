@@ -1025,6 +1025,10 @@ window.TabConfig = (function () {
                     ${inp('ingresso', 'Data de ingresso no cargo', '25/12/2026')}
                     ${inp('dataInicioContagem', 'Início da contagem (RSC)', '25/12/2026')}
                     <div class="col-span-2">
+                        ${inp('dataAbrangenciaFinal', 'Data de abrangência (final)', '25/12/2026')}
+                        <p class="text-[11px] text-gray-500 mt-0.5">Data de corte do memorial/requerimento. Usada como fim do período em itens ainda <strong>em exercício</strong> (situação "Atual", sem data de fim própria) — sem ela, esses itens não têm o tempo decorrido contado.</p>
+                    </div>
+                    <div class="col-span-2">
                         <label class="block text-xs font-semibold mb-1" for="rsc-escolaridade">Escolaridade (limita o nível máximo)</label>
                         <select id="rsc-escolaridade" class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900"><option value="">—</option>${escOpts}</select>
                     </div>
@@ -1040,7 +1044,7 @@ window.TabConfig = (function () {
         en.addEventListener('change', () => { $('#rscCfgFields').classList.toggle('hidden', !en.checked); });
         $('#btnSaveRsc').addEventListener('click', () => {
             state.rscEnabled = $('#rscEnable').checked;
-            const keys = ['cargo', 'classe', 'siape', 'lotacao', 'ingresso', 'dataInicioContagem'];
+            const keys = ['cargo', 'classe', 'siape', 'lotacao', 'ingresso', 'dataInicioContagem', 'dataAbrangenciaFinal'];
             const cfg = {};
             keys.forEach(k => { const el = $('#rsc-' + k); if (el) cfg[k] = el.value.trim(); });
             cfg.escolaridade = $('#rsc-escolaridade').value;
