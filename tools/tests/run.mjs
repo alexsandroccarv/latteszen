@@ -25,6 +25,7 @@ import './specs/rsc-filtro-criterio.mjs';
 import './specs/rsc-pontuacao-por-tempo.mjs';
 import './specs/rsc-data-abrangencia.mjs';
 import './specs/analytics.mjs';
+import './specs/rsc-grupo-pesquisa.mjs';
 
 console.log('Rodando suíte de testes de regressão (Playwright)...\n');
 await runAll();

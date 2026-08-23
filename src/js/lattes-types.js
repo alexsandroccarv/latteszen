@@ -817,6 +817,15 @@ const TYPES = {
     RSC_ADMIN_OUTRA: { label: 'Outra atividade administrativa', noExport: true, rsc: true, fields: [
         { key: 'titulo', label: 'Descrição da atividade', type: 'text', required: true },
         { key: 'orgao', label: 'Órgão / unidade', type: 'text' }, { key: 'descricao', label: 'Detalhes', type: 'textarea' }] },
+
+    /* --- RSC — Grupos de pesquisa (não-Lattes; só com o módulo RSC) --- */
+    RSC_GRUPO_PESQUISA: { label: 'Grupo de pesquisa/extensão registrado', noExport: true, rsc: true, fields: [
+        { key: 'titulo', label: 'Nome do grupo', type: 'text', required: true },
+        { key: 'papel', label: 'Papel no grupo', type: 'select', options: ['Líder', 'Vice-líder', 'Membro'], required: true },
+        { key: 'orgao', label: 'Órgão / sistema de registro', type: 'text', placeholder: 'ex.: CNPq — Diretório dos Grupos de Pesquisa' },
+        ...periodoComSituacao(),
+        { key: 'descricao', label: 'Linha de atuação / detalhes', type: 'textarea' },
+    ] },
 };
 // Garante que cada tipo conheça a própria chave
 Object.keys(TYPES).forEach(k => TYPES[k].key = k);
@@ -861,6 +870,8 @@ window.LATTES_CATEGORIES = [
     { num: '11', key: 'BANCAS', label: 'Bancas', icon: 'fa-gavel', types: ['BANCA_CONCLUSAO', 'BANCA_JULGADORA'] },
     { num: '97', key: 'RSC_ADMIN', label: 'RSC — Atividades administrativas', icon: 'fa-building-columns', naoLattes: true, rscOnly: true,
       types: ['RSC_COMISSAO', 'RSC_CONCURSO', 'RSC_CONTRATO', 'RSC_LICITACAO', 'RSC_SISTEMA', 'RSC_CARGO_FUNCAO', 'RSC_RESP_SETOR', 'RSC_APOIO_TECNICO', 'RSC_ADMIN_OUTRA'] },
+    { num: '98', key: 'RSC_GRUPO', label: 'RSC — Grupos de pesquisa', icon: 'fa-microscope', naoLattes: true, rscOnly: true,
+      types: ['RSC_GRUPO_PESQUISA'] },
     { num: '12', key: 'AL_DESENVOLVIMENTO', label: 'Desenvolvimento Pessoal e Habilidades', icon: 'fa-seedling', naoLattes: true,
       note: AL_NOTE, types: ['AL_CURSO_LIVRE', 'AL_IDIOMAS', 'AL_TREINAMENTO', 'AL_PROJETO_PESSOAL'] },
     { num: '13', key: 'AL_ENGAJAMENTO', label: 'Engajamento Comunitário e Cidadania', icon: 'fa-people-group', naoLattes: true,
@@ -916,6 +927,7 @@ PRIMARY_CATEGORY.AL_IMPRENSA = 'AL_IMPRENSA_CAT';
 ['AL_IMPRENSA_CITACAO', 'AL_IMPRENSA_ENTREVISTADO', 'AL_IMPRENSA_OUTRA'].forEach(k => { PRIMARY_CATEGORY[k] = 'AL_IMPRENSA_CAT'; });
 ['CONEXAO_SOCIAL', 'CONEXAO_ACADEMICA', 'CONEXAO_PROFISSIONAL'].forEach(k => { PRIMARY_CATEGORY[k] = 'DADOS_GERAIS'; });
 ['RSC_COMISSAO', 'RSC_CONCURSO', 'RSC_CONTRATO', 'RSC_LICITACAO', 'RSC_SISTEMA', 'RSC_CARGO_FUNCAO', 'RSC_RESP_SETOR', 'RSC_APOIO_TECNICO', 'RSC_ADMIN_OUTRA'].forEach(k => { PRIMARY_CATEGORY[k] = 'RSC_ADMIN'; });
+PRIMARY_CATEGORY.RSC_GRUPO_PESQUISA = 'RSC_GRUPO';
 const LEGACY_TYPE = { LIVRO: 'LIVRO_CAPITULO', CAPITULO_LIVRO: 'LIVRO_CAPITULO', SOFTWARE: 'SOFTWARE_SEM_REGISTRO', ORIENTACAO: 'ORIENTACAO_ANDAMENTO', BANCA: 'BANCA_CONCLUSAO' };
 
 /* ---- Categoria/tipo especial: itens NÃO LATTES ---- */
