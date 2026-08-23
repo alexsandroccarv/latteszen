@@ -54,6 +54,10 @@ window.TabCatalogar = (function () {
                             <i class="fa-regular fa-file-lines text-5xl mb-3"></i>
                             <p class="text-sm">O arquivo (PDF ou imagem) aparece aqui ao anexá-lo no formulário<br>ou ao abrir um item com evidência (aba <strong>Conformidade</strong>).</p>
                         </div>
+                        <div id="pdfNoPreview" class="hidden h-full flex flex-col items-center justify-center text-center text-gray-400 dark:text-gray-500 p-6">
+                            <i class="fa-solid fa-file-zipper text-5xl mb-3"></i>
+                            <p class="text-sm">Sem pré-visualização para este tipo de arquivo.<br>Use “Abrir em nova aba” para baixá-lo.</p>
+                        </div>
                         <iframe id="pdfFrame" class="w-full h-full hidden" title="Pré-visualização do arquivo"></iframe>
                         <img id="pdfImg" class="max-w-full max-h-full object-contain hidden" alt="Pré-visualização da imagem">
                     </div>
@@ -71,7 +75,7 @@ window.TabCatalogar = (function () {
        Painel de visualização do PDF (dentro de "Catalogar")
        ===================================================================== */
     function setPdf(url, name, ext) {
-        const frame = $('#pdfFrame'), img = $('#pdfImg');
+        const frame = $('#pdfFrame'), img = $('#pdfImg'), noPreview = $('#pdfNoPreview');
         if (!frame) return; // painel não montado (outra aba ativa)
         if (state.currentPdfUrl && state.currentPdfUrl !== url) {
             try { URL.revokeObjectURL(state.currentPdfUrl); } catch (_) {}
@@ -80,12 +84,22 @@ window.TabCatalogar = (function () {
         if (isImageExt(ext)) {
             img.src = url; img.classList.remove('hidden');
             frame.src = 'about:blank'; frame.classList.add('hidden');
+            if (noPreview) noPreview.classList.add('hidden');
+        } else if (isArchiveExt(ext)) {
+            // Arquivo compactado (.zip/.tar/.gz): o navegador não tem visualizador
+            // nativo, então navegar o iframe para a blob URL apenas dispara o
+            // diálogo de download do sistema — mostra um aviso em vez disso.
+            // "Abrir em nova aba" continua funcionando (baixar é o esperado ali).
+            frame.src = 'about:blank'; frame.classList.add('hidden');
+            img.removeAttribute('src'); img.classList.add('hidden');
+            if (noPreview) noPreview.classList.remove('hidden');
         } else {
             // PDF: pede ao visualizador nativo do navegador para ajustar a
             // página inteira à janela (não afeta outros tipos de arquivo).
             frame.src = /^pdf$/i.test(ext || '') ? (url + '#view=Fit') : url;
             frame.classList.remove('hidden');
             img.removeAttribute('src'); img.classList.add('hidden');
+            if (noPreview) noPreview.classList.add('hidden');
         }
         $('#pdfEmpty').classList.add('hidden');
         $('#pdfClose').classList.remove('hidden');
@@ -94,12 +108,13 @@ window.TabCatalogar = (function () {
         const sec = $('#pdfSection'); if (sec) sec.classList.remove('hidden'); // só aparece após uma evidência ser selecionada
     }
     function clearPdf() {
-        const frame = $('#pdfFrame'), img = $('#pdfImg');
+        const frame = $('#pdfFrame'), img = $('#pdfImg'), noPreview = $('#pdfNoPreview');
         if (state.currentPdfUrl) { try { URL.revokeObjectURL(state.currentPdfUrl); } catch (_) {} state.currentPdfUrl = null; }
         const sec = $('#pdfSection'); if (sec) sec.classList.add('hidden');
         if (!frame) return;
         frame.src = 'about:blank'; frame.classList.add('hidden');
         if (img) { img.removeAttribute('src'); img.classList.add('hidden'); }
+        if (noPreview) noPreview.classList.add('hidden');
         $('#pdfEmpty').classList.remove('hidden');
         $('#pdfClose').classList.add('hidden');
         $('#pdfNewTab').classList.add('hidden');
