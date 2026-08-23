@@ -18,6 +18,7 @@ import './specs/crossref-doi.mjs';
 import './specs/importar-bibtex-ris.mjs';
 import './specs/exportar-bibtex-ris.mjs';
 import './specs/gdrive.mjs';
+import './specs/publicar.mjs';
 
 console.log('Rodando suíte de testes de regressão (Playwright)...\n');
 await runAll();
