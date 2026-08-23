@@ -21,7 +21,11 @@ async function habilitarRsc(page) {
 
 test('Módulo RSC desabilitado mostra aviso em vez do simulador', async ({ page, baseUrl }) => {
     await seedCatalog(page, baseUrl, []);
-    await page.click('[data-tab="rsc"]');
+    // A aba RSC fica com a classe "hidden" (Tailwind) quando o módulo está
+    // desabilitado — um usuário real não consegue clicar nela nesse estado.
+    // Troca de aba direto via AppCore.switchTab (o mesmo switchTab usado pelo
+    // clique normal) pra testar o render() do módulo, não a visibilidade do botão.
+    await page.evaluate(() => window.AppCore.switchTab('rsc'));
     await page.waitForTimeout(200);
     const texto = await page.$eval('#tab-rsc', (el) => el.textContent);
     assert(texto.includes('Módulo RSC desabilitado'), 'Sem o módulo habilitado, deveria mostrar o aviso, não o simulador');
