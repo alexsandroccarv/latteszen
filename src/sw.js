@@ -14,7 +14,7 @@
    Aumente CACHE_VERSION sempre que a lista PRECACHE_URLS mudar (arquivo novo
    ou removido) — isso descarta os caches antigos na próxima ativação.
    ========================================================================== */
-const CACHE_VERSION = 'v9';
+const CACHE_VERSION = 'v10';
 const PRECACHE = `lattesZen-precache-${CACHE_VERSION}`;
 const RUNTIME = `lattesZen-runtime-${CACHE_VERSION}`;
 
@@ -23,6 +23,7 @@ const PRECACHE_URLS = [
     './doe-um-cafe.html',
     './ajuda-lattes.html',
     './ajuda-rsc.html',
+    './relacionando-lattes-rsc.html',
     './privacidade.html',
     './termodeuso.html',
     './manifest.json',

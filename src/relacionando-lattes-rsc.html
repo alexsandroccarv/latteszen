@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>lattesZen — Relacionando Lattes e RSC</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1351B4">
+
+    <!-- Mesmos estilos da aplicação -->
+    <link rel="stylesheet" href="css/styles.css">
+
+    <!-- Tema claro/escuro e alto contraste: aplicar cedo para evitar "flash" -->
+    <script>
+        (function () {
+            const htmlEl = document.documentElement;
+            const saved = localStorage.getItem('tema');
+            const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+            if (saved ? saved === 'dark' : prefersDark) htmlEl.classList.add('dark');
+            if (localStorage.getItem('altoContraste') === '1') htmlEl.classList.add('high-contrast');
+            const fs = parseInt(localStorage.getItem('fontScale') || '100', 10);
+            if (fs && fs !== 100) htmlEl.style.fontSize = fs + '%';
+        })();
+    </script>
+
+    <!-- Recursos externos (Tailwind + config, Font Awesome, Rawline) — mesmo do app -->
+    <script>
+        (function () {
+            var TW_CONFIG = {
+                darkMode: 'class',
+                theme: {
+                    extend: {
+                        fontFamily: { sans: ['Rawline', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif'] },
+                        colors: {
+                            unifesp: { 50: '#f0fdf4', 100: '#dcfce7', 400: '#4ade80', 600: '#16a34a', 700: '#15803d', 800: '#166534', 900: '#1E5A3A' },
+                            govbr:   { 50: '#D4E5FF', 100: '#ADCDFF', 400: '#1351B4', 600: '#1351B4', 700: '#0C326F', 800: '#071D41', 900: '#050F24' },
+                        }
+                    }
+                }
+            };
+            var tw = document.createElement('script');
+            tw.src = 'https://cdn.tailwindcss.com';
+            tw.async = true;
+            tw.onload = function () { try { window.tailwind.config = TW_CONFIG; } catch (e) {} };
+            tw.onerror = function () { document.documentElement.classList.add('no-tailwind'); };
+            document.head.appendChild(tw);
+            function loadCss(href) { var l = document.createElement('link'); l.rel = 'stylesheet'; l.href = href; l.media = 'all'; document.head.appendChild(l); }
+            loadCss('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css');
+            loadCss('https://cdngovbr-ds.estaleiro.serpro.gov.br/design-system/fonts/rawline/css/rawline.css');
+        })();
+    </script>
+
+    <!-- Estilo do conteúdo desta página (escopo .help-doc; dark por classe, como o app) -->
+    <style>
+      :root{
+        --hdoc-surface:#f9fafb; --hdoc-text:#1f2937; --hdoc-muted:#6b7280; --hdoc-line:#e5e7eb;
+        --hdoc-accent:#1351b4; --hdoc-code:#eef2f7; --hdoc-chip:#eef2ff; --hdoc-chipink:#1e3a8a;
+        --hdoc-note-bg:#eff6ff; --hdoc-note-line:#1351b4; --hdoc-warn-bg:#fff7ed; --hdoc-warn-line:#c2410c;
+        --hdoc-ok-bg:#ecfdf5; --hdoc-ok-line:#047857;
+      }
+      html.dark{
+        --hdoc-surface:#1f2937; --hdoc-text:#e5e7eb; --hdoc-muted:#9ca3af; --hdoc-line:#374151;
+        --hdoc-accent:#93c5fd; --hdoc-code:#0f172a; --hdoc-chip:#1e293b; --hdoc-chipink:#bfdbfe;
+        --hdoc-note-bg:#0f2033; --hdoc-note-line:#3b82f6; --hdoc-warn-bg:#2a1a0f; --hdoc-warn-line:#f59e0b;
+        --hdoc-ok-bg:#0e2a1e; --hdoc-ok-line:#34d399;
+      }
+      .help-doc{color:var(--hdoc-text);line-height:1.6;max-width:1000px;margin:0 auto;padding:8px 4px 40px}
+      .help-doc h1{font-size:1.7rem;margin:.2em 0 .1em}
+      .help-doc .lead{color:var(--hdoc-muted);margin:0 0 1.5em}
+      .help-doc a{color:var(--hdoc-accent);text-decoration:none}
+      .help-doc a:hover{text-decoration:underline}
+      .help-doc nav.toc{background:var(--hdoc-surface);border:1px solid var(--hdoc-line);border-radius:10px;padding:14px 18px;margin-bottom:28px}
+      .help-doc nav.toc h2{font-size:.8rem;text-transform:uppercase;letter-spacing:.05em;color:var(--hdoc-muted);margin:0 0 8px}
+      .help-doc nav.toc ol{margin:0;padding-left:1.2em;columns:2;column-gap:28px}
+      .help-doc nav.toc li{margin:3px 0;break-inside:avoid}
+      .help-doc section.card{background:var(--hdoc-surface);border:1px solid var(--hdoc-line);border-radius:10px;padding:20px 22px;margin-bottom:22px}
+      .help-doc section.card h2{margin-top:0;font-size:1.15rem;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+      .help-doc h3{font-size:1.02rem;margin:1.2em 0 .3em}
+      .help-doc code{background:var(--hdoc-code);padding:.1em .4em;border-radius:4px;font-size:.88em;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+      .help-doc ul,.help-doc ol{padding-left:1.4em}
+      .help-doc li{margin:.25em 0}
+      .help-doc .note,.help-doc .warn,.help-doc .ok{border-left:4px solid;border-radius:6px;padding:12px 16px;margin:14px 0;font-size:.95rem}
+      .help-doc .note{background:var(--hdoc-note-bg);border-color:var(--hdoc-note-line)}
+      .help-doc .warn{background:var(--hdoc-warn-bg);border-color:var(--hdoc-warn-line)}
+      .help-doc .ok{background:var(--hdoc-ok-bg);border-color:var(--hdoc-ok-line)}
+      .help-doc .tag{display:inline-block;background:var(--hdoc-chip);color:var(--hdoc-chipink);border-radius:20px;padding:1px 10px;font-size:.78rem;font-weight:600;margin:4px 2px 0}
+      .help-doc table{width:100%;border-collapse:collapse;margin:4px 0;font-size:.85rem}
+      .help-doc th,.help-doc td{text-align:left;padding:7px 9px;border-bottom:1px solid var(--hdoc-line);vertical-align:top}
+      .help-doc th{color:var(--hdoc-muted);font-size:.75rem;text-transform:uppercase;letter-spacing:.03em;white-space:nowrap}
+      .help-doc td.corresp{color:var(--hdoc-muted);font-size:.9em}
+      .help-doc .pill{display:inline-block;background:#0C326F;color:#fff;border-radius:6px;padding:2px 8px;font-size:.78rem;font-weight:600}
+      html.dark .help-doc .pill{background:#1351B4}
+    </style>
+</head>
+<body class="font-sans bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-100 min-h-screen flex flex-col transition-colors duration-300">
+
+    <!-- ============================ CABEÇALHO (igual ao app) ============================ -->
+    <header class="bg-govbr-600 dark:bg-gray-900 border-b border-govbr-700 dark:border-gray-700 flex flex-col shadow-sm dark:shadow-lg z-20 shrink-0 transition-colors duration-300">
+        <div class="flex items-center justify-between px-4 py-3 bg-govbr-600 dark:bg-gray-900 transition-colors duration-300">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded bg-white dark:bg-gradient-to-br dark:from-unifesp-600 dark:to-unifesp-900 flex items-center justify-center text-govbr-600 dark:text-white font-bold transition-colors duration-300">
+                    <svg viewBox="0 0 200 200" class="w-5 h-5" aria-hidden="true"><circle cx="100" cy="100" r="78" fill="none" stroke="currentColor" stroke-width="20" stroke-linecap="round" stroke-dasharray="440 46" transform="rotate(-100 100 100)"/></svg>
+                </div>
+                <div class="flex items-center gap-2 overflow-hidden">
+                    <h1 class="font-bold text-white leading-none whitespace-nowrap">lattesZen</h1>
+                    <span id="headerNomeWrap" class="flex items-center gap-2 overflow-hidden hidden">
+                        <span class="text-xl text-white/30 dark:text-gray-700 font-light">|</span>
+                        <span id="headerNome" class="font-bold text-white/90 dark:text-unifesp-400 leading-none whitespace-nowrap truncate"></span>
+                    </span>
+                </div>
+            </div>
+            <div id="govBrLogo" class="bg-white rounded px-2 py-1.5 flex items-center shrink-0 dark:hidden">
+                <img src="images/geral/gov_br.svg" alt="Governo Federal" class="h-5 w-auto" onerror="this.parentElement.style.display='none'">
+            </div>
+        </div>
+
+        <!-- Abas de navegação (links de volta ao app) -->
+        <nav class="bg-white dark:bg-gray-800 border-t border-govbr-700/20 dark:border-gray-700 px-2" aria-label="Seções">
+            <div class="max-w-5xl mx-auto flex gap-1 overflow-x-auto">
+                <a href="index.html" class="tab-btn px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-gray-600 dark:text-gray-300 hover:text-govbr-600 dark:hover:text-unifesp-400 whitespace-nowrap">
+                    <i aria-hidden="true" class="fa-solid fa-file-circle-plus mr-1"></i> Catalogar
+                </a>
+                <a href="index.html" class="tab-btn px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-gray-600 dark:text-gray-300 hover:text-govbr-600 dark:hover:text-unifesp-400 whitespace-nowrap">
+                    <i aria-hidden="true" class="fa-solid fa-clipboard-check mr-1"></i> Conformidade
+                </a>
+                <a href="index.html" class="tab-btn px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-gray-600 dark:text-gray-300 hover:text-govbr-600 dark:hover:text-unifesp-400 whitespace-nowrap">
+                    <i aria-hidden="true" class="fa-solid fa-globe mr-1"></i> Publicar na Web
+                </a>
+                <a href="index.html" class="tab-btn px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-gray-600 dark:text-gray-300 hover:text-govbr-600 dark:hover:text-unifesp-400 whitespace-nowrap">
+                    <i aria-hidden="true" class="fa-solid fa-gear mr-1"></i> Configurações
+                </a>
+                <span class="tab-btn px-4 py-2.5 text-sm font-medium border-b-2 border-govbr-600 dark:border-unifesp-400 text-govbr-700 dark:text-unifesp-400 font-bold whitespace-nowrap" aria-current="page">
+                    <i aria-hidden="true" class="fa-solid fa-circle-question mr-1"></i> Ajuda
+                </span>
+            </div>
+        </nav>
+    </header>
+
+    <!-- ============================ CONTEÚDO ============================ -->
+    <main class="flex-1 w-full max-w-6xl mx-auto px-4 py-6">
+      <div class="help-doc">
+        <p style="margin:0 0 10px"><a href="ajuda-rsc.html">← Ajuda do RSC-PCCTAE</a></p>
+        <h1>Relacionando Lattes e RSC</h1>
+        <p class="lead">Tabela de referência cruzando cada um dos <strong>55 critérios específicos</strong> dos seis Anexos do Decreto do RSC-PCCTAE com o elemento/atributo correspondente no <strong>schema oficial do Currículo Lattes (CurriculoLattes.xsd)</strong> — útil para entender por que alguns critérios não têm um lugar "natural" no Lattes, e o que o lattesZen já cobre com uma categoria própria.</p>
+
+        <div class="note">
+          <strong>Como ler esta tabela:</strong> a coluna <em>Correspondência no Currículo Lattes</em> descreve o elemento/atributo do XSD mais próximo do critério — em vários casos é uma aproximação (texto livre), não uma correspondência exata. Quando o lattesZen já resolveu a lacuna com uma categoria própria (fora do Lattes, só para o RSC), aparece uma etiqueta <span class="tag">lattesZen: …</span> junto do critério.
+        </div>
+
+        <nav class="toc">
+          <h2>Nesta página</h2>
+          <ol>
+            <li><a href="#reqi">Requisito I</a></li>
+            <li><a href="#reqii">Requisito II</a></li>
+            <li><a href="#reqiii">Requisito III</a></li>
+            <li><a href="#reqiv">Requisito IV</a></li>
+            <li><a href="#reqv">Requisito V</a></li>
+            <li><a href="#reqvi">Requisito VI</a></li>
+          </ol>
+        </nav>
+
+        <section class="card" id="reqi">
+          <h2><span class="pill">Requisito I</span> Grupos, comissões, comitês e representações institucionais</h2>
+          <div style="overflow-x:auto"><table>
+            <thead><tr><th style="width:2.5em">Item</th><th>Critério específico</th><th style="width:11em">Unidade</th><th style="width:5em">Pontos</th><th>Correspondência no Currículo Lattes (XSD)</th></tr></thead>
+            <tbody>
+              <tr>
+                <td>I.1</td>
+                <td>Exercício do mandato como membro de conselhos superiores e conselhos de unidades e órgãos colegiados da Instituição Federal de Ensino</td>
+                <td>Por ano ou fração acima de seis meses</td>
+                <td>3</td>
+                <td class="corresp">ATUACAO-PROFISSIONAL &gt; ATIVIDADES-DE-DIRECAO-E-ADMINISTRACAO &gt; DIRECAO-E-ADMINISTRACAO, com FORMATO-CARGO-OU-FUNCAO = "MEMBRO_DE_COLEGIADO_SUPERIOR" (conselhos superiores) ou "MEMBRO_DE_CONSELHO_DE_UNIDADE"/"MEMBRO_DE_CONSELHO_DE_CENTRO" (conselhos de unidade). Correspondência exata: são valores de enumeração dedicados no XSD.</td>
+              </tr>
+              <tr>
+                <td>I.2</td>
+                <td>Coordenação ou presidência de núcleos, representações, grupos de trabalho ou similares, comissões ou comitês previstos no âmbito da administração pública, regularmente instituídos, ou reconhecidos pelo órgão ou pela entidade</td>
+                <td>Por designação</td>
+                <td>4,5</td>
+                <td class="corresp">ATUACAO-PROFISSIONAL &gt; DIRECAO-E-ADMINISTRACAO. Não há valor de enumeração específico para "presidente/coordenador de comissão"; usar FORMATO-CARGO-OU-FUNCAO="OUTRO" ou "LIVRE", com CARGO-OU-FUNCAO (texto livre) especificando o cargo.</td>
+              </tr>
+              <tr>
+                <td>I.3</td>
+                <td>Participação como membro de núcleos, representações, grupos de trabalho ou similares, comissões ou comitês previstos no âmbito da administração pública, regularmente instituídos</td>
+                <td>Por designação</td>
+                <td>3</td>
+                <td class="corresp">ATUACAO-PROFISSIONAL &gt; DIRECAO-E-ADMINISTRACAO, com FORMATO-CARGO-OU-FUNCAO = "MEMBRO_DE_COMISSAO_PERMANENTE" ou "MEMBRO_DE_COMISSAO_TEMPORARIA" (conforme a natureza do núcleo/GT/comissão), detalhado em CARGO-OU-FUNCAO. Correspondência forte.</td>
+              </tr>
+              <tr>
+                <td>I.4</td>
+                <td>Participação como defensor dativo ou como membro de equipe designada em processos de apuração de materialidade e responsabilidade, como sindicância, processo administrativo disciplinar e tomada de contas especial</td>
+                <td>Por designação</td>
+                <td>3</td>
+                <td class="corresp">ATUACAO-PROFISSIONAL &gt; DIRECAO-E-ADMINISTRACAO, com FORMATO-CARGO-OU-FUNCAO = "MEMBRO_DE_COMISSAO_TEMPORARIA" (comissões de sindicância/PAD/TCE são tipicamente temporárias). </td>
+              </tr>
+              <tr>
+                <td>I.5</td>
+                <td>Atuação em atividades de organização, fiscalização, execução de exame de seleção, vestibular ou concursos</td>
+                <td>Por designação</td>
+                <td>4,5</td>
+                <td class="corresp">DADOS-COMPLEMENTARES &gt; PARTICIPACAO-EM-BANCA-JULGADORA &gt; BANCA-JULGADORA-PARA-CONCURSO-PUBLICO (para concursos). Para vestibulares, não há TIPO dedicado: usar OUTRAS-BANCAS-JULGADORAS (@TIPO, texto livre = "Vestibular"). </td>
+              </tr>
+              <tr>
+                <td>I.6</td>
+                <td>Atuação em atividades de elaboração, revisão e/ou correção de provas de exame de seleção, vestibular ou concursos</td>
+                <td>Por designação</td>
+                <td>3</td>
+                <td class="corresp">ATUACAO-PROFISSIONAL &gt; OUTRAS-ATIVIDADES-TECNICO-CIENTIFICA &gt; OUTRA-ATIVIDADE-TECNICO-CIENTIFICA (@ATIVIDADE-REALIZADA) ou ATIVIDADES-DE-SERVICO-TECNICO-ESPECIALIZADO &gt; SERVICO-TECNICO-ESPECIALIZADO (@SERVICO-REALIZADO), ambos texto livre.</td>
+              </tr>
+              <tr>
+                <td>I.7</td>
+                <td>Exercício de mandato em entidade sindical da categoria</td>
+                <td>Por ano ou fração acima de seis meses</td>
+                <td>1,5</td>
+                <td class="corresp">A entidade sindical deve ser cadastrada como um novo vínculo institucional (nova ATUACAO-PROFISSIONAL), poderia usar DIRECAO-E-ADMINISTRACAO (FORMATO-CARGO-OU-FUNCAO="OUTRO"/"LIVRE") dentro desse vínculo.</td>
+              </tr>
+              <tr>
+                <td>I.8</td>
+                <td>Participação como membro em programas ou projetos de políticas públicas externas à Instituição Federal de Ensino, desde que comprovada a obtenção de resultados institucionais relevantes</td>
+                <td>Por designação</td>
+                <td>3</td>
+                <td class="corresp">ATUACAO-PROFISSIONAL &gt; ATIVIDADES-DE-PARTICIPACAO-EM-PROJETO &gt; PARTICIPACAO-EM-PROJETO &gt; PROJETO-DE-PESQUISA (@NATUREZA="EXTENSAO" ou "OUTRA"), como integrante em EQUIPE-DO-PROJETO/INTEGRANTES-DO-PROJETO. Alternativa: ATIVIDADES-DE-EXTENSAO-UNIVERSITARIA &gt; EXTENSAO-UNIVERSITARIA (@ATIVIDADE-DE-EXTENSAO-REALIZADA).</td>
+              </tr>
+              <tr>
+                <td>I.9</td>
+                <td>Representação legal da Instituição Federal de Ensino junto a órgãos e entidades do Poder Público ou responsabilidade técnica junto a órgãos de fiscalização, controle e regulação</td>
+                <td>Por designação</td>
+                <td>7,5</td>
+                <td class="corresp">OUTRAS-ATIVIDADES-TECNICO-CIENTIFICA &gt; OUTRA-ATIVIDADE-TECNICO-CIENTIFICA ou ATIVIDADES-DE-SERVICO-TECNICO-ESPECIALIZADO &gt; SERVICO-TECNICO-ESPECIALIZADO (ambos texto livre, descrevendo a representação/responsabilidade técnica).</td>
+              </tr>
+              <tr>
+                <td>I.10</td>
+                <td>Atuação técnica externa, formalmente autorizada ou reconhecida pela Instituição Federal de Ensino de lotação, em órgãos estatais ou paraestatais, escolas de governo, agências reguladoras ou organismos internacionais, com contribuição ou repercussão institucional</td>
+                <td>Por produto</td>
+                <td>4,5</td>
+                <td class="corresp">ATUACAO-PROFISSIONAL &gt; ATIVIDADES-DE-SERVICO-TECNICO-ESPECIALIZADO &gt; SERVICO-TECNICO-ESPECIALIZADO (@SERVICO-REALIZADO, texto livre), dentro de um vínculo (nova ATUACAO-PROFISSIONAL) com o órgão externo, se cadastrado separadamente. </td>
+              </tr>
+            </tbody>
+          </table></div>
+        </section>
+
+        <section class="card" id="reqii">
+          <h2><span class="pill">Requisito II</span> Projetos institucionais e apoio a ensino, pesquisa e extensão</h2>
+          <div style="overflow-x:auto"><table>
+            <thead><tr><th style="width:2.5em">Item</th><th>Critério específico</th><th style="width:11em">Unidade</th><th style="width:5em">Pontos</th><th>Correspondência no Currículo Lattes (XSD)</th></tr></thead>
+            <tbody>
+              <tr>
+                <td>II.1</td>
+                <td>Coordenação de projetos institucionais (ensino, pesquisa, extensão, gestão e inovação)</td>
+                <td>Por projeto</td>
+                <td>7,5</td>
+                <td class="corresp">ATIVIDADES-DE-PARTICIPACAO-EM-PROJETO &gt; PARTICIPACAO-EM-PROJETO &gt; PROJETO-DE-PESQUISA, com @NATUREZA = "PESQUISA"|"EXTENSAO"|"ENSINO"|"DESENVOLVIMENTO"|"OUTRA" (conforme o tipo do projeto), e EQUIPE-DO-PROJETO &gt; INTEGRANTES-DO-PROJETO com @FLAG-RESPONSAVEL="SIM" identificando o coordenador. Correspondência forte e estruturada.</td>
+              </tr>
+              <tr>
+                <td>II.2</td>
+                <td>Participação em atividades técnicas e/ou especializadas em projetos, incluída a elaboração de projetos pedagógicos, programas e/ou ações institucionais (ensino, pesquisa, extensão, gestão e inovação)</td>
+                <td>Por projeto</td>
+                <td>4,5</td>
+                <td class="corresp">Mesmo elemento PROJETO-DE-PESQUISA, como integrante (@FLAG-RESPONSAVEL="NAO"). Para "projetos pedagógicos" especificamente, também PRODUCAO-TECNICA &gt; DEMAIS-TIPOS-DE-PRODUCAO-TECNICA &gt; DESENVOLVIMENTO-DE-MATERIAL-DIDATICO-OU-INSTRUCIONAL.</td>
+              </tr>
+              <tr>
+                <td>II.3</td>
+                <td>Participação em comissão ou conselho editorial de livros, revistas ou publicações científicas ou outras publicações acadêmicas</td>
+                <td>Por mandato</td>
+                <td>7,5</td>
+                <td class="corresp">ATIVIDADES-DE-CONSELHO-COMISSAO-E-CONSULTORIA &gt; CONSELHO-COMISSAO-E-CONSULTORIA (@ESPECIFICACAO = texto livre, ex. "Membro do conselho editorial da revista X") para o mandato contínuo; ou PRODUCAO-TECNICA &gt; DEMAIS-TIPOS-DE-PRODUCAO-TECNICA &gt; EDITORACAO, se vinculado à edição de uma obra específica.</td>
+              </tr>
+              <tr>
+                <td>II.4</td>
+                <td>Participação em atividade de Cooperação Técnica Interinstitucional em projetos institucionais</td>
+                <td>Por projeto</td>
+                <td>3</td>
+                <td class="corresp">ATIVIDADES-DE-PARTICIPACAO-EM-PROJETO &gt; PROJETO-DE-PESQUISA (@NATUREZA="EXTENSAO" ou "OUTRA"); ou ATIVIDADES-DE-EXTENSAO-UNIVERSITARIA &gt; EXTENSAO-UNIVERSITARIA (@ATIVIDADE-DE-EXTENSAO-REALIZADA).</td>
+              </tr>
+              <tr>
+                <td>II.5</td>
+                <td>Participação em atividades de orientação, tutoria, preceptoria ou supervisão</td>
+                <td>Por designação</td>
+                <td>3</td>
+                <td class="corresp">DADOS-COMPLEMENTARES &gt; ORIENTACOES-EM-ANDAMENTO (subtipos DE-GRADUACAO, DE-INICIACAO-CIENTIFICA, DE-MESTRADO, DE-DOUTORADO, DE-POS-DOUTORADO, DE-APERFEICOAMENTO-ESPECIALIZACAO, OUTRAS) e OUTRA-PRODUCAO &gt; ORIENTACOES-CONCLUIDAS (mesmos níveis, já concluídas). Correspondência forte.</td>
+              </tr>
+              <tr>
+                <td>II.6</td>
+                <td>Participação em atividades de produção ou reformulação de material acessível, ou técnico de referência (manuais, roteiros técnicos)</td>
+                <td>Por produto</td>
+                <td>3</td>
+                <td class="corresp">PRODUCAO-TECNICA &gt; DEMAIS-TIPOS-DE-PRODUCAO-TECNICA &gt; DESENVOLVIMENTO-DE-MATERIAL-DIDATICO-OU-INSTRUCIONAL. Correspondência forte.</td>
+              </tr>
+              <tr>
+                <td>II.7</td>
+                <td>Participação em atividade de avaliação de trabalho ou atuação como jurado em eventos acadêmicos, científicos, culturais, esportivos e técnicos</td>
+                <td>Por evento</td>
+                <td>3</td>
+                <td class="corresp">DADOS-COMPLEMENTARES &gt; PARTICIPACAO-EM-BANCA-JULGADORA &gt; OUTRAS-BANCAS-JULGADORAS (@TIPO, texto livre = "Jurado/Avaliador de evento"), ou OUTRA-ATIVIDADE-TECNICO-CIENTIFICA.</td>
+              </tr>
+              <tr>
+                <td>II.8</td>
+                <td>Participação em atividade institucional de produção audiovisual, artística, exposição, podcast ou outras formas de apresentação</td>
+                <td>Por projeto</td>
+                <td>3</td>
+                <td class="corresp">OUTRA-PRODUCAO &gt; PRODUCAO-ARTISTICA-CULTURAL (APRESENTACAO-DE-OBRA-ARTISTICA, APRESENTACAO-EM-RADIO-OU-TV, OUTRA-PRODUCAO-ARTISTICA-CULTURAL etc.); ou PRODUCAO-TECNICA &gt; DEMAIS-TIPOS-DE-PRODUCAO-TECNICA &gt; PROGRAMA-DE-RADIO-OU-TV / MIDIA-SOCIAL-WEBSITE-BLOG (esta última útil para podcast, que não tem elemento próprio).</td>
+              </tr>
+              <tr>
+                <td>II.9</td>
+                <td>Participação em programas de formação continuada e/ou ações de desenvolvimento de competências, desde que não utilizada para fins de aceleração da promoção na carreira (carga horária mínima de dez horas)</td>
+                <td>Por capacitação</td>
+                <td>1</td>
+                <td class="corresp">DADOS-COMPLEMENTARES &gt; FORMACAO-COMPLEMENTAR &gt; FORMACAO-COMPLEMENTAR-CURSO-DE-CURTA-DURACAO, que possui o atributo @CARGA-HORARIA — permite checagem automática do mínimo de 10h exigido. Correspondência forte e estruturada.</td>
+              </tr>
+              <tr>
+                <td>II.10</td>
+                <td>Desempenho de atividade técnica especializada, formalmente reconhecida pela Instituição Federal de Ensino, com demonstração de domínio técnico diferenciado e contribuição institucional relevante na área de atuação</td>
+                <td>Por ano ou fração acima de seis meses</td>
+                <td>1</td>
+                <td class="corresp">ATIVIDADES-DE-SERVICO-TECNICO-ESPECIALIZADO &gt; SERVICO-TECNICO-ESPECIALIZADO (@SERVICO-REALIZADO, texto livre).</td>
+              </tr>
+              <tr>
+                <td>II.11</td>
+                <td>Participação em capacitação, fórum, oficina, workshop e congresso, com carga horária mínima de dez horas, vinculada aos interesses da Instituição Federal de Ensino<br><span class="tag">lattesZen: Campo de carga horária disponível em Formação complementar</span></td>
+                <td>Por evento</td>
+                <td>1</td>
+                <td class="corresp">FORMACAO-COMPLEMENTAR-CURSO-DE-CURTA-DURACAO (@CARGA-HORARIA), se registrado como curso; ou DADOS-COMPLEMENTARES &gt; PARTICIPACAO-EM-EVENTOS-CONGRESSOS &gt; PARTICIPACAO-EM-CONGRESSO / PARTICIPACAO-EM-OFICINA (se participação em evento — mas sem atributo de carga horária nestes últimos).</td>
+              </tr>
+            </tbody>
+          </table></div>
+        </section>
+
+        <section class="card" id="reqiii">
+          <h2><span class="pill">Requisito III</span> Premiação e reconhecimento público</h2>
+          <div style="overflow-x:auto"><table>
+            <thead><tr><th style="width:2.5em">Item</th><th>Critério específico</th><th style="width:11em">Unidade</th><th style="width:5em">Pontos</th><th>Correspondência no Currículo Lattes (XSD)</th></tr></thead>
+            <tbody>
+              <tr>
+                <td>III.1</td>
+                <td>Recebimento de premiação de âmbito internacional por projeto implementado na administração pública</td>
+                <td>Por prêmio</td>
+                <td>20</td>
+                <td class="corresp">DADOS-GERAIS &gt; PREMIOS-TITULOS &gt; PREMIO-TITULO (@NOME-DO-PREMIO-OU-TITULO, @NOME-DA-ENTIDADE-PROMOTORA, @ANO-DA-PREMIACAO). Correspondência forte; o âmbito (internacional) não é atributo próprio — precisaria ser inferido do nome da entidade/prêmio.</td>
+              </tr>
+              <tr>
+                <td>III.2</td>
+                <td>Recebimento de premiação de âmbito nacional por projeto implementado na administração pública</td>
+                <td>Por prêmio</td>
+                <td>15</td>
+                <td class="corresp">DADOS-GERAIS &gt; PREMIOS-TITULOS &gt; PREMIO-TITULO. Correspondência forte; o âmbito (nacional) não é atributo próprio — inferir do nome da entidade/prêmio.</td>
+              </tr>
+              <tr>
+                <td>III.3</td>
+                <td>Recebimento de premiação de âmbito local ou institucional, formalmente instituído, por projeto implementado na administração pública</td>
+                <td>Por prêmio</td>
+                <td>7,5</td>
+                <td class="corresp">DADOS-GERAIS &gt; PREMIOS-TITULOS &gt; PREMIO-TITULO. Correspondência forte; o âmbito (local/institucional) não é atributo próprio — inferir do nome da entidade/prêmio.</td>
+              </tr>
+            </tbody>
+          </table></div>
+        </section>
+
+        <section class="card" id="reqiv">
+          <h2><span class="pill">Requisito IV</span> Responsabilidades técnico-administrativas ou especializadas</h2>
+          <div style="overflow-x:auto"><table>
+            <thead><tr><th style="width:2.5em">Item</th><th>Critério específico</th><th style="width:11em">Unidade</th><th style="width:5em">Pontos</th><th>Correspondência no Currículo Lattes (XSD)</th></tr></thead>
+            <tbody>
+              <tr>
+                <td>IV.1</td>
+                <td>Atuação tecnicamente qualificada na operação, na implantação, no suporte ou no apoio a desenvolvimento, parametrização ou aperfeiçoamento de sistemas estruturantes da administração pública</td>
+                <td>Por sistema</td>
+                <td>4,5</td>
+                <td class="corresp">PRODUCAO-TECNICA &gt; SOFTWARE ou PROCESSOS-OU-TECNICAS (se resultar em produto/processo formalizado); ou ATIVIDADES-DE-SERVICO-TECNICO-ESPECIALIZADO &gt; SERVICO-TECNICO-ESPECIALIZADO (para a atuação em si, sem produto formal registrado).</td>
+              </tr>
+              <tr>
+                <td>IV.2</td>
+                <td>Elaboração de projeto básico ou de termo de referência, ou participação como membro de equipe de planejamento de contratação</td>
+                <td>Por designação</td>
+                <td>3</td>
+                <td class="corresp">ATIVIDADES-DE-CONSELHO-COMISSAO-E-CONSULTORIA &gt; CONSELHO-COMISSAO-E-CONSULTORIA (equipe de planejamento = comissão), ou DIRECAO-E-ADMINISTRACAO com FORMATO-CARGO-OU-FUNCAO="MEMBRO_DE_COMISSAO_TEMPORARIA".</td>
+              </tr>
+              <tr>
+                <td>IV.3</td>
+                <td>Exercício de atividades de gestão ou fiscalização de contratos de aquisição, serviços, convênios e acordos ou instrumentos correlatos</td>
+                <td>Por designação</td>
+                <td>4,5</td>
+                <td class="corresp">ATIVIDADES-DE-SERVICO-TECNICO-ESPECIALIZADO &gt; SERVICO-TECNICO-ESPECIALIZADO (@SERVICO-REALIZADO, texto livre).</td>
+              </tr>
+              <tr>
+                <td>IV.4</td>
+                <td>Exercício de atividades relacionadas à licitação e às suas excepcionalidades</td>
+                <td>Por ano ou fração acima de seis meses</td>
+                <td>3</td>
+                <td class="corresp">ATIVIDADES-DE-SERVICO-TECNICO-ESPECIALIZADO &gt; SERVICO-TECNICO-ESPECIALIZADO, ou OUTRAS-ATIVIDADES-TECNICO-CIENTIFICA &gt; OUTRA-ATIVIDADE-TECNICO-CIENTIFICA (ambos texto livre).</td>
+              </tr>
+              <tr>
+                <td>IV.5</td>
+                <td>Participação em atividades de apoio técnico especializado em políticas, programas e ações de promoção na área de saúde humana, animal e ambiente, de acessibilidade ou diversidade, de interesse institucional<br><span class="tag">lattesZen: Correspondência conceitual, sem campo estruturado dedicado</span></td>
+                <td>Por ano ou fração acima de seis meses</td>
+                <td>3</td>
+                <td class="corresp">ATIVIDADES-DE-SERVICO-TECNICO-ESPECIALIZADO &gt; SERVICO-TECNICO-ESPECIALIZADO (@SERVICO-REALIZADO). Correspondência conceitual boa, embora não estruturada por área (saúde/acessibilidade/diversidade).</td>
+              </tr>
+              <tr>
+                <td>IV.6</td>
+                <td>Atuação tecnicamente qualificada em ambientes ou processos que demandem condições especiais de segurança, cuidado ou conformidade com requisitos legais e regulatórios, desde que não receba adicional de periculosidade ou insalubridade em razão das mesmas condições</td>
+                <td>Por ano ou fração acima de seis meses</td>
+                <td>3</td>
+                <td class="corresp">ATIVIDADES-DE-SERVICO-TECNICO-ESPECIALIZADO &gt; SERVICO-TECNICO-ESPECIALIZADO, ou OUTRA-ATIVIDADE-TECNICO-CIENTIFICA (texto livre).</td>
+              </tr>
+              <tr>
+                <td>IV.7</td>
+                <td>Atuação em sistemas e/ou processos de trabalho institucionais em ensino, pesquisa, extensão, gestão e inovação, desde que não constitua atividade habitual do cargo</td>
+                <td>Por designação</td>
+                <td>3</td>
+                <td class="corresp">OUTRAS-ATIVIDADES-TECNICO-CIENTIFICA &gt; OUTRA-ATIVIDADE-TECNICO-CIENTIFICA (@ATIVIDADE-REALIZADA) — campo genérico ("catch-all"); critério amplo que pode se sobrepor a outros itens já mapeados (ex.: PROJETO-DE-PESQUISA, DIRECAO-E-ADMINISTRACAO).</td>
+              </tr>
+              <tr>
+                <td>IV.8</td>
+                <td>Atuação como responsável por setor ou por unidade, formalmente designado, desde que a designação não gere pagamento de remuneração</td>
+                <td>Por ano ou fração acima de seis meses</td>
+                <td>4,5</td>
+                <td class="corresp">ATUACAO-PROFISSIONAL &gt; DIRECAO-E-ADMINISTRACAO, com FORMATO-CARGO-OU-FUNCAO = "CHEFE_DE_DEPARTMENTO" / "COORDENADOR_DE_CURSO" / "COORDENADOR_DE_PROGRAMA" / "DIRETOR_DE_UNIDADE" / "OUTRO" (conforme o caso). Correspondência forte.</td>
+              </tr>
+            </tbody>
+          </table></div>
+        </section>
+
+        <section class="card" id="reqv">
+          <h2><span class="pill">Requisito V</span> Função ou cargo de direção/assessoramento</h2>
+          <div style="overflow-x:auto"><table>
+            <thead><tr><th style="width:2.5em">Item</th><th>Critério específico</th><th style="width:11em">Unidade</th><th style="width:5em">Pontos</th><th>Correspondência no Currículo Lattes (XSD)</th></tr></thead>
+            <tbody>
+              <tr>
+                <td>V.1</td>
+                <td>Exercício de cargo de direção (CD-02) ou equivalente</td>
+                <td>Por ano ou fração acima de seis meses</td>
+                <td>9 como titular e 4,5 como substituto</td>
+                <td class="corresp">ATUACAO-PROFISSIONAL &gt; DIRECAO-E-ADMINISTRACAO, FORMATO-CARGO-OU-FUNCAO = "DIRETOR_DE_UNIDADE" ou "DECANO_DE_CENTRO" (conforme o nível), com CARGO-OU-FUNCAO (texto livre) registrando "CD-02" e o período. Não há atributo específico para titular x substituto — precisaria constar no texto livre.</td>
+              </tr>
+              <tr>
+                <td>V.2</td>
+                <td>Exercício de cargo de direção (CD-03 e 04) ou equivalente</td>
+                <td>Por ano ou fração acima de seis meses</td>
+                <td>7,5 como titular e 3 como substituto</td>
+                <td class="corresp">DIRECAO-E-ADMINISTRACAO, FORMATO-CARGO-OU-FUNCAO = "CHEFE_DE_DEPARTMENTO" / "COORDENADOR_DE_CURSO" / "OUTRO", com CARGO-OU-FUNCAO especificando "CD-03"/"CD-04". Mesma limitação quanto a titular x substituto.</td>
+              </tr>
+              <tr>
+                <td>V.3</td>
+                <td>Exercício de função gratificada (FG-01 e 02) ou equivalente</td>
+                <td>Por ano ou fração acima de seis meses</td>
+                <td>4,5 como titular e 1,5 como substituto</td>
+                <td class="corresp">DIRECAO-E-ADMINISTRACAO, FORMATO-CARGO-OU-FUNCAO = "OUTRO"/"LIVRE", com CARGO-OU-FUNCAO especificando "FG-01"/"FG-02". Mesma limitação quanto a titular x substituto.</td>
+              </tr>
+              <tr>
+                <td>V.4</td>
+                <td>Exercício de função gratificada (a partir da FG-03) ou equivalente</td>
+                <td>Por ano ou fração acima de seis meses</td>
+                <td>3 como titular e 1 como substituto</td>
+                <td class="corresp">DIRECAO-E-ADMINISTRACAO, FORMATO-CARGO-OU-FUNCAO = "OUTRO"/"LIVRE", com CARGO-OU-FUNCAO especificando a FG correspondente (a partir de FG-03). Mesma limitação quanto a titular x substituto.</td>
+              </tr>
+            </tbody>
+          </table></div>
+        </section>
+
+        <section class="card" id="reqvi">
+          <h2><span class="pill">Requisito VI</span> Produção, prospecção e difusão de conhecimento</h2>
+          <div style="overflow-x:auto"><table>
+            <thead><tr><th style="width:2.5em">Item</th><th>Critério específico</th><th style="width:11em">Unidade</th><th style="width:5em">Pontos</th><th>Correspondência no Currículo Lattes (XSD)</th></tr></thead>
+            <tbody>
+              <tr>
+                <td>VI.1</td>
+                <td>Carta patente relacionada aos interesses institucionais</td>
+                <td>Por patente</td>
+                <td>30</td>
+                <td class="corresp">PRODUCAO-TECNICA &gt; PATENTE (DETALHAMENTO-DA-PATENTE &gt; REGISTRO-OU-PATENTE, @TIPO-PATENTE = "PRIVILEGIO_DE_INOVACAO_PI" ou "MODELO_DE_UTILIDADE_MU"). Correspondência exata.</td>
+              </tr>
+              <tr>
+                <td>VI.2</td>
+                <td>Participação relevante no desenvolvimento de protótipos, depósitos e/ou registros de propriedade intelectual ou privilégio de invenção relacionada aos interesses institucionais</td>
+                <td>Por projeto</td>
+                <td>25</td>
+                <td class="corresp">PRODUCAO-TECNICA &gt; DESENHO-INDUSTRIAL, SOFTWARE, MARCA ou TOPOGRAFIA-DE-CIRCUITO-INTEGRADO — cada um com DETALHAMENTO &gt; REGISTRO-OU-PATENTE (@TIPO-PATENTE com valores dedicados: DESENHO_INDUSTRIAL_DI, PROGRAMA_DE_COMPUTADOR_PC, MARCA_REGISTRADA_*, TOPOGRAFIA_DE_CIRCUITO_INTEGRADO_REGISTRADA_TCI). Correspondência exata.</td>
+              </tr>
+              <tr>
+                <td>VI.3</td>
+                <td>Participação em transferência de tecnologia, licenciamento ou exploração de ativo tecnológico, como autor ou inventor relacionada aos interesses institucionais</td>
+                <td>Por produto</td>
+                <td>20</td>
+                <td class="corresp">PRODUCAO-TECNICA &gt; PRODUTO-TECNOLOGICO ou PROCESSOS-OU-TECNICAS (atributos @DISPONIBILIDADE e @FINALIDADE podem indicar uso comercial/transferência).</td>
+              </tr>
+              <tr>
+                <td>VI.4</td>
+                <td>Conclusão de curso de educação formal superior ao exigido para o ingresso no cargo de que é titular e que não seja utilizado para percepção de Incentivo à Qualificação – IQ</td>
+                <td>Por curso</td>
+                <td>15</td>
+                <td class="corresp">FORMACAO-ACADEMICA-TITULACAO &gt; GRADUACAO / ESPECIALIZACAO / MESTRADO / MESTRADO-PROFISSIONALIZANTE / DOUTORADO / MBA (conforme o nível concluído). Correspondência exata.</td>
+              </tr>
+              <tr>
+                <td>VI.5</td>
+                <td>Participação relevante na implantação ou desenvolvimento de produto, projeto, processo, técnica ou tecnologia de interesse institucional</td>
+                <td>Por produto</td>
+                <td>15</td>
+                <td class="corresp">PRODUCAO-TECNICA &gt; PRODUTO-TECNOLOGICO ou PROCESSOS-OU-TECNICAS. Correspondência forte.</td>
+              </tr>
+              <tr>
+                <td>VI.6</td>
+                <td>Atuação em atividade de liderança ou vice-liderança de grupo de pesquisa ou extensão registrado em órgão ou sistema oficial de reconhecimento institucional<br><span class="tag">lattesZen: Categoria 20 — Grupos de Pesquisa</span></td>
+                <td>Por grupo de pesquisa</td>
+                <td>7,5</td>
+                <td class="corresp">Sem correspondência direta no Lattes e sim no Diretório dos Grupos de Pesquisa do CNPq (DGP).</td>
+              </tr>
+              <tr>
+                <td>VI.7</td>
+                <td>Participação como membro em grupo de pesquisa devidamente registrado em órgão ou sistema oficial de reconhecimento institucional<br><span class="tag">lattesZen: Categoria 20 — Grupos de Pesquisa</span></td>
+                <td>Por projeto</td>
+                <td>3</td>
+                <td class="corresp">Sem correspondência direta no Lattes e sim no Diretório dos Grupos de Pesquisa do CNPq (DGP)</td>
+              </tr>
+              <tr>
+                <td>VI.8</td>
+                <td>Aprovação de projeto para a captação de recursos para a Instituição Federal de Ensino</td>
+                <td>Por projeto</td>
+                <td>7,5</td>
+                <td class="corresp">ATIVIDADES-DE-PARTICIPACAO-EM-PROJETO &gt; PROJETO-DE-PESQUISA &gt; FINANCIADORES-DO-PROJETO &gt; FINANCIADOR-DO-PROJETO (@NOME-INSTITUICAO, @NATUREZA). Correspondência forte e estruturada.</td>
+              </tr>
+              <tr>
+                <td>VI.9</td>
+                <td>Publicação ou organização de livro relacionado aos interesses institucionais (com ISBN e Conselho Editorial)</td>
+                <td>Por produto</td>
+                <td>20</td>
+                <td class="corresp">PRODUCAO-BIBLIOGRAFICA &gt; LIVROS-E-CAPITULOS &gt; LIVROS-PUBLICADOS-OU-ORGANIZADOS &gt; LIVRO-PUBLICADO-OU-ORGANIZADO (DETALHAMENTO-DO-LIVRO @ISBN). Correspondência exata.</td>
+              </tr>
+              <tr>
+                <td>VI.10</td>
+                <td>Autoria ou coautoria de capítulo de livro, de artigo publicado em revista especializada, jornal científico ou periódico, relacionado aos interesses institucionais</td>
+                <td>Por publicação</td>
+                <td>7,5</td>
+                <td class="corresp">PRODUCAO-BIBLIOGRAFICA &gt; LIVROS-E-CAPITULOS &gt; CAPITULOS-DE-LIVROS-PUBLICADOS &gt; CAPITULO-DE-LIVRO-PUBLICADO; ou &gt; ARTIGOS-PUBLICADOS &gt; ARTIGO-PUBLICADO; ou &gt; TEXTOS-EM-JORNAIS-OU-REVISTAS &gt; TEXTO-EM-JORNAL-OU-REVISTA (conforme o veículo). Correspondência exata — múltiplos campos possíveis.</td>
+              </tr>
+              <tr>
+                <td>VI.11</td>
+                <td>Apresentação de trabalho de interesse institucional em congresso, seminário ou outros eventos</td>
+                <td>Por produto</td>
+                <td>4,5</td>
+                <td class="corresp">PRODUCAO-TECNICA &gt; DEMAIS-TIPOS-DE-PRODUCAO-TECNICA &gt; APRESENTACAO-DE-TRABALHO (apresentação sem publicação em anais); ou PRODUCAO-BIBLIOGRAFICA &gt; TRABALHOS-EM-EVENTOS &gt; TRABALHO-EM-EVENTOS (@NATUREZA = "COMPLETO"/"RESUMO"/"RESUMO_EXPANDIDO", quando há publicação nos anais).</td>
+              </tr>
+              <tr>
+                <td>VI.12</td>
+                <td>Produção de material técnico, científico, metodológico ou administrativo estruturado que visa à difusão do conhecimento</td>
+                <td>Por produto</td>
+                <td>4,5</td>
+                <td class="corresp">PRODUCAO-TECNICA &gt; DEMAIS-TIPOS-DE-PRODUCAO-TECNICA &gt; OUTRA-PRODUCAO-TECNICA (catch-all) ou DESENVOLVIMENTO-DE-MATERIAL-DIDATICO-OU-INSTRUCIONAL ou RELATORIO-DE-PESQUISA, conforme a natureza do material.</td>
+              </tr>
+              <tr>
+                <td>VI.13</td>
+                <td>Avaliação do projeto de ensino e/ou pesquisa e/ou extensão e/ou inovação</td>
+                <td>Por projeto</td>
+                <td>4,5</td>
+                <td class="corresp">OUTRA-ATIVIDADE-TECNICO-CIENTIFICA ou DADOS-COMPLEMENTARES &gt; OUTRAS-BANCAS-JULGADORAS (@TIPO = "Avaliador de projeto").</td>
+              </tr>
+              <tr>
+                <td>VI.14</td>
+                <td>Participação em atividade de difusão ou apoio à formação institucional (expositor, facilitador, colaborador)</td>
+                <td>Por evento</td>
+                <td>3</td>
+                <td class="corresp">ATIVIDADES-DE-TREINAMENTO-MINISTRADO &gt; TREINAMENTO-MINISTRADO; ou PRODUCAO-TECNICA &gt; CURSO-DE-CURTA-DURACAO-MINISTRADO; ou DADOS-COMPLEMENTARES &gt; PARTICIPACAO-EM-EVENTOS-CONGRESSOS &gt; PARTICIPACAO-EM-EXPOSICAO (@TIPO-PARTICIPACAO/@FORMA-PARTICIPACAO = "Expositor").</td>
+              </tr>
+              <tr>
+                <td>VI.15</td>
+                <td>Atuação formalmente autorizada como instrutor, tutor, palestrante, autor de conteúdo técnico ou orientador em ação formativa estruturada de interesse institucional, prevista em plano ou programa de desenvolvimento de pessoas</td>
+                <td>Por curso</td>
+                <td>4,5</td>
+                <td class="corresp">ATIVIDADES-DE-TREINAMENTO-MINISTRADO &gt; TREINAMENTO-MINISTRADO &gt; TREINAMENTO; ou PRODUCAO-TECNICA &gt; CURSO-DE-CURTA-DURACAO-MINISTRADO (carga horária via DETALHAMENTO @DURACAO/@UNIDADE); e/ou DADOS-COMPLEMENTARES &gt; ORIENTACOES-EM-ANDAMENTO / OUTRA-PRODUCAO &gt; ORIENTACOES-CONCLUIDAS (se a atuação for como orientador).</td>
+              </tr>
+              <tr>
+                <td>VI.16</td>
+                <td>Atuação na coordenação de congresso, simpósio ou seminário de interesse institucional</td>
+                <td>Por evento</td>
+                <td>3,5</td>
+                <td class="corresp">PRODUCAO-TECNICA &gt; DEMAIS-TIPOS-DE-PRODUCAO-TECNICA &gt; ORGANIZACAO-DE-EVENTO (@TIPO, @INSTITUICAO-PROMOTORA). Correspondência forte.</td>
+              </tr>
+              <tr>
+                <td>VI.17</td>
+                <td>Exercício de atividade de coorientação de trabalho de conclusão de curso em diferentes modalidades de ensino</td>
+                <td>Por evento</td>
+                <td>4,5</td>
+                <td class="corresp">OUTRA-PRODUCAO &gt; ORIENTACOES-CONCLUIDAS &gt; OUTRAS-ORIENTACOES-CONCLUIDAS (DETALHAMENTO-DE-OUTRAS-ORIENTACOES-CONCLUIDAS @TIPO-DE-ORIENTACAO-CONCLUIDA indicando "Coorientador", e @TIPO = "TCC"/"Trabalho de Conclusão de Curso"). Correspondência forte, dependente do preenchimento textual do tipo.</td>
+              </tr>
+              <tr>
+                <td>VI.18</td>
+                <td>Autoria de obra artística ou cultural registrada com contribuição ou repercussão institucional comprovada</td>
+                <td>Por produto</td>
+                <td>3</td>
+                <td class="corresp">OUTRA-PRODUCAO &gt; PRODUCAO-ARTISTICA-CULTURAL (ARTES-CENICAS, ARTES-VISUAIS/OBRA-DE-ARTES-VISUAIS, MUSICA, OUTRA-PRODUCAO-ARTISTICA-CULTURAL etc., conforme o tipo de obra). Correspondência forte.</td>
+              </tr>
+              <tr>
+                <td>VI.19</td>
+                <td>Atuação institucional no enfrentamento de situações de surto, epidemia e pandemia<br><span class="tag">lattesZen: Categoria 21 — Atuação em Crise de Saúde Pública</span></td>
+                <td>Por mês</td>
+                <td>1</td>
+                <td class="corresp">SERVICO-TECNICO-ESPECIALIZADO, conforme a natureza da atuação.</td>
+              </tr>
+            </tbody>
+          </table></div>
+        </section>
+
+      </div>
+    </main>
+
+    <!-- ============================ RODAPÉ (igual ao app) ============================ -->
+    <footer class="bg-govbr-800 dark:bg-gray-950 border-t border-govbr-700 dark:border-gray-700 py-3 px-6 text-xs text-blue-100 dark:text-gray-400 flex flex-col sm:flex-row justify-between items-center shrink-0 gap-4 transition-colors duration-300">
+        <div class="flex items-center gap-4 flex-wrap justify-center">
+            <span><span class="font-mono" id="appVersion"></span> | <span id="lastModDate"></span></span>
+            <span class="text-white/25 dark:text-gray-700">|</span>
+            <a href="termodeuso.html" class="hover:text-white transition-colors">Termo de uso</a>
+            <span class="text-white/25 dark:text-gray-700">|</span>
+            <a href="privacidade.html" class="hover:text-white transition-colors">Política de privacidade</a>
+            <span class="text-white/25 dark:text-gray-700">|</span>
+            <a href="./ajuda-lattes.html" class="hover:text-white transition-colors">Ajuda (Lattes)</a>
+            <span class="text-white/25 dark:text-gray-700">|</span>
+            <a href="./ajuda-rsc.html" class="hover:text-white transition-colors">Ajuda (RSC)</a>
+            <span class="text-white/25 dark:text-gray-700">|</span>
+            <a href="./notas-de-versao.html" class="hover:text-white transition-colors">Notas de versão</a>
+            <span class="text-white/25 dark:text-gray-700">|</span>
+            <button type="button" id="themeToggle" class="hover:text-white transition-colors flex items-center gap-1" aria-pressed="false">
+                <i aria-hidden="true" class="fa-solid fa-moon"></i> <span id="themeToggleLabel">Tema escuro</span>
+            </button>
+            <span class="text-white/25 dark:text-gray-700">|</span>
+            <button type="button" id="highContrastToggle" class="hover:text-white transition-colors flex items-center gap-1" aria-pressed="false">
+                <i aria-hidden="true" class="fa-solid fa-circle-half-stroke"></i> Alto contraste
+            </button>
+            <span class="text-white/25 dark:text-gray-700">|</span>
+            <span class="flex items-center gap-1" role="group" aria-label="Tamanho da fonte">
+                <button type="button" id="fontDec" class="hover:text-white transition-colors flex items-center gap-1" title="Diminuir fonte" aria-label="Diminuir fonte"><i aria-hidden="true" class="fa-solid fa-magnifying-glass-minus"></i> A-</button>
+                <button type="button" id="fontInc" class="hover:text-white transition-colors flex items-center gap-1" title="Aumentar fonte" aria-label="Aumentar fonte"><i aria-hidden="true" class="fa-solid fa-magnifying-glass-plus"></i> A+</button>
+            </span>
+        </div>
+        <div class="flex gap-3 items-center flex-wrap justify-center">
+            <a href="https://github.com/alexsandroccarv" target="_blank" rel="noopener" class="hover:text-white hover:underline transition-colors flex items-center gap-1">
+                <i aria-hidden="true" class="fa-brands fa-github text-white/90 dark:text-unifesp-400"></i> Alexsandro Cardoso Carvalho
+            </a>
+            <span class="text-white/40 dark:text-gray-600">|</span>
+            <a href="doe-um-cafe.html" class="hover:text-white hover:underline transition-colors flex items-center gap-1">
+                <i aria-hidden="true" class="fa-solid fa-mug-hot text-white/90 dark:text-unifesp-400"></i> Doe um café
+            </a>
+            <span class="text-white/40 dark:text-gray-600">|</span>
+            <a href="https://www.gnu.org/licenses/agpl-3.0.html" target="_blank" rel="noopener" class="hover:text-white transition-colors flex items-center gap-1" title="Licença AGPLv3 (Free Software Foundation)">
+                <i aria-hidden="true" class="fa-solid fa-scale-balanced text-white/90 dark:text-unifesp-400"></i> AGPLv3
+            </a>
+        </div>
+    </footer>
+
+    <!-- Cabeçalho/rodapé dinâmicos: versão, nome do titular e alternadores de tema (mesmo comportamento do app) -->
+    <script src="js/config.js"></script>
+    <script src="js/analytics.js"></script>
+    <script src="js/cookie-consent.js"></script>
+    <script src="js/pwa.js"></script>
+    <script>
+        (function () {
+            var C = window.APP_CONFIG || {};
+            var setTxt = function (id, v) { var el = document.getElementById(id); if (el && v != null) el.textContent = v; };
+            setTxt('appVersion', C.version);
+            setTxt('lastModDate', C.lastModified);
+            // Nome completo do item de Identificação (mesma lógica do app): "lattesZen | Nome".
+            var nome = '';
+            try {
+                var itens = JSON.parse(localStorage.getItem((C.storageKeys && C.storageKeys.catalog) || 'lz_catalog') || '[]');
+                var ident = itens.find(function (i) { return i.typeKey === 'IDENTIFICACAO' && i.fields && i.fields.titulo; });
+                if (ident) nome = String(ident.fields.titulo).trim();
+            } catch (e) {}
+            var nomeWrap = document.getElementById('headerNomeWrap');
+            if (nomeWrap) nomeWrap.classList.toggle('hidden', !nome);
+            setTxt('headerNome', nome);
+            document.title = nome ? (C.name || 'lattesZen') + ' | ' + nome : (C.name || 'lattesZen');
+
+            var htmlEl = document.documentElement;
+            var tt = document.getElementById('themeToggle');
+            function syncTheme() {
+                var d = htmlEl.classList.contains('dark');
+                tt.setAttribute('aria-pressed', d ? 'true' : 'false');
+                tt.querySelector('i').className = d ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
+                document.getElementById('themeToggleLabel').textContent = d ? 'Tema claro' : 'Tema escuro';
+            }
+            if (tt) { syncTheme(); tt.addEventListener('click', function () { htmlEl.classList.toggle('dark'); localStorage.setItem('tema', htmlEl.classList.contains('dark') ? 'dark' : 'light'); syncTheme(); }); }
+
+            var hc = document.getElementById('highContrastToggle');
+            function syncHC() { hc.setAttribute('aria-pressed', htmlEl.classList.contains('high-contrast') ? 'true' : 'false'); }
+            if (hc) { syncHC(); hc.addEventListener('click', function () { htmlEl.classList.toggle('high-contrast'); localStorage.setItem('altoContraste', htmlEl.classList.contains('high-contrast') ? '1' : '0'); syncHC(); }); }
+
+            var FS_MIN = 80, FS_MAX = 150, FS_STEP = 10;
+            function getFS() { var n = parseInt(localStorage.getItem('fontScale') || '100', 10); return isNaN(n) ? 100 : n; }
+            var dec = document.getElementById('fontDec'), inc = document.getElementById('fontInc');
+            function applyFS(n) {
+                n = Math.max(FS_MIN, Math.min(FS_MAX, n));
+                htmlEl.style.fontSize = n === 100 ? '' : n + '%';
+                localStorage.setItem('fontScale', String(n));
+                if (dec) dec.disabled = n <= FS_MIN;
+                if (inc) inc.disabled = n >= FS_MAX;
+            }
+            applyFS(getFS());
+            if (dec) dec.addEventListener('click', function () { applyFS(getFS() - FS_STEP); });
+            if (inc) inc.addEventListener('click', function () { applyFS(getFS() + FS_STEP); });
+        })();
+    </script>
+</body>
+</html>
