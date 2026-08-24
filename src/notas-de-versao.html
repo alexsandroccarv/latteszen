@@ -145,6 +145,13 @@
             desde o marco atual.
         </p>
 
+        <section class="card" id="v0-6-20">
+          <h2><span class="pill">v0.6.20</span> <span class="data">24/08/2026</span></h2>
+          <ul>
+            <li><strong>Correção: abas antigas ficavam presas numa versão desatualizada</strong>: um perfil com o app já aberto podia continuar rodando o JavaScript antigo em memória (categorias/critérios sumidos) até um recarregamento manual, mesmo com o Service Worker já atualizado. Agora, quando uma nova versão assume o controle, a página recarrega sozinha (só quando é de fato uma atualização, não a primeira visita) — <a href="https://github.com/alexsandroccarv/latteszen/issues/42" target="_blank" rel="noopener">issue #42</a>.</li>
+          </ul>
+        </section>
+
         <section class="card" id="v0-6-19">
           <h2><span class="pill">v0.6.19</span> <span class="data">24/08/2026</span></h2>
           <ul>
