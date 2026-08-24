@@ -27,6 +27,7 @@ import './specs/rsc-data-abrangencia.mjs';
 import './specs/analytics.mjs';
 import './specs/rsc-grupo-pesquisa.mjs';
 import './specs/evidencia-preview.mjs';
+import './specs/rsc-crise-saude.mjs';
 
 console.log('Rodando suíte de testes de regressão (Playwright)...\n');
 await runAll();

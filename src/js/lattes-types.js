@@ -801,6 +801,15 @@ const TYPES = {
         { key: 'egresso', label: 'Egresso', type: 'checkbox' },
         { key: 'anoFim', label: 'Data de desligamento', type: 'datebr', disabledWhen: { field: 'egresso', in: ['Não'] } },
     ] },
+
+    /* --- Atuação em Crise de Saúde Pública (não-Lattes; só com o módulo RSC) --- */
+    RSC_CRISE_SAUDE_ATUACAO: { label: 'Atuação em crise de saúde pública', noExport: true, rsc: true, fields: [
+        { key: 'tipoSituacao', label: 'Tipo de situação', type: 'select', options: ['Surto', 'Epidemia', 'Pandemia'], required: true },
+        { key: 'ato', label: 'Ato que decretou a situação', type: 'text' },
+        { key: 'anoInicio', label: 'Data de início', type: 'datebr', row: 'periodo' },
+        { key: 'anoFim', label: 'Data de fim', type: 'datebr', row: 'periodo' },
+        { key: 'descricao', label: 'Descrição da atuação', type: 'textarea' },
+    ] },
 };
 // Garante que cada tipo conheça a própria chave
 Object.keys(TYPES).forEach(k => TYPES[k].key = k);
@@ -865,6 +874,8 @@ window.LATTES_CATEGORIES = [
     // (perfil), não em Catalogar — por isso `perfilOnly` (fora do seletor
     // de categoria do Catalogar), mas continuam vinculados ao Lattes.
     { num: '20', key: 'PERFIL_FOTOS', label: 'Fotos de Perfil', icon: 'fa-camera', perfilOnly: true, types: ['FOTO_PERFIL'] },
+    { num: '21', key: 'RSC_CRISE_SAUDE', label: 'Atuação em Crise de Saúde Pública', icon: 'fa-virus', naoLattes: true, rscOnly: true,
+      types: ['RSC_CRISE_SAUDE_ATUACAO'] },
     { num: '21', key: 'PERFIL_DOCS', label: 'Documentos pessoais', icon: 'fa-address-card', perfilOnly: true, types: ['DOCUMENTO_PESSOAL', 'DOC_IDENTIDADE', 'DOC_PASSAPORTE'] },
 ];
 
@@ -900,6 +911,7 @@ PRIMARY_CATEGORY.AL_IMPRENSA = 'AL_IMPRENSA_CAT';
 ['AL_IMPRENSA_CITACAO', 'AL_IMPRENSA_ENTREVISTADO', 'AL_IMPRENSA_OUTRA'].forEach(k => { PRIMARY_CATEGORY[k] = 'AL_IMPRENSA_CAT'; });
 ['CONEXAO_SOCIAL', 'CONEXAO_ACADEMICA', 'CONEXAO_PROFISSIONAL'].forEach(k => { PRIMARY_CATEGORY[k] = 'DADOS_GERAIS'; });
 PRIMARY_CATEGORY.RSC_GRUPO_PESQUISA = 'RSC_GRUPO';
+PRIMARY_CATEGORY.RSC_CRISE_SAUDE_ATUACAO = 'RSC_CRISE_SAUDE';
 const LEGACY_TYPE = { LIVRO: 'LIVRO_CAPITULO', CAPITULO_LIVRO: 'LIVRO_CAPITULO', SOFTWARE: 'SOFTWARE_SEM_REGISTRO', ORIENTACAO: 'ORIENTACAO_ANDAMENTO', BANCA: 'BANCA_CONCLUSAO' };
 
 /* ---- Categoria/tipo especial: itens NÃO LATTES ---- */
@@ -1051,6 +1063,12 @@ window.LattesTypes = (function () {
                 if (t) return t;
             }
             if (item.typeKey === 'DOC_PASSAPORTE' && String(f.numero || '').trim()) return String(f.numero).trim();
+            // Atuação em crise de saúde pública: "Tipo de situação — Ato que
+            // decretou" (não tem campo "titulo" próprio).
+            if (item.typeKey === 'RSC_CRISE_SAUDE_ATUACAO') {
+                const t = [f.tipoSituacao, f.ato].map(x => String(x || '').trim()).filter(Boolean).join(' — ');
+                if (t) return t;
+            }
             // Texto inicial do CV / Outras informações: não têm campo "titulo" —
             // mostram um trecho do próprio texto (evita repetir o rótulo do card).
             if (item.typeKey === 'RESUMO_CV' || item.typeKey === 'OUTRAS_INFO') {
