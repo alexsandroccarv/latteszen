@@ -145,6 +145,13 @@
             desde o marco atual.
         </p>
 
+        <section class="card" id="v0-6-23">
+          <h2><span class="pill">v0.6.23</span> <span class="data">24/08/2026</span></h2>
+          <ul>
+            <li><strong>Rodapé ainda mais enxuto</strong>: os alternadores de "Tema escuro/claro" e "Alto contraste" ficam só com o ícone (o texto vira rótulo acessível para leitor de tela); o link "Ajuda" ganhou um ícone de interrogação — <a href="https://github.com/alexsandroccarv/latteszen/issues/45" target="_blank" rel="noopener">issue #45</a>.</li>
+          </ul>
+        </section>
+
         <section class="card" id="v0-6-22">
           <h2><span class="pill">v0.6.22</span> <span class="data">24/08/2026</span></h2>
           <ul>
@@ -329,14 +336,14 @@
             <span class="text-white/25 dark:text-gray-700">|</span>
             <a href="privacidade.html" class="hover:text-white transition-colors">Política de privacidade</a>
             <span class="text-white/25 dark:text-gray-700">|</span>
-            <a href="./ajuda.html" class="hover:text-white transition-colors">Ajuda</a>
+            <a href="./ajuda.html" class="hover:text-white transition-colors flex items-center gap-1"><i aria-hidden="true" class="fa-solid fa-circle-question"></i> Ajuda</a>
             <span class="text-white/25 dark:text-gray-700">|</span>
-            <button type="button" id="themeToggle" class="hover:text-white transition-colors flex items-center gap-1" aria-pressed="false">
-                <i aria-hidden="true" class="fa-solid fa-moon"></i> <span id="themeToggleLabel">Tema escuro</span>
+            <button type="button" id="themeToggle" class="hover:text-white transition-colors flex items-center gap-1" aria-pressed="false" title="Alternar tema">
+                <i aria-hidden="true" class="fa-solid fa-moon"></i> <span id="themeToggleLabel" class="sr-only">Tema escuro</span>
             </button>
             <span class="text-white/25 dark:text-gray-700">|</span>
-            <button type="button" id="highContrastToggle" class="hover:text-white transition-colors flex items-center gap-1" aria-pressed="false">
-                <i aria-hidden="true" class="fa-solid fa-circle-half-stroke"></i> Alto contraste
+            <button type="button" id="highContrastToggle" class="hover:text-white transition-colors flex items-center gap-1" aria-pressed="false" title="Alternar alto contraste">
+                <i aria-hidden="true" class="fa-solid fa-circle-half-stroke"></i> <span class="sr-only">Alto contraste</span>
             </button>
             <span class="text-white/25 dark:text-gray-700">|</span>
             <span class="flex items-center gap-1" role="group" aria-label="Tamanho da fonte">
