@@ -5,7 +5,7 @@
    das anteriores — lê estado/utilidades de window.AppCore.
    ========================================================================== */
 window.TabRsc = (function () {
-    const { state, $, esc } = window.AppCore;
+    const { state, $, esc, toast } = window.AppCore;
 
     // Itens que contam para o RSC (elegíveis, marcados, com critério e não usados)
     function rscItensContados() {
@@ -80,7 +80,7 @@ window.TabRsc = (function () {
             <div class="flex gap-2 flex-wrap mb-4">
                 <button id="btnRscCsv" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-file-csv mr-1"></i> Exportar planilha (CSV)</button>
                 <button id="btnRscMemorial" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-file-lines mr-1"></i> Gerar memorial</button>
-                <button id="btnRscForm" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-file-signature mr-1"></i> Gerar formulário</button>
+                <button id="btnRscForm" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-file-word mr-1"></i> Salvar formulário (.docx)</button>
             </div>
 
             <h3 class="font-bold mb-2">Itens contabilizados</h3>
@@ -88,7 +88,7 @@ window.TabRsc = (function () {
 
         $('#btnRscCsv').addEventListener('click', () => downloadText(rscCsv(itens), 'rsc-comprovacao.csv', 'text/csv'));
         $('#btnRscMemorial').addEventListener('click', () => downloadText(rscMemorial(itens, sim, cfg), 'rsc-memorial.txt', 'text/plain'));
-        $('#btnRscForm').addEventListener('click', () => downloadText(rscFormulario(sim, cfg), 'rsc-formulario.txt', 'text/plain'));
+        $('#btnRscForm').addEventListener('click', () => salvarFormularioDocx(itens, sim, cfg));
     }
     function downloadText(txt, nome, mime) {
         const blob = new Blob([txt], { type: (mime || 'text/plain') + ';charset=utf-8' });
@@ -129,27 +129,126 @@ window.TabRsc = (function () {
         }
         return L.join('\n');
     }
-    function rscFormulario(sim, cfg) {
-        const L = [];
-        L.push('FORMULÁRIO — REQUERIMENTO DE RSC-PCCTAE'); L.push('='.repeat(40));
-        L.push('1) DADOS FUNCIONAIS');
-        L.push(`   Cargo: ${cfg.cargo || '—'}`); L.push(`   Classe/nível: ${cfg.classe || '—'}`);
-        L.push(`   SIAPE: ${cfg.siape || '—'}`); L.push(`   Lotação: ${cfg.lotacao || '—'}`);
-        L.push(`   Data de ingresso no cargo: ${cfg.ingresso || '—'}`);
-        L.push(`   Escolaridade: ${(LzRSC.escInfo(cfg.escolaridade) || {}).label || '—'}`);
-        L.push('');
-        L.push('2) NÍVEL PLEITEADO');
-        L.push(`   Nível RSC-PCCTAE pleiteado: ${sim.nivelNome}`);
-        L.push(`   Pontuação apurada: ${sim.total.toString().replace('.', ',')}  |  Critérios distintos: ${sim.criteriosDistintos}`);
-        L.push(`   Incentivo à Qualificação correspondente: ${sim.iq}%`);
-        L.push('   Saldo de pontos de concessão anterior: ____');
-        L.push('');
-        L.push('3) DECLARAÇÃO DE CONFORMIDADE');
-        L.push('   Declaro que as atividades e experiências relacionadas ocorreram no exercício');
-        L.push('   do cargo e que os pontos não foram utilizados em concessões anteriores.');
-        L.push('');
-        L.push('   Local/Data: ______________________    Assinatura: ______________________');
-        return L.join('\n');
+    // Requisitos do RSC com a redação oficial do Anexo da Portaria MEC nº
+    // 608/2026 (modelo padrão do formulário de requerimento) — ligeiramente
+    // diferente do texto usado no simulador (LzRSC.REQUISITOS).
+    const REQUISITOS_FORM = {
+        1: 'I - Participação em grupos de trabalho, comissões, comitês, núcleos, representações ou similares',
+        2: 'II - Projetos institucionais, gestão, ensino, pesquisa, extensão, inovação ou assistência',
+        3: 'III - Premiações e reconhecimentos públicos',
+        4: 'IV - Responsabilidades técnico-administrativas e/ou especializadas',
+        5: 'V - Funções ou cargos de direção e assessoramento institucional',
+        6: 'VI - Produção, prospecção e difusão de conhecimento',
+    };
+    const NUM_PT = n => String(n).replace('.', ',');
+
+    function evidenciasTexto(item) {
+        const evs = Array.isArray(item.evidencias) ? item.evidencias : [];
+        if (!evs.length) return '—';
+        return evs.map(e => e.name || e.basename || 'anexo').join('; ');
+    }
+
+    // Monta o corpo (XML OOXML) do formulário padrão RSC-PCCTAE (Anexo da
+    // Portaria MEC nº 608/2026), a partir dos dados de configuração, dos
+    // itens marcados e da simulação já calculada.
+    function rscFormularioBody(itens, sim, cfg) {
+        const D = window.LzDocx;
+        const nome = (state.items.find(i => i.typeKey === 'IDENTIFICACAO' && i.fields && i.fields.titulo) || {}).fields;
+        const nomeServidor = (nome && nome.titulo) || '';
+        const parts = [];
+
+        parts.push(D.heading('Requerimento de Reconhecimento de Saberes e Competências (RSC-PCCTAE)', 1));
+        parts.push(D.para('Modelo padrão conforme Anexo da Portaria MEC nº 608, de 7 de julho de 2026.', { italic: true, size: 18 }));
+
+        // ---- 1. Identificação do Servidor ----
+        parts.push(D.heading('1. Identificação do Servidor', 2));
+        const classeMarcada = n => cfg.nivelClassificacao === n ? `(X) ${n}` : `( ) ${n}`;
+        parts.push(D.table([
+            D.row([D.cell('Nome', { bold: true, width: 3000 }), D.cell(nomeServidor, { width: 6000 })]),
+            D.row([D.cell('Siape', { bold: true }), D.cell(cfg.siape || '')]),
+            D.row([D.cell('Cargo', { bold: true }), D.cell(cfg.cargo || '')]),
+            D.row([D.cell('Data de ingresso em Instituição Federal de Ensino', { bold: true }), D.cell(cfg.ingresso || '')]),
+            D.row([D.cell('Nível de Classificação', { bold: true }), D.cell(['A', 'B', 'C', 'D', 'E'].map(classeMarcada).join('   '))]),
+            D.row([D.cell('Lotação', { bold: true }), D.cell(cfg.lotacao || '')]),
+            D.row([D.cell('Função/Encargo (se houver)', { bold: true }), D.cell(cfg.funcaoEncargo || '')]),
+            D.row([D.cell('Telefone/E-mail', { bold: true }), D.cell(cfg.telefoneEmail || '')]),
+        ], [3000, 6000]));
+
+        // ---- 2. Informações do Requerimento ----
+        parts.push(D.heading('2. Informações do Requerimento', 2));
+        const nivelAlvo = sim.nivelAlcancavel || 0;
+        const nivelMarcado = n => nivelAlvo === n ? `(X) RSC-${['I', 'II', 'III', 'IV', 'V', 'VI'][n - 1]}` : `( ) RSC-${['I', 'II', 'III', 'IV', 'V', 'VI'][n - 1]}`;
+        const minPontos = nivelAlvo ? sim.niveis[nivelAlvo - 1].min.pontos : null;
+        const excedente = minPontos != null ? Math.max(0, +(sim.total - minPontos).toFixed(2)) : 0;
+        parts.push(D.table([
+            D.row([D.cell('Nível de RSC pretendido', { bold: true, width: 3000 }), D.cell([1, 2, 3, 4, 5, 6].map(nivelMarcado).join('   '), { width: 6000 })]),
+            D.row([D.cell('Pontuação mínima necessária', { bold: true }), D.cell(minPontos != null ? NUM_PT(minPontos) : '—')]),
+            D.row([D.cell('Pontuação total apresentada', { bold: true }), D.cell(NUM_PT(sim.total))]),
+            D.row([D.cell('Quantidade de critérios específicos utilizados', { bold: true }), D.cell(String(sim.criteriosDistintos))]),
+            D.row([D.cell('Pontuação total excedente (banco de pontos)', { bold: true }), D.cell(NUM_PT(excedente))]),
+            D.row([D.cell('Saldo de pontuação de concessão anterior', { bold: true }), D.cell(cfg.saldoAnterior || '')]),
+            D.row([D.cell('Número do processo relativo à concessão anterior (se houver)', { bold: true }), D.cell(cfg.processoAnterior || '')]),
+        ], [3000, 6000]));
+
+        // ---- 3. Descrição das Atividades por Requisito Legal ----
+        parts.push(D.heading('3. Descrição das Atividades por Requisito Legal', 2));
+        parts.push(D.para('Itens organizados conforme os requisitos do art. 4º, incisos I a VI, do Decreto do RSC-PCCTAE, vinculando cada atividade ao critério específico correspondente.', { size: 18 }));
+
+        const grupos = {};
+        itens.forEach(i => { const c = LzRSC.criterio(i.rsc.criterio); const r = c ? c.req : 0; (grupos[r] = grupos[r] || []).push(i); });
+        const colWidths = [900, 4300, 1600, 900, 1100, 1900];
+        for (let r = 1; r <= 6; r++) {
+            parts.push(D.heading(`Critério ${REQUISITOS_FORM[r]}`, 3));
+            const head = D.row([
+                D.cell('Nº do item', { bold: true, width: colWidths[0], shade: 'EEEEEE' }),
+                D.cell('Critério específico', { bold: true, width: colWidths[1], shade: 'EEEEEE' }),
+                D.cell('Unidade de medida', { bold: true, width: colWidths[2], shade: 'EEEEEE' }),
+                D.cell('Pontuação', { bold: true, width: colWidths[3], shade: 'EEEEEE' }),
+                D.cell('Pontuação obtida', { bold: true, width: colWidths[4], shade: 'EEEEEE' }),
+                D.cell('Documentos comprobatórios (anexos)', { bold: true, width: colWidths[5], shade: 'EEEEEE' }),
+            ]);
+            const grp = grupos[r] || [];
+            const rows = grp.length ? grp.map(i => {
+                const pi = LzRSC.pontosItem(i.rsc), c = pi.crit;
+                return D.row([
+                    D.cell(String(c.item), { width: colWidths[0] }),
+                    D.cell(c.desc, { width: colWidths[1] }),
+                    D.cell(c.unidade, { width: colWidths[2] }),
+                    D.cell(NUM_PT(pi.unitario), { width: colWidths[3] }),
+                    D.cell(NUM_PT(pi.pontos), { width: colWidths[4] }),
+                    D.cell(evidenciasTexto(i), { width: colWidths[5] }),
+                ]);
+            }) : [D.row([D.cell('—  nenhum item cadastrado neste critério  —', { width: colWidths.slice(0, 5).reduce((a, b) => a + b, 0) }), D.cell('', { width: colWidths[5] })])];
+            const subtotal = D.row([D.cell('Subtotal', { bold: true, width: colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] }),
+                D.cell(NUM_PT((sim.porRequisito[r] || { pontos: 0 }).pontos), { bold: true, width: colWidths[4] }),
+                D.cell('', { width: colWidths[5] })]);
+            parts.push(D.table([head, ...rows, subtotal], colWidths));
+        }
+        parts.push(D.para([D.run('(Critério I + Critério II + Critério III + Critério IV + Critério V + Critério VI) TOTAL: ', { bold: true }), D.run(NUM_PT(sim.total))]));
+        parts.push(D.para(`À vista das informações apresentadas, totalizo ${NUM_PT(sim.total)} pontos e atendo aos critérios legais e regulamentares para o nível ${sim.nivelNome} do RSC-PCCTAE. Solicito a análise pela CRSC-PCCTAE.`));
+
+        // ---- 4. Declaração de Conformidade Legal ----
+        parts.push(D.heading('4. Declaração de Conformidade Legal', 2));
+        parts.push(D.para('Declaro, para os fins previstos no Decreto regulamentador do RSC-PCCTAE, que:'));
+        parts.push(D.para('I - Todos os fatos apresentados ocorreram no exercício do cargo;'));
+        parts.push(D.para('II - Nenhuma atividade aqui declarada foi utilizada em requerimentos anteriores;'));
+        parts.push(D.para('III - Toda a documentação anexada é autêntica e comprova integralmente as atividades apresentadas; e'));
+        parts.push(D.para('IV - Tenho ciência de que informações falsas implicam responsabilidade administrativa, civil e penal.'));
+        parts.push(D.para(' '));
+        parts.push(D.para('Assinatura: _______________________________________     Data: ____/____/________'));
+
+        return parts.join('');
+    }
+
+    async function salvarFormularioDocx(itens, sim, cfg) {
+        if (!Storage.hasDirectory()) { toast('Configure um diretório em Configurações para salvar o formulário.', 'aviso'); return; }
+        try {
+            const bytes = window.LzDocx.buildDocx(rscFormularioBody(itens, sim, cfg));
+            const folder = LattesTypes.rscFolder();
+            const nomeArquivo = 'Formulario-Requerimento-RSC-PCCTAE.docx';
+            await Storage.writeFile(nomeArquivo, bytes, folder);
+            toast(`Formulário salvo em "${folder}/${nomeArquivo}".`, 'ok');
+        } catch (e) { toast('Falha ao salvar o formulário: ' + e.message, 'erro'); }
     }
 
     return { render };

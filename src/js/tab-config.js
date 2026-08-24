@@ -1009,6 +1009,7 @@ window.TabConfig = (function () {
         const inp = (k, lbl, ph) => `<div><label class="block text-xs font-semibold mb-1" for="rsc-${k}">${esc(lbl)}</label>
             <input id="rsc-${k}" type="text" value="${esc(c[k] || '')}" placeholder="${esc(ph || '')}" class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900"></div>`;
         const escOpts = LzRSC.ESCOLARIDADE.map(e => `<option value="${e.key}" ${c.escolaridade === e.key ? 'selected' : ''}>${esc(e.label)} (nível ${e.maxN}, IQ ${e.iq}%)</option>`).join('');
+        const nivelClassOpts = ['A', 'B', 'C', 'D', 'E'].map(n => `<option value="${n}" ${c.nivelClassificacao === n ? 'selected' : ''}>${n}</option>`).join('');
         return `<section id="rscSection" class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
             <h2 class="text-lg font-bold mb-2 flex items-center gap-2"><i class="fa-solid fa-award text-govbr-600 dark:text-unifesp-400"></i> RSC-PCCTAE (opcional)</h2>
             <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">Reconhecimento de Saberes e Competências (Decreto nº 13.048/2026). Quando habilitado, cada item elegível ganha, abaixo dos campos, uma camada com os dados do RSC, e surge a aba <strong>RSC</strong> (simulador). Uso individual.</p>
@@ -1024,6 +1025,14 @@ window.TabConfig = (function () {
                     ${inp('lotacao', 'Lotação / unidade', '')}
                     ${inp('ingresso', 'Data de ingresso no cargo', '25/12/2026')}
                     ${inp('dataInicioContagem', 'Início da contagem (RSC)', '25/12/2026')}
+                    <div>
+                        <label class="block text-xs font-semibold mb-1" for="rsc-nivelClassificacao">Nível de Classificação</label>
+                        <select id="rsc-nivelClassificacao" class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900"><option value="">—</option>${nivelClassOpts}</select>
+                    </div>
+                    ${inp('funcaoEncargo', 'Função / Encargo (se houver)', '')}
+                    ${inp('telefoneEmail', 'Telefone / E-mail', '')}
+                    ${inp('saldoAnterior', 'Saldo de pontuação de concessão anterior', '')}
+                    ${inp('processoAnterior', 'Nº do processo da concessão anterior (se houver)', '')}
                     <div class="col-span-2">
                         ${inp('dataAbrangenciaFinal', 'Data de abrangência (final)', '25/12/2026')}
                         <p class="text-[11px] text-gray-500 mt-0.5">Data de corte do memorial/requerimento. Usada como fim do período em itens ainda <strong>em exercício</strong> (situação "Atual", sem data de fim própria) — sem ela, esses itens não têm o tempo decorrido contado.</p>
@@ -1044,7 +1053,8 @@ window.TabConfig = (function () {
         en.addEventListener('change', () => { $('#rscCfgFields').classList.toggle('hidden', !en.checked); });
         $('#btnSaveRsc').addEventListener('click', () => {
             state.rscEnabled = $('#rscEnable').checked;
-            const keys = ['cargo', 'classe', 'siape', 'lotacao', 'ingresso', 'dataInicioContagem', 'dataAbrangenciaFinal'];
+            const keys = ['cargo', 'classe', 'siape', 'lotacao', 'ingresso', 'dataInicioContagem', 'dataAbrangenciaFinal',
+                'nivelClassificacao', 'funcaoEncargo', 'telefoneEmail', 'saldoAnterior', 'processoAnterior'];
             const cfg = {};
             keys.forEach(k => { const el = $('#rsc-' + k); if (el) cfg[k] = el.value.trim(); });
             cfg.escolaridade = $('#rsc-escolaridade').value;
