@@ -145,6 +145,13 @@
             desde o marco atual.
         </p>
 
+        <section class="card" id="v0-6-21">
+          <h2><span class="pill">v0.6.21</span> <span class="data">24/08/2026</span></h2>
+          <ul>
+            <li><strong>Correção: caracteres de marcação apareciam no formulário RSC (.docx)</strong>: títulos e células em negrito do formulário gerado mostravam marcação OOXML literal (ex.: <code>&lt;w:r&gt;&lt;w:rPr&gt;...</code>) em vez de texto formatado, por um bug de escapamento duplo em <code>docx-export.js</code>. O arquivo gerado também passa a se chamar <code>RSC_NomeCompleto_ddmmyyyy.docx</code>, identificando o servidor e a data de geração — <a href="https://github.com/alexsandroccarv/latteszen/issues/43" target="_blank" rel="noopener">issue #43</a>.</li>
+          </ul>
+        </section>
+
         <section class="card" id="v0-6-20">
           <h2><span class="pill">v0.6.20</span> <span class="data">24/08/2026</span></h2>
           <ul>

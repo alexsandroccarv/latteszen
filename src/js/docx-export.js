@@ -121,13 +121,12 @@ window.LzDocx = (function () {
     }
     function heading(text, level) {
         const size = level === 1 ? 28 : 24; // meios-pontos: 14pt / 12pt
-        return para(run(text, { bold: true, size }), { spacingAfter: 160 });
+        return para(text, { bold: true, size, spacingAfter: 160 });
     }
     function cell(text, opts) {
         opts = opts || {};
         const width = opts.width || 1500;
-        const content = opts.bold ? para(run(text, { bold: true, size: opts.size || 18 }), { spacingAfter: 0 })
-            : para(text, { size: opts.size || 18, spacingAfter: 0 });
+        const content = para(text, { bold: !!opts.bold, size: opts.size || 18, spacingAfter: 0 });
         return `<w:tc><w:tcPr><w:tcW w:w="${width}" w:type="dxa"/>${opts.shade ? `<w:shd w:val="clear" w:fill="${opts.shade}"/>` : ''}</w:tcPr>${content}</w:tc>`;
     }
     function row(cells) { return `<w:tr>${cells.join('')}</w:tr>`; }

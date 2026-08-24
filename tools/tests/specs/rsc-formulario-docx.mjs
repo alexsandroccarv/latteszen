@@ -38,8 +38,11 @@ test('Sem diretório configurado, "Salvar formulário" avisa e não grava nada',
 });
 
 test('Com diretório configurado, o formulário é salvo como .docx válido em "Exportação/RSC-PCCTAE"', async ({ page, baseUrl }) => {
-    const items = [makeItem('FORMACAO_COMPLEMENTAR', 'FORMACAO', { titulo: 'Curso RSC Docx', instituicao: 'X', anoFim: '2024' },
-        { rsc: { conta: true, criterio: '1.3', jaUsado: false } })];
+    const items = [
+        makeItem('IDENTIFICACAO', 'DADOS_GERAIS', { titulo: 'Fulano de Tal Teste' }),
+        makeItem('FORMACAO_COMPLEMENTAR', 'FORMACAO', { titulo: 'Curso RSC Docx', instituicao: 'X', anoFim: '2024' },
+            { rsc: { conta: true, criterio: '1.3', jaUsado: false } }),
+    ];
     await seedCatalog(page, baseUrl, items);
     await habilitarRsc(page, {
         cargo: 'Assistente em Administração', nivelClassificacao: 'D', funcaoEncargo: 'Chefe de Setor',
@@ -62,6 +65,10 @@ test('Com diretório configurado, o formulário é salvo como .docx válido em "
     assertEqual(saved.subdir, 'Exportação/RSC-PCCTAE', 'Pasta de exportação');
     assert(saved.filename.endsWith('.docx'), `Nome do arquivo deveria terminar em .docx — obtido "${saved.filename}"`);
 
+    const hoje = new Date();
+    const ddmmyyyy = String(hoje.getDate()).padStart(2, '0') + String(hoje.getMonth() + 1).padStart(2, '0') + hoje.getFullYear();
+    assertEqual(saved.filename, `RSC_Fulano de Tal Teste_${ddmmyyyy}.docx`, 'Nome do arquivo deveria seguir o padrão RSC_NomeCompleto_ddmmyyyy.docx (issue reportada pelo usuário)');
+
     const toasts = await page.evaluate(() => Array.from(document.querySelectorAll('#toasts > div')).map((d) => d.textContent));
     assert(toasts.some((t) => /formulário salvo/i.test(t)), 'Deveria confirmar que o formulário foi salvo');
 
@@ -82,6 +89,7 @@ doc = z.read('word/document.xml').decode('utf-8')
 print(doc)
 `, path]).toString('utf-8');
 
+    assert(!/&lt;w:(r|t|rPr)&gt;/.test(zipOk), 'document.xml não deveria conter marcação OOXML escapada como texto literal (heading()/cell() re-escapando um <w:r> já pronto)');
     assert(zipOk.includes('Requerimento de Reconhecimento de Saberes e Competências'), 'document.xml deveria conter o título do formulário');
     assert(zipOk.includes('Participação como membro de núcleos'), 'document.xml deveria listar a descrição do critério 1.3 do item cadastrado');
     assert(zipOk.includes('Chefe de Setor'), 'document.xml deveria conter a Função/Encargo configurada');

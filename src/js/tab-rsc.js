@@ -148,13 +148,30 @@ window.TabRsc = (function () {
         return evs.map(e => e.name || e.basename || 'anexo').join('; ');
     }
 
+    // Nome do servidor cadastrado em "Identificação" (aba Perfil) — usado no
+    // corpo do formulário e no nome do arquivo gerado.
+    function nomeServidorAtual() {
+        const item = state.items.find(i => i.typeKey === 'IDENTIFICACAO' && i.fields && i.fields.titulo);
+        return (item && item.fields.titulo) || '';
+    }
+
+    // "RSC_NomeCompleto_ddmmyyyy.docx" — nome do servidor sem caracteres
+    // inválidos em nome de arquivo, data de hoje no formato ddmmyyyy.
+    function nomeArquivoFormulario() {
+        const safe = (nomeServidorAtual() || 'Servidor').replace(/[\\/:*?"<>|]/g, '').trim() || 'Servidor';
+        const hoje = new Date();
+        const dd = String(hoje.getDate()).padStart(2, '0');
+        const mm = String(hoje.getMonth() + 1).padStart(2, '0');
+        const yyyy = hoje.getFullYear();
+        return `RSC_${safe}_${dd}${mm}${yyyy}.docx`;
+    }
+
     // Monta o corpo (XML OOXML) do formulário padrão RSC-PCCTAE (Anexo da
     // Portaria MEC nº 608/2026), a partir dos dados de configuração, dos
     // itens marcados e da simulação já calculada.
     function rscFormularioBody(itens, sim, cfg) {
         const D = window.LzDocx;
-        const nome = (state.items.find(i => i.typeKey === 'IDENTIFICACAO' && i.fields && i.fields.titulo) || {}).fields;
-        const nomeServidor = (nome && nome.titulo) || '';
+        const nomeServidor = nomeServidorAtual();
         const parts = [];
 
         parts.push(D.heading('Requerimento de Reconhecimento de Saberes e Competências (RSC-PCCTAE)', 1));
@@ -245,7 +262,7 @@ window.TabRsc = (function () {
         try {
             const bytes = window.LzDocx.buildDocx(rscFormularioBody(itens, sim, cfg));
             const folder = LattesTypes.rscFolder();
-            const nomeArquivo = 'Formulario-Requerimento-RSC-PCCTAE.docx';
+            const nomeArquivo = nomeArquivoFormulario();
             await Storage.writeFile(nomeArquivo, bytes, folder);
             toast(`Formulário salvo em "${folder}/${nomeArquivo}".`, 'ok');
         } catch (e) { toast('Falha ao salvar o formulário: ' + e.message, 'erro'); }
