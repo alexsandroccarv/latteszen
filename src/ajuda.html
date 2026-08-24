@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>lattesZen — Termo de Uso</title>
+    <title>lattesZen — Ajuda</title>
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#1351B4">
@@ -76,6 +76,7 @@
       .help-doc nav.toc li{margin:3px 0;break-inside:avoid}
       .help-doc section.card{background:var(--hdoc-surface);border:1px solid var(--hdoc-line);border-radius:10px;padding:20px 22px;margin-bottom:22px}
       .help-doc section.card h2{margin-top:0;font-size:1.25rem;display:flex;align-items:center;gap:10px}
+      .help-doc .step-num{display:inline-flex;align-items:center;justify-content:center;width:1.6em;height:1.6em;border-radius:50%;background:#1351b4;color:#fff;font-size:.85rem;font-weight:700;flex-shrink:0}
       .help-doc h3{font-size:1.02rem;margin:1.2em 0 .3em}
       .help-doc code{background:var(--hdoc-code);padding:.1em .4em;border-radius:4px;font-size:.88em;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
       .help-doc ul,.help-doc ol{padding-left:1.4em}
@@ -87,6 +88,13 @@
       .help-doc .tag{display:inline-block;background:var(--hdoc-chip);color:var(--hdoc-chipink);border-radius:20px;padding:1px 10px;font-size:.8rem;font-weight:600;margin:0 2px}
       .help-doc .pill{display:inline-block;background:#0C326F;color:#fff;border-radius:6px;padding:2px 8px;font-size:.78rem;font-weight:600}
       html.dark .help-doc .pill{background:#1351B4}
+      .help-doc .guide-grid{display:grid;grid-template-columns:1fr;gap:16px;margin:8px 0}
+      @media (min-width:640px){.help-doc .guide-grid{grid-template-columns:1fr 1fr}}
+      .help-doc .guide-card{display:block;background:var(--hdoc-surface);border:1px solid var(--hdoc-line);border-radius:10px;padding:18px 20px;transition:border-color .15s,transform .15s}
+      .help-doc .guide-card:hover{border-color:var(--hdoc-accent);transform:translateY(-1px);text-decoration:none}
+      .help-doc .guide-card h3{margin:.3em 0 .3em;font-size:1.1rem;display:flex;align-items:center;gap:8px;color:var(--hdoc-text)}
+      .help-doc .guide-card p{margin:0;font-size:.92rem;color:var(--hdoc-muted)}
+      .help-doc .guide-card .go{display:inline-block;margin-top:10px;font-size:.85rem;font-weight:600;color:var(--hdoc-accent)}
     </style>
 </head>
 <body class="font-sans bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-100 min-h-screen flex flex-col transition-colors duration-300">
@@ -113,10 +121,7 @@
 
         <!-- Abas de navegação (links de volta ao app) -->
         <nav class="bg-white dark:bg-gray-800 border-t border-govbr-700/20 dark:border-gray-700 px-2" aria-label="Seções">
-            <div class="max-w-5xl flex gap-1 overflow-x-auto">
-                <a href="index.html" class="tab-btn px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-gray-600 dark:text-gray-300 hover:text-govbr-600 dark:hover:text-unifesp-400 whitespace-nowrap">
-                    <i aria-hidden="true" class="fa-solid fa-house mr-1"></i> Início
-                </a>
+            <div class="max-w-5xl mx-auto flex gap-1 overflow-x-auto">
                 <a href="index.html" class="tab-btn px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-gray-600 dark:text-gray-300 hover:text-govbr-600 dark:hover:text-unifesp-400 whitespace-nowrap">
                     <i aria-hidden="true" class="fa-solid fa-file-circle-plus mr-1"></i> Catalogar
                 </a>
@@ -130,7 +135,7 @@
                     <i aria-hidden="true" class="fa-solid fa-gear mr-1"></i> Configurações
                 </a>
                 <span class="tab-btn px-4 py-2.5 text-sm font-medium border-b-2 border-govbr-600 dark:border-unifesp-400 text-govbr-700 dark:text-unifesp-400 font-bold whitespace-nowrap" aria-current="page">
-                    <i aria-hidden="true" class="fa-solid fa-file-contract mr-1"></i> Termo de Uso
+                    <i aria-hidden="true" class="fa-solid fa-circle-question mr-1"></i> Ajuda
                 </span>
             </div>
         </nav>
@@ -139,91 +144,66 @@
     <!-- ============================ CONTEÚDO ============================ -->
     <main class="flex-1 w-full max-w-6xl mx-auto px-4 py-6">
       <div class="help-doc">
-        <p style="margin:0 0 10px"><a href="index.html">← Voltar ao lattesZen</a></p>
-        <h1>Termo de Uso</h1>
-        <p class="lead">As condições de uso do lattesZen — o que você pode esperar da ferramenta e o que é de sua responsabilidade ao utilizá-la.</p>
+        <h1>Ajuda — Início Rápido</h1>
+        <p class="lead">Tudo que você precisa para organizar o Currículo Lattes com o lattesZen, num único lugar. Se você já conhece o app, vá direto para um dos <a href="#guias">dois guias completos</a> abaixo.</p>
 
-        <div class="warn">
-          <strong>Antes de começar:</strong> o lattesZen ainda está <strong>em desenvolvimento</strong>. Pode ter erros, funcionar diferente do esperado, ou mudar de uma hora para outra. <strong>Faça sempre uma cópia (backup) dos seus arquivos</strong> (Configurações › Backup).
+        <div class="note">
+          <strong>Em uma frase:</strong> você escolhe uma <em>pasta no seu computador</em> (ou o Google Drive) → importa itens do Lattes/ORCID/BibTeX → anexa os PDFs de comprovação → acompanha o que falta na aba <em>Conformidade</em> → e publica o currículo como uma página pública.
         </div>
 
         <nav class="toc">
           <h2>Nesta página</h2>
           <ol>
-            <li><a href="#aceitacao">1. Aceitação destes termos</a></li>
-            <li><a href="#descricao">2. O que é o lattesZen</a></li>
-            <li><a href="#licenca">3. Software livre, sem garantia</a></li>
-            <li><a href="#responsabilidade">4. Sua responsabilidade</a></li>
-            <li><a href="#uso">5. Uso adequado</a></li>
-            <li><a href="#dados">6. Dados pessoais</a></li>
-            <li><a href="#terceiros">7. Serviços e links de terceiros</a></li>
-            <li><a href="#propriedade">8. Propriedade intelectual</a></li>
-            <li><a href="#alteracoes">9. Alterações deste termo</a></li>
-            <li><a href="#legislacao">10. Legislação aplicável</a></li>
-            <li><a href="#contato">11. Contato</a></li>
+            <li><a href="#oque">O que é o lattesZen</a></li>
+            <li><a href="#passos">Primeiros passos (5 minutos)</a></li>
+            <li><a href="#guias">Guias completos</a></li>
+            <li><a href="#faq">Perguntas rápidas</a></li>
           </ol>
         </nav>
 
-        <section class="card" id="aceitacao">
-          <h2><i class="fa-solid fa-handshake text-govbr-600 dark:text-unifesp-400"></i> 1. Aceitação destes termos</h2>
-          <p>Ao acessar e usar o lattesZen, você concorda com as condições descritas neste Termo de Uso. Se você não concordar com algum ponto, a recomendação é não utilizar a ferramenta.</p>
+        <section class="card" id="oque">
+          <h2>O que é o lattesZen</h2>
+          <p>O <strong>lattesZen</strong> é um organizador de Currículo Lattes que roda inteiramente no seu navegador — <strong>nenhum dado sai do seu computador</strong>. Ele ajuda você a manter os itens do currículo organizados, comprovados (com PDF anexado) e prontos para publicação, além de simular o <strong>RSC-PCCTAE</strong> (Reconhecimento de Saberes e Competências) para servidores técnico-administrativos em educação.</p>
         </section>
 
-        <section class="card" id="descricao">
-          <h2><i class="fa-solid fa-graduation-cap text-govbr-600 dark:text-unifesp-400"></i> 2. O que é o lattesZen</h2>
-          <p>O lattesZen é uma ferramenta gratuita e de código aberto que roda inteiramente no seu navegador, para ajudar você a organizar o seu Currículo Lattes: cadastrar itens com evidências, verificar conformidade, montar o dossiê de RSC-PCCTAE e publicar uma página do currículo na web.</p>
-          <p>O lattesZen <strong>não é</strong> a Plataforma Lattes, não é mantido pelo CNPq ou por qualquer órgão do Governo Federal, e não substitui os canais oficiais — é uma ferramenta de apoio, de uso independente.</p>
+        <section class="card" id="passos">
+          <h2>Primeiros passos (5 minutos)</h2>
+          <ol>
+            <li><strong>Escolha uma pasta</strong> em <span class="pill">Configurações → Diretório de arquivos</span> (ou conecte o Google Drive, se preferir acesso de mais de um dispositivo).</li>
+            <li><strong>Traga seus itens</strong>: importe o XML exportado da Plataforma Lattes, ou busque suas obras por <strong>ORCID iD</strong>, ou importe um arquivo <strong>BibTeX/RIS</strong> — tudo em <span class="pill">Configurações</span>.</li>
+            <li><strong>Anexe as evidências</strong> (PDFs) a cada item na aba <span class="pill">Catalogar</span>, usando a Caixa de Entrada ou arrastando o arquivo direto para o formulário.</li>
+            <li><strong>Confira o que falta</strong> na aba <span class="pill">Conformidade</span> — comprovação e campos obrigatórios, tudo num só painel.</li>
+            <li><strong>Publique</strong> quando quiser, em <span class="pill">Publicar na Web</span>: gera uma página pública do currículo, autossuficiente, a partir da mesma base.</li>
+          </ol>
+          <div class="warn"><strong>Navegador:</strong> a gravação automática em pasta usa a <em>File System Access API</em>, disponível no <strong>Google Chrome</strong> e no <strong>Microsoft Edge</strong> (computador). Em outros navegadores, ou usando o Google Drive, o app funciona normalmente.</div>
         </section>
 
-        <section class="card" id="licenca">
-          <h2><i class="fa-solid fa-scale-balanced text-govbr-600 dark:text-unifesp-400"></i> 3. Software livre, sem garantia</h2>
-          <p>O lattesZen é distribuído sob a licença <strong><a href="https://www.gnu.org/licenses/agpl-3.0.html" target="_blank" rel="noopener">AGPLv3</a></strong> (Free Software Foundation) e fornecido <strong>“no estado em que se encontra”</strong> (<em>as is</em>), <strong>sem garantias de qualquer tipo</strong>, expressas ou implícitas — inclusive quanto a adequação a uma finalidade específica, ausência de erros ou disponibilidade contínua, conforme a própria licença estabelece.</p>
-          <div class="warn">O projeto ainda está em <strong>desenvolvimento ativo</strong>: funcionalidades podem mudar, apresentar falhas, ou ser removidas sem aviso prévio. Não há qualquer garantia de continuidade, suporte ou manutenção.</div>
+        <section class="card" id="guias">
+          <h2>Guias completos</h2>
+          <p>Para o passo a passo detalhado de cada fluxo, escolha um guia:</p>
+          <div class="guide-grid">
+            <a class="guide-card" href="ajuda-lattes.html">
+              <h3><i aria-hidden="true" class="fa-solid fa-file-lines"></i> Currículo Lattes</h3>
+              <p>Diretório de arquivos, Caixa de Entrada, importação do XML/ORCID/BibTeX-RIS, preenchimento dos campos, atalhos de teclado, a aba Conformidade, publicação da página pública, backup e compatibilidade com o Lattes.</p>
+              <span class="go">Abrir guia do Lattes →</span>
+            </a>
+            <a class="guide-card" href="ajuda-rsc.html">
+              <h3><i aria-hidden="true" class="fa-solid fa-award"></i> RSC-PCCTAE</h3>
+              <p>Como habilitar o módulo, marcar itens com um critério do RSC, as categorias 20/21 (sem correspondência no Lattes), o simulador de pontuação e nível, e a geração do memorial, planilha e formulário oficial (.docx).</p>
+              <span class="go">Abrir guia do RSC →</span>
+            </a>
+          </div>
         </section>
 
-        <section class="card" id="responsabilidade">
-          <h2><i class="fa-solid fa-triangle-exclamation text-govbr-600 dark:text-unifesp-400"></i> 4. Sua responsabilidade</h2>
-          <p>Como todo o processamento ocorre localmente no seu navegador e computador (veja a <a href="privacidade.html">Política de Privacidade</a>), <strong>você é o único responsável pela guarda e integridade dos seus dados</strong>. O autor e mantenedor do lattesZen não se responsabiliza por:</p>
-          <ul>
-            <li>Perda de dados, arquivos ou evidências cadastradas — <strong>faça backups com frequência</strong> (Configurações › Backup).</li>
-            <li>Erros, omissões ou inconsistências na página pública gerada, ou em qualquer documento produzido pela ferramenta — <strong>confira sempre</strong> antes de enviar/publicar.</li>
-            <li>Decisões tomadas com base nos cálculos do simulador de RSC-PCCTAE, que são <strong>estimativas de apoio pessoal, sem caráter oficial</strong> — a avaliação formal cabe sempre à comissão da sua instituição.</li>
-          </ul>
-        </section>
-
-        <section class="card" id="uso">
-          <h2><i class="fa-solid fa-circle-check text-govbr-600 dark:text-unifesp-400"></i> 5. Uso adequado</h2>
-          <p>O lattesZen deve ser usado para os fins a que se destina: organizar informações curriculares e acadêmicas próprias. Não é permitido usar a ferramenta para fins ilícitos, para inserir informações falsas com intenção de fraude, ou para tentar comprometer a segurança/funcionamento do software ou de seu código-fonte.</p>
-        </section>
-
-        <section class="card" id="dados">
-          <h2><i class="fa-solid fa-lock text-govbr-600 dark:text-unifesp-400"></i> 6. Dados pessoais</h2>
-          <p>O tratamento de dados pessoais no lattesZen está descrito em detalhe na <a href="privacidade.html">Política de Privacidade</a> — em resumo, o app não tem servidor, e os dados que você cadastra ficam no seu navegador e/ou numa pasta do seu próprio computador.</p>
-        </section>
-
-        <section class="card" id="terceiros">
-          <h2><i class="fa-solid fa-arrow-up-right-from-square text-govbr-600 dark:text-unifesp-400"></i> 7. Serviços e links de terceiros</h2>
-          <p>O lattesZen carrega bibliotecas públicas de terceiros (Tailwind CSS, Font Awesome, fonte Rawline) e contém links para serviços externos — a Plataforma Lattes (gov.br/CNPq), o repositório no GitHub, e, na página <a href="doe-um-cafe.html">Doe um café</a>, um gerador de QR code Pix e links de parceiros/afiliados. O uso desses serviços externos está sujeito aos termos e políticas de cada um deles — o lattesZen não tem controle sobre seu conteúdo, disponibilidade ou práticas, e não se responsabiliza por eles.</p>
-        </section>
-
-        <section class="card" id="propriedade">
-          <h2><i class="fa-solid fa-code text-govbr-600 dark:text-unifesp-400"></i> 8. Propriedade intelectual</h2>
-          <p>O código-fonte do lattesZen é aberto e está disponível no <a href="https://github.com/alexsandroccarv/lattesZen" target="_blank" rel="noopener">repositório do projeto</a>, sob a licença <a href="https://www.gnu.org/licenses/agpl-3.0.html" target="_blank" rel="noopener">AGPLv3</a>: qualquer pessoa pode ler, usar, modificar e redistribuir o código, respeitando os termos dessa licença. Os dados do seu currículo cadastrados na ferramenta continuam sendo seus, sem qualquer cessão de direitos ao mantenedor do projeto.</p>
-        </section>
-
-        <section class="card" id="alteracoes">
-          <h2><i class="fa-solid fa-clock-rotate-left text-govbr-600 dark:text-unifesp-400"></i> 9. Alterações deste termo</h2>
-          <p>Por ser software livre e de código aberto, qualquer alteração neste Termo de Uso fica registrada no histórico do <a href="https://github.com/alexsandroccarv/lattesZen" target="_blank" rel="noopener">repositório no GitHub</a>. A versão e a data no rodapé desta página indicam a última atualização. O uso continuado do lattesZen após uma alteração implica concordância com o termo atualizado.</p>
-        </section>
-
-        <section class="card" id="legislacao">
-          <h2><i class="fa-solid fa-gavel text-govbr-600 dark:text-unifesp-400"></i> 10. Legislação aplicável</h2>
-          <p>Este Termo de Uso é regido pelas leis da República Federativa do Brasil, incluindo a Lei Geral de Proteção de Dados (LGPD, Lei nº 13.709/2018) no que se refere ao tratamento de dados pessoais.</p>
-        </section>
-
-        <section class="card" id="contato">
-          <h2><i class="fa-solid fa-envelope text-govbr-600 dark:text-unifesp-400"></i> 11. Contato</h2>
-          <p>Dúvidas sobre este Termo de Uso podem ser enviadas como uma <a href="https://github.com/alexsandroccarv/lattesZen/issues" target="_blank" rel="noopener">issue no repositório do projeto</a> — o mesmo canal usado para reportar bugs e sugerir funcionalidades.</p>
+        <section class="card" id="faq">
+          <h2>Perguntas rápidas</h2>
+          <h3>Meus dados ficam salvos onde?</h3>
+          <p>Na pasta que você escolher no seu próprio computador (ou, opcionalmente, numa pasta dedicada no seu Google Drive). O lattesZen não tem servidor próprio nem envia seus dados para fora do navegador.</p>
+          <h3>Preciso reescrever tudo que já tenho no Lattes?</h3>
+          <p>Não — importe o XML exportado da Plataforma Lattes (ou suas obras via ORCID/BibTeX/RIS) e o app traz os itens automaticamente, sem duplicar em importações futuras.</p>
+          <h3>O simulador de RSC tem valor oficial?</h3>
+          <p>Não — é uma ferramenta de apoio de uso individual, baseada nas tabelas do decreto vigente, para você organizar sua pontuação e comprovação. A avaliação formal cabe sempre à comissão da sua instituição.</p>
+          <div class="ok">Ainda com dúvidas? Os dois guias completos acima cobrem cada tela e cada botão do app em detalhe.</div>
         </section>
       </div>
     </main>

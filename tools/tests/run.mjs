@@ -30,6 +30,7 @@ import './specs/evidencia-preview.mjs';
 import './specs/rsc-crise-saude.mjs';
 import './specs/rsc-formulario-docx.mjs';
 import './specs/pwa-atualizacao.mjs';
+import './specs/ajuda-rodape.mjs';
 
 console.log('Rodando suíte de testes de regressão (Playwright)...\n');
 await runAll();

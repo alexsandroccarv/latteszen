@@ -141,7 +141,7 @@
     <!-- ============================ CONTEÚDO ============================ -->
     <main class="flex-1 w-full max-w-6xl mx-auto px-4 py-6">
       <div class="help-doc">
-        <p style="margin:0 0 10px"><a href="ajuda-rsc.html">Ver ajuda do módulo RSC-PCCTAE →</a></p>
+        <p style="margin:0 0 10px"><a href="ajuda.html">← Início da Ajuda</a> · <a href="ajuda-rsc.html">Ver ajuda do módulo RSC-PCCTAE →</a></p>
         <h1>Como usar o lattesZen</h1>
         <p class="lead">Guia dos procedimentos para organizar, comprovar e publicar seu Currículo Lattes. O módulo <strong>RSC-PCCTAE</strong> tem uma <a href="ajuda-rsc.html">página de ajuda própria</a>.</p>
 
@@ -153,13 +153,14 @@
           <h2>Nesta página</h2>
           <ol>
             <li><a href="#fluxo">Visão geral do fluxo</a></li>
-            <li><a href="#diretorio">1. Criar/escolher o diretório</a></li>
+            <li><a href="#diretorio">1. Criar/escolher o diretório (ou Google Drive)</a></li>
             <li><a href="#inbox">2. A pasta de entrada (Caixa de Entrada)</a></li>
             <li><a href="#importar">3. Importar o XML do Lattes</a></li>
-            <li><a href="#catalogar">4. Preencher os campos (Catalogar)</a></li>
-            <li><a href="#atalhos">5. Atalhos de teclado</a></li>
-            <li><a href="#conformidade">6. A aba Conformidade</a></li>
-            <li><a href="#exportar">7. Publicar a página pública</a></li>
+            <li><a href="#outras-fontes">4. Outras fontes: ORCID, DOI e BibTeX/RIS</a></li>
+            <li><a href="#catalogar">5. Preencher os campos (Catalogar)</a></li>
+            <li><a href="#atalhos">6. Atalhos de teclado</a></li>
+            <li><a href="#conformidade">7. A aba Conformidade</a></li>
+            <li><a href="#exportar">8. Publicar a página pública</a></li>
             <li><a href="#backup">Backup e codificação</a></li>
           </ol>
         </nav>
@@ -189,6 +190,9 @@
             <li>Selecione a pasta que você criou e <strong>autorize o acesso</strong> quando o navegador perguntar.</li>
           </ol>
           <p>Pronto — a partir daí, cada item que você salvar é gravado automaticamente ali. O nome da pasta atual aparece na própria seção.</p>
+
+          <h3>Alternativa: Google Drive</h3>
+          <p>Se preferir não depender de um único computador, a mesma seção de Configurações tem <strong>Armazenamento remoto (Google Drive)</strong>: informe o nome de uma pasta e clique em <span class="tag">Conectar ao Google Drive</span>. O lattesZen cria a mesma estrutura de pastas dentro do seu Drive e passa a ler/gravar por ali — acessível de mais de um dispositivo. O acesso concedido é restrito ao escopo <code>drive.file</code>: o app só enxerga os arquivos que ele mesmo cria, nunca o resto do seu Google Drive.</p>
 
           <h3>O que é gravado na pasta</h3>
           <ul>
@@ -259,8 +263,19 @@
           <div class="note"><strong>Acentuação:</strong> o Lattes usa a codificação <code>ISO-8859-1</code>. O lattesZen decodifica corretamente os arquivos importados, preservando acentos e caracteres especiais.</div>
         </section>
 
+        <section class="card" id="outras-fontes">
+          <h2><span class="step-num">4</span> Outras fontes: ORCID, DOI e BibTeX/RIS</h2>
+          <p>Além do XML do Lattes, a seção <strong>Outras fontes</strong> em Configurações traz mais três formas de trazer publicações sem digitar tudo à mão:</p>
+          <h3>a) ORCID iD</h3>
+          <p>Em <strong>Configurações → Importar do ORCID</strong>, informe seu <strong>ORCID iD</strong> (formato <code>0000-0000-0000-0000</code>) e clique em <strong>Buscar</strong>. O app consulta a API pública do ORCID (sem senha) e lista suas obras públicas para você escolher quais importar — mesmo padrão de seleção e detecção de duplicatas da importação do XML.</p>
+          <h3>b) DOI (Crossref)</h3>
+          <p>Ao cadastrar manualmente um item de produção bibliográfica (artigo, capítulo, trabalho em evento…) na aba <span class="pill">Catalogar</span>, preencha o campo <strong>DOI</strong> e clique em <span class="tag">Buscar metadados</span> ao lado dele: o lattesZen consulta a API pública do Crossref e preenche automaticamente os campos vazios do formulário (título, autores, ano, periódico…). Se algum campo já estiver preenchido, o app pergunta antes de sobrescrevê-lo.</p>
+          <h3>c) BibTeX / RIS</h3>
+          <p>Em <strong>Configurações → Publicações (BibTeX/RIS)</strong>, importe um arquivo <code>.bib</code> ou <code>.ris</code> exportado de outra ferramenta (Zotero, Mendeley, EndNote, Google Scholar) — o app reconhece o formato automaticamente, lista as entradas mapeadas (e avisa sobre as que não têm correspondência) e você escolhe quais importar. A mesma seção também <strong>exporta</strong> suas publicações já catalogadas para <code>.bib</code> ou <code>.ris</code>, caso precise levá-las para outra ferramenta.</p>
+        </section>
+
         <section class="card" id="catalogar">
-          <h2><span class="step-num">4</span> Preencher os campos (aba Catalogar)</h2>
+          <h2><span class="step-num">5</span> Preencher os campos (aba Catalogar)</h2>
           <p>A aba <span class="pill">Catalogar</span> é onde você cria ou edita um item. O formulário se adapta ao que você seleciona:</p>
           <ol>
             <li><strong>Categoria</strong>: escolha entre as categorias do Lattes (Dados gerais, Formação, Produções, Patentes e Registros, Eventos, Orientações, Bancas…).</li>
@@ -279,7 +294,7 @@
         </section>
 
         <section class="card" id="atalhos">
-          <h2><span class="step-num">5</span> Atalhos de teclado</h2>
+          <h2><span class="step-num">6</span> Atalhos de teclado</h2>
           <p>Na aba <span class="pill">Catalogar</span>, alguns atalhos agilizam o preenchimento sem tirar as mãos do teclado:</p>
           <table>
             <thead><tr><th>Atalho</th><th>Ação</th></tr></thead>
@@ -293,7 +308,7 @@
         </section>
 
         <section class="card" id="conformidade">
-          <h2><span class="step-num">6</span> A aba Conformidade</h2>
+          <h2><span class="step-num">7</span> A aba Conformidade</h2>
           <p>A aba <span class="pill">Conformidade</span> é o seu painel de controle: mostra, num relance, o que está completo e o que ainda falta. Ela trabalha com <strong>duas dimensões independentes</strong>:</p>
           <table>
             <thead><tr><th>Dimensão</th><th>O que mede</th></tr></thead>
@@ -317,7 +332,7 @@
         </section>
 
         <section class="card" id="exportar">
-          <h2><span class="step-num">7</span> Publicar a página pública</h2>
+          <h2><span class="step-num">8</span> Publicar a página pública</h2>
           <p>Na aba <span class="pill">Publicar na Web</span> você gera a <strong>página pública do currículo</strong> — um único arquivo HTML autossuficiente, com as evidências marcadas como “públicas” embutidas. Pode ser hospedado ou compartilhado.</p>
         </section>
 
@@ -341,11 +356,7 @@
             <span class="text-white/25 dark:text-gray-700">|</span>
             <a href="privacidade.html" class="hover:text-white transition-colors">Política de privacidade</a>
             <span class="text-white/25 dark:text-gray-700">|</span>
-            <a href="./ajuda-lattes.html" class="hover:text-white transition-colors">Ajuda (Lattes)</a>
-            <span class="text-white/25 dark:text-gray-700">|</span>
-            <a href="./ajuda-rsc.html" class="hover:text-white transition-colors">Ajuda (RSC)</a>
-            <span class="text-white/25 dark:text-gray-700">|</span>
-            <a href="./notas-de-versao.html" class="hover:text-white transition-colors">Notas de versão</a>
+            <a href="./ajuda.html" class="hover:text-white transition-colors">Ajuda</a>
             <span class="text-white/25 dark:text-gray-700">|</span>
             <button type="button" id="themeToggle" class="hover:text-white transition-colors flex items-center gap-1" aria-pressed="false">
                 <i aria-hidden="true" class="fa-solid fa-moon"></i> <span id="themeToggleLabel">Tema escuro</span>

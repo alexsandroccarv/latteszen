@@ -1344,6 +1344,12 @@ window.TabConfig = (function () {
                 ${cfgGroup('fa-trash-can', 'Lixeira')}
                 ${lixeiraSectionHtml()}
 
+                ${cfgGroup('fa-circle-info', 'Sobre')}
+                <section class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+                    <h2 class="text-lg font-bold mb-2 flex items-center gap-2"><i class="fa-solid fa-circle-info text-govbr-600 dark:text-unifesp-400"></i> Sobre o lattesZen</h2>
+                    <p class="text-sm text-gray-600 dark:text-gray-400">Versão <span class="font-mono">${esc(APP_CONFIG.version)}</span> — veja o que mudou em cada versão nas <a href="notas-de-versao.html" target="_blank" rel="noopener" class="text-govbr-600 dark:text-unifesp-400 underline">notas de versão</a>.</p>
+                </section>
+
                 ${cfgGroup('fa-triangle-exclamation', 'Zona de risco')}
                 <section class="bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800 p-4">
                     <button id="btnClear" class="px-3 py-2 rounded bg-red-600 text-white text-sm"><i class="fa-solid fa-trash mr-1"></i> Limpar catálogo (índice local)</button>
