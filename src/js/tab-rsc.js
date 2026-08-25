@@ -81,6 +81,7 @@ window.TabRsc = (function () {
                 <button id="btnRscCsv" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-file-csv mr-1"></i> Exportar planilha (CSV)</button>
                 <button id="btnRscMemorial" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-file-lines mr-1"></i> Gerar memorial</button>
                 <button id="btnRscForm" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-file-word mr-1"></i> Salvar formulário (.docx)</button>
+                <button id="btnRscPromptIA" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-wand-magic-sparkles mr-1"></i> Gerar prompt (IA)</button>
             </div>
 
             <h3 class="font-bold mb-2">Itens contabilizados</h3>
@@ -89,6 +90,7 @@ window.TabRsc = (function () {
         $('#btnRscCsv').addEventListener('click', () => downloadText(rscCsv(itens), 'rsc-comprovacao.csv', 'text/csv'));
         $('#btnRscMemorial').addEventListener('click', () => downloadText(rscMemorial(itens, sim, cfg), 'rsc-memorial.txt', 'text/plain'));
         $('#btnRscForm').addEventListener('click', () => salvarFormularioDocx(itens, sim, cfg));
+        $('#btnRscPromptIA').addEventListener('click', () => downloadText(rscPromptIA(itens, sim, cfg), 'prompt-trajetoria-profissional.md', 'text/markdown'));
     }
     function downloadText(txt, nome, mime) {
         const blob = new Blob([txt], { type: (mime || 'text/plain') + ';charset=utf-8' });
@@ -146,6 +148,69 @@ window.TabRsc = (function () {
         const evs = Array.isArray(item.evidencias) ? item.evidencias : [];
         if (!evs.length) return '—';
         return evs.map(e => e.name || e.basename || 'anexo').join('; ');
+    }
+
+    // Prompt master + dados categorizados (markdown) para gerar, com uma IA
+    // externa (Claude, ChatGPT etc.), o texto de "Trajetória Profissional"
+    // exigido pelo Art. 13 do Decreto nº 13.048/2026 no Memorial Descritivo.
+    // Deliberadamente NÃO inclui nome, SIAPE, telefone/e-mail, saldo ou nº de
+    // processo anterior — só contexto profissional/institucional, para minimizar
+    // dados pessoais enviados a uma ferramenta externa.
+    function rscPromptIA(itens, sim, cfg) {
+        const L = [];
+        L.push('# Prompt — Trajetória Profissional (Memorial Descritivo RSC-PCCTAE)');
+        L.push('');
+        L.push('Você é um assistente de escrita técnica. Redija, em primeira pessoa, o texto de **"Trajetória Profissional"** que fará parte do Memorial Descritivo do Reconhecimento de Saberes e Competências (RSC-PCCTAE), conforme o Art. 13 do Decreto nº 13.048/2026, usando como base os dados categorizados no final deste arquivo.');
+        L.push('');
+        L.push('## O que escrever');
+        L.push('Descreva de forma sucinta a trajetória profissional e as principais atividades exercidas, explicando como esse trabalho gerou os saberes e os resultados institucionais que justificam o nível de RSC pleiteado. É uma narrativa autoral, em prosa corrida — contando a história de aprendizado, conquistas e participação na instituição — e não um resumo burocrático, item a item, dos dados fornecidos.');
+        L.push('');
+        L.push('## Regras obrigatórias');
+        L.push('- Texto objetivo, entre **4.000 e 10.000 caracteres** (contando espaços).');
+        L.push('- Primeira pessoa, tom profissional e narrativo — parágrafos corridos, sem bullet points nem cabeçalhos dentro do texto final.');
+        L.push('- **Não inclua dados pessoais sensíveis**: nome completo, endereço, CPF, SIAPE, telefone, e-mail ou qualquer informação sobre terceiros. Escreva apenas sobre a trajetória profissional.');
+        L.push('- Baseie-se somente nos dados fornecidos abaixo — não invente atividades, datas ou resultados que não estejam neles.');
+        L.push('- Organize a narrativa como fizer mais sentido para contar a história (cronologicamente, por eixos temáticos, pelos requisitos do RSC…) — não precisa seguir a ordem em que os dados aparecem.');
+        L.push('');
+        L.push('## Formato da resposta');
+        L.push('Devolva apenas o texto final da Trajetória Profissional, pronto para colar no Memorial. Sem comentários, explicações ou meta-texto antes ou depois.');
+        L.push('');
+        L.push('---');
+        L.push('');
+        L.push('# Dados de entrada (documentos categorizados)');
+        L.push('');
+        L.push('## Contexto profissional');
+        if (cfg.cargo) L.push(`- Cargo: ${cfg.cargo}`);
+        if (cfg.nivelClassificacao) L.push(`- Nível de classificação: ${cfg.nivelClassificacao}`);
+        if (cfg.funcaoEncargo) L.push(`- Função/encargo: ${cfg.funcaoEncargo}`);
+        if (cfg.lotacao) L.push(`- Lotação: ${cfg.lotacao}`);
+        if (cfg.ingresso) L.push(`- Data de ingresso na instituição: ${cfg.ingresso}`);
+        const escLabel = (LzRSC.escInfo(cfg.escolaridade) || {}).label;
+        if (escLabel) L.push(`- Escolaridade: ${escLabel}`);
+        const nivelAlvo = sim.nivelAlcancavel || 0;
+        if (nivelAlvo) L.push(`- Nível de RSC pleiteado (simulado): RSC-${['I', 'II', 'III', 'IV', 'V', 'VI'][nivelAlvo - 1]} (${sim.nivelNome})`);
+        L.push('');
+
+        const grupos = {};
+        itens.forEach(i => { const c = LzRSC.criterio(i.rsc.criterio); const r = c ? c.req : 0; (grupos[r] = grupos[r] || []).push(i); });
+        L.push('## Atividades por requisito');
+        for (let r = 1; r <= 6; r++) {
+            const grp = grupos[r] || [];
+            if (!grp.length) continue;
+            L.push('');
+            L.push(`### Requisito ${REQUISITOS_FORM[r]}`);
+            grp.forEach(i => {
+                const pi = LzRSC.pontosItem(i.rsc), c = pi.crit;
+                L.push('');
+                L.push(`- **Item**: ${LattesTypes.itemTitle(i)}`);
+                if (c) L.push(`  - Critério: ${c.desc}`);
+                const per = (i.rsc.dataInicio || i.rsc.dataFim) ? `${i.rsc.dataInicio || '?'} a ${i.rsc.dataFim || '?'}` : '';
+                if (per) L.push(`  - Período: ${per}`);
+                if (i.rsc.papel) L.push(`  - Papel/função: ${i.rsc.papel}`);
+                if (i.rsc.justificativa) L.push(`  - Justificativa: ${i.rsc.justificativa}`);
+            });
+        }
+        return L.join('\n');
     }
 
     // Nome do servidor cadastrado em "Identificação" (aba Perfil) — usado no
