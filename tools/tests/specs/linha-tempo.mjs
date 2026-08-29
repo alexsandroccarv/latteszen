@@ -10,6 +10,12 @@
    "Fotos de Perfil" e "Dados gerais" (identificação/perfil, não são
    "produção") não aparecem; anos em ordem decrescente (mais recente
    primeiro); quadradinhos ~30% menores (16px → 11px).
+
+   Nuvem de palavras (acima da grade): frequência de palavras extraídas de
+   título, palavras-chave ("palavrasChave", separado por ";") e área de
+   conhecimento dos itens — mesmas categorias "não-produção" excluídas,
+   stopwords (de, da, em...) filtradas, palavra mais frequente com fonte
+   maior.
    ========================================================================== */
 import { test, assert, assertEqual, makeItem, seedCatalog } from '../harness.mjs';
 
@@ -87,4 +93,40 @@ test('Rótulos das linhas sem número da categoria, anos em ordem decrescente e 
 
     const legendaClasses = (info.legendaClasse || '').split(/\s+/);
     assert(legendaClasses.includes('w-2') && legendaClasses.includes('h-2'), `Quadradinho da legenda deveria acompanhar a redução (w-2/h-2) — classe obtida: "${info.legendaClasse}"`);
+});
+
+test('Nuvem de palavras: frequência de título/palavras-chave/área, sem categorias excluídas nem stopwords, acima da grade', async ({ page, baseUrl }) => {
+    const items = [
+        makeItem('ARTIGO_PERIODICO', 'PRODUCOES', {
+            titulo: 'Aprendizagem de máquina aplicada', palavrasChave: 'aprendizagem; educação; tecnologia',
+            areaConhecimento: 'Ciência da Computação', ano: '2020',
+        }),
+        makeItem('ARTIGO_PERIODICO', 'PRODUCOES', {
+            titulo: 'Aprendizagem colaborativa em sala de aula', palavrasChave: 'aprendizagem; colaboração',
+            areaConhecimento: 'Educação', ano: '2021',
+        }),
+        // Categoria excluída (Dados gerais): não deveria contribuir palavras.
+        makeItem('PREMIO', 'DADOS_GERAIS', { titulo: 'Medalha de excelência acadêmica', ano: '2021', entidade: 'Entidade Z' }),
+    ];
+    await seedCatalog(page, baseUrl, items);
+    await page.click('[data-tab="linhatempo"]');
+    await page.waitForTimeout(300);
+
+    const info = await page.evaluate(() => {
+        const spans = Array.from(document.querySelectorAll('#tab-linhatempo [data-palavra]'));
+        const porPalavra = {};
+        spans.forEach((s) => { porPalavra[s.dataset.palavra] = { freq: +s.dataset.freq, fontSize: parseFloat(s.style.fontSize) }; });
+        const h2s = Array.from(document.querySelectorAll('#tab-linhatempo h2')).map((h) => h.textContent.trim());
+        return { porPalavra, palavras: Object.keys(porPalavra), h2s };
+    });
+
+    assertEqual(info.porPalavra['aprendizagem'] && info.porPalavra['aprendizagem'].freq, 4, `"aprendizagem" deveria aparecer 4 vezes (2 títulos + 2 palavras-chave) — obtido: ${JSON.stringify(info.porPalavra['aprendizagem'])}`);
+    assert(info.porPalavra['aprendizagem'].fontSize > info.porPalavra['tecnologia'].fontSize, 'Palavra mais frequente ("aprendizagem") deveria ter fonte maior que uma menos frequente ("tecnologia")');
+
+    assert(!info.palavras.some((p) => /medalha|excelência|acadêmica/.test(p)), `Palavras do item de categoria excluída (Dados gerais) não deveriam aparecer — obtidas: ${info.palavras.join(', ')}`);
+    assert(!info.palavras.includes('de') && !info.palavras.includes('da') && !info.palavras.includes('em'), `Stopwords não deveriam aparecer como palavra — obtidas: ${info.palavras.join(', ')}`);
+
+    const idxNuvem = info.h2s.findIndex((h) => /Nuvem de palavras/.test(h));
+    const idxLinha = info.h2s.findIndex((h) => /Linha do tempo/.test(h));
+    assert(idxNuvem !== -1 && idxLinha !== -1 && idxNuvem < idxLinha, `A seção "Nuvem de palavras" deveria vir antes de "Linha do tempo" — títulos na ordem: ${info.h2s.join(' | ')}`);
 });
