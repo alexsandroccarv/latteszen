@@ -34,6 +34,7 @@ import './specs/ajuda-rodape.mjs';
 import './specs/rsc-prompt-ia.mjs';
 import './specs/linha-tempo.mjs';
 import './specs/perfil-identificacao.mjs';
+import './specs/formacao-complementar.mjs';
 
 console.log('Rodando suíte de testes de regressão (Playwright)...\n');
 await runAll();

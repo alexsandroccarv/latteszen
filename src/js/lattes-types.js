@@ -330,16 +330,26 @@ const TYPES = {
         { key: 'setores', label: 'Setores de atividade', type: 'cnaeSetores', help: 'Até 3 setores (lista CNAE).',
           disabledWhen: { field: 'tipo', equals: 'Pós-Doutorado' } },
     ] },
+    // Nível de Formação complementar (espelha FORMACAO-COMPLEMENTAR do schema
+    // Lattes: 4 elementos distintos — só "MBA" tem bolsa/orientador/monografia/
+    // áreas/palavras-chave/setores; os outros 3 só têm os campos básicos.
     FORMACAO_COMPLEMENTAR: { label: 'Formação complementar', fields: [
+        { key: 'nivel', label: 'Nível', type: 'select', required: true, default: 'Outros',
+          options: ['Curso de curta duração', 'Extensão universitária', 'MBA', 'Outros'] },
         { key: 'titulo', label: 'Curso', type: 'text', required: true },
         F_INST,
         { key: 'cargaHoraria', label: 'Carga horária (h)', type: 'number', na: true },
         { key: 'statusCurso', label: 'Status do curso', type: 'select', options: ['Em andamento', 'Concluído', 'Incompleto'] },
         { key: 'anoInicio', label: 'Início (ano)', type: 'datebr', row: 'periodo' },
         { key: 'anoFim', label: 'Conclusão (ano)', type: 'datebr', row: 'periodo' },
-        { key: 'comBolsa', label: 'Com bolsa?', type: 'select', options: ['Sim', 'Não'] },
-        { key: 'bolsa', label: 'Agência financiadora', type: 'text', disabledWhen: { field: 'comBolsa', in: ['', 'Não'] } },
-        { key: 'palavrasChave', label: 'Palavras-chave', type: 'textarea', placeholder: 'Separe por ponto e vírgula (;)', help: 'Até 6 palavras-chave (limite da Plataforma Lattes).' },
+        { key: 'anoObtencaoTitulo', label: 'Obtenção do título', type: 'datebr', disabledWhen: { field: 'nivel', notEquals: 'MBA' } },
+        { key: 'comBolsa', label: 'Com bolsa?', type: 'select', options: ['Sim', 'Não'], disabledWhen: { field: 'nivel', notEquals: 'MBA' } },
+        { key: 'bolsa', label: 'Agência financiadora', type: 'text', disabledWhen: [{ field: 'nivel', notEquals: 'MBA' }, { field: 'comBolsa', in: ['', 'Não'] }] },
+        { key: 'tituloMonografia', label: 'Título da monografia', type: 'text', disabledWhen: { field: 'nivel', notEquals: 'MBA' } },
+        { key: 'orientador', label: 'Nome completo do orientador', type: 'text', disabledWhen: { field: 'nivel', notEquals: 'MBA' } },
+        { key: 'palavrasChave', label: 'Palavras-chave', type: 'textarea', placeholder: 'Separe por ponto e vírgula (;)', help: 'Até 6 palavras-chave (limite da Plataforma Lattes).', disabledWhen: { field: 'nivel', notEquals: 'MBA' } },
+        { key: 'areaConhecimento', label: 'Área do conhecimento (CNPq/CAPES)', type: 'areatree', help: 'Selecione do mais geral ao mais específico: Grande área > Área > Subárea > Especialidade.', disabledWhen: { field: 'nivel', notEquals: 'MBA' } },
+        { key: 'setores', label: 'Setores de atividade', type: 'cnaeSetores', help: 'Até 3 setores (lista CNAE).', disabledWhen: { field: 'nivel', notEquals: 'MBA' } },
     ] },
 
     // 03 Atuação

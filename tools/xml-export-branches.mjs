@@ -23,6 +23,14 @@ items.push(mk('IDENTIFICACAO', 'DADOS_GERAIS', { titulo: 'Fulano de Tal', citaco
     items.push(mk('FORMACAO_ACADEMICA', 'FORMACAO', { nivel, curso: 'Curso ' + nivel, instituicao: 'UNIFESP', anoInicio: '2010', anoFim: '2014', titulo: 'Trabalho', orientador: 'Orientador X', coorientador: 'Co Y', bolsa: 'CAPES' })));
 items.push(mk('POS_DOUTORADO', 'FORMACAO', { tipo: 'Pós-Doutorado', instituicao: 'USP', anoInicio: '2015', anoFim: '2016', titulo: 'PD', bolsa: 'FAPESP' }));
 items.push(mk('POS_DOUTORADO', 'FORMACAO', { tipo: 'Livre-docência', instituicao: 'USP', anoFim: '2018', titulo: 'LD' }));
+// Formação complementar — todos os níveis (só MBA tem bolsa/orientador/monografia/áreas/palavras-chave/setores)
+['Curso de curta duração', 'Extensão universitária', 'Outros'].forEach(nivel =>
+    items.push(mk('FORMACAO_COMPLEMENTAR', 'FORMACAO', { nivel, titulo: 'Curso ' + nivel, instituicao: 'UNIFESP', cargaHoraria: '40', anoInicio: '2021', anoFim: '2021' })));
+items.push(mk('FORMACAO_COMPLEMENTAR', 'FORMACAO', {
+    nivel: 'MBA', titulo: 'MBA em Gestão', instituicao: 'FGV', cargaHoraria: '360', anoInicio: '2019', anoFim: '2020',
+    anoObtencaoTitulo: '2020', comBolsa: 'Sim', bolsa: 'CAPES', tituloMonografia: 'Gestão pública aplicada',
+    orientador: 'Orientador MBA', palavrasChave: 'gestão; pública', grandeArea: 'Ciências Sociais Aplicadas', area: 'Administração',
+}));
 // Livro e capítulo
 items.push(mk('LIVRO_CAPITULO', 'PRODUCOES', { tipoObra: 'Livro publicado', titulo: 'Meu Livro', ano: '2020', autores: 'TAL, F.', editora: 'Ed', cidade: 'SP', isbn: '978-1', paginas: '200' }));
 items.push(mk('LIVRO_CAPITULO', 'PRODUCOES', { tipoObra: 'Capítulo de livro', titulo: 'Meu Capítulo', ano: '2021', autores: 'TAL, F.; X, Y', tituloLivro: 'Coletânea', organizadores: 'Org Z', editora: 'Ed', paginas: '10-30', isbn: '978-2' }));

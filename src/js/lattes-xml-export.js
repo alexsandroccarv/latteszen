@@ -884,18 +884,42 @@ window.LattesXMLExport = (function () {
     }
 
     /* ==================== DADOS-COMPLEMENTARES =========================== */
+    // Nível de Formação complementar → elemento do schema. Só "MBA" tem
+    // bolsa/orientador/monografia/áreas/palavras-chave/setores; os outros 3
+    // (Extensão universitária, Curso de curta duração, Outros) só têm os
+    // atributos básicos (o schema não declara mais nada para eles).
+    const FORMACAO_COMPL_EL = {
+        'Extensão universitária': 'FORMACAO-COMPLEMENTAR-DE-EXTENSAO-UNIVERSITARIA',
+        'MBA': 'MBA',
+        'Curso de curta duração': 'FORMACAO-COMPLEMENTAR-CURSO-DE-CURTA-DURACAO',
+        'Outros': 'OUTROS',
+    };
     function buildComplementares(byType, items) {
-        // FORMACAO-COMPLEMENTAR → OUTROS
+        const buckets = { 'FORMACAO-COMPLEMENTAR-DE-EXTENSAO-UNIVERSITARIA': [], MBA: [], 'FORMACAO-COMPLEMENTAR-CURSO-DE-CURTA-DURACAO': [], OUTROS: [] };
         let sf = 0;
-        const compl = byType('FORMACAO_COMPLEMENTAR').map(it => {
+        byType('FORMACAO_COMPLEMENTAR').forEach(it => {
             const f = it.fields;
-            return el('OUTROS', {
-                'SEQUENCIA-FORMACAO': String(++sf), 'NIVEL': 'OUTROS', 'CARGA-HORARIA': semNA(f.cargaHoraria),
+            const elname = FORMACAO_COMPL_EL[f.nivel] || 'OUTROS';
+            const base = {
+                'SEQUENCIA-FORMACAO': String(++sf), 'NIVEL': elname, 'CARGA-HORARIA': semNA(f.cargaHoraria),
                 'NOME-INSTITUICAO': f.instituicao, 'NOME-CURSO': f.titulo,
                 'STATUS-DO-CURSO': STATUS_CURSO_TOKEN[f.statusCurso] || statusCurso(f.anoFim),
                 'ANO-DE-INICIO': year(f.anoInicio), 'ANO-DE-CONCLUSAO': year(f.anoFim),
-            });
-        }).join('');
+            };
+            const extra = elname === 'MBA'
+                ? palavrasChaveEl(f.palavrasChave) + areaDoConhecimentoEl(f) + setoresAtividadeEl(f.setores)
+                : '';
+            if (elname === 'MBA') {
+                base['ANO-DE-OBTENCAO-DO-TITULO'] = year(f.anoObtencaoTitulo);
+                base['FLAG-BOLSA'] = FLAG_SIM_NAO[f.comBolsa] || '';
+                base['NOME-AGENCIA'] = f.bolsa;
+                base['TITULO-DA-MONOGRAFIA'] = f.tituloMonografia;
+                base['NOME-COMPLETO-DO-ORIENTADOR'] = f.orientador;
+            }
+            buckets[elname].push(el(elname, base, extra));
+        });
+        const compl = ['FORMACAO-COMPLEMENTAR-DE-EXTENSAO-UNIVERSITARIA', 'MBA', 'FORMACAO-COMPLEMENTAR-CURSO-DE-CURTA-DURACAO', 'OUTROS']
+            .map(k => buckets[k].join('')).join('');
         const formComplWrap = compl ? el('FORMACAO-COMPLEMENTAR', {}, compl) : '';
 
         // BANCAS de conclusão
