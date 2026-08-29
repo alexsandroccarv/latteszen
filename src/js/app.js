@@ -595,6 +595,8 @@
         state.lastType = cfg.lastType || '';
         state.rscEnabled = !!cfg.rscEnabled;
         state.rscCfg = cfg.rsc || {};
+        state.nuvemExclusao = Array.isArray(cfg.nuvemExclusao) ? cfg.nuvemExclusao : [];
+        state.nuvemCompostas = Array.isArray(cfg.nuvemCompostas) ? cfg.nuvemCompostas : [];
         const { conexoesMigradas, pastasParaMover } = migrarItens();
         updateHeaderIdentity();
         applyRscVisibility();

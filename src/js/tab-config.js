@@ -1065,6 +1065,41 @@ window.TabConfig = (function () {
             render();
         });
     }
+    // Duas listas configuráveis que a aba "Linha do tempo" usa para montar a
+    // nuvem de palavras: palavras a excluir (nunca aparecem) e termos de mais
+    // de uma palavra (ex.: "tech talks") que devem ser contados como um único
+    // termo, em vez de "tech" e "talks" separados.
+    function nuvemPalavrasSectionHtml() {
+        return `
+        <section class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+            <h2 class="text-lg font-bold mb-2 flex items-center gap-2"><i class="fa-solid fa-cloud text-govbr-600 dark:text-unifesp-400"></i> Nuvem de palavras</h2>
+            <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">Personalize a nuvem de palavras da aba <strong>Linha do tempo</strong>, montada a partir dos títulos, palavras-chave e área de conhecimento dos seus itens.</p>
+            <div class="mb-3">
+                <label class="block text-xs font-semibold mb-1" for="nuvemExclusaoInput">Palavras excluídas</label>
+                <textarea id="nuvemExclusaoInput" rows="2" placeholder="Separe por ponto e vírgula (;)" class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900">${esc((state.nuvemExclusao || []).join('; '))}</textarea>
+                <p class="text-xs text-gray-500 mt-1">Termos que nunca devem aparecer na nuvem (ex.: uma sigla genérica, o nome da sua instituição).</p>
+            </div>
+            <div class="mb-3">
+                <label class="block text-xs font-semibold mb-1" for="nuvemCompostasInput">Palavras compostas</label>
+                <textarea id="nuvemCompostasInput" rows="2" placeholder="Separe por ponto e vírgula (;) — ex.: tech talks; machine learning" class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900">${esc((state.nuvemCompostas || []).join('; '))}</textarea>
+                <p class="text-xs text-gray-500 mt-1">Termos de mais de uma palavra que devem aparecer juntos na nuvem (ex.: "tech talks"), em vez de contados palavra a palavra.</p>
+            </div>
+            <button id="btnSalvarNuvemListas" class="px-3 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm"><i class="fa-solid fa-floppy-disk mr-1"></i> Salvar listas da nuvem</button>
+        </section>`;
+    }
+    function wireNuvemPalavrasSection() {
+        const btn = $('#btnSalvarNuvemListas'); if (!btn) return;
+        const parseLista = (v) => v.split(';').map(s => s.trim()).filter(Boolean);
+        btn.addEventListener('click', () => {
+            state.nuvemExclusao = parseLista($('#nuvemExclusaoInput').value);
+            state.nuvemCompostas = parseLista($('#nuvemCompostasInput').value);
+            const s = Storage.loadSettings();
+            s.nuvemExclusao = state.nuvemExclusao;
+            s.nuvemCompostas = state.nuvemCompostas;
+            Storage.saveSettings(s);
+            toast('Listas da nuvem de palavras salvas.', 'ok');
+        });
+    }
     function wirePerfilSection() {
         const sec = $('#perfilSection');
         if (!sec) return;
@@ -1297,6 +1332,9 @@ window.TabConfig = (function () {
                 ${cfgGroup('fa-award', 'RSC-PCCTAE')}
                 ${rscSectionHtml()}
 
+                ${cfgGroup('fa-cloud', 'Nuvem de palavras')}
+                ${nuvemPalavrasSectionHtml()}
+
                 ${cfgGroup('fa-sliders', 'Avançado')}
                 <section class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
                     <h2 class="text-lg font-bold mb-2 flex items-center gap-2"><i class="fa-solid fa-list-check text-govbr-600 dark:text-unifesp-400"></i> Listas de autocomplete</h2>
@@ -1358,6 +1396,7 @@ window.TabConfig = (function () {
 
         wirePerfilSection();
         wireRscConfig();
+        wireNuvemPalavrasSection();
         wireExportLattes();
         wireLixeiraSection();
         wireOrcidImport();

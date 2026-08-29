@@ -16,6 +16,11 @@
    conhecimento dos itens — mesmas categorias "não-produção" excluídas,
    stopwords (de, da, em...) filtradas, palavra mais frequente com fonte
    maior.
+
+   Configurações → Nuvem de palavras: duas listas configuráveis pelo
+   usuário — palavras excluídas (nunca aparecem) e termos compostos (mais
+   de uma palavra, ex.: "tech talks", contados como um único termo em vez
+   de "tech" e "talks" separados).
    ========================================================================== */
 import { test, assert, assertEqual, makeItem, seedCatalog } from '../harness.mjs';
 
@@ -162,4 +167,35 @@ test('Nuvem de palavras: palavras posicionadas em formato de nuvem (espiral), n�
     const esquerdas = info.posicoes.map((p) => p.left);
     const emOrdemCrescente = esquerdas.every((v, i) => i === 0 || v >= esquerdas[i - 1]);
     assert(!emOrdemCrescente, `As posições horizontais não deveriam crescer em sequência estrita (isso indicaria linhas, não uma nuvem) — obtidas: ${esquerdas.join(', ')}`);
+});
+
+test('Configurações: lista de exclusão e lista de termos compostos da nuvem de palavras', async ({ page, baseUrl }) => {
+    const items = [
+        makeItem('ARTIGO_PERIODICO', 'PRODUCOES', {
+            titulo: 'Tech Talks sobre resiliencia institucional',
+            palavrasChave: 'tech talks; resiliencia; institucional',
+            ano: '2021',
+        }),
+    ];
+    await seedCatalog(page, baseUrl, items);
+
+    await page.click('[data-tab="config"]');
+    await page.waitForTimeout(300);
+    await page.fill('#nuvemExclusaoInput', 'institucional');
+    await page.fill('#nuvemCompostasInput', 'tech talks');
+    await page.click('#btnSalvarNuvemListas');
+    await page.waitForTimeout(300);
+
+    const salvo = await page.evaluate(() => JSON.parse(localStorage.getItem('lz_settings') || '{}'));
+    assertEqual(salvo.nuvemExclusao, ['institucional'], 'A lista de exclusão deveria ter sido salva em lz_settings');
+    assertEqual(salvo.nuvemCompostas, ['tech talks'], 'A lista de termos compostos deveria ter sido salva em lz_settings');
+
+    await page.click('[data-tab="linhatempo"]');
+    await page.waitForTimeout(300);
+    const palavras = await page.evaluate(() => Array.from(document.querySelectorAll('#tab-linhatempo [data-palavra]')).map((s) => s.dataset.palavra));
+
+    assert(palavras.includes('tech talks'), `"tech talks" deveria aparecer como um único termo composto — obtidas: ${palavras.join(', ')}`);
+    assert(!palavras.includes('tech') && !palavras.includes('talks'), `"tech" e "talks" NÃO deveriam aparecer separados quando configurados como termo composto — obtidas: ${palavras.join(', ')}`);
+    assert(!palavras.includes('institucional'), `"institucional" deveria estar excluída da nuvem — obtidas: ${palavras.join(', ')}`);
+    assert(palavras.includes('resiliencia'), `"resiliencia" (não excluída) deveria continuar aparecendo — obtidas: ${palavras.join(', ')}`);
 });

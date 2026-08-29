@@ -51,16 +51,49 @@ window.TabLinhaTempo = (function () {
             .filter(w => w.length >= 3 && !STOPWORDS.has(w));
     }
 
-    // Conta a frequência de cada palavra nos títulos, palavras-chave (campo
-    // "palavrasChave", separado por ";") e área de conhecimento dos itens —
-    // devolve os N mais frequentes, do maior para o menor.
+    function escapeRegExp(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+
+    // Localiza, num texto já em minúsculas, as ocorrências dos termos
+    // compostos configurados (ex.: "tech talks") ANTES da separação normal
+    // em palavras — assim eles são contados como um único termo, e não como
+    // "tech" e "talks" isolados. Devolve os termos encontrados e o texto
+    // restante, com essas ocorrências removidas (para não contar de novo
+    // suas palavras isoladas na tokenização seguinte). Termos mais longos
+    // são buscados primeiro, para o caso de um ser substring de outro.
+    function extrairCompostas(texto, compostas) {
+        let restante = texto;
+        const achadas = [];
+        compostas.slice().sort((a, b) => b.length - a.length).forEach(frase => {
+            if (!frase) return;
+            const re = new RegExp(`\\b${escapeRegExp(frase)}\\b`, 'gi');
+            const n = (restante.match(re) || []).length;
+            for (let i = 0; i < n; i++) achadas.push(frase);
+            restante = restante.replace(re, ' ');
+        });
+        return { achadas, restante };
+    }
+
+    // Conta a frequência de cada palavra/termo nos títulos, palavras-chave
+    // (campo "palavrasChave", separado por ";") e área de conhecimento dos
+    // itens — devolve os N mais frequentes, do maior para o menor. Aplica as
+    // duas listas configuráveis em Configurações → Nuvem de palavras: termos
+    // compostos (contados como uma só unidade) e palavras excluídas.
     function contarPalavras(limite) {
+        const compostas = (state.nuvemCompostas || []).map(s => String(s || '').trim().toLowerCase()).filter(Boolean);
+        const exclusao = new Set((state.nuvemExclusao || []).map(s => String(s || '').trim().toLowerCase()).filter(Boolean));
         const freq = {};
+        const conta = (w) => { if (w && !exclusao.has(w)) freq[w] = (freq[w] || 0) + 1; };
+
         state.items.forEach(it => {
             if (!it.categoryKey || CATEGORIAS_EXCLUIDAS.has(it.categoryKey)) return;
             const f = it.fields || {};
             const textos = [f.titulo, f.areaConhecimento, ...String(f.palavrasChave || '').split(';')];
-            textos.forEach(t => extrairPalavras(t).forEach(w => { freq[w] = (freq[w] || 0) + 1; }));
+            textos.forEach(t => {
+                const bruto = String(t == null ? '' : t).toLowerCase();
+                const { achadas, restante } = compostas.length ? extrairCompostas(bruto, compostas) : { achadas: [], restante: bruto };
+                achadas.forEach(conta);
+                extrairPalavras(restante).forEach(conta);
+            });
         });
         return Object.entries(freq).sort((a, b) => b[1] - a[1]).slice(0, limite || 50);
     }
