@@ -5,6 +5,11 @@
    categoria naquele ano. O "ano" de cada item reaproveita AppCore.itemYear()
    (o mesmo já usado em Conformidade/Publicar), então itens com período
    (ex.: Formação) contam num único ano, não em todos os anos do intervalo.
+
+   Ajustes de UI: rótulos das linhas sem o número da categoria; categoria
+   "Fotos de Perfil" (edição só em Configurações, não é "produção") não
+   aparece; anos em ordem decrescente (mais recente primeiro); quadradinhos
+   ~30% menores (16px → 11px).
    ========================================================================== */
 import { test, assert, assertEqual, makeItem, seedCatalog } from '../harness.mjs';
 
@@ -47,4 +52,36 @@ test('Linha do tempo conta os itens por categoria e ano (quadradinho com o total
     assertEqual(info.anos2018.some((q) => q === 1), false, 'Curso com período 2018-2019 NÃO deveria contar (de novo) no ano de início — um único ano por item');
     assert(info.texto.includes('Formação'), 'A categoria Formação deveria aparecer como linha da grade');
     assert(info.texto.includes('Produções') || info.texto.includes('produções'), 'A categoria Produções deveria aparecer como linha da grade');
+});
+
+test('Rótulos das linhas sem número da categoria, anos em ordem decrescente e quadradinhos ~30% menores', async ({ page, baseUrl }) => {
+    const items = [
+        makeItem('LIVRO_CAPITULO', 'PRODUCOES', { titulo: 'Artigo A', ano: '2019' }),
+        makeItem('LIVRO_CAPITULO', 'PRODUCOES', { titulo: 'Artigo B', ano: '2022' }),
+        // Foto de perfil tem campo "ano", mas a categoria não deve aparecer na grade.
+        makeItem('FOTO_PERFIL', 'PERFIL_FOTOS', { titulo: 'Foto oficial', ano: '2021' }),
+    ];
+    await seedCatalog(page, baseUrl, items);
+    await page.click('[data-tab="linhatempo"]');
+    await page.waitForTimeout(300);
+
+    const info = await page.evaluate(() => {
+        const rotulos = Array.from(document.querySelectorAll('#tab-linhatempo tbody tr th')).map((th) => th.textContent.trim());
+        const anosColunas = Array.from(document.querySelectorAll('#tab-linhatempo thead th')).slice(1).map((th) => +th.textContent.trim());
+        const primeiroQuadradinho = document.querySelector('#tab-linhatempo td [data-ano]');
+        const legenda = document.querySelector('#tab-linhatempo .flex.items-center.gap-1.text-xs div');
+        return { rotulos, anosColunas, quadradinhoClasse: primeiroQuadradinho.className, legendaClasse: legenda ? legenda.className : null };
+    });
+
+    assert(info.rotulos.includes('Produções'), `Rótulo da categoria deveria ser "Produções", sem número — obtido entre: ${info.rotulos.join(', ')}`);
+    assert(!info.rotulos.some((r) => /^\d/.test(r)), `Nenhum rótulo de categoria deveria começar com número — obtidos: ${info.rotulos.join(', ')}`);
+    assert(!info.rotulos.some((r) => /Foto/i.test(r)), `A categoria "Fotos de Perfil" não deveria aparecer na grade — obtidos: ${info.rotulos.join(', ')}`);
+
+    const anosOrdenados = info.anosColunas.slice().sort((a, b) => b - a);
+    assertEqual(info.anosColunas, anosOrdenados, 'As colunas de ano deveriam estar em ordem decrescente (mais recente primeiro)');
+
+    assert(/w-\[11px\]/.test(info.quadradinhoClasse) && /h-\[11px\]/.test(info.quadradinhoClasse), `Quadradinho da grade deveria ser 11px (~30% menor que 16px) — classe obtida: "${info.quadradinhoClasse}"`);
+
+    const legendaClasses = (info.legendaClasse || '').split(/\s+/);
+    assert(legendaClasses.includes('w-2') && legendaClasses.includes('h-2'), `Quadradinho da legenda deveria acompanhar a redução (w-2/h-2) — classe obtida: "${info.legendaClasse}"`);
 });
