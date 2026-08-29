@@ -54,9 +54,10 @@ window.TabLinhaTempo = (function () {
         return { porCategoria, anoMin, anoMax };
     }
 
-    // Categorias que existem só para edição em Configurações (não são
-    // "produção" — ex.: fotos de perfil) e por isso não entram na grade.
-    const CATEGORIAS_EXCLUIDAS = new Set(['PERFIL_FOTOS']);
+    // Categorias que existem só para edição em Configurações/Perfil (não são
+    // "produção" — identificação, endereço, foto de perfil etc.) e por isso
+    // não entram na grade.
+    const CATEGORIAS_EXCLUIDAS = new Set(['PERFIL_FOTOS', 'DADOS_GERAIS']);
 
     function render() {
         const panel = $('#tab-linhatempo');
