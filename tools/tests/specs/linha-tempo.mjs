@@ -130,3 +130,36 @@ test('Nuvem de palavras: frequência de título/palavras-chave/área, sem catego
     const idxLinha = info.h2s.findIndex((h) => /Linha do tempo/.test(h));
     assert(idxNuvem !== -1 && idxLinha !== -1 && idxNuvem < idxLinha, `A seção "Nuvem de palavras" deveria vir antes de "Linha do tempo" — títulos na ordem: ${info.h2s.join(' | ')}`);
 });
+
+test('Nuvem de palavras: palavras posicionadas em formato de nuvem (espiral), não em linhas sequenciais', async ({ page, baseUrl }) => {
+    const items = [
+        makeItem('ARTIGO_PERIODICO', 'PRODUCOES', {
+            titulo: 'Robótica sensores atuadores controle automação industrial embarcado',
+            palavrasChave: 'robotica; sensores; atuadores; controle; automacao; industrial; embarcado; eletronica',
+            ano: '2020',
+        }),
+    ];
+    await seedCatalog(page, baseUrl, items);
+    await page.click('[data-tab="linhatempo"]');
+    await page.waitForTimeout(300);
+
+    const info = await page.evaluate(() => {
+        const area = document.querySelector('#nuvemPalavrasArea');
+        const spans = Array.from(document.querySelectorAll('#tab-linhatempo [data-palavra]'));
+        return {
+            areaPosition: area ? area.style.position : null,
+            areaHeight: area ? parseFloat(area.style.height) : null,
+            posicoes: spans.map((s) => ({ position: s.style.position, left: parseFloat(s.style.left), top: parseFloat(s.style.top) })),
+        };
+    });
+
+    assert(info.posicoes.length >= 6, `Teste precisa de várias palavras para ser conclusivo — obtidas: ${info.posicoes.length}`);
+    assertEqual(info.areaPosition, 'relative', 'O contêiner da nuvem deveria ter position:relative (base para o posicionamento livre das palavras)');
+    assert(info.areaHeight > 0, 'O contêiner da nuvem deveria ter uma altura calculada (não fixa/zero)');
+    assert(info.posicoes.every((p) => p.position === 'absolute'), 'Cada palavra deveria ter position:absolute (posicionamento livre, não fluxo normal em linhas)');
+    assert(info.posicoes.every((p) => !isNaN(p.left) && !isNaN(p.top)), 'Cada palavra deveria ter left/top numéricos definidos');
+
+    const esquerdas = info.posicoes.map((p) => p.left);
+    const emOrdemCrescente = esquerdas.every((v, i) => i === 0 || v >= esquerdas[i - 1]);
+    assert(!emOrdemCrescente, `As posições horizontais não deveriam crescer em sequência estrita (isso indicaria linhas, não uma nuvem) — obtidas: ${esquerdas.join(', ')}`);
+});

@@ -72,7 +72,8 @@ window.TabLinhaTempo = (function () {
                 const max = palavras[0][1];
                 const min = palavras[palavras.length - 1][1];
                 const tamanho = (n) => (max === min ? 1.15 : 0.8 + ((n - min) / (max - min)) * 1.3).toFixed(2);
-                return `<div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">${palavras.map(([w, n]) => `<span class="text-govbr-700 dark:text-unifesp-400 font-semibold leading-none" style="font-size:${tamanho(n)}rem" data-palavra="${esc(w)}" data-freq="${n}" title="${esc(w)}: ${n} ocorrência${n === 1 ? '' : 's'}">${esc(w)}</span>`).join('')}</div>`;
+                const spans = palavras.map(([w, n]) => `<span class="text-govbr-700 dark:text-unifesp-400 font-semibold leading-none whitespace-nowrap" style="font-size:${tamanho(n)}rem" data-palavra="${esc(w)}" data-freq="${n}" title="${esc(w)}: ${n} ocorrência${n === 1 ? '' : 's'}">${esc(w)}</span>`).join('');
+                return `<div id="nuvemPalavrasArea" class="w-full">${spans}</div>`;
             })()
             : `<p class="text-sm text-gray-500 italic">Nenhuma palavra encontrada ainda — preencha título, palavras-chave ou área de conhecimento nos itens.</p>`;
 
@@ -82,6 +83,58 @@ window.TabLinhaTempo = (function () {
                 <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">Termos mais frequentes nos títulos, palavras-chave e área de conhecimento dos seus itens — quanto maior a palavra, mais vezes ela aparece. Passe o mouse para ver o total exato.</p>
                 ${corpo}
             </section>`;
+    }
+
+    // Espalha as palavras (já inseridas em fluxo normal dentro de `area`) em
+    // formato de nuvem: espiral a partir do centro, testando colisão de
+    // retângulos com as palavras já posicionadas, em vez de simplesmente
+    // empilhar em linhas. Mede cada <span> real já renderizado (offsetWidth/
+    // Height) — nada de canvas ou biblioteca externa. Determinístico (sem
+    // Math.random()): o ângulo inicial de cada palavra usa o ângulo áureo
+    // (~137,5°) para espalhar os pontos de partida de forma orgânica.
+    function posicionarNuvem(area) {
+        const spans = Array.from(area.children);
+        if (!spans.length) return;
+        const larguraArea = area.clientWidth || 600;
+        const alturaBase = Math.max(160, larguraArea * 0.5);
+        const cx = larguraArea / 2, cy = alturaBase / 2;
+        const PAD = 5;
+        const caixas = [];
+
+        spans.forEach((span, i) => {
+            const largura = span.offsetWidth + PAD * 2;
+            const altura = span.offsetHeight + PAD * 2;
+            let angulo = (i * 2.4) % (Math.PI * 2);
+            let raio = 0;
+            let caixa = null;
+            for (let passo = 0; passo < 2000; passo++) {
+                const x = cx + raio * Math.cos(angulo) - largura / 2;
+                const y = cy + raio * Math.sin(angulo) * 0.7 - altura / 2; // elipse: nuvem mais larga que alta
+                const candidata = { x, y, w: largura, h: altura };
+                const colide = caixas.some(c => candidata.x < c.x + c.w && c.x < candidata.x + candidata.w && candidata.y < c.y + c.h && c.y < candidata.y + candidata.h);
+                if (!colide) { caixa = candidata; break; }
+                angulo += 0.3;
+                raio += 1.4;
+            }
+            caixas.push(caixa || { x: cx - largura / 2, y: cy - altura / 2, w: largura, h: altura });
+        });
+
+        const minX = Math.min(0, ...caixas.map(c => c.x));
+        const maxX = Math.max(larguraArea, ...caixas.map(c => c.x + c.w));
+        const minY = Math.min(0, ...caixas.map(c => c.y));
+        const maxY = Math.max(...caixas.map(c => c.y + c.h));
+        const larguraFinal = maxX - minX;
+        const deslocX = larguraArea > larguraFinal ? (larguraArea - larguraFinal) / 2 - minX : -minX;
+        const deslocY = -minY;
+
+        spans.forEach((span, i) => {
+            const c = caixas[i];
+            span.style.position = 'absolute';
+            span.style.left = `${c.x + PAD + deslocX}px`;
+            span.style.top = `${c.y + PAD + deslocY}px`;
+        });
+        area.style.position = 'relative';
+        area.style.height = `${(maxY - minY) + 10}px`;
     }
 
     /* ------------------------------ Linha do tempo (grade) ------------------------------ */
@@ -180,6 +233,8 @@ window.TabLinhaTempo = (function () {
     function render() {
         const panel = $('#tab-linhatempo');
         panel.innerHTML = `<div class="space-y-4 max-w-full">${renderNuvemPalavras()}${renderGradeLinhaTempo()}</div>`;
+        const area = $('#nuvemPalavrasArea');
+        if (area) posicionarNuvem(area);
     }
 
     return { render };
