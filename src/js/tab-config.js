@@ -904,12 +904,28 @@ window.TabConfig = (function () {
     function areaAtuacaoListHtml() {
         const itens = state.items.filter(i => i.typeKey === 'AREA_ATUACAO');
         if (!itens.length) return `<p class="text-xs text-gray-400 dark:text-gray-500 italic">Nenhuma área cadastrada.</p>`;
-        return `<ul class="space-y-1 mb-2">${itens.map(i => `
+        // Ordem manual (setas ▲▼): a tela real do Lattes deixa priorizar a ordem
+        // de exibição das áreas de atuação — SEQUENCIA-AREA-DE-ATUACAO no XML
+        // segue a ordem daqui.
+        return `<ul class="space-y-1 mb-2">${itens.map((i, idx) => `
             <li class="flex items-center gap-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded px-2 py-1.5 text-sm">
+                <button type="button" data-area-up="${i.id}" title="Subir" class="w-6 h-6 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 shrink-0 disabled:opacity-30" ${idx === 0 ? 'disabled' : ''}><i class="fa-solid fa-arrow-up"></i></button>
+                <button type="button" data-area-down="${i.id}" title="Descer" class="w-6 h-6 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 shrink-0 disabled:opacity-30" ${idx === itens.length - 1 ? 'disabled' : ''}><i class="fa-solid fa-arrow-down"></i></button>
                 <span class="flex-1 min-w-0 truncate">${esc(LattesTypes.itemTitle(i))}</span>
                 <button type="button" data-area-edit="${i.id}" title="Editar" class="w-7 h-7 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-govbr-600 dark:text-unifesp-400"><i class="fa-solid fa-pen"></i></button>
                 <button type="button" data-area-del="${i.id}" title="Remover" class="w-7 h-7 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-red-600"><i class="fa-solid fa-trash"></i></button>
             </li>`).join('')}</ul>`;
+    }
+    // Troca a posição de duas Áreas de atuação (mantém a ordem relativa dos
+    // demais itens do catálogo — só troca os dois objetos de lugar).
+    function moveAreaAtuacao(id, dir) {
+        const areas = state.items.filter(i => i.typeKey === 'AREA_ATUACAO');
+        const pos = areas.findIndex(i => i.id === id);
+        const alvo = pos + dir;
+        if (pos < 0 || alvo < 0 || alvo >= areas.length) return;
+        const idxA = state.items.indexOf(areas[pos]), idxB = state.items.indexOf(areas[alvo]);
+        const tmp = state.items[idxA]; state.items[idxA] = state.items[idxB]; state.items[idxB] = tmp;
+        window.AppCore.saveCatalog();
     }
     function areaAtuacaoSectionHtml() {
         const def = LattesTypes.get('AREA_ATUACAO');
@@ -949,6 +965,16 @@ window.TabConfig = (function () {
     function wireAreaAtuacaoListActions(sec) {
         const list = sec.querySelector('#areaAtuacaoList');
         if (!list) return;
+        $$('[data-area-up]', list).forEach(b => b.addEventListener('click', () => {
+            moveAreaAtuacao(b.dataset.areaUp, -1);
+            refreshAreaAtuacaoList(sec);
+            window.AppCore.renderItemList();
+        }));
+        $$('[data-area-down]', list).forEach(b => b.addEventListener('click', () => {
+            moveAreaAtuacao(b.dataset.areaDown, 1);
+            refreshAreaAtuacaoList(sec);
+            window.AppCore.renderItemList();
+        }));
         $$('[data-area-edit]', list).forEach(b => b.addEventListener('click', () => {
             const item = state.items.find(i => i.id === b.dataset.areaEdit);
             if (!item) return;
