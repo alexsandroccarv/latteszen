@@ -199,3 +199,36 @@ test('Configurações: lista de exclusão e lista de termos compostos da nuvem d
     assert(!palavras.includes('institucional'), `"institucional" deveria estar excluída da nuvem — obtidas: ${palavras.join(', ')}`);
     assert(palavras.includes('resiliencia'), `"resiliencia" (não excluída) deveria continuar aparecendo — obtidas: ${palavras.join(', ')}`);
 });
+
+test('Configurações: listas da nuvem também funcionam separadas por vírgula ou quebra de linha', async ({ page, baseUrl }) => {
+    // Reproduz o relato real de um usuário ("usei a lista mas não reconfigurou
+    // a nuvem de palavras"): ele separou os termos por vírgula/linha em vez
+    // de ";" — formato que antes virava um único "termo" gigante que nunca
+    // batia com nenhuma palavra real da nuvem.
+    const items = [
+        makeItem('ARTIGO_PERIODICO', 'PRODUCOES', {
+            titulo: 'Tech Talks sobre resiliencia institucional',
+            palavrasChave: 'tech talks; resiliencia; institucional',
+            ano: '2021',
+        }),
+    ];
+    await seedCatalog(page, baseUrl, items);
+
+    await page.click('[data-tab="config"]');
+    await page.waitForTimeout(300);
+    await page.fill('#nuvemExclusaoInput', 'institucional, resiliencia');
+    await page.fill('#nuvemCompostasInput', 'tech talks\nmachine learning');
+    await page.click('#btnSalvarNuvemListas');
+    await page.waitForTimeout(300);
+
+    const salvo = await page.evaluate(() => JSON.parse(localStorage.getItem('lz_settings') || '{}'));
+    assertEqual(salvo.nuvemExclusao, ['institucional', 'resiliencia'], 'Vírgula deveria separar a lista de exclusão em dois termos distintos');
+    assertEqual(salvo.nuvemCompostas, ['tech talks', 'machine learning'], 'Quebra de linha deveria separar a lista de termos compostos em dois termos distintos');
+
+    await page.click('[data-tab="linhatempo"]');
+    await page.waitForTimeout(300);
+    const palavras = await page.evaluate(() => Array.from(document.querySelectorAll('#tab-linhatempo [data-palavra]')).map((s) => s.dataset.palavra));
+
+    assert(palavras.includes('tech talks'), `"tech talks" deveria aparecer como um único termo composto — obtidas: ${palavras.join(', ')}`);
+    assert(!palavras.includes('institucional') && !palavras.includes('resiliencia'), `"institucional" e "resiliencia" deveriam estar excluídas — obtidas: ${palavras.join(', ')}`);
+});

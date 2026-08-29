@@ -1076,20 +1076,25 @@ window.TabConfig = (function () {
             <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">Personalize a nuvem de palavras da aba <strong>Linha do tempo</strong>, montada a partir dos títulos, palavras-chave e área de conhecimento dos seus itens.</p>
             <div class="mb-3">
                 <label class="block text-xs font-semibold mb-1" for="nuvemExclusaoInput">Palavras excluídas</label>
-                <textarea id="nuvemExclusaoInput" rows="2" placeholder="Separe por ponto e vírgula (;)" class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900">${esc((state.nuvemExclusao || []).join('; '))}</textarea>
-                <p class="text-xs text-gray-500 mt-1">Termos que nunca devem aparecer na nuvem (ex.: uma sigla genérica, o nome da sua instituição).</p>
+                <textarea id="nuvemExclusaoInput" rows="2" placeholder="Separe por ponto e vírgula (;), vírgula (,) ou uma por linha" class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900">${esc((state.nuvemExclusao || []).join('; '))}</textarea>
+                <p class="text-xs text-gray-500 mt-1">Termos que nunca devem aparecer na nuvem (ex.: uma sigla genérica, o nome da sua instituição). Separe por ponto e vírgula, vírgula ou quebra de linha.</p>
             </div>
             <div class="mb-3">
                 <label class="block text-xs font-semibold mb-1" for="nuvemCompostasInput">Palavras compostas</label>
-                <textarea id="nuvemCompostasInput" rows="2" placeholder="Separe por ponto e vírgula (;) — ex.: tech talks; machine learning" class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900">${esc((state.nuvemCompostas || []).join('; '))}</textarea>
-                <p class="text-xs text-gray-500 mt-1">Termos de mais de uma palavra que devem aparecer juntos na nuvem (ex.: "tech talks"), em vez de contados palavra a palavra.</p>
+                <textarea id="nuvemCompostasInput" rows="2" placeholder="Separe por ponto e vírgula (;), vírgula (,) ou uma por linha — ex.: tech talks; machine learning" class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900">${esc((state.nuvemCompostas || []).join('; '))}</textarea>
+                <p class="text-xs text-gray-500 mt-1">Termos de mais de uma palavra que devem aparecer juntos na nuvem (ex.: "tech talks"), em vez de contados palavra a palavra. Separe por ponto e vírgula, vírgula ou quebra de linha.</p>
             </div>
             <button id="btnSalvarNuvemListas" class="px-3 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm"><i class="fa-solid fa-floppy-disk mr-1"></i> Salvar listas da nuvem</button>
         </section>`;
     }
     function wireNuvemPalavrasSection() {
         const btn = $('#btnSalvarNuvemListas'); if (!btn) return;
-        const parseLista = (v) => v.split(';').map(s => s.trim()).filter(Boolean);
+        // Aceita ponto e vírgula, vírgula OU quebra de linha como separador —
+        // um usuário reportou que a lista "não reconfigurava" a nuvem porque
+        // separou os termos por vírgula/linha em vez de ";"; como só ";" era
+        // reconhecido, a entrada inteira virava um único "termo" gigante que
+        // nunca batia com nenhuma palavra real da nuvem.
+        const parseLista = (v) => v.split(/[;,\n]+/).map(s => s.trim()).filter(Boolean);
         btn.addEventListener('click', () => {
             state.nuvemExclusao = parseLista($('#nuvemExclusaoInput').value);
             state.nuvemCompostas = parseLista($('#nuvemCompostasInput').value);

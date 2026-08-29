@@ -12,9 +12,14 @@
      imediatamente e atualiza por trás, assim que a rede responder.
 
    Aumente CACHE_VERSION sempre que a lista PRECACHE_URLS mudar (arquivo novo
-   ou removido) — isso descarta os caches antigos na próxima ativação.
+   ou removido) — isso descarta os caches antigos na próxima ativação. TAMBÉM
+   aumente quando o CONTEÚDO de um arquivo já precacheado mudar (ex.: um
+   arquivo de aba): só um sw.js com bytes diferentes dispara um novo
+   install/activate, que é o que faz pwa.js recarregar a aba automaticamente
+   (ver js/pwa.js). Sem isso, uma aba já aberta pode continuar servindo JS
+   antigo por tempo indefinido mesmo depois de um conserto já publicado.
    ========================================================================== */
-const CACHE_VERSION = 'v13';
+const CACHE_VERSION = 'v14';
 const PRECACHE = `lattesZen-precache-${CACHE_VERSION}`;
 const RUNTIME = `lattesZen-runtime-${CACHE_VERSION}`;
 
