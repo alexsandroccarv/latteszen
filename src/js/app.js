@@ -393,7 +393,7 @@
        ===================================================================== */
     const RENDERERS = {
         inicio: TabInicio.render, catalogar: TabCatalogar.render, conformidade: TabConformidade.render,
-        publicar: TabPublicar.render, rsc: TabRsc.render, config: TabConfig.render,
+        linhatempo: TabLinhaTempo.render, publicar: TabPublicar.render, rsc: TabRsc.render, config: TabConfig.render,
     };
     // Mostra/oculta a aba RSC conforme o módulo esteja habilitado
     function applyRscVisibility() {
