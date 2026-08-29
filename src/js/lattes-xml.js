@@ -713,8 +713,12 @@ window.LattesXML = (function () {
         if (dgEl) {
             const g = attrs(dgEl);
             if (g['NOME-COMPLETO']) {
+                // Nome em citações: o schema guarda como um único atributo com
+                // variações separadas por "; " — vira uma linha da lista (repeater)
+                // para cada variação.
+                const citacoes = String(g['NOME-EM-CITACOES-BIBLIOGRAFICAS'] || '').split(';').map(s => s.trim()).filter(Boolean).map(nome => ({ nome }));
                 add('IDENTIFICACAO', {
-                    titulo: g['NOME-COMPLETO'], citacoes: g['NOME-EM-CITACOES-BIBLIOGRAFICAS'] || '',
+                    titulo: g['NOME-COMPLETO'], citacoes,
                     sexo: /^F/i.test(g['SEXO'] || '') ? 'Feminino' : (g['SEXO'] ? 'Masculino' : ''),
                     nacionalidade: g['NACIONALIDADE'] || '', pais: g['PAIS-DE-NASCIMENTO'] || '',
                     orcid: g['ORCID-ID'] || '',

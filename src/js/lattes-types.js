@@ -217,9 +217,10 @@ const TYPES = {
         { key: 'titulo', label: 'Nome completo (nome civil)', type: 'text', required: true },
         { key: 'usaNomeSocial', label: 'Deseja utilizar o nome social?', type: 'select', options: ['Não', 'Sim'], help: 'De acordo com o Decreto 8.727/2016, pessoa travesti ou transexual pode optar pela exibição apenas do nome social nas buscas públicas do Currículo Lattes.' },
         { key: 'nomeSocial', label: 'Nome social', type: 'text', disabledWhen: { field: 'usaNomeSocial', in: ['', 'Não'] } },
-        { key: 'citacoes', label: 'Nome em citações bibliográficas', type: 'textarea', help: 'Uma variação por linha (ex.: CARVALHO, Alexsandro Cardoso / CARVALHO, Alexsandro / Carvalho, A. C.).' },
+        { key: 'citacoes', label: 'Nome em citações bibliográficas', type: 'repeater', addLabel: 'Adicionar variação', help: 'Cada variação do seu nome usada em publicações (ex.: CARVALHO, Alexsandro Cardoso).', columns: [
+            { key: 'nome', label: 'Variação do nome', type: 'text', required: true }] },
         { key: 'cpf', label: 'CPF', type: 'text', placeholder: '000.000.000-00' },
-        { key: 'corRaca', label: 'Cor ou raça', type: 'select', options: ['Branca', 'Preta', 'Parda', 'Indígena', 'Não desejo declarar'] },
+        { key: 'corRaca', label: 'Cor ou raça', type: 'select', options: ['Branca', 'Preta', 'Parda', 'Amarela', 'Indígena', 'Não desejo declarar'] },
         { key: 'sexo', label: 'Sexo', type: 'select', options: ['Masculino', 'Feminino'], help: 'Exigido pelo Lattes na importação do XML.' },
         { key: 'nacionalidade', label: 'Nacionalidade', type: 'text', placeholder: 'Brasileira' },
         { key: 'paisNacionalidade', label: 'País de nacionalidade', type: 'select', options: window.PAISES_LATTES || [], default: 'Brasil' },
@@ -239,7 +240,7 @@ const TYPES = {
             'Múltipla': 'Associação de duas ou mais deficiências (Decreto nº 3.298/1999).',
         } },
     ] },
-    FOTO_PERFIL: { label: 'Foto de perfil', noExport: true, noEvidence: true, singleton: true, perfil: true, accept: 'image/jpeg,image/png', fields: [{ key: 'titulo', label: 'Descrição', type: 'text', placeholder: 'ex.: Foto oficial 2025' }, { key: 'ano', label: 'Ano de início', type: 'datebr', row: 'periodo' }, F_AFIM] },
+    FOTO_PERFIL: { label: 'Foto de perfil', noExport: true, noEvidence: true, singleton: true, perfil: true, accept: 'image/jpeg,image/png', fields: [{ key: 'titulo', label: 'Descrição', type: 'text', placeholder: 'ex.: Foto oficial 2025' }] },
     DOCUMENTO_PESSOAL: { label: 'Documentos pessoais', noExport: true, perfil: true, accept: 'application/pdf,image/jpeg,image/png', fields: [
         { key: 'tipoDoc', label: 'Tipo de documento', type: 'select', required: true, options: ['Título de eleitor', 'Certidão de nascimento', 'Certidão de casamento', 'Conselho de classe', 'Diploma / Certificado', 'Carteira profissional', 'CNH', 'Comprovante de residência', 'Reservista', 'PIS/PASEP', 'Outro'] },
         { key: 'titulo', label: 'Descrição / Nº do documento', type: 'text', required: true },

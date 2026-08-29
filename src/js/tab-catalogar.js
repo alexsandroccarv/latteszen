@@ -1026,7 +1026,14 @@ window.TabCatalogar = (function () {
             </select>`;
             input = `<div class="space-y-1.5">${[1, 2, 3].map(sel).join('')}</div>`;
         } else if (f.type === 'repeater') {
-            const rows = Array.isArray(val) ? val : [];
+            // Migra valor antigo em texto livre (ex.: campo que era textarea e
+            // virou repeater) para o novo formato de lista, sem perder os
+            // dados já salvos — um valor por linha vira uma linha da lista.
+            let rows = Array.isArray(val) ? val : [];
+            if (!rows.length && typeof val === 'string' && val.trim() && f.columns && f.columns.length === 1) {
+                const col = f.columns[0].key;
+                rows = val.split('\n').map(s => s.trim()).filter(Boolean).map(nome => ({ [col]: nome }));
+            }
             input = `<div data-repeater-wrap="${f.key}">
                 <input type="hidden" name="${f.key}" data-repeater="${f.key}" value='${esc(JSON.stringify(rows))}'>
                 <ul data-repeater-list="${f.key}" class="space-y-1 mb-1.5">${repeaterListHtml(f, rows)}</ul>
@@ -1783,6 +1790,7 @@ window.TabCatalogar = (function () {
     window.AppCore.wireConditional = wireConditional;
     window.AppCore.wireNA = wireNA;
     window.AppCore.wireAreaTree = wireAreaTree;
+    window.AppCore.wireRepeater = wireRepeater;
     window.AppCore.collectFields = collectFields;
     window.AppCore.normalizeEncoding = normalizeEncoding;
     window.AppCore.validateItemFields = validateItemFields;

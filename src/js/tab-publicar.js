@@ -171,8 +171,13 @@ window.TabPublicar = (function () {
             else if (tipos.length) secoes.push({ id: 'sec-' + cat.key.toLowerCase(), num: cat.num, label: cat.label, icon: PUB_ICON[cat.key] || '▣', tipos });
         }
         if (extrasTipos.length) secoes.push({ id: PUB_MERGE_ID, num: null, label: PUB_MERGE_LABEL, icon: '✦', tipos: extrasTipos });
+        // Nome em citações agora é uma lista (repeater); junta as variações
+        // para exibir como subtítulo. Aceita também o formato antigo (string)
+        // para itens salvos antes da mudança.
+        const citacoes = ident && ident.fields.citacoes;
+        const tagline = Array.isArray(citacoes) ? citacoes.map(r => r && r.nome).filter(Boolean).join(' / ') : (citacoes || '');
         return {
-            nome, iniciais, tagline: (ident && ident.fields.citacoes) || '', bio: (resumo && resumo.fields.descricao) || '',
+            nome, iniciais, tagline, bio: (resumo && resumo.fields.descricao) || '',
             foto, local, areasAtuacao, orcid, lattesUrl, contatos, outras: (outrasI && outrasI.fields.descricao) || '',
             secoes, geradoEm: new Date().toLocaleString('pt-BR'), totalItens: items.length,
         };

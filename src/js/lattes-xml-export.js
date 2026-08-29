@@ -199,10 +199,13 @@ window.LattesXMLExport = (function () {
     function buildDadosGerais(byType, all) {
         const ident = (byType('IDENTIFICACAO')[0] || { fields: {} }).fields;
         const nome = clean(ident.titulo) || 'Currículo';
-        // Nome em citações: uma variação por linha (textarea) — o schema só
-        // aceita um único atributo, então junta com "; " (quebra ANTES de
-        // limpar espaços — clean() colapsaria as quebras de linha).
-        const citacoesLinhas = String(ident.citacoes == null ? '' : ident.citacoes).split('\n').map(clean).filter(Boolean);
+        // Nome em citações: lista de variações (repeater) — o schema só aceita
+        // um único atributo, então junta com "; ". Aceita também o formato
+        // antigo (textarea, uma variação por linha) para itens salvos antes
+        // da mudança para lista, sem perder dados ainda não migrados.
+        const citacoesLinhas = Array.isArray(ident.citacoes)
+            ? ident.citacoes.map(r => clean(r && r.nome)).filter(Boolean)
+            : String(ident.citacoes == null ? '' : ident.citacoes).split('\n').map(clean).filter(Boolean);
         const citacoes = citacoesLinhas.length ? citacoesLinhas.join('; ') : nome;
         const nacionalidade = clean(ident.nacionalidade) || 'Brasileira';
 

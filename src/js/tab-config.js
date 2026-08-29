@@ -22,7 +22,7 @@ window.TabConfig = (function () {
     const {
         state, $, $$, esc, toast,
         itemsUsingValue, evCount,
-        buildForm, fieldHtml, wireValidators, wireCounters, wireDateBr, wireConditional, wireNA, wireAreaTree,
+        buildForm, fieldHtml, wireValidators, wireCounters, wireDateBr, wireConditional, wireNA, wireAreaTree, wireRepeater,
         collectFields, normalizeEncoding, validateItemFields, collectSuggestions, renameFieldValue,
         AUTOCOMPLETE_KEYS, VOCAB_LABELS,
     } = window.AppCore;
@@ -1120,6 +1120,7 @@ window.TabConfig = (function () {
             wireDateBr(form);
             wireNA(form);
             wireConditional(form, LattesTypes.get(form.dataset.perfilForm));
+            wireRepeater(form, LattesTypes.get(form.dataset.perfilForm));
         });
         $$('[data-perfil-foto]', sec).forEach(inp => inp.addEventListener('change', (e) => {
             const f = e.target.files[0];
