@@ -145,6 +145,7 @@ window.LattesXMLExport = (function () {
         'DADOS-BASICOS-DO-PROCESSOS-OU-TECNICAS|NATUREZA': ['ANALITICA', 'INSTRUMENTAL', 'PEDAGOGICA', 'PROCESSUAL', 'TERAPEUTICA', 'OUTRA', 'NAO_INFORMADO'],
         'DADOS-BASICOS-DA-PARTITURA|NATUREZA': ['CANTO', 'CORAL', 'ORQUESTRA', 'OUTRO', 'NAO_INFORMADO'],
         'DADOS-BASICOS-DO-PREFACIO-POSFACIO|TIPO': ['PREFACIO', 'POSFACIO', 'APRESENTACAO', 'INTRODUCAO'],
+        'DADOS-BASICOS-DO-PREFACIO-POSFACIO|NATUREZA': ['LIVRO', 'OUTRA', 'REVISTAS_OU_PERIODICOS', 'NAO_INFORMADO'],
         'DADOS-BASICOS-DA-TRADUCAO|NATUREZA': ['ARTIGO', 'LIVRO', 'OUTRO', 'NAO_INFORMADO'],
         'DADOS-BASICOS-DE-EDITORACAO|NATUREZA': ['LIVRO', 'ANAIS', 'CATALOGO', 'COLETANEA', 'ENCICLOPEDIA', 'PERIODICO', 'OUTRA', 'NAO_INFORMADO'],
         'DADOS-BASICOS-DE-CARTA-MAPA-OU-SIMILAR|NATUREZA': ['AEROFOTOGRAMA', 'CARTA', 'FOTOGRAMA', 'MAPA', 'OUTRA', 'NAO_INFORMADO'],
@@ -189,10 +190,15 @@ window.LattesXMLExport = (function () {
 
     /* ---------------------- construtores por seção ----------------------- */
     // Helper de produção padrão: SEQUENCIA-PRODUCAO + DADOS-BASICOS + DETALHAMENTO + AUTORES*
-    function producao(leafTag, seq, dbTag, dbAttrs, detTag, detAttrs, autoresStr, detChildren) {
+    function producao(leafTag, seq, dbTag, dbAttrs, detTag, detAttrs, autoresStr, detChildren, extra) {
         const db = el(dbTag, dbAttrs);
         const det = el(detTag, detAttrs, detChildren || '');
-        return el(leafTag, { 'SEQUENCIA-PRODUCAO': String(seq) }, [db, det, autoresEls(autoresStr)].join(''));
+        // Aceita tanto o formato antigo (string ";"-separada) quanto a tabela
+        // nova de autores (Nome completo/Nome como citado); `extra` (opcional)
+        // é conteúdo já pronto (ex.: palavras-chave/áreas/setores) a incluir
+        // no final, depois dos autores.
+        const autoresXml = Array.isArray(autoresStr) ? autoresListaEls(autoresStr) : autoresEls(autoresStr);
+        return el(leafTag, { 'SEQUENCIA-PRODUCAO': String(seq) }, [db, det, autoresXml, extra || ''].join(''));
     }
 
     /* ============================ 01 DADOS-GERAIS ======================== */
@@ -535,9 +541,12 @@ window.LattesXMLExport = (function () {
             if (inner) blocos.push(el('ATUACAO-PROFISSIONAL', { 'NOME-INSTITUICAO': g.nome }, inner));
         }
         // Projetos (não têm instituição no modelo) → bloco próprio de atuação.
-        // "É um projeto de cooperação..." e os campos específicos de Projeto de
-        // ensino (cooperação por tipo, ações inovadoras, temática) não têm
-        // atributo no schema — ficam só na interface, fora do XML.
+        // "É um projeto de cooperação...", "Instituições envolvidas no projeto"
+        // e os campos específicos de Projeto de ensino (cooperação por tipo,
+        // ações inovadoras, temática) não têm atributo/elemento no schema
+        // (confirmado em CurriculoLattes.xsd — PROJETO-DE-PESQUISA só tem
+        // EQUIPE-DO-PROJETO/FINANCIADORES-DO-PROJETO/PRODUCOES-CT-DO-PROJETO/
+        // ORIENTACOES) — ficam só na interface, fora do XML.
         if (projetos.length) {
             const parts = projetos.map(it => {
                 const f = it.fields;
@@ -689,27 +698,55 @@ window.LattesXMLExport = (function () {
             return el('TEXTO-EM-JORNAL-OU-REVISTA', { 'SEQUENCIA-PRODUCAO': S() }, db + det + autoresXml + extra);
         }).join('');
 
-        // DEMAIS: outra biblio, partitura, prefácio, tradução
+        // DEMAIS: outra biblio, partitura, prefácio, tradução — todos com
+        // Palavras-chave/Área do conhecimento/Setores/Outras informações e
+        // autores em lista (mesmo padrão dos demais tipos bibliográficos;
+        // confirmado no XSD que os 4 elementos aceitam esses filhos).
+        const autoresArg = (f) => (Array.isArray(f.autoresLista) && f.autoresLista.length) ? f.autoresLista : f.autores;
+        const extraProd = (f) => palavrasChaveEl(f.palavrasChave) + areaDoConhecimentoEl(f) + setoresAtividadeEl(f.setores) + informacoesAdicionaisEl(f.outrasInfo);
         const outraBib = pick('OUTRA_BIBLIOGRAFICA').map(f =>
             producao('OUTRA-PRODUCAO-BIBLIOGRAFICA', S(),
-                'DADOS-BASICOS-DE-OUTRA-PRODUCAO', { 'NATUREZA': f.natureza, 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS-DE-PUBLICACAO': f.pais, 'IDIOMA': f.idioma, 'HOME-PAGE-DO-TRABALHO': f.url },
-                'DETALHAMENTO-DE-OUTRA-PRODUCAO', { 'EDITORA': f.editora },
-                f.autores)).join('');
+                'DADOS-BASICOS-DE-OUTRA-PRODUCAO', {
+                    'NATUREZA': f.natureza, 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS-DE-PUBLICACAO': f.pais, 'IDIOMA': f.idioma,
+                    'MEIO-DE-DIVULGACAO': MEIO_DIVULGACAO_TOKEN[f.meioDivulgacao] || '', 'HOME-PAGE-DO-TRABALHO': f.url,
+                    'FLAG-RELEVANCIA': FLAG_SIM_NAO[f.relevante] || '', 'FLAG-DIVULGACAO-CIENTIFICA': FLAG_SIM_NAO[f.divulgacaoCT] || '',
+                },
+                'DETALHAMENTO-DE-OUTRA-PRODUCAO', { 'EDITORA': f.editora, 'CIDADE-DA-EDITORA': f.cidade, 'NUMERO-DE-PAGINAS': f.paginas, 'ISSN-ISBN': f.issnIsbn },
+                autoresArg(f), null, extraProd(f))).join('');
         const partituras = pick('PARTITURA').map(f =>
             producao('PARTITURA-MUSICAL', S(),
-                'DADOS-BASICOS-DA-PARTITURA', { 'NATUREZA': tok('DADOS-BASICOS-DA-PARTITURA', 'NATUREZA', f.natureza), 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS-DE-PUBLICACAO': f.pais, 'IDIOMA': f.idioma, 'HOME-PAGE-DO-TRABALHO': f.url },
-                'DETALHAMENTO-DA-PARTITURA', { 'FORMACAO-INSTRUMENTAL': f.formacao, 'EDITORA': f.editora },
-                f.autores)).join('');
+                'DADOS-BASICOS-DA-PARTITURA', {
+                    'NATUREZA': tok('DADOS-BASICOS-DA-PARTITURA', 'NATUREZA', f.natureza), 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS-DE-PUBLICACAO': f.pais, 'IDIOMA': f.idioma,
+                    'MEIO-DE-DIVULGACAO': MEIO_DIVULGACAO_TOKEN[f.meioDivulgacao] || '', 'HOME-PAGE-DO-TRABALHO': f.url, 'FLAG-RELEVANCIA': FLAG_SIM_NAO[f.relevante] || '',
+                },
+                'DETALHAMENTO-DA-PARTITURA', { 'FORMACAO-INSTRUMENTAL': f.formacao, 'EDITORA': f.editora, 'CIDADE-DA-EDITORA': f.cidade, 'NUMERO-DE-PAGINAS': f.paginas, 'NUMERO-DO-CATALOGO': f.numeroCatalogo },
+                autoresArg(f), null, extraProd(f))).join('');
         const prefacios = pick('PREFACIO').map(f =>
             producao('PREFACIO-POSFACIO', S(),
-                'DADOS-BASICOS-DO-PREFACIO-POSFACIO', { 'TIPO': tok('DADOS-BASICOS-DO-PREFACIO-POSFACIO', 'TIPO', f.natureza), 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS-DE-PUBLICACAO': f.pais, 'IDIOMA': f.idioma, 'HOME-PAGE-DO-TRABALHO': f.url },
-                'DETALHAMENTO-DO-PREFACIO-POSFACIO', { 'TITULO-DA-PUBLICACAO': f.obra, 'EDITORA-DO-PREFACIO-POSFACIO': f.editora },
-                f.autores)).join('');
+                'DADOS-BASICOS-DO-PREFACIO-POSFACIO', {
+                    'TIPO': tok('DADOS-BASICOS-DO-PREFACIO-POSFACIO', 'TIPO', f.natureza), 'NATUREZA': tok('DADOS-BASICOS-DO-PREFACIO-POSFACIO', 'NATUREZA', f.naturezaObra),
+                    'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS-DE-PUBLICACAO': f.pais, 'IDIOMA': f.idioma,
+                    'MEIO-DE-DIVULGACAO': MEIO_DIVULGACAO_TOKEN[f.meioDivulgacao] || '', 'HOME-PAGE-DO-TRABALHO': f.url, 'FLAG-RELEVANCIA': FLAG_SIM_NAO[f.relevante] || '',
+                },
+                // NUMERO-DE-PAGINAS não existe no schema p/ Prefácio/posfácio — f.paginas fica só de uso interno.
+                'DETALHAMENTO-DO-PREFACIO-POSFACIO', {
+                    'NOME-DO-AUTOR-DA-PUBLICACAO': f.autorPublicacao, 'TITULO-DA-PUBLICACAO': f.obra, 'ISSN-ISBN': f.issnIsbn,
+                    'NUMERO-DA-EDICAO-REVISAO': f.edicao, 'VOLUME': f.volume, 'SERIE': f.serie, 'FASCICULO': f.fasciculo,
+                    'EDITORA-DO-PREFACIO-POSFACIO': f.editora, 'CIDADE-DA-EDITORA': f.cidade,
+                },
+                autoresArg(f), null, extraProd(f))).join('');
         const traducoes = pick('TRADUCAO').map(f =>
             producao('TRADUCAO', S(),
-                'DADOS-BASICOS-DA-TRADUCAO', { 'NATUREZA': tok('DADOS-BASICOS-DA-TRADUCAO', 'NATUREZA', f.natureza), 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS-DE-PUBLICACAO': f.pais, 'IDIOMA': f.idioma, 'HOME-PAGE-DO-TRABALHO': f.url },
-                'DETALHAMENTO-DA-TRADUCAO', { 'NOME-DO-AUTOR-TRADUZIDO': f.autorOriginal, 'TITULO-DA-OBRA-ORIGINAL': f.obraOriginal, 'IDIOMA-DA-OBRA-ORIGINAL': f.idiomaOriginal, 'EDITORA-DA-TRADUCAO': f.editora },
-                f.autores)).join('');
+                'DADOS-BASICOS-DA-TRADUCAO', {
+                    'NATUREZA': tok('DADOS-BASICOS-DA-TRADUCAO', 'NATUREZA', f.natureza), 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS-DE-PUBLICACAO': f.pais, 'IDIOMA': f.idioma,
+                    'MEIO-DE-DIVULGACAO': MEIO_DIVULGACAO_TOKEN[f.meioDivulgacao] || '', 'HOME-PAGE-DO-TRABALHO': f.url, 'FLAG-RELEVANCIA': FLAG_SIM_NAO[f.relevante] || '',
+                },
+                'DETALHAMENTO-DA-TRADUCAO', {
+                    'NOME-DO-AUTOR-TRADUZIDO': f.autorOriginal, 'TITULO-DA-OBRA-ORIGINAL': f.obraOriginal, 'ISSN-ISBN': f.issnIsbn, 'IDIOMA-DA-OBRA-ORIGINAL': f.idiomaOriginal,
+                    'EDITORA-DA-TRADUCAO': f.editora, 'CIDADE-DA-EDITORA': f.cidade, 'NUMERO-DE-PAGINAS': f.paginas, 'NUMERO-DA-EDICAO-REVISAO': f.edicao,
+                    'VOLUME': f.volume, 'FASCICULO': f.fasciculo, 'SERIE': f.serie,
+                },
+                autoresArg(f), null, extraProd(f))).join('');
         const demais = wrap('DEMAIS-TIPOS-DE-PRODUCAO-BIBLIOGRAFICA', outraBib + partituras + prefacios + traducoes);
 
         const inner = [wrap('TRABALHOS-EM-EVENTOS', trabalhos), wrap('ARTIGOS-PUBLICADOS', artigos), livrosCaps, wrap('TEXTOS-EM-JORNAIS-OU-REVISTAS', textos), demais, wrap('ARTIGOS-ACEITOS-PARA-PUBLICACAO', aceitos)].join('');

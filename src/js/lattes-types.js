@@ -210,6 +210,21 @@ const alImprensaFields = () => [
     { key: 'ano', label: 'Data de veiculação', type: 'datebr', required: true, row: 'impVeicData' },
 ];
 
+// Autores como lista (Nome completo/Nome como citado) — mesmo padrão dos
+// demais tipos de Produção bibliográfica (issue de auditoria vs. Lattes real).
+const PROD_AUTORES_LISTA = { key: 'autoresLista', label: 'Autores', type: 'repeater', addLabel: 'Adicionar autor', columns: [
+    { key: 'nomeCompleto', label: 'Nome completo', type: 'text', required: true },
+    { key: 'nomeCitacao', label: 'Nome como citado', type: 'text' },
+] };
+// Palavras-chave/Área/Setores/Outras informações — mesmo bloco final usado
+// pelos demais tipos de Produção bibliográfica.
+const PROD_PALAVRAS_AREA_SETORES_OUTRAS = [
+    { key: 'palavrasChave', label: 'Palavras-chave', type: 'textarea', placeholder: 'Separe por ponto e vírgula (;)', help: 'Até 6 palavras-chave (limite da Plataforma Lattes).' },
+    { key: 'areaConhecimento', label: 'Área do conhecimento (CNPq/CAPES)', type: 'areatree', help: 'Selecione do mais geral ao mais específico: Grande área > Área > Subárea > Especialidade.' },
+    { key: 'setores', label: 'Setores de atividade', type: 'cnaeSetores', help: 'Até 3 setores (lista CNAE).' },
+    { key: 'outrasInfo', label: 'Outras informações', type: 'textarea' },
+];
+
 /* ---- Definição global dos TIPOS (por chave) ---- */
 const TYPES = {
     // 01 Dados gerais
@@ -438,7 +453,7 @@ const TYPES = {
     ARTIGO_PERIODICO: { label: 'Artigos completos publicados em periódicos', fields: [
         F_DOI,
         F_TITULO, F_ANO, F_IDIOMA,
-        { key: 'meioDivulgacao', label: 'Meio de divulgação', type: 'select', options: ['Impresso', 'Meio digital', 'Impresso e mídia eletrônica'] },
+        { key: 'meioDivulgacao', label: 'Meio de divulgação', type: 'select', options: MEIO_DIVULGACAO_OPTIONS },
         { key: 'url', label: 'Home page do trabalho (URL)', type: 'url' },
         { key: 'relevante', label: 'É um dos 10 trabalhos mais relevantes de sua produção?', type: 'checkbox' },
         { key: 'divulgacaoCT', label: 'É uma produção para educação e popularização de C&T?', type: 'checkbox' },
@@ -616,10 +631,64 @@ const TYPES = {
         { key: 'setores', label: 'Setores de atividade', type: 'cnaeSetores', help: 'Até 3 setores (lista CNAE).' },
         { key: 'outrasInfo', label: 'Outras informações', type: 'textarea' },
     ] },
-    PARTITURA: { label: 'Partitura musical', fields: [F_TITULO, { ...F_ANO, row: 'periodo' }, F_AFIM, F_AUTORES, F_NATUREZA(['Canto', 'Coral', 'Orquestra', 'Outro']), { key: 'formacao', label: 'Formação instrumental', type: 'text' }, { key: 'editora', label: 'Editora', type: 'text' }, F_PAIS, F_IDIOMA, F_URL] },
-    TRADUCAO: { label: 'Tradução', fields: [F_TITULO, { ...F_ANO, row: 'periodo' }, F_AFIM, F_AUTORES, F_NATUREZA(['Livro', 'Artigo', 'Outro']), { key: 'autorOriginal', label: 'Autor da obra original', type: 'text' }, { key: 'obraOriginal', label: 'Título da obra original', type: 'text' }, { key: 'idiomaOriginal', label: 'Idioma original', type: 'select', options: window.IDIOMAS_LATTES || [] }, { key: 'idioma', label: 'Idioma da tradução', type: 'select', options: window.IDIOMAS_LATTES || [] }, { key: 'editora', label: 'Editora', type: 'text' }, F_PAIS, F_URL] },
-    PREFACIO: { label: 'Prefácio, posfácio', fields: [F_TITULO, { ...F_ANO, row: 'periodo' }, F_AFIM, F_AUTORES, F_NATUREZA(['Prefácio', 'Posfácio', 'Apresentação', 'Introdução']), { key: 'obra', label: 'Título da publicação', type: 'text' }, { key: 'editora', label: 'Editora', type: 'text' }, F_PAIS, F_IDIOMA, F_URL] },
-    OUTRA_BIBLIOGRAFICA: { label: 'Outra produção bibliográfica', fields: [F_TITULO, { ...F_ANO, row: 'periodo' }, F_AFIM, F_AUTORES, { key: 'natureza', label: 'Natureza', type: 'text' }, { key: 'editora', label: 'Editora', type: 'text' }, F_PAIS, F_IDIOMA, F_URL] },
+    PARTITURA: { label: 'Partitura musical', fields: [
+        F_TITULO, F_ANO, F_NATUREZA(['Canto', 'Coral', 'Orquestra', 'Outro']), F_PAIS, F_IDIOMA,
+        { key: 'meioDivulgacao', label: 'Meio de divulgação', type: 'select', options: MEIO_DIVULGACAO_OPTIONS }, F_URL,
+        { key: 'relevante', label: 'É um dos 10 trabalhos mais relevantes de sua produção?', type: 'checkbox' },
+        PROD_AUTORES_LISTA,
+        { key: 'formacao', label: 'Formação instrumental', type: 'text' },
+        { key: 'editora', label: 'Editora', type: 'text' }, { key: 'cidade', label: 'Cidade da editora', type: 'text' },
+        { key: 'paginas', label: 'Número de páginas', type: 'text' }, { key: 'numeroCatalogo', label: 'Número do catálogo', type: 'text' },
+        ...PROD_PALAVRAS_AREA_SETORES_OUTRAS,
+    ] },
+    TRADUCAO: { label: 'Tradução', fields: [
+        F_TITULO, F_ANO, F_NATUREZA(['Livro', 'Artigo', 'Outro']), F_PAIS,
+        { key: 'idioma', label: 'Idioma da tradução', type: 'select', options: window.IDIOMAS_LATTES || [] },
+        { key: 'meioDivulgacao', label: 'Meio de divulgação', type: 'select', options: MEIO_DIVULGACAO_OPTIONS }, F_URL,
+        { key: 'relevante', label: 'É um dos 10 trabalhos mais relevantes de sua produção?', type: 'checkbox' },
+        PROD_AUTORES_LISTA,
+        { key: 'autorOriginal', label: 'Autor da obra original', type: 'text' },
+        { key: 'obraOriginal', label: 'Título da obra original', type: 'text' },
+        { key: 'issnIsbn', label: 'ISSN/ISBN', type: 'text' },
+        { key: 'idiomaOriginal', label: 'Idioma original', type: 'select', options: window.IDIOMAS_LATTES || [] },
+        { key: 'editora', label: 'Editora da tradução', type: 'text' }, { key: 'cidade', label: 'Cidade da editora', type: 'text' },
+        { key: 'edicao', label: 'No. edição ou revisão', type: 'text' }, { key: 'paginas', label: 'Número de páginas', type: 'text' },
+        { key: 'volume', label: 'Volume', type: 'text' }, { key: 'fasciculo', label: 'Fascículo', type: 'text' }, { key: 'serie', label: 'Série', type: 'text' },
+        ...PROD_PALAVRAS_AREA_SETORES_OUTRAS,
+    ] },
+    PREFACIO: { label: 'Prefácio, posfácio', fields: [
+        { key: 'natureza', label: 'Tipo', type: 'select', options: ['Prefácio', 'Posfácio', 'Apresentação', 'Introdução'] },
+        // "Natureza" real do schema (LIVRO/OUTRA/REVISTAS_OU_PERIODICOS) — não
+        // confundir com o campo acima ("Tipo" na tela real, mas guardado na
+        // chave `natureza` por herdar o átomo F_NATUREZA original).
+        { key: 'naturezaObra', label: 'Natureza', type: 'select', options: ['Livro', 'Revistas ou periódicos', 'Outra'] },
+        F_TITULO, F_ANO, F_PAIS, F_IDIOMA,
+        { key: 'meioDivulgacao', label: 'Meio de divulgação', type: 'select', options: MEIO_DIVULGACAO_OPTIONS }, F_URL,
+        { key: 'relevante', label: 'É um dos 10 trabalhos mais relevantes de sua produção?', type: 'checkbox' },
+        PROD_AUTORES_LISTA,
+        { key: 'autorPublicacao', label: 'Autor da publicação', type: 'text' },
+        { key: 'obra', label: 'Título da publicação', type: 'text' },
+        { key: 'issnIsbn', label: 'ISSN/ISBN', type: 'text' },
+        { key: 'editora', label: 'Editora', type: 'text' }, { key: 'cidade', label: 'Cidade da editora', type: 'text' },
+        { key: 'edicao', label: 'No. edição ou revisão', type: 'text' },
+        // "Número de páginas" existe na tela real (doc), mas o schema oficial
+        // não tem atributo para isso em DETALHAMENTO-DO-PREFACIO-POSFACIO —
+        // fica só de uso interno, não é exportado no XML.
+        { key: 'paginas', label: 'Número de páginas', type: 'text' },
+        { key: 'volume', label: 'Volume', type: 'text' }, { key: 'fasciculo', label: 'Fascículo', type: 'text' }, { key: 'serie', label: 'Série', type: 'text' },
+        ...PROD_PALAVRAS_AREA_SETORES_OUTRAS,
+    ] },
+    OUTRA_BIBLIOGRAFICA: { label: 'Outra produção bibliográfica', fields: [
+        { key: 'natureza', label: 'Natureza', type: 'text' },
+        F_TITULO, F_ANO, F_PAIS, F_IDIOMA,
+        { key: 'meioDivulgacao', label: 'Meio de divulgação', type: 'select', options: MEIO_DIVULGACAO_OPTIONS }, F_URL,
+        { key: 'relevante', label: 'É um dos 10 trabalhos mais relevantes de sua produção?', type: 'checkbox' },
+        { key: 'divulgacaoCT', label: 'É uma produção para educação e popularização de C&T?', type: 'checkbox' },
+        PROD_AUTORES_LISTA,
+        { key: 'editora', label: 'Editora', type: 'text' }, { key: 'cidade', label: 'Cidade da editora', type: 'text' },
+        { key: 'paginas', label: 'Número de páginas', type: 'text' }, { key: 'issnIsbn', label: 'ISSN/ISBN', type: 'text' },
+        ...PROD_PALAVRAS_AREA_SETORES_OUTRAS,
+    ] },
 
     // 05.2 Produção técnica
     ASSESSORIA_CONSULTORIA: { label: 'Assessoria e consultoria', fields: [F_TITULO, { ...F_ANO, row: 'periodo' }, F_AFIM, F_AUTORES, F_NATUREZA(['Assessoria', 'Consultoria']), F_INST, F_FINAL, F_PAIS, F_CIDADE, F_IDIOMA, F_URL] },

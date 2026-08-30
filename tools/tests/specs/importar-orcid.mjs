@@ -146,7 +146,8 @@ test('Autores são buscados via segunda chamada (registro completo da obra)', as
     assertEqual(capitulo.fields.autoresLista.map((a) => a.nomeCompleto), ['Autor do Capítulo'], 'Capítulo deveria ter o autor extraído');
 
     const outro = catalogo.find((i) => i.fields.titulo === 'Um tipo de obra desconhecido');
-    assertEqual(outro.fields.autores, 'Autor Um; Autor Dois', 'Tipo com campo "autores" simples (textarea) deveria juntar os nomes com "; "');
+    assertEqual(outro.fields.autoresLista.map((a) => a.nomeCompleto), ['Autor Um', 'Autor Dois'],
+        'OUTRA_BIBLIOGRAFICA (catch-all) também tem autoresLista (auditoria vs. Lattes real) — deveria vir preenchida, não mais o campo "autores" simples');
 });
 
 test('Reimportar as mesmas obras do ORCID não duplica (dedup por assinatura)', async ({ page, baseUrl }) => {
