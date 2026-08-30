@@ -140,6 +140,9 @@ window.LattesXMLExport = (function () {
         'DADOS-BASICOS-DO-LIVRO|TIPO': ['LIVRO_PUBLICADO', 'LIVRO_ORGANIZADO_OU_EDICAO', 'NAO_INFORMADO'],
         'DADOS-BASICOS-DA-APRESENTACAO-DE-TRABALHO|NATUREZA': ['COMUNICACAO', 'CONFERENCIA', 'CONGRESSO', 'SEMINARIO', 'SIMPOSIO', 'OUTRA', 'NAO_INFORMADO'],
         'DADOS-BASICOS-DE-CURSOS-CURTA-DURACAO-MINISTRADO|NIVEL-DO-CURSO': ['EXTENSAO', 'APERFEICOAMENTO', 'ESPECIALIZACAO', 'OUTRA', 'NAO_INFORMADO'],
+        'DETALHAMENTO-DE-CURSOS-CURTA-DURACAO-MINISTRADO|PARTICIPACAO-DOS-AUTORES': ['DOCENTE', 'ORGANIZADOR', 'OUTRA', 'NAO_INFORMADO'],
+        'DADOS-BASICOS-DO-SOFTWARE|NATUREZA': ['COMPUTACIONAL', 'MULTIMIDIA', 'OUTRO', 'NAO_INFORMADO'],
+        'DETALHAMENTO-DO-SOFTWARE|DISPONIBILIDADE': ['RESTRITA', 'IRRESTRITA', 'NAO_INFORMADO'],
         // "EXTENSAO_TECNOLOGICA" é um token válido no XSD para esse enum, mas o
         // DTD (ainda usado pela importação real do Lattes) não o aceita — por
         // isso fica de fora daqui de propósito; ver normalização em buildTecnica.
@@ -780,8 +783,16 @@ window.LattesXMLExport = (function () {
             'DADOS-BASICOS-DA-CULTIVAR', { 'DENOMINACAO': f.titulo, 'ANO-SOLICITACAO': year(f.ano), 'PAIS': f.pais },
             'DETALHAMENTO-DA-CULTIVAR', { 'FINALIDADE': f.finalidade, 'INSTITUICAO-FINANCIADORA': f.instituicao }, f.autores, registroPatente(f))).join('');
         const softwares = pick('SOFTWARE_SEM_REGISTRO', 'SOFTWARE_REGISTRADO').map(f => producao('SOFTWARE', S(),
-            'DADOS-BASICOS-DO-SOFTWARE', { 'TITULO-DO-SOFTWARE': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma, 'HOME-PAGE-DO-TRABALHO': f.url },
-            'DETALHAMENTO-DO-SOFTWARE', { 'FINALIDADE': f.finalidade, 'PLATAFORMA': f.plataforma, 'AMBIENTE': f.plataforma }, f.autores, f.registro ? registroPatente(f) : '')).join('');
+            'DADOS-BASICOS-DO-SOFTWARE', {
+                'NATUREZA': tok('DADOS-BASICOS-DO-SOFTWARE', 'NATUREZA', f.natureza), 'TITULO-DO-SOFTWARE': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma,
+                'MEIO-DE-DIVULGACAO': MEIO_DIVULGACAO_TOKEN[f.meioDivulgacao] || '', 'HOME-PAGE-DO-TRABALHO': f.url,
+                'FLAG-RELEVANCIA': FLAG_SIM_NAO[f.relevante] || '', 'FLAG-DIVULGACAO-CIENTIFICA': FLAG_SIM_NAO[f.divulgacaoCT] || '', 'FLAG-POTENCIAL-INOVACAO': FLAG_SIM_NAO[f.potencialInovacao] || '',
+            },
+            'DETALHAMENTO-DO-SOFTWARE', {
+                'FINALIDADE': f.finalidade, 'PLATAFORMA': f.plataforma, 'AMBIENTE': f.plataforma,
+                'DISPONIBILIDADE': tok('DETALHAMENTO-DO-SOFTWARE', 'DISPONIBILIDADE', f.disponibilidade), 'INSTITUICAO-FINANCIADORA': f.instituicao,
+            },
+            autoresArg(f), f.registro ? registroPatente(f) : '', extraProd(f))).join('');
         const patentes = pick('PATENTE').map(f => producao('PATENTE', S(),
             'DADOS-BASICOS-DA-PATENTE', { 'TITULO': f.titulo, 'ANO-DESENVOLVIMENTO': year(f.ano), 'PAIS': f.pais, 'HOME-PAGE': f.url },
             'DETALHAMENTO-DA-PATENTE', { 'FINALIDADE': f.finalidade, 'INSTITUICAO-FINANCIADORA': f.instituicao, 'CATEGORIA': f.categoria }, f.autores, registroPatente(f))).join('');
@@ -852,17 +863,40 @@ window.LattesXMLExport = (function () {
             return el('APRESENTACAO-DE-TRABALHO', { 'SEQUENCIA-PRODUCAO': S() }, db + det + autoresXml + extra);
         }).join('');
         const cartas = pick('CARTA_MAPA').map(f => producao('CARTA-MAPA-OU-SIMILAR', S(),
-            'DADOS-BASICOS-DE-CARTA-MAPA-OU-SIMILAR', { 'NATUREZA': tok('DADOS-BASICOS-DE-CARTA-MAPA-OU-SIMILAR', 'NATUREZA', f.natureza), 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma, 'HOME-PAGE-DO-TRABALHO': f.url },
-            'DETALHAMENTO-DE-CARTA-MAPA-OU-SIMILAR', { 'FINALIDADE': f.finalidade }, f.autores)).join('');
+            'DADOS-BASICOS-DE-CARTA-MAPA-OU-SIMILAR', {
+                'NATUREZA': tok('DADOS-BASICOS-DE-CARTA-MAPA-OU-SIMILAR', 'NATUREZA', f.natureza), 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma,
+                'MEIO-DE-DIVULGACAO': MEIO_DIVULGACAO_TOKEN[f.meioDivulgacao] || '', 'HOME-PAGE-DO-TRABALHO': f.url, 'FLAG-RELEVANCIA': FLAG_SIM_NAO[f.relevante] || '',
+            },
+            'DETALHAMENTO-DE-CARTA-MAPA-OU-SIMILAR', {
+                'TEMA-DA-CARTA-MAPA-OU-SIMILAR': f.tema, 'TECNICA-UTILIZADA': f.tecnica, 'FINALIDADE': f.finalidade,
+                'AREA-REPRESENTADA': f.areaRepresentada, 'INSTITUICAO-FINANCIADORA': f.instituicao,
+            },
+            autoresArg(f), null, extraProd(f))).join('');
         const cursos = pick('CURSO_MINISTRADO').map(f => producao('CURSO-DE-CURTA-DURACAO-MINISTRADO', S(),
-            'DADOS-BASICOS-DE-CURSOS-CURTA-DURACAO-MINISTRADO', { 'NIVEL-DO-CURSO': tok('DADOS-BASICOS-DE-CURSOS-CURTA-DURACAO-MINISTRADO', 'NIVEL-DO-CURSO', f.nivel), 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma, 'HOME-PAGE-DO-TRABALHO': f.url },
-            'DETALHAMENTO-DE-CURSOS-CURTA-DURACAO-MINISTRADO', { 'INSTITUICAO-PROMOTORA-DO-CURSO': f.instituicao, 'CIDADE': f.cidade, 'DURACAO': semNA(f.cargaHoraria) }, f.autores)).join('');
+            'DADOS-BASICOS-DE-CURSOS-CURTA-DURACAO-MINISTRADO', {
+                'NIVEL-DO-CURSO': tok('DADOS-BASICOS-DE-CURSOS-CURTA-DURACAO-MINISTRADO', 'NIVEL-DO-CURSO', f.nivel), 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma,
+                'MEIO-DE-DIVULGACAO': MEIO_DIVULGACAO_TOKEN[f.meioDivulgacao] || '', 'HOME-PAGE-DO-TRABALHO': f.url,
+                'FLAG-RELEVANCIA': FLAG_SIM_NAO[f.relevante] || '', 'FLAG-DIVULGACAO-CIENTIFICA': FLAG_SIM_NAO[f.divulgacaoCT] || '',
+            },
+            'DETALHAMENTO-DE-CURSOS-CURTA-DURACAO-MINISTRADO', {
+                'PARTICIPACAO-DOS-AUTORES': tok('DETALHAMENTO-DE-CURSOS-CURTA-DURACAO-MINISTRADO', 'PARTICIPACAO-DOS-AUTORES', f.participacaoAutores),
+                'INSTITUICAO-PROMOTORA-DO-CURSO': f.instituicao, 'LOCAL-DO-CURSO': f.local, 'CIDADE': f.cidade, 'DURACAO': semNA(f.cargaHoraria), 'UNIDADE': f.unidade,
+            },
+            autoresArg(f), null, extraProd(f))).join('');
         const materiais = pick('MATERIAL_DIDATICO').map(f => producao('DESENVOLVIMENTO-DE-MATERIAL-DIDATICO-OU-INSTRUCIONAL', S(),
-            'DADOS-BASICOS-DO-MATERIAL-DIDATICO-OU-INSTRUCIONAL', { 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma, 'HOME-PAGE-DO-TRABALHO': f.url },
-            'DETALHAMENTO-DO-MATERIAL-DIDATICO-OU-INSTRUCIONAL', { 'FINALIDADE': f.finalidade }, f.autores)).join('');
+            'DADOS-BASICOS-DO-MATERIAL-DIDATICO-OU-INSTRUCIONAL', {
+                'NATUREZA': f.natureza, 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma,
+                'MEIO-DE-DIVULGACAO': MEIO_DIVULGACAO_TOKEN[f.meioDivulgacao] || '', 'HOME-PAGE-DO-TRABALHO': f.url,
+                'FLAG-RELEVANCIA': FLAG_SIM_NAO[f.relevante] || '', 'FLAG-DIVULGACAO-CIENTIFICA': FLAG_SIM_NAO[f.divulgacaoCT] || '',
+            },
+            'DETALHAMENTO-DO-MATERIAL-DIDATICO-OU-INSTRUCIONAL', { 'FINALIDADE': f.finalidade }, autoresArg(f), null, extraProd(f))).join('');
         const editoracoes = pick('EDITORACAO').map(f => producao('EDITORACAO', S(),
-            'DADOS-BASICOS-DE-EDITORACAO', { 'NATUREZA': tok('DADOS-BASICOS-DE-EDITORACAO', 'NATUREZA', f.natureza), 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma, 'HOME-PAGE-DO-TRABALHO': f.url },
-            'DETALHAMENTO-DE-EDITORACAO', { 'NUMERO-DE-PAGINAS': f.paginas, 'EDITORA': f.editora, 'CIDADE': f.cidade }, f.autores)).join('');
+            'DADOS-BASICOS-DE-EDITORACAO', {
+                'NATUREZA': tok('DADOS-BASICOS-DE-EDITORACAO', 'NATUREZA', f.natureza), 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma,
+                'MEIO-DE-DIVULGACAO': MEIO_DIVULGACAO_TOKEN[f.meioDivulgacao] || '', 'HOME-PAGE-DO-TRABALHO': f.url, 'FLAG-RELEVANCIA': FLAG_SIM_NAO[f.relevante] || '',
+            },
+            'DETALHAMENTO-DE-EDITORACAO', { 'NUMERO-DE-PAGINAS': f.paginas, 'INSTITUICAO-PROMOTORA': f.instituicao, 'EDITORA': f.editora, 'CIDADE': f.cidade },
+            autoresArg(f), null, extraProd(f))).join('');
         const manut = pick('MANUTENCAO_OBRA').map(f => producao('MANUTENCAO-DE-OBRA-ARTISTICA', S(),
             'DADOS-BASICOS-DE-MANUTENCAO-DE-OBRA-ARTISTICA', { 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma },
             'DETALHAMENTO-DE-MANUTENCAO-DE-OBRA-ARTISTICA', { 'LOCAL': f.finalidade, 'CIDADE': f.cidade }, f.autores)).join('');

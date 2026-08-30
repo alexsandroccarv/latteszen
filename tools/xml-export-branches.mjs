@@ -69,6 +69,40 @@ items.push(mk('PROCESSO_TECNICA', 'PRODUCOES', {
     autoresLista: [{ nomeCompleto: 'Fulano de Tal', nomeCitacao: 'TAL, F.' }],
     finalidade: 'Extração de compostos', disponibilidade: 'Restrita', cidade: 'São Carlos', instituicao: 'CNPq',
 }));
+// Produção Técnica sub-lote 2: Programa de computador sem registro, Cartas/
+// mapas ou similares, Curso de curta duração ministrado, Desenvolvimento de
+// material didático ou instrucional, Editoração — campos que faltavam.
+items.push(mk('SOFTWARE_SEM_REGISTRO', 'PRODUCOES', {
+    natureza: 'Computacional', titulo: 'Sistema de gestão acadêmica', ano: '2021', pais: 'Brasil', idioma: 'Português',
+    meioDivulgacao: 'Meio digital', url: 'https://example.org/software', relevante: 'Sim', divulgacaoCT: 'Sim', potencialInovacao: 'Sim',
+    autoresLista: [{ nomeCompleto: 'Fulano de Tal', nomeCitacao: 'TAL, F.' }],
+    finalidade: 'Gestão de matrículas', plataforma: 'Web', disponibilidade: 'Irrestrita', instituicao: 'UNIFESP',
+    palavrasChave: 'software; gestão', grandeArea: 'Ciências Exatas e da Terra', area: 'Ciência da Computação', outrasInfo: 'Resumo livre.',
+}));
+items.push(mk('CARTA_MAPA', 'PRODUCOES', {
+    natureza: 'Mapa', titulo: 'Mapa geológico da bacia X', ano: '2019', pais: 'Brasil', idioma: 'Português',
+    meioDivulgacao: 'Impresso', relevante: 'Sim', autoresLista: [{ nomeCompleto: 'Fulano de Tal', nomeCitacao: 'TAL, F.' }],
+    finalidade: 'Mapeamento geológico', tema: 'Geologia estrutural', tecnica: 'Sensoriamento remoto',
+    areaRepresentada: 'Bacia sedimentar X', instituicao: 'CNPq',
+}));
+items.push(mk('CURSO_MINISTRADO', 'PRODUCOES', {
+    nivel: 'Extensão', titulo: 'Curso de introdução a Python', ano: '2022', pais: 'Brasil', idioma: 'Português',
+    meioDivulgacao: 'Meio digital', relevante: 'Sim', divulgacaoCT: 'Sim', participacaoAutores: 'Docente',
+    autoresLista: [{ nomeCompleto: 'Fulano de Tal', nomeCitacao: 'TAL, F.' }],
+    cargaHoraria: '20', unidade: 'horas', instituicao: 'UNIFESP', local: 'Auditório Central', cidade: 'São Paulo',
+}));
+items.push(mk('MATERIAL_DIDATICO', 'PRODUCOES', {
+    natureza: 'Apostila impressa', titulo: 'Apostila de cálculo I', ano: '2020', pais: 'Brasil', idioma: 'Português',
+    meioDivulgacao: 'Impresso', relevante: 'Não', divulgacaoCT: 'Sim',
+    autoresLista: [{ nomeCompleto: 'Fulano de Tal', nomeCitacao: 'TAL, F.' }],
+    finalidade: 'Apoio didático',
+}));
+items.push(mk('EDITORACAO', 'PRODUCOES', {
+    natureza: 'Anais', titulo: 'Anais do congresso X', ano: '2018', pais: 'Brasil', idioma: 'Português',
+    meioDivulgacao: 'Impresso e mídia eletrônica', relevante: 'Sim',
+    autoresLista: [{ nomeCompleto: 'Fulano de Tal', nomeCitacao: 'TAL, F.' }],
+    paginas: '300', instituicao: 'Universidade Y', editora: 'Editora Universitária', cidade: 'São Paulo',
+}));
 // Livro e capítulo
 items.push(mk('LIVRO_CAPITULO', 'PRODUCOES', { tipoObra: 'Livro publicado', titulo: 'Meu Livro', ano: '2020', autores: 'TAL, F.', editora: 'Ed', cidade: 'SP', isbn: '978-1', paginas: '200' }));
 items.push(mk('LIVRO_CAPITULO', 'PRODUCOES', { tipoObra: 'Capítulo de livro', titulo: 'Meu Capítulo', ano: '2021', autores: 'TAL, F.; X, Y', tituloLivro: 'Coletânea', organizadores: 'Org Z', editora: 'Ed', paginas: '10-30', isbn: '978-2' }));
