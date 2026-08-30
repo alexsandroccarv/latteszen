@@ -143,6 +143,9 @@ window.LattesXMLExport = (function () {
         'DETALHAMENTO-DE-CURSOS-CURTA-DURACAO-MINISTRADO|PARTICIPACAO-DOS-AUTORES': ['DOCENTE', 'ORGANIZADOR', 'OUTRA', 'NAO_INFORMADO'],
         'DADOS-BASICOS-DO-SOFTWARE|NATUREZA': ['COMPUTACIONAL', 'MULTIMIDIA', 'OUTRO', 'NAO_INFORMADO'],
         'DETALHAMENTO-DO-SOFTWARE|DISPONIBILIDADE': ['RESTRITA', 'IRRESTRITA', 'NAO_INFORMADO'],
+        'DADOS-BASICOS-DE-MANUTENCAO-DE-OBRA-ARTISTICA|TIPO': ['CONSERVACAO', 'RESTAURACAO', 'OUTRO', 'NAO_INFORMADO'],
+        'DADOS-BASICOS-DE-MANUTENCAO-DE-OBRA-ARTISTICA|NATUREZA': ['ARQUITETURA', 'DESENHO', 'ESCULTURA', 'FOTOGRAFIA', 'GRAVURA', 'OUTRA', 'PINTURA', 'NAO_INFORMADO'],
+        'DETALHAMENTO-DE-MANUTENCAO-DE-OBRA-ARTISTICA|ACERVO': ['PUBLICO', 'PRIVADO', 'NAO_INFORMADO'],
         // "EXTENSAO_TECNOLOGICA" é um token válido no XSD para esse enum, mas o
         // DTD (ainda usado pela importação real do Lattes) não o aceita — por
         // isso fica de fora daqui de propósito; ver normalização em buildTecnica.
@@ -898,28 +901,59 @@ window.LattesXMLExport = (function () {
             'DETALHAMENTO-DE-EDITORACAO', { 'NUMERO-DE-PAGINAS': f.paginas, 'INSTITUICAO-PROMOTORA': f.instituicao, 'EDITORA': f.editora, 'CIDADE': f.cidade },
             autoresArg(f), null, extraProd(f))).join('');
         const manut = pick('MANUTENCAO_OBRA').map(f => producao('MANUTENCAO-DE-OBRA-ARTISTICA', S(),
-            'DADOS-BASICOS-DE-MANUTENCAO-DE-OBRA-ARTISTICA', { 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma },
-            'DETALHAMENTO-DE-MANUTENCAO-DE-OBRA-ARTISTICA', { 'LOCAL': f.finalidade, 'CIDADE': f.cidade }, f.autores)).join('');
+            'DADOS-BASICOS-DE-MANUTENCAO-DE-OBRA-ARTISTICA', {
+                'TIPO': tok('DADOS-BASICOS-DE-MANUTENCAO-DE-OBRA-ARTISTICA', 'TIPO', f.tipo), 'NATUREZA': tok('DADOS-BASICOS-DE-MANUTENCAO-DE-OBRA-ARTISTICA', 'NATUREZA', f.natureza),
+                'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma, 'FLAG-RELEVANCIA': FLAG_SIM_NAO[f.relevante] || '',
+            },
+            'DETALHAMENTO-DE-MANUTENCAO-DE-OBRA-ARTISTICA', {
+                'NOME-DA-OBRA': f.nomeObra, 'AUTOR-DA-OBRA': f.autorObra, 'ANO-DA-OBRA': f.anoObra,
+                'ACERVO': tok('DETALHAMENTO-DE-MANUTENCAO-DE-OBRA-ARTISTICA', 'ACERVO', f.acervo), 'LOCAL': f.finalidade, 'CIDADE': f.cidade,
+            },
+            autoresArg(f), null, extraProd(f))).join('');
         const maquetes = pick('MAQUETE').map(f => producao('MAQUETE', S(),
-            'DADOS-BASICOS-DA-MAQUETE', { 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma, 'HOME-PAGE-DO-TRABALHO': f.url },
-            'DETALHAMENTO-DA-MAQUETE', { 'FINALIDADE': f.finalidade }, f.autores)).join('');
+            'DADOS-BASICOS-DA-MAQUETE', {
+                'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma,
+                'MEIO-DE-DIVULGACAO': MEIO_DIVULGACAO_TOKEN[f.meioDivulgacao] || '', 'HOME-PAGE-DO-TRABALHO': f.url, 'FLAG-RELEVANCIA': FLAG_SIM_NAO[f.relevante] || '',
+            },
+            'DETALHAMENTO-DA-MAQUETE', { 'FINALIDADE': f.finalidade, 'OBJETO-REPRESENTADO': f.objetoRepresentado, 'MATERIAL-UTILIZADO': f.materialUtilizado, 'INSTITUICAO-FINANCIADORA': f.instituicao },
+            autoresArg(f), null, extraProd(f))).join('');
         // "Olimpíada" no DTD tem acento (OLIMPÍADA), incompatível com o XSD
         // (OLIMPIADA). Para valer nos dois, mapeia esse caso raro para "Outro".
         const orgEventos = pick('ORGANIZACAO_EVENTO').map(f => producao('ORGANIZACAO-DE-EVENTO', S(),
             'DADOS-BASICOS-DA-ORGANIZACAO-DE-EVENTO', { 'TIPO': tok('DADOS-BASICOS-DA-ORGANIZACAO-DE-EVENTO', 'TIPO', /olimp/i.test(f.tipoEvento || '') ? 'Outro' : f.tipoEvento), 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'HOME-PAGE-DO-TRABALHO': f.url },
             'DETALHAMENTO-DA-ORGANIZACAO-DE-EVENTO', { 'INSTITUICAO-PROMOTORA': f.instituicao, 'CIDADE': f.cidade }, f.autores)).join('');
         const midias = pick('MIDIA').map(f => producao('PROGRAMA-DE-RADIO-OU-TV', S(),
-            'DADOS-BASICOS-DO-PROGRAMA-DE-RADIO-OU-TV', { 'NATUREZA': tok('DADOS-BASICOS-DO-PROGRAMA-DE-RADIO-OU-TV', 'NATUREZA', f.tipo), 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma, 'HOME-PAGE': f.url },
-            'DETALHAMENTO-DO-PROGRAMA-DE-RADIO-OU-TV', { 'EMISSORA': f.veiculo, 'CIDADE': f.cidade }, f.autores)).join('');
+            'DADOS-BASICOS-DO-PROGRAMA-DE-RADIO-OU-TV', {
+                'NATUREZA': tok('DADOS-BASICOS-DO-PROGRAMA-DE-RADIO-OU-TV', 'NATUREZA', f.tipo), 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma,
+                'MEIO-DE-DIVULGACAO': MEIO_DIVULGACAO_TOKEN[f.meioDivulgacao] || '', 'HOME-PAGE': f.url,
+                'FLAG-RELEVANCIA': FLAG_SIM_NAO[f.relevante] || '', 'FLAG-DIVULGACAO-CIENTIFICA': FLAG_SIM_NAO[f.divulgacaoCT] || '',
+            },
+            'DETALHAMENTO-DO-PROGRAMA-DE-RADIO-OU-TV', {
+                'EMISSORA': f.veiculo, 'TEMA': f.tema, 'FORMATO-DATA-DA-APRESENTACAO': f.dataRealizacao ? 'DDMMAAAA' : '',
+                'DATA-DA-APRESENTACAO': ddmmaaaa(f.dataRealizacao), 'DURACAO-EM-MINUTOS': f.duracaoMinutos, 'CIDADE': f.cidade, 'VEICULO-DE-DIVULGACAO': f.veiculo,
+            },
+            autoresArg(f), null, extraProd(f))).join('');
         const relatorios = pick('RELATORIO_PESQUISA').map(f => producao('RELATORIO-DE-PESQUISA', S(),
-            'DADOS-BASICOS-DO-RELATORIO-DE-PESQUISA', { 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma, 'HOME-PAGE-DO-TRABALHO': f.url },
-            'DETALHAMENTO-DO-RELATORIO-DE-PESQUISA', { 'INSTITUICAO-FINANCIADORA': f.instituicao }, f.autores)).join('');
+            'DADOS-BASICOS-DO-RELATORIO-DE-PESQUISA', {
+                'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma,
+                'MEIO-DE-DIVULGACAO': MEIO_DIVULGACAO_TOKEN[f.meioDivulgacao] || '', 'HOME-PAGE-DO-TRABALHO': f.url, 'FLAG-RELEVANCIA': FLAG_SIM_NAO[f.relevante] || '',
+            },
+            'DETALHAMENTO-DO-RELATORIO-DE-PESQUISA', { 'NOME-DO-PROJETO': f.nomeProjeto, 'NUMERO-DE-PAGINAS': f.paginas, 'DISPONIBILIDADE': f.disponibilidade, 'INSTITUICAO-FINANCIADORA': f.instituicao },
+            autoresArg(f), null, extraProd(f))).join('');
         const midiaSocial = pick('MIDIA_SOCIAL').map(f => producao('MIDIA-SOCIAL-WEBSITE-BLOG', S(),
-            'DADOS-BASICOS-DA-MIDIA-SOCIAL-WEBSITE-BLOG', { 'NATUREZA': tok('DADOS-BASICOS-DA-MIDIA-SOCIAL-WEBSITE-BLOG', 'NATUREZA', f.plataforma), 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma, 'HOME-PAGE': f.url },
-            'DETALHAMENTO-DA-MIDIA-SOCIAL-WEBSITE-BLOG', { 'TEMA': f.plataforma }, f.autores)).join('');
+            'DADOS-BASICOS-DA-MIDIA-SOCIAL-WEBSITE-BLOG', {
+                'NATUREZA': tok('DADOS-BASICOS-DA-MIDIA-SOCIAL-WEBSITE-BLOG', 'NATUREZA', f.natureza), 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma, 'HOME-PAGE': f.url,
+                'FLAG-RELEVANCIA': FLAG_SIM_NAO[f.relevante] || '', 'FLAG-DIVULGACAO-CIENTIFICA': FLAG_SIM_NAO[f.divulgacaoCT] || '',
+            },
+            'DETALHAMENTO-DA-MIDIA-SOCIAL-WEBSITE-BLOG', { 'TEMA': f.plataforma }, autoresArg(f), null, extraProd(f))).join('');
         const outrasTec = pick('OUTRA_TECNICA').map(f => producao('OUTRA-PRODUCAO-TECNICA', S(),
-            'DADOS-BASICOS-DE-OUTRA-PRODUCAO-TECNICA', { 'NATUREZA': f.natureza, 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma, 'HOME-PAGE-DO-TRABALHO': f.url },
-            'DETALHAMENTO-DE-OUTRA-PRODUCAO-TECNICA', { 'FINALIDADE': f.finalidade, 'INSTITUICAO-PROMOTORA': f.instituicao, 'CIDADE': f.cidade }, f.autores)).join('');
+            'DADOS-BASICOS-DE-OUTRA-PRODUCAO-TECNICA', {
+                'NATUREZA': f.natureza, 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma,
+                'MEIO-DE-DIVULGACAO': MEIO_DIVULGACAO_TOKEN[f.meioDivulgacao] || '', 'HOME-PAGE-DO-TRABALHO': f.url,
+                'FLAG-RELEVANCIA': FLAG_SIM_NAO[f.relevante] || '', 'FLAG-DIVULGACAO-CIENTIFICA': FLAG_SIM_NAO[f.divulgacaoCT] || '',
+            },
+            'DETALHAMENTO-DE-OUTRA-PRODUCAO-TECNICA', { 'FINALIDADE': f.finalidade, 'INSTITUICAO-PROMOTORA': f.instituicao, 'LOCAL': f.local, 'CIDADE': f.cidade },
+            autoresArg(f), null, extraProd(f))).join('');
 
         const demais = wrap('DEMAIS-TIPOS-DE-PRODUCAO-TECNICA',
             apres + cartas + cursos + materiais + editoracoes + manut + maquetes + orgEventos + midias + relatorios + midiaSocial + outrasTec);

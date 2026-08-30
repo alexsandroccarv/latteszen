@@ -811,12 +811,84 @@ const TYPES = {
         { key: 'editora', label: 'Editora', type: 'text' }, F_CIDADE,
         ...PROD_PALAVRAS_AREA_SETORES_OUTRAS,
     ] },
-    MANUTENCAO_OBRA: { label: 'Manutenção de obra artística', fields: [F_TITULO, { ...F_ANO, row: 'periodo' }, F_AFIM, F_AUTORES, F_FINAL, F_PAIS, F_CIDADE] },
-    MAQUETE: { label: 'Maquete', fields: [F_TITULO, { ...F_ANO, row: 'periodo' }, F_AFIM, F_AUTORES, F_FINAL, F_PAIS, F_URL] },
-    MIDIA: { label: 'Entrevistas, mesas redondas, programas e comentários na mídia', fields: [F_TITULO, { ...F_ANO, row: 'periodo' }, F_AFIM, F_AUTORES, { key: 'veiculo', label: 'Veículo / Emissora', type: 'text' }, { key: 'tipo', label: 'Tipo', type: 'select', options: ['Entrevista', 'Mesa redonda', 'Programa', 'Comentário'] }, F_PAIS, F_CIDADE, F_IDIOMA, F_URL] },
-    RELATORIO_PESQUISA: { label: 'Relatório de pesquisa', fields: [F_TITULO, { ...F_ANO, row: 'periodo' }, F_AFIM, F_AUTORES, F_INST, F_PAIS, F_IDIOMA, F_URL] },
-    MIDIA_SOCIAL: { label: 'Redes sociais, websites e blogs', fields: [F_TITULO, { ...F_ANO, row: 'periodo' }, F_AFIM, F_AUTORES, { key: 'plataforma', label: 'Plataforma / Tema', type: 'text' }, F_PAIS, F_IDIOMA, F_URL] },
-    OUTRA_TECNICA: { label: 'Outra produção técnica', fields: [F_TITULO, { ...F_ANO, row: 'periodo' }, F_AFIM, F_AUTORES, { key: 'natureza', label: 'Natureza', type: 'text' }, F_FINAL, F_PAIS, F_CIDADE, F_IDIOMA, F_URL] },
+    // Meio de divulgação e Home page NÃO têm atributo correspondente no XSD/DTD
+    // para Manutenção de obra artística (ao contrário dos demais tipos da
+    // seção) — limitação genuína do schema, por isso não entraram na UI. O
+    // campo `finalidade` (chave antiga, atrás rotulada "Finalidade /
+    // Descrição") já era exportado como LOCAL — relabeled pra bater com o
+    // campo real da tela ("Local"), sem trocar a chave nem os dados salvos.
+    MANUTENCAO_OBRA: { label: 'Manutenção de obra artística', fields: [
+        { key: 'tipo', label: 'Tipo', type: 'select', options: ['Conservação', 'Restauração', 'Outro'] },
+        F_NATUREZA(['Arquitetura', 'Desenho', 'Escultura', 'Fotografia', 'Gravura', 'Pintura', 'Outra']),
+        F_TITULO, { ...F_ANO, row: 'periodo' }, F_AFIM, F_PAIS, F_IDIOMA,
+        { key: 'relevante', label: 'É um dos 10 trabalhos mais relevantes de sua produção?', type: 'checkbox' },
+        PROD_AUTORES_LISTA,
+        { key: 'nomeObra', label: 'Nome da obra', type: 'text' },
+        { key: 'autorObra', label: 'Autor da obra', type: 'text' },
+        { key: 'anoObra', label: 'Ano da obra', type: 'text' },
+        { key: 'acervo', label: 'Acervo', type: 'select', options: ['Público', 'Privado'] },
+        { ...F_FINAL, label: 'Local' }, F_CIDADE,
+        ...PROD_PALAVRAS_AREA_SETORES_OUTRAS,
+    ] },
+    MAQUETE: { label: 'Maquete', fields: [
+        F_TITULO, { ...F_ANO, row: 'periodo' }, F_AFIM, F_PAIS, F_IDIOMA,
+        { key: 'meioDivulgacao', label: 'Meio de divulgação', type: 'select', options: MEIO_DIVULGACAO_OPTIONS }, F_URL,
+        { key: 'relevante', label: 'É um dos 10 trabalhos mais relevantes de sua produção?', type: 'checkbox' },
+        PROD_AUTORES_LISTA, F_FINAL,
+        { key: 'objetoRepresentado', label: 'Objeto representado', type: 'text' },
+        { key: 'materialUtilizado', label: 'Material utilizado', type: 'text' },
+        { key: 'instituicao', label: 'Instituição financiadora', type: 'text' },
+        ...PROD_PALAVRAS_AREA_SETORES_OUTRAS,
+    ] },
+    MIDIA: { label: 'Entrevistas, mesas redondas, programas e comentários na mídia', fields: [
+        { key: 'tipo', label: 'Natureza', type: 'select', options: ['Entrevista', 'Mesa redonda', 'Comentário', 'Programa', 'Outra'] },
+        F_TITULO, { ...F_ANO, row: 'periodo' }, F_AFIM, F_PAIS, F_IDIOMA,
+        { key: 'meioDivulgacao', label: 'Meio de divulgação', type: 'select', options: MEIO_DIVULGACAO_OPTIONS }, F_URL,
+        { key: 'relevante', label: 'É um dos 10 trabalhos mais relevantes de sua produção?', type: 'checkbox' },
+        { key: 'divulgacaoCT', label: 'É uma produção para educação e popularização de C&T?', type: 'checkbox' },
+        { key: 'veiculo', label: 'Veículo de divulgação', type: 'text' },
+        { key: 'tema', label: 'Tema', type: 'text' },
+        { key: 'dataRealizacao', label: 'Data de realização', type: 'datebr' },
+        { key: 'duracaoMinutos', label: 'Duração (minutos)', type: 'number' },
+        PROD_AUTORES_LISTA, F_CIDADE,
+        ...PROD_PALAVRAS_AREA_SETORES_OUTRAS,
+    ] },
+    RELATORIO_PESQUISA: { label: 'Relatório de pesquisa', fields: [
+        F_TITULO, { ...F_ANO, row: 'periodo' }, F_AFIM, F_PAIS, F_IDIOMA,
+        { key: 'meioDivulgacao', label: 'Meio de divulgação', type: 'select', options: MEIO_DIVULGACAO_OPTIONS }, F_URL,
+        { key: 'relevante', label: 'É um dos 10 trabalhos mais relevantes de sua produção?', type: 'checkbox' },
+        PROD_AUTORES_LISTA,
+        { key: 'nomeProjeto', label: 'Nome do projeto', type: 'text' },
+        { key: 'paginas', label: 'Número de páginas', type: 'text' },
+        { key: 'disponibilidade', label: 'Disponibilidade', type: 'text' },
+        { key: 'instituicao', label: 'Instituição financiadora', type: 'text' },
+        ...PROD_PALAVRAS_AREA_SETORES_OUTRAS,
+    ] },
+    // A tela real tem "Natureza" (select) e "Tema" (texto) como campos
+    // distintos; o campo `plataforma` já existente (antes rotulado
+    // "Plataforma / Tema" e, no export antigo, usado tanto como Natureza
+    // quanto como Tema — bug de conflação) só correspondia de fato ao Tema —
+    // relabeled, mantendo a chave e os dados salvos. `natureza` é campo novo.
+    MIDIA_SOCIAL: { label: 'Redes sociais, websites e blogs', fields: [
+        F_NATUREZA(['Rede Social', 'Fórum', 'Blog', 'Site']),
+        F_TITULO, { ...F_ANO, row: 'periodo' }, F_AFIM, F_PAIS, F_IDIOMA, F_URL,
+        { key: 'relevante', label: 'É um dos 10 trabalhos mais relevantes de sua produção?', type: 'checkbox' },
+        { key: 'divulgacaoCT', label: 'É uma produção para educação e popularização de C&T?', type: 'checkbox' },
+        { key: 'plataforma', label: 'Tema', type: 'text' },
+        PROD_AUTORES_LISTA,
+        ...PROD_PALAVRAS_AREA_SETORES_OUTRAS,
+    ] },
+    OUTRA_TECNICA: { label: 'Outra produção técnica', fields: [
+        { key: 'natureza', label: 'Natureza', type: 'text' },
+        F_TITULO, { ...F_ANO, row: 'periodo' }, F_AFIM, F_PAIS, F_IDIOMA,
+        { key: 'meioDivulgacao', label: 'Meio de divulgação', type: 'select', options: MEIO_DIVULGACAO_OPTIONS }, F_URL,
+        { key: 'relevante', label: 'É um dos 10 trabalhos mais relevantes de sua produção?', type: 'checkbox' },
+        { key: 'divulgacaoCT', label: 'É uma produção para educação e popularização de C&T?', type: 'checkbox' },
+        PROD_AUTORES_LISTA, F_FINAL,
+        { key: 'instituicao', label: 'Instituição promotora', type: 'text' },
+        { key: 'local', label: 'Local', type: 'text' }, F_CIDADE,
+        ...PROD_PALAVRAS_AREA_SETORES_OUTRAS,
+    ] },
 
     // 05.3 Produção artística/cultural
     ARTES_CENICAS: { label: 'Artes cênicas', fields: [F_TITULO, { ...F_ANO, row: 'periodo' }, F_AFIM, F_AUTORES, { key: 'natureza', label: 'Natureza', type: 'text' }, { key: 'evento', label: 'Evento / Local', type: 'text' }, F_PAIS, F_CIDADE, F_IDIOMA, F_URL] },

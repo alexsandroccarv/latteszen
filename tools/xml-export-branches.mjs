@@ -103,6 +103,44 @@ items.push(mk('EDITORACAO', 'PRODUCOES', {
     autoresLista: [{ nomeCompleto: 'Fulano de Tal', nomeCitacao: 'TAL, F.' }],
     paginas: '300', instituicao: 'Universidade Y', editora: 'Editora Universitária', cidade: 'São Paulo',
 }));
+// Produção Técnica sub-lote 3 (final): Manutenção de obra artística, Maquete,
+// Entrevistas/mesas redondas/mídia, Relatório de pesquisa, Redes sociais/
+// websites/blogs (Natureza x Tema — antes um único campo alimentava os dois
+// atributos de exportação), Outra produção técnica.
+items.push(mk('MANUTENCAO_OBRA', 'PRODUCOES', {
+    tipo: 'Restauração', natureza: 'Escultura', titulo: 'Restauro de escultura sacra', ano: '2021', pais: 'Brasil', idioma: 'Português',
+    relevante: 'Sim', autoresLista: [{ nomeCompleto: 'Fulano de Tal', nomeCitacao: 'TAL, F.' }],
+    nomeObra: 'Nossa Senhora Aparecida', autorObra: 'Artista Anônimo', anoObra: '1850', acervo: 'Público',
+    finalidade: 'Igreja Matriz', cidade: 'Aparecida', palavrasChave: 'restauro; escultura',
+}));
+items.push(mk('MAQUETE', 'PRODUCOES', {
+    titulo: 'Maquete do campus novo', ano: '2020', pais: 'Brasil', idioma: 'Português',
+    meioDivulgacao: 'Meio digital', url: 'https://example.org/maquete', relevante: 'Sim',
+    autoresLista: [{ nomeCompleto: 'Fulano de Tal', nomeCitacao: 'TAL, F.' }],
+    finalidade: 'Apresentação do projeto', objetoRepresentado: 'Campus universitário', materialUtilizado: 'Isopor e MDF', instituicao: 'UNIFESP',
+}));
+items.push(mk('MIDIA', 'PRODUCOES', {
+    tipo: 'Outra', titulo: 'Entrevista sobre mudanças climáticas', ano: '2022', pais: 'Brasil', idioma: 'Português',
+    meioDivulgacao: 'Meio digital', relevante: 'Sim', divulgacaoCT: 'Sim',
+    autoresLista: [{ nomeCompleto: 'Fulano de Tal', nomeCitacao: 'TAL, F.' }],
+    veiculo: 'Rádio X', tema: 'Aquecimento global', dataRealizacao: '15/03/2022', duracaoMinutos: '30', cidade: 'São Paulo',
+}));
+items.push(mk('RELATORIO_PESQUISA', 'PRODUCOES', {
+    titulo: 'Relatório final do projeto X', ano: '2021', pais: 'Brasil', idioma: 'Português',
+    meioDivulgacao: 'Impresso', relevante: 'Sim', autoresLista: [{ nomeCompleto: 'Fulano de Tal', nomeCitacao: 'TAL, F.' }],
+    nomeProjeto: 'Projeto X', paginas: '80', disponibilidade: 'Restrita', instituicao: 'FAPESP',
+}));
+items.push(mk('MIDIA_SOCIAL', 'PRODUCOES', {
+    natureza: 'Blog', titulo: 'Blog de divulgação científica', ano: '2020', pais: 'Brasil', idioma: 'Português',
+    url: 'https://example.org/blog', relevante: 'Sim', divulgacaoCT: 'Sim', plataforma: 'Divulgação científica',
+    autoresLista: [{ nomeCompleto: 'Fulano de Tal', nomeCitacao: 'TAL, F.' }],
+}));
+items.push(mk('OUTRA_TECNICA', 'PRODUCOES', {
+    natureza: 'Vistoria técnica', titulo: 'Consultoria técnica avulsa', ano: '2019', pais: 'Brasil', idioma: 'Português',
+    meioDivulgacao: 'Impresso', relevante: 'Não', divulgacaoCT: 'Sim',
+    autoresLista: [{ nomeCompleto: 'Fulano de Tal', nomeCitacao: 'TAL, F.' }],
+    finalidade: 'Vistoria predial', instituicao: 'Prefeitura Municipal', local: 'Sede administrativa', cidade: 'Campinas',
+}));
 // Livro e capítulo
 items.push(mk('LIVRO_CAPITULO', 'PRODUCOES', { tipoObra: 'Livro publicado', titulo: 'Meu Livro', ano: '2020', autores: 'TAL, F.', editora: 'Ed', cidade: 'SP', isbn: '978-1', paginas: '200' }));
 items.push(mk('LIVRO_CAPITULO', 'PRODUCOES', { tipoObra: 'Capítulo de livro', titulo: 'Meu Capítulo', ano: '2021', autores: 'TAL, F.; X, Y', tituloLivro: 'Coletânea', organizadores: 'Org Z', editora: 'Ed', paginas: '10-30', isbn: '978-2' }));
