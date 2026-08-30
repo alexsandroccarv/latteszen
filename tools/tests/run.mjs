@@ -41,6 +41,7 @@ import './specs/producao-tecnica-campos.mjs';
 import './specs/producao-tecnica-campos-2.mjs';
 import './specs/producao-tecnica-campos-3.mjs';
 import './specs/producao-artistica-cenicas-musica.mjs';
+import './specs/producao-artistica-visuais-outra.mjs';
 
 console.log('Rodando suíte de testes de regressão (Playwright)...\n');
 await runAll();

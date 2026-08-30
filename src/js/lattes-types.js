@@ -945,8 +945,45 @@ const TYPES = {
         { key: 'localEvento', label: 'Local do evento', type: 'text' }, F_CIDADE,
         ...PROD_PALAVRAS_AREA_SETORES_OUTRAS,
     ] },
-    ARTES_VISUAIS: { label: 'Artes visuais', fields: [F_TITULO, { ...F_ANO, row: 'periodo' }, F_AFIM, F_AUTORES, { key: 'natureza', label: 'Natureza', type: 'text' }, { key: 'evento', label: 'Evento / Local', type: 'text' }, F_PAIS, F_CIDADE, F_IDIOMA, F_URL] },
-    OUTRA_ARTISTICA: { label: 'Outra produção artística/cultural', fields: [F_TITULO, { ...F_ANO, row: 'periodo' }, F_AFIM, F_AUTORES, { key: 'natureza', label: 'Natureza', type: 'text' }, F_PAIS, F_CIDADE, F_IDIOMA, F_URL] },
+    // Tipo de evento / Itinerante / Nome da instituição promotora do prêmio
+    // constam na tela real (doc 5.29), mas DETALHAMENTO-DE-ARTES-VISUAIS não
+    // tem atributo correspondente no XSD/DTD — limitação genuína do schema,
+    // por isso não entraram na UI.
+    ARTES_VISUAIS: { label: 'Artes visuais', fields: [
+        F_NATUREZA(['Intervenção urbana', 'Livro de artista', 'Performance', 'Pintura', 'Programação visual', 'Vídeo', 'Webart', 'Animação', 'Instalação', 'Computação gráfica', 'Desenho', 'Diversas', 'Escultura', 'Filme', 'Fotografia', 'Gravura', 'Ilustração', 'Outra']),
+        F_TITULO, { ...F_ANO, row: 'periodo' }, F_AFIM, F_PAIS, F_IDIOMA,
+        { key: 'meioDivulgacao', label: 'Meio de divulgação', type: 'select', options: MEIO_DIVULGACAO_OPTIONS }, F_URL,
+        { key: 'relevante', label: 'É um dos 10 trabalhos mais relevantes de sua produção?', type: 'checkbox' },
+        { key: 'divulgacaoCT', label: 'É uma produção para educação e popularização de C&T?', type: 'checkbox' },
+        { key: 'atividadeAutores', label: 'Atividade dos autores', type: 'text' },
+        PROD_AUTORES_LISTA,
+        { key: 'premiacao', label: 'Premiação', type: 'text' },
+        { key: 'temporada', label: 'Temporada', type: 'text' },
+        { key: 'evento', label: 'Instituição promotora do evento', type: 'text' },
+        { key: 'localEvento', label: 'Local do evento', type: 'text' }, F_CIDADE,
+        ...PROD_PALAVRAS_AREA_SETORES_OUTRAS,
+    ] },
+    // A tela real de "Outra produção artística/cultural" tem muito mais
+    // campos (Tipo de evento, Atividade dos autores, Ineditismo da obra,
+    // Data de estreia/encerramento, Local da estreia, Nome da instituição
+    // promotora do prêmio, Obra de referência/autor/ano, Duração, Temporada —
+    // doc 5.30), mas DETALHAMENTO-DE-OUTRA-PRODUCAO-ARTISTICA-CULTURAL só tem
+    // 5 atributos no XSD/DTD (INSTITUICAO-PROMOTORA-DO-EVENTO, LOCAL-DO-
+    // EVENTO, CIDADE, EXPOSICAO, PREMIACAO) — de longe a maior limitação
+    // genuína de schema encontrada nesta seção. Só os campos com
+    // correspondência real entraram na UI.
+    OUTRA_ARTISTICA: { label: 'Outra produção artística/cultural', fields: [
+        { key: 'natureza', label: 'Natureza', type: 'text' },
+        F_TITULO, { ...F_ANO, row: 'periodo' }, F_AFIM, F_PAIS, F_IDIOMA,
+        { key: 'meioDivulgacao', label: 'Meio de divulgação', type: 'select', options: MEIO_DIVULGACAO_OPTIONS }, F_URL,
+        { key: 'relevante', label: 'É um dos 10 trabalhos mais relevantes de sua produção?', type: 'checkbox' },
+        { key: 'divulgacaoCT', label: 'É uma produção para educação e popularização de C&T?', type: 'checkbox' },
+        PROD_AUTORES_LISTA,
+        { key: 'premiacao', label: 'Premiação', type: 'text' },
+        { key: 'evento', label: 'Instituição promotora do evento', type: 'text' },
+        { key: 'localEvento', label: 'Local do evento', type: 'text' }, F_CIDADE,
+        ...PROD_PALAVRAS_AREA_SETORES_OUTRAS,
+    ] },
 
     // 06/07 Patentes e Registros / Inovação
     PATENTE: { label: 'Patente', fields: [F_TITULO, { ...F_ANO, row: 'periodo' }, F_AFIM, F_AUTORES, { key: 'categoria', label: 'Categoria / Tipo', type: 'text' }, F_FINAL, { key: 'registro', label: 'Nº do registro / depósito', type: 'text' }, { key: 'dataDeposito', label: 'Data do depósito', type: 'date' }, { key: 'dataConcessao', label: 'Data da concessão', type: 'date' }, { key: 'situacao', label: 'Situação', type: 'select', options: ['Depositada', 'Concedida', 'Em exame', 'Indeferida'] }, { key: 'instituicao', label: 'Instituição financiadora', type: 'text' }, F_PAIS, F_URL] },

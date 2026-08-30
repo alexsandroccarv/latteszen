@@ -159,6 +159,21 @@ items.push(mk('MUSICA', 'PRODUCOES', {
     autoresLista: [{ nomeCompleto: 'Fulano de Tal', nomeCitacao: 'TAL, F.' }],
     obraReferencia: 'Concerto em Ré Maior', autorObraReferencia: 'Compositor X', anoObraReferencia: '1900',
 }));
+// Outra produção artística/cultural (parte 2 final): Artes visuais e Outra
+// produção artística/cultural — esta última é a maior limitação de schema da
+// seção 5: a tela real tem ~15 campos de detalhamento, o XSD/DTD só suporta 5.
+items.push(mk('ARTES_VISUAIS', 'PRODUCOES', {
+    natureza: 'Instalação', titulo: 'Instalação sobre memória urbana', ano: '2022', pais: 'Brasil', idioma: 'Português',
+    meioDivulgacao: 'Meio digital', url: 'https://example.org/instalacao', relevante: 'Sim', divulgacaoCT: 'Sim',
+    atividadeAutores: 'Curadoria', autoresLista: [{ nomeCompleto: 'Fulano de Tal', nomeCitacao: 'TAL, F.' }],
+    premiacao: 'Prêmio Marcantonio Vilaça', temporada: '2022/2', evento: 'Bienal de São Paulo', localEvento: 'Pavilhão Ciccillo Matarazzo', cidade: 'São Paulo',
+}));
+items.push(mk('OUTRA_ARTISTICA', 'PRODUCOES', {
+    natureza: 'Intervenção coletiva', titulo: 'Performance urbana coletiva', ano: '2020', pais: 'Brasil', idioma: 'Português',
+    meioDivulgacao: 'Hipertexto', relevante: 'Sim', divulgacaoCT: 'Sim',
+    autoresLista: [{ nomeCompleto: 'Fulano de Tal', nomeCitacao: 'TAL, F.' }],
+    premiacao: 'Menção honrosa', evento: 'Coletivo Arte Urbana', localEvento: 'Praça Central', cidade: 'Belo Horizonte',
+}));
 // Livro e capítulo
 items.push(mk('LIVRO_CAPITULO', 'PRODUCOES', { tipoObra: 'Livro publicado', titulo: 'Meu Livro', ano: '2020', autores: 'TAL, F.', editora: 'Ed', cidade: 'SP', isbn: '978-1', paginas: '200' }));
 items.push(mk('LIVRO_CAPITULO', 'PRODUCOES', { tipoObra: 'Capítulo de livro', titulo: 'Meu Capítulo', ano: '2021', autores: 'TAL, F.; X, Y', tituloLivro: 'Coletânea', organizadores: 'Org Z', editora: 'Ed', paginas: '10-30', isbn: '978-2' }));

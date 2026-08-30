@@ -967,8 +967,13 @@ window.LattesXMLExport = (function () {
         let seq = 0; const S = () => String(++seq);
         // PRODUCAO-ARTISTICA-CULTURAL (ordem do XSD: ...OUTRA..., ARTES-CENICAS, ARTES-VISUAIS, MUSICA)
         const outraArt = pick('OUTRA_ARTISTICA').map(f => producao('OUTRA-PRODUCAO-ARTISTICA-CULTURAL', S(),
-            'DADOS-BASICOS-DE-OUTRA-PRODUCAO-ARTISTICA-CULTURAL', { 'NATUREZA': f.natureza, 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma, 'HOME-PAGE': f.url },
-            'DETALHAMENTO-DE-OUTRA-PRODUCAO-ARTISTICA-CULTURAL', { 'CIDADE': f.cidade }, f.autores)).join('');
+            'DADOS-BASICOS-DE-OUTRA-PRODUCAO-ARTISTICA-CULTURAL', {
+                'NATUREZA': f.natureza, 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma,
+                'MEIO-DE-DIVULGACAO': MEIO_DIVULGACAO_TOKEN[f.meioDivulgacao] || '', 'HOME-PAGE': f.url,
+                'FLAG-RELEVANCIA': FLAG_SIM_NAO[f.relevante] || '', 'FLAG-DIVULGACAO-CIENTIFICA': FLAG_SIM_NAO[f.divulgacaoCT] || '',
+            },
+            'DETALHAMENTO-DE-OUTRA-PRODUCAO-ARTISTICA-CULTURAL', { 'INSTITUICAO-PROMOTORA-DO-EVENTO': f.evento, 'LOCAL-DO-EVENTO': f.localEvento, 'CIDADE': f.cidade, 'PREMIACAO': f.premiacao },
+            autoresArg(f), null, extraProd(f))).join('');
         const cenicas = pick('ARTES_CENICAS').map(f => producao('ARTES-CENICAS', S(),
             'DADOS-BASICOS-DE-ARTES-CENICAS', {
                 'NATUREZA': tok('DADOS-BASICOS-DE-ARTES-CENICAS', 'NATUREZA', f.natureza), 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma,
@@ -983,8 +988,16 @@ window.LattesXMLExport = (function () {
             },
             autoresArg(f), null, extraProd(f))).join('');
         const visuais = pick('ARTES_VISUAIS').map(f => producao('ARTES-VISUAIS', S(),
-            'DADOS-BASICOS-DE-ARTES-VISUAIS', { 'NATUREZA': tok('DADOS-BASICOS-DE-ARTES-VISUAIS', 'NATUREZA', f.natureza), 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma, 'HOME-PAGE': f.url },
-            'DETALHAMENTO-DE-ARTES-VISUAIS', { 'INSTITUICAO-PROMOTORA-DO-EVENTO': f.evento, 'CIDADE-DO-EVENTO': f.cidade }, f.autores)).join('');
+            'DADOS-BASICOS-DE-ARTES-VISUAIS', {
+                'NATUREZA': tok('DADOS-BASICOS-DE-ARTES-VISUAIS', 'NATUREZA', f.natureza), 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma,
+                'MEIO-DE-DIVULGACAO': MEIO_DIVULGACAO_TOKEN[f.meioDivulgacao] || '', 'HOME-PAGE': f.url,
+                'FLAG-RELEVANCIA': FLAG_SIM_NAO[f.relevante] || '', 'FLAG-DIVULGACAO-CIENTIFICA': FLAG_SIM_NAO[f.divulgacaoCT] || '',
+            },
+            'DETALHAMENTO-DE-ARTES-VISUAIS', {
+                'PREMIACAO': f.premiacao, 'ATIVIDADE-DOS-AUTORES': f.atividadeAutores, 'INSTITUICAO-PROMOTORA-DO-EVENTO': f.evento,
+                'LOCAL-DO-EVENTO': f.localEvento, 'CIDADE-DO-EVENTO': f.cidade, 'TEMPORADA': f.temporada,
+            },
+            autoresArg(f), null, extraProd(f))).join('');
         const musicas = pick('MUSICA').map(f => producao('MUSICA', S(),
             'DADOS-BASICOS-DA-MUSICA', {
                 'NATUREZA': tok('DADOS-BASICOS-DA-MUSICA', 'NATUREZA', f.natureza), 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma,
