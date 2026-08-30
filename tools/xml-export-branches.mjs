@@ -225,8 +225,35 @@ items.push(mk('LIVRO_CAPITULO', 'PRODUCOES', { tipoObra: 'Capítulo de livro', t
 // Licenças
 items.push(mk('LICENCA', 'DADOS_GERAIS', { titulo: 'Licença', tipo: 'Maternidade', anoInicio: '2020', anoFim: '2020' }));
 items.push(mk('LICENCA', 'DADOS_GERAIS', { titulo: 'Licença', tipo: 'Paternidade' }));
-// Patente com datas
-items.push(mk('PATENTE', 'PATENTES_REGISTROS', { titulo: 'Invento', ano: '2020', autores: 'TAL, F.', categoria: 'Nacional', finalidade: 'X', registro: 'BR123', dataDeposito: '2019-05-10', dataConcessao: '2022-08-01', situacao: 'Concedida', instituicao: 'UNIFESP', pais: 'Brasil' }));
+// Patentes e Registros sub-lote 1: Patente, Programa de Computador
+// Registrado, Cultivar protegida/registrada — campos que faltavam vs. o
+// Lattes real (Categoria, Natureza/TIPO-PATENTE, PCT, potencial de
+// inovação, Depositante/Titular, Inventores/Melhoristas em lista,
+// Instituição de registro distinta de financiadora).
+items.push(mk('PATENTE', 'PATENTES_REGISTROS', {
+    titulo: 'Dispositivo de purificação de água', categoria: 'Produto', natureza: 'Patente de Modelo de Utilidade',
+    registro: 'BR123', instituicao: 'INPI', numeroPCT: 'PCT/BR2020/000123', potencialInovacao: 'Sim',
+    titular: 'UNIFESP; Fulano de Tal', autoresLista: [{ nomeCompleto: 'Fulano de Tal', nomeCitacao: 'TAL, F.' }],
+    outrasInfo: 'Resumo do invento.', url: 'https://example.org/patente', finalidade: 'X',
+    instituicaoFinanceira: 'FAPESP; CNPq', dataDeposito: '2019-05-10', dataConcessao: '2022-08-01', pais: 'Brasil',
+    palavrasChave: 'purificação; água', grandeArea: 'Engenharias', area: 'Engenharia Sanitária',
+}));
+items.push(mk('SOFTWARE_REGISTRADO', 'PATENTES_REGISTROS', {
+    natureza: 'Computacional', registro: 'BR512020001234-5', instituicaoRegistro: 'INPI', pais: 'Brasil',
+    titulo: 'Sistema de gestão hospitalar', dataDeposito: '2020-01-10', dataConcessao: '2020-06-10',
+    finalidade: 'Gestão de leitos', divulgacaoCT: 'Sim', potencialInovacao: 'Sim', relevante: 'Sim',
+    instituicao: 'Hospital Universitário; FAPESP', plataforma: 'Web',
+    autoresLista: [{ nomeCompleto: 'Fulano de Tal', nomeCitacao: 'TAL, F.' }], outrasInfo: 'Uso interno.',
+}));
+items.push(mk('CULTIVAR_PROTEGIDA', 'PATENTES_REGISTROS', {
+    titulo: 'Cultivar Soja XPTO', ano: '2021', pais: 'Brasil', finalidade: 'Melhoramento genético', instituicao: 'EMBRAPA',
+    registro: 'SNPC-12345', dataConcessao: '2022-01-15', potencialInovacao: 'Sim',
+    autoresLista: [{ nomeCompleto: 'Melhorista Um', nomeCitacao: 'UM, M.' }], palavrasChave: 'soja; melhoramento genético',
+}));
+items.push(mk('CULTIVAR_REGISTRADA', 'PATENTES_REGISTROS', {
+    titulo: 'Cultivar Milho ABC', ano: '2019', pais: 'Brasil', instituicao: 'EMBRAPA', registro: 'RNC-6789',
+    dataConcessao: '2020-03-01', potencialInovacao: 'Não', autoresLista: [{ nomeCompleto: 'Melhorista Dois', nomeCitacao: 'DOIS, M.' }],
+}));
 // Atuação com atividades
 items.push(mk('VINCULO_PROFISSIONAL', 'ATUACAO', { instituicao: 'UNIFESP', vinculo: 'Servidor', vinculoEmpregaticio: 'Sim', cargo: 'Professor', dedicacaoExclusiva: 'Sim', cargaHoraria: '40', anoInicio: '2010', situacao: 'Atual (não finalizado)', anoFim: '' }));
 items.push(mk('VINCULO_PROFISSIONAL', 'ATUACAO', { instituicao: 'UNIFESP', vinculo: 'Colaborador', vinculoEmpregaticio: 'Não', cargo: 'Pesquisador visitante', dedicacaoExclusiva: 'Não', cargaHoraria: '10', anoInicio: '2005', situacao: 'Anterior (finalizado)', anoFim: '2009' }));

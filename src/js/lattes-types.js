@@ -169,11 +169,6 @@ const PI_FIELDS = [F_TITULO, { ...F_ANO, row: 'periodo' }, F_AFIM, F_AUTORES, F_
     { key: 'dataDeposito', label: 'Data do depósito', type: 'date' },
     { key: 'dataConcessao', label: 'Data da concessão', type: 'date' },
     { key: 'instituicao', label: 'Instituição financiadora', type: 'text' }, F_PAIS];
-const CULTIVAR_FIELDS = [{ key: 'titulo', label: 'Denominação', type: 'text', required: true }, { ...F_ANO, row: 'periodo' }, F_AFIM, F_AUTORES,
-    F_FINAL, { key: 'instituicao', label: 'Instituição financiadora', type: 'text' },
-    { key: 'registro', label: 'Nº do registro / solicitação', type: 'text' },
-    { key: 'dataConcessao', label: 'Data da concessão / registro', type: 'date' }, F_PAIS];
-
 // Átomos para a categoria 20 (Registros pessoais)
 const AL_ENT   = { key: 'entidade', label: 'Entidade', type: 'text' };
 const AL_PAPEL = { key: 'papel', label: 'Papel / Atuação', type: 'text' };
@@ -224,6 +219,19 @@ const PROD_PALAVRAS_AREA_SETORES_OUTRAS = [
     { key: 'setores', label: 'Setores de atividade', type: 'cnaeSetores', help: 'Até 3 setores (lista CNAE).' },
     { key: 'outrasInfo', label: 'Outras informações', type: 'textarea' },
 ];
+// A tela real (doc 6.3/6.4) tem Nome comum/científico da espécie, Autoridade
+// Nacional e Número do processo E do certificado (separados) — nenhum desses
+// tem atributo correspondente em DADOS-BASICOS-DA-CULTIVAR/DETALHAMENTO-DA-
+// CULTIVAR no XSD/DTD, limitação genuína do schema, por isso não entraram na
+// UI. "Melhoristas" é o equivalente de Autores para este tipo (upgrade pra
+// lista, mesmo padrão dos demais tipos de Produções).
+const CULTIVAR_FIELDS = [{ key: 'titulo', label: 'Denominação', type: 'text', required: true }, { ...F_ANO, row: 'periodo' }, F_AFIM,
+    F_FINAL, { key: 'instituicao', label: 'Instituição financiadora', type: 'text' },
+    { key: 'registro', label: 'Nº do registro / solicitação', type: 'text' },
+    { key: 'dataConcessao', label: 'Data da concessão / registro', type: 'date' }, F_PAIS,
+    { key: 'potencialInovacao', label: 'Possui potencial de inovação de produtos, processos ou serviços?', type: 'checkbox' },
+    { ...PROD_AUTORES_LISTA, label: 'Melhoristas' },
+    ...PROD_PALAVRAS_AREA_SETORES_OUTRAS];
 
 /* ---- Definição global dos TIPOS (por chave) ---- */
 const TYPES = {
@@ -986,8 +994,50 @@ const TYPES = {
     ] },
 
     // 06/07 Patentes e Registros / Inovação
-    PATENTE: { label: 'Patente', fields: [F_TITULO, { ...F_ANO, row: 'periodo' }, F_AFIM, F_AUTORES, { key: 'categoria', label: 'Categoria / Tipo', type: 'text' }, F_FINAL, { key: 'registro', label: 'Nº do registro / depósito', type: 'text' }, { key: 'dataDeposito', label: 'Data do depósito', type: 'date' }, { key: 'dataConcessao', label: 'Data da concessão', type: 'date' }, { key: 'situacao', label: 'Situação', type: 'select', options: ['Depositada', 'Concedida', 'Em exame', 'Indeferida'] }, { key: 'instituicao', label: 'Instituição financiadora', type: 'text' }, F_PAIS, F_URL] },
-    SOFTWARE_REGISTRADO: { label: 'Programa de Computador Registrado', fields: [F_TITULO, { ...F_ANO, row: 'periodo' }, F_AFIM, F_AUTORES, { key: 'plataforma', label: 'Plataforma / Ambiente', type: 'text' }, F_FINAL, { key: 'registro', label: 'Nº do registro', type: 'text' }, F_PAIS, F_URL] },
+    // "Situação do Depósito/Patente" (grupo repetível) usa o elemento
+    // HISTORICO-SITUACOES-PATENTE, que existe no XSD mas NÃO no DTD (ainda
+    // usado pela importação real do Lattes) — exportar quebraria a
+    // importação, por isso não entrou na UI (campo `situacao` antigo,
+    // texto livre sem exportação real, foi removido). "Depositante/Titular"
+    // tem colunas separadas de Pessoas e Instituições na tela real, mas
+    // REGISTRO-OU-PATENTE só tem o atributo NOME-DO-TITULAR no DTD
+    // (NOME-DO-DEPOSITANTE existe só no XSD) — por isso os dois grupos
+    // viram um único campo de texto livre aqui.
+    PATENTE: { label: 'Patente', fields: [
+        { key: 'categoria', label: 'Categoria', type: 'select', options: ['Produto', 'Processo', 'Produto e Processo', 'Outra'] },
+        { key: 'registro', label: 'Número do registro', type: 'text' },
+        { key: 'instituicao', label: 'Instituição onde foi depositada', type: 'text' }, F_PAIS,
+        { key: 'natureza', label: 'Natureza', type: 'select', options: ['Patente de Invenção', 'Patente de Modelo de Utilidade'] },
+        F_TITULO,
+        { key: 'numeroPCT', label: 'Número do depósito PCT (caso exista)', type: 'text' },
+        { key: 'potencialInovacao', label: 'Possui potencial de inovação de produtos, processos ou serviços?', type: 'checkbox' },
+        { key: 'titular', label: 'Depositante/Titular (pessoas e instituições)', type: 'textarea', placeholder: 'Separe por ponto e vírgula (;)' },
+        { ...PROD_AUTORES_LISTA, label: 'Inventores' },
+        { key: 'outrasInfo', label: 'Resumo', type: 'textarea' },
+        F_URL,
+        { ...F_FINAL, label: 'Finalidade' },
+        { key: 'instituicaoFinanceira', label: 'Instituição(ões) financiadora(s)', type: 'textarea', placeholder: 'Separe por ponto e vírgula (;)' },
+        ...PROD_PALAVRAS_AREA_SETORES_OUTRAS.slice(0, 3),
+    ] },
+    // Diferente de Programa de computador sem registro (5.13), esta tela não
+    // tem Meio de divulgação, Home page nem Idioma (doc 6.2).
+    SOFTWARE_REGISTRADO: { label: 'Programa de Computador Registrado', fields: [
+        F_NATUREZA(['Computacional', 'Multimídia', 'Outro']),
+        { key: 'registro', label: 'Número do registro', type: 'text' },
+        { key: 'instituicaoRegistro', label: 'Instituição de registro', type: 'text' },
+        F_PAIS, F_TITULO,
+        { key: 'dataDeposito', label: 'Data do registro', type: 'date' },
+        { key: 'dataConcessao', label: 'Data do certificado de registro', type: 'date' },
+        { ...F_FINAL, label: 'Finalidade' },
+        { key: 'divulgacaoCT', label: 'É uma produção para educação e popularização de C&T?', type: 'checkbox' },
+        { key: 'potencialInovacao', label: 'Possui potencial de inovação de produtos, processos ou serviços?', type: 'checkbox' },
+        { key: 'relevante', label: 'É um dos 10 trabalhos mais relevantes de sua produção?', type: 'checkbox' },
+        { key: 'instituicao', label: 'Instituição(ões) financiadora(s)', type: 'textarea', placeholder: 'Separe por ponto e vírgula (;)' },
+        { key: 'plataforma', label: 'Plataforma / Ambiente', type: 'text' },
+        PROD_AUTORES_LISTA,
+        ...PROD_PALAVRAS_AREA_SETORES_OUTRAS.slice(0, 3),
+        { key: 'outrasInfo', label: 'Outras informações', type: 'textarea' },
+    ] },
     CULTIVAR_PROTEGIDA: { label: 'Cultivar protegida', fields: CULTIVAR_FIELDS },
     CULTIVAR_REGISTRADA: { label: 'Cultivar registrada', fields: CULTIVAR_FIELDS },
     DESENHO_INDUSTRIAL: { label: 'Desenho industrial registrado', fields: PI_FIELDS },

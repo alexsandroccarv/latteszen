@@ -767,24 +767,30 @@ window.LattesXMLExport = (function () {
     }
 
     /* ========================= 05.2 PRODUCAO-TECNICA ===================== */
-    // Situação da patente → HISTORICO-SITUACOES-PATENTE (DESCRICAO livre + STATUS required).
-    function histSituacao(f) {
-        const s = clean(f.situacao);
-        return s ? el('HISTORICO-SITUACOES-PATENTE', { 'DESCRICAO-SITUACAO-PATENTE': s, 'STATUS-SITUACAO-PATENTE': 'SIM' }) : '';
-    }
-    function registroPatente(f) {
+    // "Natureza" de Patente (Patente de Invenção/Modelo de Utilidade) mapeia
+    // pro TIPO-PATENTE de REGISTRO-OU-PATENTE — só usado quando o rótulo bate
+    // com um desses dois (outros tipos que reaproveitam este helper com seu
+    // próprio campo `natureza` simplesmente não geram esse atributo).
+    const TIPO_PATENTE_TOKEN = { 'Patente de Invenção': 'PRIVILEGIO_DE_INOVACAO_PI', 'Patente de Modelo de Utilidade': 'MODELO_DE_UTILIDADE_MU' };
+    // `instDeposito` permite um tipo (ex.: Programa de Computador Registrado)
+    // usar um campo próprio para "Instituição de registro", distinto do
+    // `instituicao` genérico (financiadora) usado pelos demais chamadores.
+    function registroPatente(f, instDeposito) {
         return el('REGISTRO-OU-PATENTE', {
+            'TIPO-PATENTE': TIPO_PATENTE_TOKEN[f.natureza] || '',
             'CODIGO-DO-REGISTRO-OU-PATENTE': f.registro, 'TITULO-PATENTE': f.titulo,
             'DATA-PEDIDO-DE-DEPOSITO': ddmmaaaa(f.dataDeposito), 'DATA-DE-CONCESSAO': ddmmaaaa(f.dataConcessao),
-            'INSTITUICAO-DEPOSITO-REGISTRO': f.instituicao,
+            'INSTITUICAO-DEPOSITO-REGISTRO': instDeposito !== undefined ? instDeposito : f.instituicao,
+            'NUMERO-DEPOSITO-PCT': f.numeroPCT, 'NOME-DO-TITULAR': f.titular,
         });
     }
     function buildTecnica(pick) {
         let seq = 0; const S = () => String(++seq);
 
         const cultivarReg = pick('CULTIVAR_REGISTRADA').map(f => producao('CULTIVAR-REGISTRADA', S(),
-            'DADOS-BASICOS-DA-CULTIVAR', { 'DENOMINACAO': f.titulo, 'ANO-SOLICITACAO': year(f.ano), 'PAIS': f.pais },
-            'DETALHAMENTO-DA-CULTIVAR', { 'FINALIDADE': f.finalidade, 'INSTITUICAO-FINANCIADORA': f.instituicao }, f.autores, registroPatente(f))).join('');
+            'DADOS-BASICOS-DA-CULTIVAR', { 'DENOMINACAO': f.titulo, 'ANO-SOLICITACAO': year(f.ano), 'PAIS': f.pais, 'FLAG-POTENCIAL-INOVACAO': FLAG_SIM_NAO[f.potencialInovacao] || '' },
+            'DETALHAMENTO-DA-CULTIVAR', { 'FINALIDADE': f.finalidade, 'INSTITUICAO-FINANCIADORA': f.instituicao },
+            autoresArg(f), registroPatente(f), extraProd(f))).join('');
         const softwares = pick('SOFTWARE_SEM_REGISTRO', 'SOFTWARE_REGISTRADO').map(f => producao('SOFTWARE', S(),
             'DADOS-BASICOS-DO-SOFTWARE', {
                 'NATUREZA': tok('DADOS-BASICOS-DO-SOFTWARE', 'NATUREZA', f.natureza), 'TITULO-DO-SOFTWARE': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma,
@@ -795,13 +801,15 @@ window.LattesXMLExport = (function () {
                 'FINALIDADE': f.finalidade, 'PLATAFORMA': f.plataforma, 'AMBIENTE': f.plataforma,
                 'DISPONIBILIDADE': tok('DETALHAMENTO-DO-SOFTWARE', 'DISPONIBILIDADE', f.disponibilidade), 'INSTITUICAO-FINANCIADORA': f.instituicao,
             },
-            autoresArg(f), f.registro ? registroPatente(f) : '', extraProd(f))).join('');
+            autoresArg(f), f.registro ? registroPatente(f, f.instituicaoRegistro) : '', extraProd(f))).join('');
         const patentes = pick('PATENTE').map(f => producao('PATENTE', S(),
-            'DADOS-BASICOS-DA-PATENTE', { 'TITULO': f.titulo, 'ANO-DESENVOLVIMENTO': year(f.ano), 'PAIS': f.pais, 'HOME-PAGE': f.url },
-            'DETALHAMENTO-DA-PATENTE', { 'FINALIDADE': f.finalidade, 'INSTITUICAO-FINANCIADORA': f.instituicao, 'CATEGORIA': f.categoria }, f.autores, registroPatente(f))).join('');
+            'DADOS-BASICOS-DA-PATENTE', { 'TITULO': f.titulo, 'ANO-DESENVOLVIMENTO': year(f.ano), 'PAIS': f.pais, 'HOME-PAGE': f.url, 'FLAG-POTENCIAL-INOVACAO': FLAG_SIM_NAO[f.potencialInovacao] || '' },
+            'DETALHAMENTO-DA-PATENTE', { 'FINALIDADE': f.finalidade, 'INSTITUICAO-FINANCIADORA': f.instituicaoFinanceira, 'CATEGORIA': f.categoria },
+            autoresArg(f), registroPatente(f), extraProd(f))).join('');
         const cultivarProt = pick('CULTIVAR_PROTEGIDA').map(f => producao('CULTIVAR-PROTEGIDA', S(),
-            'DADOS-BASICOS-DA-CULTIVAR', { 'DENOMINACAO': f.titulo, 'ANO-SOLICITACAO': year(f.ano), 'PAIS': f.pais },
-            'DETALHAMENTO-DA-CULTIVAR', { 'FINALIDADE': f.finalidade, 'INSTITUICAO-FINANCIADORA': f.instituicao }, f.autores, registroPatente(f))).join('');
+            'DADOS-BASICOS-DA-CULTIVAR', { 'DENOMINACAO': f.titulo, 'ANO-SOLICITACAO': year(f.ano), 'PAIS': f.pais, 'FLAG-POTENCIAL-INOVACAO': FLAG_SIM_NAO[f.potencialInovacao] || '' },
+            'DETALHAMENTO-DA-CULTIVAR', { 'FINALIDADE': f.finalidade, 'INSTITUICAO-FINANCIADORA': f.instituicao },
+            autoresArg(f), registroPatente(f), extraProd(f))).join('');
         const desenhos = pick('DESENHO_INDUSTRIAL').map(f => producao('DESENHO-INDUSTRIAL', S(),
             'DADOS-BASICOS-DO-DESENHO-INDUSTRIAL', { 'TITULO': f.titulo, 'ANO-DESENVOLVIMENTO': year(f.ano), 'PAIS': f.pais },
             'DETALHAMENTO-DO-DESENHO-INDUSTRIAL', { 'FINALIDADE': f.finalidade, 'INSTITUICAO-FINANCIADORA': f.instituicao }, f.autores, registroPatente(f))).join('');
