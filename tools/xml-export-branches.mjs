@@ -178,23 +178,27 @@ items.push(mk('OUTRA_ARTISTICA', 'PRODUCOES', {
 items.push(mk('LIVRO_CAPITULO', 'PRODUCOES', { tipoObra: 'Livro publicado', titulo: 'Meu Livro', ano: '2020', autores: 'TAL, F.', editora: 'Ed', cidade: 'SP', isbn: '978-1', paginas: '200' }));
 items.push(mk('LIVRO_CAPITULO', 'PRODUCOES', { tipoObra: 'Capítulo de livro', titulo: 'Meu Capítulo', ano: '2021', autores: 'TAL, F.; X, Y', tituloLivro: 'Coletânea', organizadores: 'Org Z', editora: 'Ed', paginas: '10-30', isbn: '978-2' }));
 // Orientações concluídas — todas as naturezas + campos novos (modalidade só em
-// Mestrado, idioma, home page, palavras-chave, área do conhecimento, outras informações)
+// Mestrado, idioma, home page, palavras-chave, área do conhecimento, outras
+// informações, e agora "10 mais relevantes?", Com bolsa? e Setores de
+// atividade, ausentes na auditoria anterior).
 ['Mestrado', 'Doutorado', 'Pós-Doutorado', 'Especialização / Monografia', 'TCC / Graduação', 'Iniciação científica', 'Outra'].forEach(tipo =>
     items.push(mk('ORIENTACAO_CONCLUIDA', 'ORIENTACOES', {
         orientando: 'Aluno ' + tipo, tipo, modalidade: tipo === 'Mestrado' ? 'Profissionalizante' : '',
-        natureza: 'Orientador principal', titulo: 'Tese ' + tipo, curso: 'PPG', instituicao: 'UNIFESP', bolsa: 'CNPq',
-        ano: '2019', pais: 'Brasil', idioma: 'Português', url: 'https://example.org/orientacao',
+        natureza: 'Orientador principal', titulo: 'Tese ' + tipo, curso: 'PPG', instituicao: 'UNIFESP', comBolsa: 'Sim', bolsa: 'CNPq',
+        relevante: 'Sim', ano: '2019', pais: 'Brasil', idioma: 'Português', url: 'https://example.org/orientacao',
         palavrasChave: 'clima; saúde', grandeArea: 'Ciências da Saúde', area: 'Medicina', subarea: 'Clínica Médica',
-        especialidade: 'Cardiologia', outrasInfo: 'Observação livre.',
+        especialidade: 'Cardiologia', setores: 'Saúde humana', outrasInfo: 'Observação livre.',
     })));
-// Orientações em andamento — todas as naturezas + mesmos campos novos
+// Orientações em andamento — todas as naturezas + mesmos campos novos, exceto
+// "10 mais relevantes?" (sem atributo correspondente para este tipo — ver
+// comentário em buildOrientacoesAndamento).
 ['Mestrado', 'Doutorado', 'Pós-Doutorado', 'Especialização / Monografia', 'TCC / Graduação', 'Iniciação científica', 'Outra'].forEach(tipo =>
     items.push(mk('ORIENTACAO_ANDAMENTO', 'ORIENTACOES', {
         orientando: 'And ' + tipo, tipo, modalidade: tipo === 'Mestrado' ? 'Acadêmico' : '',
-        natureza: 'Coorientador', titulo: 'Trab ' + tipo, curso: 'PPG', instituicao: 'UNIFESP',
+        natureza: 'Coorientador', titulo: 'Trab ' + tipo, curso: 'PPG', instituicao: 'UNIFESP', comBolsa: 'Não',
         ano: '2024', pais: 'Brasil', idioma: 'Português', url: 'https://example.org/orientacao-andamento',
         palavrasChave: 'clima; saúde', grandeArea: 'Ciências da Saúde', area: 'Medicina', subarea: 'Clínica Médica',
-        especialidade: 'Cardiologia', outrasInfo: 'Observação livre.',
+        especialidade: 'Cardiologia', setores: 'Saúde humana', outrasInfo: 'Observação livre.',
     })));
 // Bancas de conclusão — todas as naturezas + campos novos (modalidade só em
 // Mestrado, país/idioma/home page, palavras-chave, área do conhecimento, outras informações)

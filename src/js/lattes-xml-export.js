@@ -1056,11 +1056,11 @@ window.LattesXMLExport = (function () {
             const f = it.fields; const t = f.tipo || '';
             // DETALHAMENTO-DE-OUTRAS-ORIENTACOES-CONCLUIDAS não tem TIPO-DE-ORIENTACAO
             // (só M/D/PD têm esse atributo no schema).
-            const det = { 'TIPO-DE-ORIENTACAO': orientTipo(f.natureza), 'NOME-DO-ORIENTADO': f.orientando, 'NOME-DA-INSTITUICAO': f.instituicao, 'NOME-DO-CURSO': f.curso, 'NOME-DA-AGENCIA': f.bolsa };
-            const detOutras = { 'NOME-DO-ORIENTADO': f.orientando, 'NOME-DA-INSTITUICAO': f.instituicao, 'NOME-DO-CURSO': f.curso, 'NOME-DA-AGENCIA': f.bolsa };
-            const extra = palavrasChaveEl(f.palavrasChave) + areaDoConhecimentoEl(f) + informacoesAdicionaisEl(f.outrasInfo);
+            const det = { 'TIPO-DE-ORIENTACAO': orientTipo(f.natureza), 'NOME-DO-ORIENTADO': f.orientando, 'NOME-DA-INSTITUICAO': f.instituicao, 'NOME-DO-CURSO': f.curso, 'FLAG-BOLSA': FLAG_SIM_NAO[f.comBolsa] || '', 'NOME-DA-AGENCIA': f.bolsa };
+            const detOutras = { 'NOME-DO-ORIENTADO': f.orientando, 'NOME-DA-INSTITUICAO': f.instituicao, 'NOME-DO-CURSO': f.curso, 'FLAG-BOLSA': FLAG_SIM_NAO[f.comBolsa] || '', 'NOME-DA-AGENCIA': f.bolsa };
+            const extra = palavrasChaveEl(f.palavrasChave) + areaDoConhecimentoEl(f) + setoresAtividadeEl(f.setores) + informacoesAdicionaisEl(f.outrasInfo);
             const mk = (leaf, dbTag, detTag, comTipo) => {
-                const db = { 'NATUREZA': t, 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma, 'HOME-PAGE': f.url };
+                const db = { 'NATUREZA': t, 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma, 'HOME-PAGE': f.url, 'FLAG-RELEVANCIA': FLAG_SIM_NAO[f.relevante] || '' };
                 if (comTipo) db['TIPO'] = MODALIDADE_TOKEN[f.modalidade] || ''; // só Mestrado
                 return el(leaf, { 'SEQUENCIA-PRODUCAO': S() }, el(dbTag, db) + el(detTag, det) + extra);
             };
@@ -1068,7 +1068,7 @@ window.LattesXMLExport = (function () {
             else if (/doutorado/i.test(t) && !/p[óo]s/i.test(t)) buckets.D.push(mk('ORIENTACOES-CONCLUIDAS-PARA-DOUTORADO', 'DADOS-BASICOS-DE-ORIENTACOES-CONCLUIDAS-PARA-DOUTORADO', 'DETALHAMENTO-DE-ORIENTACOES-CONCLUIDAS-PARA-DOUTORADO'));
             else if (/p[óo]s/i.test(t)) buckets.PD.push(mk('ORIENTACOES-CONCLUIDAS-PARA-POS-DOUTORADO', 'DADOS-BASICOS-DE-ORIENTACOES-CONCLUIDAS-PARA-POS-DOUTORADO', 'DETALHAMENTO-DE-ORIENTACOES-CONCLUIDAS-PARA-POS-DOUTORADO'));
             else {
-                const db = { 'NATUREZA': OUTRA_ORIENT_CONCL_NATUREZA[t] || 'ORIENTACAO-DE-OUTRA-NATUREZA', 'TIPO': t, 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma, 'HOME-PAGE': f.url };
+                const db = { 'NATUREZA': OUTRA_ORIENT_CONCL_NATUREZA[t] || 'ORIENTACAO-DE-OUTRA-NATUREZA', 'TIPO': t, 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma, 'HOME-PAGE': f.url, 'FLAG-RELEVANCIA': FLAG_SIM_NAO[f.relevante] || '' };
                 buckets.O.push(el('OUTRAS-ORIENTACOES-CONCLUIDAS', { 'SEQUENCIA-PRODUCAO': S() }, el('DADOS-BASICOS-DE-OUTRAS-ORIENTACOES-CONCLUIDAS', db) + el('DETALHAMENTO-DE-OUTRAS-ORIENTACOES-CONCLUIDAS', detOutras) + extra));
             }
         });
@@ -1207,8 +1207,11 @@ window.LattesXMLExport = (function () {
         let seq = 0; const S = () => String(++seq);
         list.forEach(it => {
             const f = it.fields; const t = f.tipo || '';
-            const detBase = { 'NOME-DO-ORIENTANDO': f.orientando, 'NOME-INSTITUICAO': f.instituicao, 'NOME-CURSO': f.curso, 'NOME-DA-AGENCIA': f.bolsa };
-            const extra = palavrasChaveEl(f.palavrasChave) + areaDoConhecimentoEl(f) + informacoesAdicionaisEl(f.outrasInfo);
+            // FLAG-RELEVANCIA não existe em nenhum DADOS-BASICOS-DA-ORIENTACAO-EM-
+            // ANDAMENTO-DE-* (só nas "concluídas") — f.relevante fica de fora aqui
+            // de propósito.
+            const detBase = { 'NOME-DO-ORIENTANDO': f.orientando, 'NOME-INSTITUICAO': f.instituicao, 'NOME-CURSO': f.curso, 'FLAG-BOLSA': FLAG_SIM_NAO[f.comBolsa] || '', 'NOME-DA-AGENCIA': f.bolsa };
+            const extra = palavrasChaveEl(f.palavrasChave) + areaDoConhecimentoEl(f) + setoresAtividadeEl(f.setores) + informacoesAdicionaisEl(f.outrasInfo);
             // withTipoOrientacao: só Mestrado/Doutorado/Pós-Doutorado têm TIPO-DE-ORIENTACAO
             // no detalhamento. comModalidade: só Mestrado tem o atributo TIPO
             // (Acadêmico/Profissionalizante) no DADOS-BASICOS.
