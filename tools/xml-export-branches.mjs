@@ -254,6 +254,27 @@ items.push(mk('CULTIVAR_REGISTRADA', 'PATENTES_REGISTROS', {
     titulo: 'Cultivar Milho ABC', ano: '2019', pais: 'Brasil', instituicao: 'EMBRAPA', registro: 'RNC-6789',
     dataConcessao: '2020-03-01', potencialInovacao: 'Não', autoresLista: [{ nomeCompleto: 'Melhorista Dois', nomeCitacao: 'DOIS, M.' }],
 }));
+// Patentes e Registros sub-lote 2 (final): Desenho industrial registrado,
+// Marca registrada, Topografia de circuito integrado registrada — Instituição
+// de registro distinta de financiadora, potencial de inovação, Inventores em
+// lista. Marca ganha Tipo/Natureza; Topografia não tem Depositante/Titular
+// nem datas de registro/concessão (ausentes na tela real deste tipo).
+items.push(mk('DESENHO_INDUSTRIAL', 'PATENTES_REGISTROS', {
+    registro: 'BR302020001234', instituicaoRegistro: 'INPI', pais: 'Brasil', titulo: 'Design de embalagem ergonômica', ano: '2020',
+    dataDeposito: '2020-01-05', dataConcessao: '2021-02-10', finalidade: 'Comercialização', instituicao: 'FAPESP',
+    potencialInovacao: 'Sim', titular: 'UNIFESP', autoresLista: [{ nomeCompleto: 'Fulano de Tal', nomeCitacao: 'TAL, F.' }],
+    palavrasChave: 'design; embalagem',
+}));
+items.push(mk('MARCA', 'PATENTES_REGISTROS', {
+    registro: 'BR512020009876', instituicaoRegistro: 'INPI', pais: 'Brasil', tipo: 'de Serviço', natureza: 'Mista',
+    titulo: 'Marca XYZ', ano: '2021', dataDeposito: '2021-03-01', dataConcessao: '2022-04-15', potencialInovacao: 'Sim',
+    autoresLista: [{ nomeCompleto: 'Fulano de Tal', nomeCitacao: 'TAL, F.' }],
+}));
+items.push(mk('TOPOGRAFIA_CI', 'PATENTES_REGISTROS', {
+    registro: 'BR812020001111', instituicaoRegistro: 'INPI', pais: 'Brasil', titulo: 'Topografia de chip X', ano: '2022',
+    finalidade: 'Proteção de layout', instituicao: 'CNPq', potencialInovacao: 'Não',
+    autoresLista: [{ nomeCompleto: 'Fulano de Tal', nomeCitacao: 'TAL, F.' }],
+}));
 // Atuação com atividades
 items.push(mk('VINCULO_PROFISSIONAL', 'ATUACAO', { instituicao: 'UNIFESP', vinculo: 'Servidor', vinculoEmpregaticio: 'Sim', cargo: 'Professor', dedicacaoExclusiva: 'Sim', cargaHoraria: '40', anoInicio: '2010', situacao: 'Atual (não finalizado)', anoFim: '' }));
 items.push(mk('VINCULO_PROFISSIONAL', 'ATUACAO', { instituicao: 'UNIFESP', vinculo: 'Colaborador', vinculoEmpregaticio: 'Não', cargo: 'Pesquisador visitante', dedicacaoExclusiva: 'Não', cargaHoraria: '10', anoInicio: '2005', situacao: 'Anterior (finalizado)', anoFim: '2009' }));

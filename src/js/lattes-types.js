@@ -164,11 +164,6 @@ const PROJETO_ENSINO_FIELDS = [
     QTD_FUNDAMENTAL, QTD_MEDIO, ...QTD_ALUNOS_BASE,
     projetoFinanciadoresField(), projetoProducoesField(), projetoOrientacoesField(),
 ];
-const PI_FIELDS = [F_TITULO, { ...F_ANO, row: 'periodo' }, F_AFIM, F_AUTORES, F_FINAL,
-    { key: 'registro', label: 'Nº do registro / depósito', type: 'text' },
-    { key: 'dataDeposito', label: 'Data do depósito', type: 'date' },
-    { key: 'dataConcessao', label: 'Data da concessão', type: 'date' },
-    { key: 'instituicao', label: 'Instituição financiadora', type: 'text' }, F_PAIS];
 // Átomos para a categoria 20 (Registros pessoais)
 const AL_ENT   = { key: 'entidade', label: 'Entidade', type: 'text' };
 const AL_PAPEL = { key: 'papel', label: 'Papel / Atuação', type: 'text' };
@@ -232,6 +227,35 @@ const CULTIVAR_FIELDS = [{ key: 'titulo', label: 'Denominação', type: 'text', 
     { key: 'potencialInovacao', label: 'Possui potencial de inovação de produtos, processos ou serviços?', type: 'checkbox' },
     { ...PROD_AUTORES_LISTA, label: 'Melhoristas' },
     ...PROD_PALAVRAS_AREA_SETORES_OUTRAS];
+// Desenho industrial registrado (doc 6.5). `instituicao` = Instituição(ões)
+// financiadora(s), distinta de `instituicaoRegistro` (mesmo padrão de
+// Programa de Computador Registrado, issue #63).
+const PI_FIELDS = [
+    { key: 'registro', label: 'Número do registro', type: 'text' },
+    { key: 'instituicaoRegistro', label: 'Instituição de registro', type: 'text' }, F_PAIS,
+    F_TITULO, { ...F_ANO, row: 'periodo' }, F_AFIM,
+    { key: 'dataDeposito', label: 'Data do registro', type: 'date' },
+    { key: 'dataConcessao', label: 'Data de concessão', type: 'date' },
+    { ...F_FINAL, label: 'Finalidade' },
+    { key: 'instituicao', label: 'Instituição(ões) financiadora(s)', type: 'textarea', placeholder: 'Separe por ponto e vírgula (;)' },
+    { key: 'potencialInovacao', label: 'Possui potencial de inovação de produtos, processos ou serviços?', type: 'checkbox' },
+    { key: 'titular', label: 'Depositante/Titular (pessoas e instituições)', type: 'textarea', placeholder: 'Separe por ponto e vírgula (;)' },
+    { ...PROD_AUTORES_LISTA, label: 'Inventores' },
+    ...PROD_PALAVRAS_AREA_SETORES_OUTRAS,
+];
+// Topografia de circuito integrado registrada (doc 6.7) — mesma estrutura de
+// PI_FIELDS, mas sem Depositante/Titular nem Data do registro/concessão
+// (não constam na tela real deste tipo específico).
+const TOPOGRAFIA_FIELDS = [
+    { key: 'registro', label: 'Número do registro', type: 'text' },
+    { key: 'instituicaoRegistro', label: 'Instituição de registro', type: 'text' }, F_PAIS,
+    F_TITULO, { ...F_ANO, row: 'periodo' }, F_AFIM,
+    { ...F_FINAL, label: 'Finalidade' },
+    { key: 'instituicao', label: 'Instituição(ões) financiadora(s)', type: 'textarea', placeholder: 'Separe por ponto e vírgula (;)' },
+    { key: 'potencialInovacao', label: 'Possui potencial de inovação de produtos, processos ou serviços?', type: 'checkbox' },
+    { ...PROD_AUTORES_LISTA, label: 'Inventores' },
+    ...PROD_PALAVRAS_AREA_SETORES_OUTRAS,
+];
 
 /* ---- Definição global dos TIPOS (por chave) ---- */
 const TYPES = {
@@ -1041,8 +1065,24 @@ const TYPES = {
     CULTIVAR_PROTEGIDA: { label: 'Cultivar protegida', fields: CULTIVAR_FIELDS },
     CULTIVAR_REGISTRADA: { label: 'Cultivar registrada', fields: CULTIVAR_FIELDS },
     DESENHO_INDUSTRIAL: { label: 'Desenho industrial registrado', fields: PI_FIELDS },
-    MARCA: { label: 'Marca registrada', fields: [F_TITULO, { ...F_ANO, row: 'periodo' }, F_AFIM, F_AUTORES, { key: 'natureza', label: 'Natureza', type: 'text' }, F_FINAL, { key: 'registro', label: 'Nº do registro / depósito', type: 'text' }, { key: 'dataDeposito', label: 'Data do depósito', type: 'date' }, { key: 'dataConcessao', label: 'Data da concessão', type: 'date' }, F_PAIS] },
-    TOPOGRAFIA_CI: { label: 'Topografia de circuito integrado registrada', fields: PI_FIELDS },
+    // "Tipo" (de Produto/de Serviço/Coletiva/Certificação) consta na tela
+    // real (doc 6.6.6), mas DADOS-BASICOS-DA-MARCA/DETALHAMENTO-DA-MARCA não
+    // tem atributo correspondente no XSD/DTD (só NATUREZA, livre) — mantido
+    // na UI como referência do usuário, mas sem exportação no XML. Sem
+    // Finalidade/Depositante-Titular: não constam na tela real deste tipo.
+    MARCA: { label: 'Marca registrada', fields: [
+        { key: 'registro', label: 'Número do registro', type: 'text' },
+        { key: 'instituicaoRegistro', label: 'Instituição de registro', type: 'text' }, F_PAIS,
+        { key: 'tipo', label: 'Tipo', type: 'select', options: ['de Produto', 'de Serviço', 'Coletiva', 'Certificação'] },
+        { key: 'natureza', label: 'Natureza', type: 'select', options: ['Figurativa', 'Nominativa', 'Mista', 'Tridimensional'] },
+        F_TITULO, { ...F_ANO, row: 'periodo' }, F_AFIM,
+        { key: 'dataDeposito', label: 'Data do depósito', type: 'date' },
+        { key: 'dataConcessao', label: 'Data da concessão', type: 'date' },
+        { key: 'potencialInovacao', label: 'Possui potencial de inovação de produtos, processos ou serviços?', type: 'checkbox' },
+        { ...PROD_AUTORES_LISTA, label: 'Inventores' },
+        ...PROD_PALAVRAS_AREA_SETORES_OUTRAS,
+    ] },
+    TOPOGRAFIA_CI: { label: 'Topografia de circuito integrado registrada', fields: TOPOGRAFIA_FIELDS },
 
     // 09 Eventos
     PARTICIPACAO_EVENTO: { label: 'Participação em eventos, congressos, exposições, feiras e olimpíadas', fields: [

@@ -811,14 +811,17 @@ window.LattesXMLExport = (function () {
             'DETALHAMENTO-DA-CULTIVAR', { 'FINALIDADE': f.finalidade, 'INSTITUICAO-FINANCIADORA': f.instituicao },
             autoresArg(f), registroPatente(f), extraProd(f))).join('');
         const desenhos = pick('DESENHO_INDUSTRIAL').map(f => producao('DESENHO-INDUSTRIAL', S(),
-            'DADOS-BASICOS-DO-DESENHO-INDUSTRIAL', { 'TITULO': f.titulo, 'ANO-DESENVOLVIMENTO': year(f.ano), 'PAIS': f.pais },
-            'DETALHAMENTO-DO-DESENHO-INDUSTRIAL', { 'FINALIDADE': f.finalidade, 'INSTITUICAO-FINANCIADORA': f.instituicao }, f.autores, registroPatente(f))).join('');
+            'DADOS-BASICOS-DO-DESENHO-INDUSTRIAL', { 'TITULO': f.titulo, 'ANO-DESENVOLVIMENTO': year(f.ano), 'PAIS': f.pais, 'FLAG-POTENCIAL-INOVACAO': FLAG_SIM_NAO[f.potencialInovacao] || '' },
+            'DETALHAMENTO-DO-DESENHO-INDUSTRIAL', { 'FINALIDADE': f.finalidade, 'INSTITUICAO-FINANCIADORA': f.instituicao },
+            autoresArg(f), registroPatente(f, f.instituicaoRegistro), extraProd(f))).join('');
         const marcas = pick('MARCA').map(f => producao('MARCA', S(),
-            'DADOS-BASICOS-DA-MARCA', { 'TITULO': f.titulo, 'ANO-DESENVOLVIMENTO': year(f.ano), 'PAIS': f.pais },
-            'DETALHAMENTO-DA-MARCA', { 'FINALIDADE': f.finalidade, 'NATUREZA': f.natureza }, f.autores, registroPatente(f))).join('');
+            'DADOS-BASICOS-DA-MARCA', { 'TITULO': f.titulo, 'ANO-DESENVOLVIMENTO': year(f.ano), 'PAIS': f.pais, 'FLAG-POTENCIAL-INOVACAO': FLAG_SIM_NAO[f.potencialInovacao] || '' },
+            'DETALHAMENTO-DA-MARCA', { 'NATUREZA': f.natureza },
+            autoresArg(f), registroPatente(f, f.instituicaoRegistro), extraProd(f))).join('');
         const topografias = pick('TOPOGRAFIA_CI').map(f => producao('TOPOGRAFIA-DE-CIRCUITO-INTEGRADO', S(),
-            'DADOS-BASICOS-DA-TOPOGRAFIA-DE-CIRCUITO-INTEGRADO', { 'TITULO': f.titulo, 'ANO-DESENVOLVIMENTO': year(f.ano), 'PAIS': f.pais },
-            'DETALHAMENTO-DA-TOPOGRAFIA-DE-CIRCUITO-INTEGRADO', { 'FINALIDADE': f.finalidade, 'INSTITUICAO-FINANCIADORA': f.instituicao }, f.autores, registroPatente(f))).join('');
+            'DADOS-BASICOS-DA-TOPOGRAFIA-DE-CIRCUITO-INTEGRADO', { 'TITULO': f.titulo, 'ANO-DESENVOLVIMENTO': year(f.ano), 'PAIS': f.pais, 'FLAG-POTENCIAL-INOVACAO': FLAG_SIM_NAO[f.potencialInovacao] || '' },
+            'DETALHAMENTO-DA-TOPOGRAFIA-DE-CIRCUITO-INTEGRADO', { 'FINALIDADE': f.finalidade, 'INSTITUICAO-FINANCIADORA': f.instituicao },
+            autoresArg(f), registroPatente(f, f.instituicaoRegistro), extraProd(f))).join('');
         const produtos = pick('PRODUTO_TECNOLOGICO').map(f => producao('PRODUTO-TECNOLOGICO', S(),
             'DADOS-BASICOS-DO-PRODUTO-TECNOLOGICO', {
                 'TIPO-PRODUTO': tok('DADOS-BASICOS-DO-PRODUTO-TECNOLOGICO', 'TIPO-PRODUTO', f.natureza), 'NATUREZA': tok('DADOS-BASICOS-DO-PRODUTO-TECNOLOGICO', 'NATUREZA', f.naturezaProduto),
