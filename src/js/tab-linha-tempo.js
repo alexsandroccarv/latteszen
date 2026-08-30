@@ -254,7 +254,7 @@ window.TabLinhaTempo = (function () {
                             <thead><tr class="h-[18px]"><th class="pr-3">&nbsp;</th></tr></thead>
                             <tbody>${labelRows}</tbody>
                         </table>
-                        <div class="overflow-x-auto min-w-0 flex-1">
+                        <div class="overflow-x-auto min-w-0 flex-1 scroll-area">
                             <table class="border-separate" style="border-spacing:2px">
                                 <thead><tr class="h-[18px]">${headCells}</tr></thead>
                                 <tbody>${dataRows}</tbody>
