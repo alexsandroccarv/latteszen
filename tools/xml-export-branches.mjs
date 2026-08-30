@@ -222,6 +222,14 @@ items.push(mk('LIVRO_CAPITULO', 'PRODUCOES', { tipoObra: 'Capítulo de livro', t
 // Participação em eventos — todas as naturezas
 ['Congresso', 'Seminário', 'Simpósio', 'Oficina', 'Encontro', 'Olimpíada', 'Feira', 'Exposição', 'Outra'].forEach(natureza =>
     items.push(mk('PARTICIPACAO_EVENTO', 'EVENTOS', { titulo: 'Evento ' + natureza, natureza, formaParticipacao: 'Participante', tipoParticipacao: 'Conferencista', tituloApresentacao: 'Palestra', classificacao: 'Nacional', ano: '2023', pais: 'Brasil', cidade: 'SP' })));
+// Organização de eventos — campos que faltavam (Natureza, Idioma, Meio de
+// divulgação, flags, Duração, Itinerante, Catálogo, Local, Autores em lista).
+items.push(mk('ORGANIZACAO_EVENTO', 'EVENTOS', {
+    tipoEvento: 'Congresso', natureza: 'Organização', titulo: 'Congresso Brasileiro de Engenharia', ano: '2022', pais: 'Brasil', idioma: 'Português',
+    meioDivulgacao: 'Meio digital', url: 'https://example.org/congresso', relevante: 'Sim', divulgacaoCT: 'Sim',
+    instituicao: 'UNIFESP', duracaoSemanas: '2', itinerante: 'Sim', catalogo: 'Sim', local: 'Centro de Convenções', cidade: 'São Paulo',
+    autoresLista: [{ nomeCompleto: 'Fulano de Tal', nomeCitacao: 'TAL, F.' }], palavrasChave: 'engenharia; congresso',
+}));
 // Licenças
 items.push(mk('LICENCA', 'DADOS_GERAIS', { titulo: 'Licença', tipo: 'Maternidade', anoInicio: '2020', anoFim: '2020' }));
 items.push(mk('LICENCA', 'DADOS_GERAIS', { titulo: 'Licença', tipo: 'Paternidade' }));

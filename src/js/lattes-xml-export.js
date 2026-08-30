@@ -160,6 +160,7 @@ window.LattesXMLExport = (function () {
         'DADOS-BASICOS-DE-EDITORACAO|NATUREZA': ['LIVRO', 'ANAIS', 'CATALOGO', 'COLETANEA', 'ENCICLOPEDIA', 'PERIODICO', 'OUTRA', 'NAO_INFORMADO'],
         'DADOS-BASICOS-DE-CARTA-MAPA-OU-SIMILAR|NATUREZA': ['AEROFOTOGRAMA', 'CARTA', 'FOTOGRAMA', 'MAPA', 'OUTRA', 'NAO_INFORMADO'],
         'DADOS-BASICOS-DA-ORGANIZACAO-DE-EVENTO|TIPO': ['CONCERTO', 'CONCURSO', 'CONGRESSO', 'EXPOSICAO', 'FESTIVAL', 'FEIRA', 'OLIMPIADA', 'OUTRO', 'NAO_INFORMADO'],
+        'DADOS-BASICOS-DA-ORGANIZACAO-DE-EVENTO|NATUREZA': ['CURADORIA', 'MONTAGEM', 'MUSEOLOGIA', 'ORGANIZACAO', 'NAO_INFORMADO'],
         'DADOS-BASICOS-DO-PROGRAMA-DE-RADIO-OU-TV|NATUREZA': ['ENTREVISTA', 'MESA_REDONDA', 'COMENTARIO', 'PROGRAMA', 'OUTRA', 'NAO_INFORMADO'],
         'DADOS-BASICOS-DA-MIDIA-SOCIAL-WEBSITE-BLOG|NATUREZA': ['REDE_SOCIAL', 'FORUM', 'BLOG', 'SITE'],
         'DADOS-BASICOS-DE-ARTES-CENICAS|NATUREZA': ['AUDIOVISUAL', 'CIRCENSE', 'COREOGRAFICA', 'DIVERSAS', 'OPERISTICA', 'PERFORMATICA', 'RADIALISTICA', 'TEATRAL', 'OUTRA'],
@@ -931,8 +932,17 @@ window.LattesXMLExport = (function () {
         // "Olimpíada" no DTD tem acento (OLIMPÍADA), incompatível com o XSD
         // (OLIMPIADA). Para valer nos dois, mapeia esse caso raro para "Outro".
         const orgEventos = pick('ORGANIZACAO_EVENTO').map(f => producao('ORGANIZACAO-DE-EVENTO', S(),
-            'DADOS-BASICOS-DA-ORGANIZACAO-DE-EVENTO', { 'TIPO': tok('DADOS-BASICOS-DA-ORGANIZACAO-DE-EVENTO', 'TIPO', /olimp/i.test(f.tipoEvento || '') ? 'Outro' : f.tipoEvento), 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'HOME-PAGE-DO-TRABALHO': f.url },
-            'DETALHAMENTO-DA-ORGANIZACAO-DE-EVENTO', { 'INSTITUICAO-PROMOTORA': f.instituicao, 'CIDADE': f.cidade }, f.autores)).join('');
+            'DADOS-BASICOS-DA-ORGANIZACAO-DE-EVENTO', {
+                'TIPO': tok('DADOS-BASICOS-DA-ORGANIZACAO-DE-EVENTO', 'TIPO', /olimp/i.test(f.tipoEvento || '') ? 'Outro' : f.tipoEvento),
+                'NATUREZA': tok('DADOS-BASICOS-DA-ORGANIZACAO-DE-EVENTO', 'NATUREZA', f.natureza), 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma,
+                'MEIO-DE-DIVULGACAO': MEIO_DIVULGACAO_TOKEN[f.meioDivulgacao] || '', 'HOME-PAGE-DO-TRABALHO': f.url,
+                'FLAG-RELEVANCIA': FLAG_SIM_NAO[f.relevante] || '', 'FLAG-DIVULGACAO-CIENTIFICA': FLAG_SIM_NAO[f.divulgacaoCT] || '',
+            },
+            'DETALHAMENTO-DA-ORGANIZACAO-DE-EVENTO', {
+                'INSTITUICAO-PROMOTORA': f.instituicao, 'DURACAO-EM-SEMANAS': f.duracaoSemanas,
+                'FLAG-EVENTO-ITINERANTE': FLAG_SIM_NAO[f.itinerante] || '', 'FLAG-CATALOGO': FLAG_SIM_NAO[f.catalogo] || '', 'LOCAL': f.local, 'CIDADE': f.cidade,
+            },
+            autoresArg(f), null, extraProd(f))).join('');
         const midias = pick('MIDIA').map(f => producao('PROGRAMA-DE-RADIO-OU-TV', S(),
             'DADOS-BASICOS-DO-PROGRAMA-DE-RADIO-OU-TV', {
                 'NATUREZA': tok('DADOS-BASICOS-DO-PROGRAMA-DE-RADIO-OU-TV', 'NATUREZA', f.tipo), 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma,
