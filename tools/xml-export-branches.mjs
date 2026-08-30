@@ -213,13 +213,14 @@ items.push(mk('LIVRO_CAPITULO', 'PRODUCOES', { tipoObra: 'Capítulo de livro', t
     tipo, modalidade, candidato: 'Cand ' + tipo, titulo: 'Banca ' + tipo, curso: 'PPG', instituicao: 'UNIFESP',
     membros: 'Prof A; Prof B', ano: '2022', pais: 'Brasil', idioma: 'Português', url: 'https://example.org/banca',
     palavrasChave: 'chuva; seca; clima', grandeArea: 'Ciências da Saúde', area: 'Medicina', subarea: 'Clínica Médica',
-    especialidade: 'Cardiologia', outrasInfo: 'Observação livre.',
+    especialidade: 'Cardiologia', setores: 'Saúde humana', outrasInfo: 'Observação livre.',
 })));
-// Bancas julgadoras — todas as naturezas + campos novos
+// Bancas julgadoras — todas as naturezas + campos novos (Setores de atividade,
+// antes ausente igual em Bancas de conclusão)
 ['Concurso público', 'Professor titular', 'Livre-docência', 'Avaliação de cursos', 'Outra'].forEach(tipo =>
     items.push(mk('BANCA_JULGADORA', 'BANCAS', {
         tipo, titulo: 'Julg ' + tipo, instituicao: 'UNIFESP', membros: 'Prof A; Prof B', ano: '2023',
-        pais: 'Brasil', idioma: 'Português', url: 'https://example.org/banca-julgadora',
+        pais: 'Brasil', idioma: 'Português', url: 'https://example.org/banca-julgadora', setores: 'Educação',
         palavrasChave: 'gestão; avaliação', grandeArea: 'Ciências Sociais Aplicadas', area: 'Administração',
         outrasInfo: 'Observação livre.',
     })));

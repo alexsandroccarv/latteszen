@@ -1174,6 +1174,7 @@ const TYPES = {
         { key: 'membros', label: 'Participantes da banca', type: 'textarea', placeholder: 'Separe por ponto e vírgula (;)', help: 'Um nome por posição — a ordem digitada é a ordem de autoria na banca.' },
         { key: 'palavrasChave', label: 'Palavras-chave', type: 'textarea', placeholder: 'Separe por ponto e vírgula (;)', help: 'Até 6 palavras-chave (limite da Plataforma Lattes).' },
         { key: 'areaConhecimento', label: 'Área do conhecimento (CNPq/CAPES)', type: 'areatree', help: 'Selecione do mais geral ao mais específico: Grande área > Área > Subárea > Especialidade.' },
+        { key: 'setores', label: 'Setores de atividade', type: 'cnaeSetores', help: 'Até 3 setores (lista CNAE).' },
         { key: 'outrasInfo', label: 'Outras informações', type: 'textarea' },
     ] },
     BANCA_JULGADORA: { label: 'Participação em bancas de comissões julgadoras', fields: [
@@ -1184,6 +1185,7 @@ const TYPES = {
         { key: 'membros', label: 'Participantes da banca', type: 'textarea', placeholder: 'Separe por ponto e vírgula (;)', help: 'Um nome por posição — a ordem digitada é a ordem de autoria na banca.' },
         { key: 'palavrasChave', label: 'Palavras-chave', type: 'textarea', placeholder: 'Separe por ponto e vírgula (;)', help: 'Até 6 palavras-chave (limite da Plataforma Lattes).' },
         { key: 'areaConhecimento', label: 'Área do conhecimento (CNPq/CAPES)', type: 'areatree', help: 'Selecione do mais geral ao mais específico: Grande área > Área > Subárea > Especialidade.' },
+        { key: 'setores', label: 'Setores de atividade', type: 'cnaeSetores', help: 'Até 3 setores (lista CNAE).' },
         { key: 'outrasInfo', label: 'Outras informações', type: 'textarea' },
     ] },
 

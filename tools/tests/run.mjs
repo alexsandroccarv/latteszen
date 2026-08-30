@@ -46,6 +46,7 @@ import './specs/patentes-registros-campos.mjs';
 import './specs/patentes-registros-campos-2.mjs';
 import './specs/eventos-campos.mjs';
 import './specs/orientacoes-campos.mjs';
+import './specs/bancas-campos.mjs';
 
 console.log('Rodando suíte de testes de regressão (Playwright)...\n');
 await runAll();

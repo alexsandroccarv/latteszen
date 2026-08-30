@@ -1135,7 +1135,7 @@ window.LattesXMLExport = (function () {
         list.forEach(it => {
             const f = it.fields; const t = f.tipo || '';
             const det = { 'NOME-DO-CANDIDATO': f.candidato, 'NOME-INSTITUICAO': f.instituicao, 'NOME-CURSO': f.curso };
-            const extra = palavrasChaveEl(f.palavrasChave) + areaDoConhecimentoEl(f) + informacoesAdicionaisEl(f.outrasInfo);
+            const extra = palavrasChaveEl(f.palavrasChave) + areaDoConhecimentoEl(f) + setoresAtividadeEl(f.setores) + informacoesAdicionaisEl(f.outrasInfo);
             const part = participantesBanca(f.membros) + extra;
             const mk = (leaf, dbTag, detTag, comTipo) => {
                 const db = { 'NATUREZA': t, 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma, 'HOME-PAGE': f.url };
@@ -1161,7 +1161,7 @@ window.LattesXMLExport = (function () {
         list.forEach(it => {
             const f = it.fields; const t = f.tipo || '';
             const det = { 'NOME-INSTITUICAO': f.instituicao };
-            const extra = palavrasChaveEl(f.palavrasChave) + areaDoConhecimentoEl(f) + informacoesAdicionaisEl(f.outrasInfo);
+            const extra = palavrasChaveEl(f.palavrasChave) + areaDoConhecimentoEl(f) + setoresAtividadeEl(f.setores) + informacoesAdicionaisEl(f.outrasInfo);
             const part = participantesBanca(f.membros) + extra;
             const db = { 'NATUREZA': t, 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma, 'HOME-PAGE': f.url };
             const mk = (leaf, dbTag, detTag) => el(leaf, { 'SEQUENCIA-PRODUCAO': S() }, el(dbTag, db) + el(detTag, det) + part);
