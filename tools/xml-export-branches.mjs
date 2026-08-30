@@ -141,6 +141,24 @@ items.push(mk('OUTRA_TECNICA', 'PRODUCOES', {
     autoresLista: [{ nomeCompleto: 'Fulano de Tal', nomeCitacao: 'TAL, F.' }],
     finalidade: 'Vistoria predial', instituicao: 'Prefeitura Municipal', local: 'Sede administrativa', cidade: 'Campinas',
 }));
+// Outra produção artística/cultural: Artes cênicas e Música — campos que
+// faltavam (Natureza como select real, Meio de divulgação, estreia,
+// premiação, obra de referência, autores em lista). Música soma Formação
+// instrumental e Ineditismo da obra (ausente em Artes cênicas por limitação
+// genuína do schema — DETALHAMENTO-DE-ARTES-CENICAS não tem o atributo).
+items.push(mk('ARTES_CENICAS', 'PRODUCOES', {
+    natureza: 'Teatral', titulo: 'Espetáculo Auto da Compadecida', ano: '2019', pais: 'Brasil', idioma: 'Português',
+    meioDivulgacao: 'Meio digital', url: 'https://example.org/espetaculo', relevante: 'Sim', divulgacaoCT: 'Sim',
+    tipoEvento: 'Festival', atividadeAutores: 'Direção', autoresLista: [{ nomeCompleto: 'Fulano de Tal', nomeCitacao: 'TAL, F.' }],
+    dataEstreia: '10/05/2019', localEstreia: 'Teatro Municipal', premiacao: 'Prêmio Shell', instituicaoPremio: 'Fundação Shell',
+    duracaoMinutos: '90', temporada: '2019/1', evento: 'Festival de Teatro de Curitiba', localEvento: 'Teatro Guaíra', cidade: 'Curitiba',
+}));
+items.push(mk('MUSICA', 'PRODUCOES', {
+    natureza: 'Composição', titulo: 'Concerto para violino e orquestra', ano: '2021', pais: 'Brasil', idioma: 'Português',
+    meioDivulgacao: 'Filme', relevante: 'Sim', formacaoInstrumental: 'Violino solo e orquestra de cordas', ineditismo: 'Sim',
+    autoresLista: [{ nomeCompleto: 'Fulano de Tal', nomeCitacao: 'TAL, F.' }],
+    obraReferencia: 'Concerto em Ré Maior', autorObraReferencia: 'Compositor X', anoObraReferencia: '1900',
+}));
 // Livro e capítulo
 items.push(mk('LIVRO_CAPITULO', 'PRODUCOES', { tipoObra: 'Livro publicado', titulo: 'Meu Livro', ano: '2020', autores: 'TAL, F.', editora: 'Ed', cidade: 'SP', isbn: '978-1', paginas: '200' }));
 items.push(mk('LIVRO_CAPITULO', 'PRODUCOES', { tipoObra: 'Capítulo de livro', titulo: 'Meu Capítulo', ano: '2021', autores: 'TAL, F.; X, Y', tituloLivro: 'Coletânea', organizadores: 'Org Z', editora: 'Ed', paginas: '10-30', isbn: '978-2' }));

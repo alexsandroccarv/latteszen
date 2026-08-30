@@ -970,14 +970,34 @@ window.LattesXMLExport = (function () {
             'DADOS-BASICOS-DE-OUTRA-PRODUCAO-ARTISTICA-CULTURAL', { 'NATUREZA': f.natureza, 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma, 'HOME-PAGE': f.url },
             'DETALHAMENTO-DE-OUTRA-PRODUCAO-ARTISTICA-CULTURAL', { 'CIDADE': f.cidade }, f.autores)).join('');
         const cenicas = pick('ARTES_CENICAS').map(f => producao('ARTES-CENICAS', S(),
-            'DADOS-BASICOS-DE-ARTES-CENICAS', { 'NATUREZA': tok('DADOS-BASICOS-DE-ARTES-CENICAS', 'NATUREZA', f.natureza), 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma, 'HOME-PAGE': f.url },
-            'DETALHAMENTO-DE-ARTES-CENICAS', { 'INSTITUICAO-PROMOTORA-DO-EVENTO': f.evento, 'CIDADE-DO-EVENTO': f.cidade }, f.autores)).join('');
+            'DADOS-BASICOS-DE-ARTES-CENICAS', {
+                'NATUREZA': tok('DADOS-BASICOS-DE-ARTES-CENICAS', 'NATUREZA', f.natureza), 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma,
+                'MEIO-DE-DIVULGACAO': MEIO_DIVULGACAO_TOKEN[f.meioDivulgacao] || '', 'HOME-PAGE': f.url,
+                'FLAG-RELEVANCIA': FLAG_SIM_NAO[f.relevante] || '', 'FLAG-DIVULGACAO-CIENTIFICA': FLAG_SIM_NAO[f.divulgacaoCT] || '',
+            },
+            'DETALHAMENTO-DE-ARTES-CENICAS', {
+                'TIPO-DE-EVENTO': f.tipoEvento, 'ATIVIDADE-DOS-AUTORES': f.atividadeAutores, 'DATA-ESTREIA': ddmmaaaa(f.dataEstreia),
+                'LOCAL-DE-ESTREIA': f.localEstreia, 'PREMIACAO': f.premiacao, 'INSTITUICAO-PROMOTORA-DO-PREMIO': f.instituicaoPremio,
+                'OBRA-DE-REFERENCIA': f.obraReferencia, 'AUTOR-DA-OBRA-DE-REFERENCIA': f.autorObraReferencia, 'ANO-DA-OBRA-DE-REFERENCIA': f.anoObraReferencia,
+                'DURACAO': f.duracaoMinutos, 'TEMPORADA': f.temporada, 'INSTITUICAO-PROMOTORA-DO-EVENTO': f.evento, 'LOCAL-DO-EVENTO': f.localEvento, 'CIDADE-DO-EVENTO': f.cidade,
+            },
+            autoresArg(f), null, extraProd(f))).join('');
         const visuais = pick('ARTES_VISUAIS').map(f => producao('ARTES-VISUAIS', S(),
             'DADOS-BASICOS-DE-ARTES-VISUAIS', { 'NATUREZA': tok('DADOS-BASICOS-DE-ARTES-VISUAIS', 'NATUREZA', f.natureza), 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma, 'HOME-PAGE': f.url },
             'DETALHAMENTO-DE-ARTES-VISUAIS', { 'INSTITUICAO-PROMOTORA-DO-EVENTO': f.evento, 'CIDADE-DO-EVENTO': f.cidade }, f.autores)).join('');
         const musicas = pick('MUSICA').map(f => producao('MUSICA', S(),
-            'DADOS-BASICOS-DA-MUSICA', { 'NATUREZA': tok('DADOS-BASICOS-DA-MUSICA', 'NATUREZA', f.natureza), 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma, 'HOME-PAGE': f.url },
-            'DETALHAMENTO-DA-MUSICA', { 'INSTITUICAO-PROMOTORA-DO-EVENTO': f.evento, 'CIDADE-DO-EVENTO': f.cidade }, f.autores)).join('');
+            'DADOS-BASICOS-DA-MUSICA', {
+                'NATUREZA': tok('DADOS-BASICOS-DA-MUSICA', 'NATUREZA', f.natureza), 'TITULO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma,
+                'MEIO-DE-DIVULGACAO': MEIO_DIVULGACAO_TOKEN[f.meioDivulgacao] || '', 'HOME-PAGE': f.url,
+                'FLAG-RELEVANCIA': FLAG_SIM_NAO[f.relevante] || '', 'FLAG-DIVULGACAO-CIENTIFICA': FLAG_SIM_NAO[f.divulgacaoCT] || '',
+            },
+            'DETALHAMENTO-DA-MUSICA', {
+                'TIPO-DE-EVENTO': f.tipoEvento, 'ATIVIDADE-DOS-AUTORES': f.atividadeAutores, 'FORMACAO-INSTRUMENTAL': f.formacaoInstrumental, 'FLAG-INEDITISMO-DA-OBRA': FLAG_SIM_NAO[f.ineditismo] || '',
+                'DATA-ESTREIA': ddmmaaaa(f.dataEstreia), 'LOCAL-DE-ESTREIA': f.localEstreia, 'PREMIACAO': f.premiacao, 'INSTITUICAO-PROMOTORA-DO-PREMIO': f.instituicaoPremio,
+                'OBRA-DE-REFERENCIA': f.obraReferencia, 'AUTOR-DA-OBRA-DE-REFERENCIA': f.autorObraReferencia, 'ANO-DA-OBRA-DE-REFERENCIA': f.anoObraReferencia,
+                'DURACAO': f.duracaoMinutos, 'TEMPORADA': f.temporada, 'INSTITUICAO-PROMOTORA-DO-EVENTO': f.evento, 'LOCAL-DO-EVENTO': f.localEvento, 'CIDADE-DO-EVENTO': f.cidade,
+            },
+            autoresArg(f), null, extraProd(f))).join('');
         const artistica = wrap('PRODUCAO-ARTISTICA-CULTURAL', outraArt + cenicas + visuais + musicas);
 
         const inner = artistica + orientConcl;

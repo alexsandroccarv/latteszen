@@ -890,9 +890,61 @@ const TYPES = {
         ...PROD_PALAVRAS_AREA_SETORES_OUTRAS,
     ] },
 
-    // 05.3 Produção artística/cultural
-    ARTES_CENICAS: { label: 'Artes cênicas', fields: [F_TITULO, { ...F_ANO, row: 'periodo' }, F_AFIM, F_AUTORES, { key: 'natureza', label: 'Natureza', type: 'text' }, { key: 'evento', label: 'Evento / Local', type: 'text' }, F_PAIS, F_CIDADE, F_IDIOMA, F_URL] },
-    MUSICA: { label: 'Música', fields: [F_TITULO, { ...F_ANO, row: 'periodo' }, F_AFIM, F_AUTORES, { key: 'natureza', label: 'Natureza', type: 'text' }, { key: 'evento', label: 'Evento / Local', type: 'text' }, F_PAIS, F_CIDADE, F_IDIOMA, F_URL] },
+    // 05.3 Produção artística/cultural. Artes cênicas e Música têm a mesma
+    // estrutura (Música soma "Formação instrumental"); o campo `evento`
+    // (chave antiga, rotulado "Evento / Local") já era exportado como
+    // INSTITUICAO-PROMOTORA-DO-EVENTO — relabeled pra bater com o campo real
+    // da tela, sem trocar a chave nem os dados salvos.
+    // "Ineditismo da obra" consta na tela real de Artes cênicas (doc 5.27.12),
+    // mas DETALHAMENTO-DE-ARTES-CENICAS não tem o atributo FLAG-INEDITISMO-DA-
+    // OBRA no XSD/DTD (só DETALHAMENTO-DA-MUSICA tem) — limitação genuína do
+    // schema, por isso o campo não entrou na UI de Artes cênicas.
+    ARTES_CENICAS: { label: 'Artes cênicas', fields: [
+        F_NATUREZA(['Audiovisual', 'Circense', 'Coreográfica', 'Diversas', 'Operística', 'Performática', 'Radialística', 'Teatral', 'Outra']),
+        F_TITULO, { ...F_ANO, row: 'periodo' }, F_AFIM, F_PAIS, F_IDIOMA,
+        { key: 'meioDivulgacao', label: 'Meio de divulgação', type: 'select', options: MEIO_DIVULGACAO_OPTIONS }, F_URL,
+        { key: 'relevante', label: 'É um dos 10 trabalhos mais relevantes de sua produção?', type: 'checkbox' },
+        { key: 'divulgacaoCT', label: 'É uma produção para educação e popularização de C&T?', type: 'checkbox' },
+        { key: 'tipoEvento', label: 'Tipo de evento', type: 'text' },
+        { key: 'atividadeAutores', label: 'Atividade dos autores', type: 'text' },
+        PROD_AUTORES_LISTA,
+        { key: 'dataEstreia', label: 'Data de estreia', type: 'datebr' },
+        { key: 'localEstreia', label: 'Local da estreia', type: 'text' },
+        { key: 'premiacao', label: 'Premiação', type: 'text' },
+        { key: 'instituicaoPremio', label: 'Nome da instituição promotora do prêmio', type: 'text' },
+        { key: 'obraReferencia', label: 'Obra de referência', type: 'text' },
+        { key: 'autorObraReferencia', label: 'Autor da obra de referência', type: 'text' },
+        { key: 'anoObraReferencia', label: 'Ano da obra de referência', type: 'text' },
+        { key: 'duracaoMinutos', label: 'Duração (minutos)', type: 'number' },
+        { key: 'temporada', label: 'Temporada', type: 'text' },
+        { key: 'evento', label: 'Instituição promotora do evento', type: 'text' },
+        { key: 'localEvento', label: 'Local do evento', type: 'text' }, F_CIDADE,
+        ...PROD_PALAVRAS_AREA_SETORES_OUTRAS,
+    ] },
+    MUSICA: { label: 'Música', fields: [
+        F_NATUREZA(['Apresentação de obra', 'Arranjo', 'Audiovisual', 'Composição', 'Diversas', 'Interpretação', 'Publicação de partitura', 'Registro fonográfico', 'Trilha sonora', 'Outra']),
+        F_TITULO, { ...F_ANO, row: 'periodo' }, F_AFIM, F_PAIS, F_IDIOMA,
+        { key: 'meioDivulgacao', label: 'Meio de divulgação', type: 'select', options: MEIO_DIVULGACAO_OPTIONS }, F_URL,
+        { key: 'relevante', label: 'É um dos 10 trabalhos mais relevantes de sua produção?', type: 'checkbox' },
+        { key: 'divulgacaoCT', label: 'É uma produção para educação e popularização de C&T?', type: 'checkbox' },
+        { key: 'tipoEvento', label: 'Tipo de evento', type: 'text' },
+        { key: 'atividadeAutores', label: 'Atividade dos autores', type: 'text' },
+        { key: 'formacaoInstrumental', label: 'Formação instrumental', type: 'text' },
+        { key: 'ineditismo', label: 'Ineditismo da obra', type: 'checkbox' },
+        PROD_AUTORES_LISTA,
+        { key: 'dataEstreia', label: 'Data de estreia', type: 'datebr' },
+        { key: 'localEstreia', label: 'Local da estreia', type: 'text' },
+        { key: 'premiacao', label: 'Premiação', type: 'text' },
+        { key: 'instituicaoPremio', label: 'Nome da instituição promotora do prêmio', type: 'text' },
+        { key: 'obraReferencia', label: 'Obra de referência', type: 'text' },
+        { key: 'autorObraReferencia', label: 'Autor da obra de referência', type: 'text' },
+        { key: 'anoObraReferencia', label: 'Ano da obra de referência', type: 'text' },
+        { key: 'duracaoMinutos', label: 'Duração (minutos)', type: 'number' },
+        { key: 'temporada', label: 'Temporada', type: 'text' },
+        { key: 'evento', label: 'Instituição promotora do evento', type: 'text' },
+        { key: 'localEvento', label: 'Local do evento', type: 'text' }, F_CIDADE,
+        ...PROD_PALAVRAS_AREA_SETORES_OUTRAS,
+    ] },
     ARTES_VISUAIS: { label: 'Artes visuais', fields: [F_TITULO, { ...F_ANO, row: 'periodo' }, F_AFIM, F_AUTORES, { key: 'natureza', label: 'Natureza', type: 'text' }, { key: 'evento', label: 'Evento / Local', type: 'text' }, F_PAIS, F_CIDADE, F_IDIOMA, F_URL] },
     OUTRA_ARTISTICA: { label: 'Outra produção artística/cultural', fields: [F_TITULO, { ...F_ANO, row: 'periodo' }, F_AFIM, F_AUTORES, { key: 'natureza', label: 'Natureza', type: 'text' }, F_PAIS, F_CIDADE, F_IDIOMA, F_URL] },
 
