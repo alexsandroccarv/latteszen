@@ -37,6 +37,7 @@ import './specs/perfil-identificacao.mjs';
 import './specs/formacao-complementar.mjs';
 import './specs/area-atuacao-ordem.mjs';
 import './specs/producoes-bibliograficas-campos.mjs';
+import './specs/producao-tecnica-campos.mjs';
 
 console.log('Rodando suíte de testes de regressão (Playwright)...\n');
 await runAll();

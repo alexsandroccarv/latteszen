@@ -31,6 +31,44 @@ items.push(mk('FORMACAO_COMPLEMENTAR', 'FORMACAO', {
     anoObtencaoTitulo: '2020', comBolsa: 'Sim', bolsa: 'CAPES', tituloMonografia: 'Gestão pública aplicada',
     orientador: 'Orientador MBA', palavrasChave: 'gestão; pública', grandeArea: 'Ciências Sociais Aplicadas', area: 'Administração',
 }));
+// Produção Técnica: Assessoria/consultoria, Extensão tecnológica, Trabalhos
+// técnicos (mesmo elemento TRABALHO-TECNICO), Produtos, Processos ou técnicas
+// — todos com os campos que faltavam (auditoria vs. Lattes real). "Extensão
+// tecnológica" tanto como TIPO (EXTENSAO_TECNOLOGICA) quanto como valor de
+// Natureza em Trabalhos técnicos deve degradar pra "Outra" no XML (o DTD real
+// não aceita o token EXTENSAO_TECNOLOGICA nesse enum, só o XSD).
+items.push(mk('ASSESSORIA_CONSULTORIA', 'PRODUCOES', {
+    natureza: 'Consultoria', titulo: 'Consultoria em TI', ano: '2022', pais: 'Brasil', idioma: 'Português',
+    meioDivulgacao: 'Meio digital', url: 'https://example.org/assessoria', relevante: 'Sim',
+    autoresLista: [{ nomeCompleto: 'Fulano de Tal', nomeCitacao: 'TAL, F.' }],
+    finalidade: 'Modernização de sistemas', duracaoMeses: '6', paginas: '30', disponibilidade: 'Sob solicitação',
+    cidade: 'São Paulo', instituicao: 'Banco X', palavrasChave: 'ti; consultoria',
+    grandeArea: 'Ciências Sociais Aplicadas', area: 'Administração', outrasInfo: 'Observação livre.',
+}));
+items.push(mk('EXTENSAO_TECNOLOGICA', 'PRODUCOES', {
+    titulo: 'Extensão em manejo agrícola', ano: '2021', pais: 'Brasil', idioma: 'Português',
+    meioDivulgacao: 'Impresso', relevante: 'Não', autoresLista: [{ nomeCompleto: 'Beltrano', nomeCitacao: 'B.' }],
+    finalidade: 'Capacitação rural', duracaoMeses: '3', cidade: 'Ribeirão Preto', instituicao: 'EMBRAPA',
+}));
+items.push(mk('TRABALHO_TECNICO', 'PRODUCOES', {
+    natureza: 'Extensão tecnológica', titulo: 'Trabalho técnico ET', ano: '2020', pais: 'Brasil', idioma: 'Português',
+    meioDivulgacao: 'Outro', relevante: 'Sim', autoresLista: [{ nomeCompleto: 'Ciclana', nomeCitacao: 'C.' }],
+    finalidade: 'Diagnóstico técnico', duracaoMeses: '2', paginas: '15', disponibilidade: 'Publicado',
+    cidade: 'Campinas', instituicao: 'UNICAMP',
+}));
+items.push(mk('PRODUTO_TECNOLOGICO', 'PRODUCOES', {
+    natureza: 'Protótipo', naturezaProduto: 'Instrumento', titulo: 'Sensor de umidade', ano: '2023', pais: 'Brasil', idioma: 'Português',
+    meioDivulgacao: 'Meio digital', url: 'https://example.org/produto', relevante: 'Sim', potencialInovacao: 'Sim',
+    autoresLista: [{ nomeCompleto: 'Fulano de Tal', nomeCitacao: 'TAL, F.' }],
+    finalidade: 'Monitoramento agrícola', disponibilidade: 'Comercial', cidade: 'Piracicaba', instituicao: 'FAPESP',
+    palavrasChave: 'sensor; agricultura', grandeArea: 'Engenharias', area: 'Engenharia Agrícola',
+}));
+items.push(mk('PROCESSO_TECNICA', 'PRODUCOES', {
+    natureza: 'Instrumental', titulo: 'Técnica de extração', ano: '2022', pais: 'Brasil', idioma: 'Português',
+    meioDivulgacao: 'Hipertexto', url: 'https://example.org/processo', relevante: 'Não', potencialInovacao: 'Sim',
+    autoresLista: [{ nomeCompleto: 'Fulano de Tal', nomeCitacao: 'TAL, F.' }],
+    finalidade: 'Extração de compostos', disponibilidade: 'Restrita', cidade: 'São Carlos', instituicao: 'CNPq',
+}));
 // Livro e capítulo
 items.push(mk('LIVRO_CAPITULO', 'PRODUCOES', { tipoObra: 'Livro publicado', titulo: 'Meu Livro', ano: '2020', autores: 'TAL, F.', editora: 'Ed', cidade: 'SP', isbn: '978-1', paginas: '200' }));
 items.push(mk('LIVRO_CAPITULO', 'PRODUCOES', { tipoObra: 'Capítulo de livro', titulo: 'Meu Capítulo', ano: '2021', autores: 'TAL, F.; X, Y', tituloLivro: 'Coletânea', organizadores: 'Org Z', editora: 'Ed', paginas: '10-30', isbn: '978-2' }));

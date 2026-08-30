@@ -140,8 +140,12 @@ window.LattesXMLExport = (function () {
         'DADOS-BASICOS-DO-LIVRO|TIPO': ['LIVRO_PUBLICADO', 'LIVRO_ORGANIZADO_OU_EDICAO', 'NAO_INFORMADO'],
         'DADOS-BASICOS-DA-APRESENTACAO-DE-TRABALHO|NATUREZA': ['COMUNICACAO', 'CONFERENCIA', 'CONGRESSO', 'SEMINARIO', 'SIMPOSIO', 'OUTRA', 'NAO_INFORMADO'],
         'DADOS-BASICOS-DE-CURSOS-CURTA-DURACAO-MINISTRADO|NIVEL-DO-CURSO': ['EXTENSAO', 'APERFEICOAMENTO', 'ESPECIALIZACAO', 'OUTRA', 'NAO_INFORMADO'],
+        // "EXTENSAO_TECNOLOGICA" é um token válido no XSD para esse enum, mas o
+        // DTD (ainda usado pela importação real do Lattes) não o aceita — por
+        // isso fica de fora daqui de propósito; ver normalização em buildTecnica.
         'DADOS-BASICOS-DO-TRABALHO-TECNICO|NATUREZA': ['ASSESSORIA', 'CONSULTORIA', 'PARECER', 'ELABORACAO_DE_PROJETO', 'RELATORIO_TECNICO', 'SERVICOS_NA_AREA_DA_SAUDE', 'OUTRA', 'NAO_INFORMADO'],
         'DADOS-BASICOS-DO-PRODUTO-TECNOLOGICO|TIPO-PRODUTO': ['PILOTO', 'PROJETO', 'PROTOTIPO', 'OUTRO', 'NAO_INFORMADO'],
+        'DADOS-BASICOS-DO-PRODUTO-TECNOLOGICO|NATUREZA': ['APARELHO', 'EQUIPAMENTO', 'FARMACOS_E_SIMILARES', 'INSTRUMENTO', 'OUTRA', 'NAO_INFORMADO'],
         'DADOS-BASICOS-DO-PROCESSOS-OU-TECNICAS|NATUREZA': ['ANALITICA', 'INSTRUMENTAL', 'PEDAGOGICA', 'PROCESSUAL', 'TERAPEUTICA', 'OUTRA', 'NAO_INFORMADO'],
         'DADOS-BASICOS-DA-PARTITURA|NATUREZA': ['CANTO', 'CORAL', 'ORQUESTRA', 'OUTRO', 'NAO_INFORMADO'],
         'DADOS-BASICOS-DO-PREFACIO-POSFACIO|TIPO': ['PREFACIO', 'POSFACIO', 'APRESENTACAO', 'INTRODUCAO'],
@@ -200,6 +204,11 @@ window.LattesXMLExport = (function () {
         const autoresXml = Array.isArray(autoresStr) ? autoresListaEls(autoresStr) : autoresEls(autoresStr);
         return el(leafTag, { 'SEQUENCIA-PRODUCAO': String(seq) }, [db, det, autoresXml, extra || ''].join(''));
     }
+    // Autores (lista nova, com fallback pro texto livre antigo) e o bloco final
+    // Palavras-chave/Área do conhecimento/Setores/Outras informações — usados
+    // por várias funções buildXxx (Produção Bibliográfica e Técnica).
+    const autoresArg = (f) => (Array.isArray(f.autoresLista) && f.autoresLista.length) ? f.autoresLista : f.autores;
+    const extraProd = (f) => palavrasChaveEl(f.palavrasChave) + areaDoConhecimentoEl(f) + setoresAtividadeEl(f.setores) + informacoesAdicionaisEl(f.outrasInfo);
 
     /* ============================ 01 DADOS-GERAIS ======================== */
     function buildDadosGerais(byType, all) {
@@ -702,8 +711,6 @@ window.LattesXMLExport = (function () {
         // Palavras-chave/Área do conhecimento/Setores/Outras informações e
         // autores em lista (mesmo padrão dos demais tipos bibliográficos;
         // confirmado no XSD que os 4 elementos aceitam esses filhos).
-        const autoresArg = (f) => (Array.isArray(f.autoresLista) && f.autoresLista.length) ? f.autoresLista : f.autores;
-        const extraProd = (f) => palavrasChaveEl(f.palavrasChave) + areaDoConhecimentoEl(f) + setoresAtividadeEl(f.setores) + informacoesAdicionaisEl(f.outrasInfo);
         const outraBib = pick('OUTRA_BIBLIOGRAFICA').map(f =>
             producao('OUTRA-PRODUCAO-BIBLIOGRAFICA', S(),
                 'DADOS-BASICOS-DE-OUTRA-PRODUCAO', {
@@ -791,19 +798,45 @@ window.LattesXMLExport = (function () {
             'DADOS-BASICOS-DA-TOPOGRAFIA-DE-CIRCUITO-INTEGRADO', { 'TITULO': f.titulo, 'ANO-DESENVOLVIMENTO': year(f.ano), 'PAIS': f.pais },
             'DETALHAMENTO-DA-TOPOGRAFIA-DE-CIRCUITO-INTEGRADO', { 'FINALIDADE': f.finalidade, 'INSTITUICAO-FINANCIADORA': f.instituicao }, f.autores, registroPatente(f))).join('');
         const produtos = pick('PRODUTO_TECNOLOGICO').map(f => producao('PRODUTO-TECNOLOGICO', S(),
-            'DADOS-BASICOS-DO-PRODUTO-TECNOLOGICO', { 'TIPO-PRODUTO': tok('DADOS-BASICOS-DO-PRODUTO-TECNOLOGICO', 'TIPO-PRODUTO', f.natureza), 'TITULO-DO-PRODUTO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma, 'HOME-PAGE-DO-TRABALHO': f.url },
-            'DETALHAMENTO-DO-PRODUTO-TECNOLOGICO', { 'FINALIDADE': f.finalidade, 'CIDADE-DO-PRODUTO': f.cidade }, f.autores, f.registro ? registroPatente(f) : '')).join('');
+            'DADOS-BASICOS-DO-PRODUTO-TECNOLOGICO', {
+                'TIPO-PRODUTO': tok('DADOS-BASICOS-DO-PRODUTO-TECNOLOGICO', 'TIPO-PRODUTO', f.natureza), 'NATUREZA': tok('DADOS-BASICOS-DO-PRODUTO-TECNOLOGICO', 'NATUREZA', f.naturezaProduto),
+                'TITULO-DO-PRODUTO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma,
+                'MEIO-DE-DIVULGACAO': MEIO_DIVULGACAO_TOKEN[f.meioDivulgacao] || '', 'HOME-PAGE-DO-TRABALHO': f.url,
+                'FLAG-RELEVANCIA': FLAG_SIM_NAO[f.relevante] || '', 'FLAG-POTENCIAL-INOVACAO': FLAG_SIM_NAO[f.potencialInovacao] || '',
+            },
+            'DETALHAMENTO-DO-PRODUTO-TECNOLOGICO', { 'FINALIDADE': f.finalidade, 'DISPONIBILIDADE': f.disponibilidade, 'CIDADE-DO-PRODUTO': f.cidade, 'INSTITUICAO-FINANCIADORA': f.instituicao },
+            autoresArg(f), f.registro ? registroPatente(f) : '', extraProd(f))).join('');
         const processos = pick('PROCESSO_TECNICA').map(f => producao('PROCESSOS-OU-TECNICAS', S(),
-            'DADOS-BASICOS-DO-PROCESSOS-OU-TECNICAS', { 'NATUREZA': tok('DADOS-BASICOS-DO-PROCESSOS-OU-TECNICAS', 'NATUREZA', f.natureza), 'TITULO-DO-PROCESSO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma, 'HOME-PAGE-DO-TRABALHO': f.url },
-            'DETALHAMENTO-DO-PROCESSOS-OU-TECNICAS', { 'FINALIDADE': f.finalidade, 'INSTITUICAO-FINANCIADORA': f.instituicao, 'CIDADE-DO-PROCESSO': f.cidade }, f.autores)).join('');
+            'DADOS-BASICOS-DO-PROCESSOS-OU-TECNICAS', {
+                'NATUREZA': tok('DADOS-BASICOS-DO-PROCESSOS-OU-TECNICAS', 'NATUREZA', f.natureza), 'TITULO-DO-PROCESSO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma,
+                'MEIO-DE-DIVULGACAO': MEIO_DIVULGACAO_TOKEN[f.meioDivulgacao] || '', 'HOME-PAGE-DO-TRABALHO': f.url,
+                'FLAG-RELEVANCIA': FLAG_SIM_NAO[f.relevante] || '', 'FLAG-POTENCIAL-INOVACAO': FLAG_SIM_NAO[f.potencialInovacao] || '',
+            },
+            'DETALHAMENTO-DO-PROCESSOS-OU-TECNICAS', { 'FINALIDADE': f.finalidade, 'DISPONIBILIDADE': f.disponibilidade, 'INSTITUICAO-FINANCIADORA': f.instituicao, 'CIDADE-DO-PROCESSO': f.cidade },
+            autoresArg(f), null, extraProd(f))).join('');
         // Trabalho técnico + Assessoria/Consultoria + Extensão tecnológica: no Lattes
         // são o MESMO elemento (TRABALHO-TECNICO), distintos apenas pela NATUREZA.
+        // EXTENSAO_TECNOLOGICA é um token válido no XSD, mas o DTD (ainda usado
+        // pela importação real do Lattes) NÃO o aceita nesse enum — por isso
+        // Extensão tecnológica cai em "Outra" (compatível com os dois).
         const tecItens = pick('TRABALHO_TECNICO')
             .concat(pick('ASSESSORIA_CONSULTORIA').map(f => Object.assign({}, f, { natureza: f.natureza || 'Assessoria' })))
             .concat(pick('EXTENSAO_TECNOLOGICA').map(f => Object.assign({}, f, { natureza: 'Outra' })));
         const trabTec = tecItens.map(f => producao('TRABALHO-TECNICO', S(),
-            'DADOS-BASICOS-DO-TRABALHO-TECNICO', { 'NATUREZA': tok('DADOS-BASICOS-DO-TRABALHO-TECNICO', 'NATUREZA', f.natureza), 'TITULO-DO-TRABALHO-TECNICO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma, 'HOME-PAGE-DO-TRABALHO': f.url },
-            'DETALHAMENTO-DO-TRABALHO-TECNICO', { 'FINALIDADE': f.finalidade, 'INSTITUICAO-FINANCIADORA': f.instituicao, 'CIDADE-DO-TRABALHO': f.cidade }, f.autores)).join('');
+            'DADOS-BASICOS-DO-TRABALHO-TECNICO', {
+                // "Extensão tecnológica" é uma opção real de Natureza na tela de
+                // Trabalhos técnicos (doc), mas cai no mesmo caso do DTD acima —
+                // degrada pra "Outra" na exportação, sem alterar o que foi
+                // catalogado.
+                'NATUREZA': tok('DADOS-BASICOS-DO-TRABALHO-TECNICO', 'NATUREZA', f.natureza === 'Extensão tecnológica' ? 'Outra' : f.natureza),
+                'TITULO-DO-TRABALHO-TECNICO': f.titulo, 'ANO': year(f.ano), 'PAIS': f.pais, 'IDIOMA': f.idioma,
+                'MEIO-DE-DIVULGACAO': MEIO_DIVULGACAO_TOKEN[f.meioDivulgacao] || '', 'HOME-PAGE-DO-TRABALHO': f.url, 'FLAG-RELEVANCIA': FLAG_SIM_NAO[f.relevante] || '',
+            },
+            'DETALHAMENTO-DO-TRABALHO-TECNICO', {
+                'FINALIDADE': f.finalidade, 'DURACAO-EM-MESES': f.duracaoMeses, 'NUMERO-DE-PAGINAS': f.paginas,
+                'DISPONIBILIDADE': f.disponibilidade, 'INSTITUICAO-FINANCIADORA': f.instituicao, 'CIDADE-DO-TRABALHO': f.cidade,
+            },
+            autoresArg(f), null, extraProd(f))).join('');
 
         // DEMAIS-TIPOS-DE-PRODUCAO-TECNICA (na ordem do XSD)
         const apres = pick('APRESENTACAO').map(f => {
