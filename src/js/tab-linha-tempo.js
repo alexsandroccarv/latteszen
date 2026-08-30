@@ -78,13 +78,16 @@ window.TabLinhaTempo = (function () {
     // itens — devolve os N mais frequentes, do maior para o menor. Aplica as
     // duas listas configuráveis em Configurações → Nuvem de palavras: termos
     // compostos (contados como uma só unidade) e palavras excluídas.
-    function contarPalavras(limite) {
+    // `itensLista` opcional: por padrão usa state.items (todo o catálogo, aba
+    // Linha do tempo do app); a geração da página pública passa só os itens
+    // que também entram no currículo público (mesmo filtro de privacidade).
+    function contarPalavras(limite, itensLista) {
         const compostas = (state.nuvemCompostas || []).map(s => String(s || '').trim().toLowerCase()).filter(Boolean);
         const exclusao = new Set((state.nuvemExclusao || []).map(s => String(s || '').trim().toLowerCase()).filter(Boolean));
         const freq = {};
         const conta = (w) => { if (w && !exclusao.has(w)) freq[w] = (freq[w] || 0) + 1; };
 
-        state.items.forEach(it => {
+        (itensLista || state.items).forEach(it => {
             if (!it.categoryKey || CATEGORIAS_EXCLUIDAS.has(it.categoryKey)) return;
             const f = it.fields || {};
             const textos = [f.titulo, f.areaConhecimento, ...String(f.palavrasChave || '').split(';')];
@@ -194,12 +197,13 @@ window.TabLinhaTempo = (function () {
 
     // Agrupa os itens do catálogo em { categoryKey: { ano: quantidade } },
     // ignorando itens sem um ano identificável (itemYear() devolve null).
-    function contarPorCategoriaEAno() {
+    // `itensLista` opcional: ver comentário de contarPalavras() acima.
+    function contarPorCategoriaEAno(itensLista) {
         const porCategoria = {};
         let anoMin = null;
         const anoAtual = new Date().getFullYear();
         let anoMax = anoAtual;
-        state.items.forEach(it => {
+        (itensLista || state.items).forEach(it => {
             const ano = itemYear(it);
             if (ano == null || !it.categoryKey) return;
             const porAno = (porCategoria[it.categoryKey] = porCategoria[it.categoryKey] || {});
@@ -284,5 +288,8 @@ window.TabLinhaTempo = (function () {
         if (area) posicionarNuvem(area);
     }
 
-    return { render };
+    // contarPalavras/contarPorCategoriaEAno também são usadas pela geração da
+    // página pública (tab-publicar.js), com a lista de itens já filtrada por
+    // privacidade — ver publicarWebOk() em app-core.js.
+    return { render, contarPalavras, contarPorCategoriaEAno, nivel, NIVEL_CLASSES };
 })();

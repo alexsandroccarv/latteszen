@@ -2,9 +2,11 @@
    lattesZen — Publicação: gera a página pública do currículo (1 arquivo)
    --------------------------------------------------------------------------
    window.LzPublish.renderHtml(model, style) devolve uma STRING com um
-   documento HTML autossuficiente (CSS + JS inline, assets em base64).
-   O "model" é montado no app (app.js), que lê os dados do catálogo e embute
-   a foto e as evidências marcadas como "públicas" em base64.
+   documento HTML autossuficiente (CSS + JS inline, assets em base64). "style"
+   é a chave de um tema (paleta de cores) em THEMES — ver LzPublish.styles e
+   LzPublish.styleLabel(). O "model" é montado no app (tab-publicar.js), que
+   lê os dados do catálogo e embute a foto e as evidências marcadas como
+   "públicas" em base64.
 
    Estrutura do model:
    {
@@ -13,10 +15,20 @@
      orcid, orcidUrl, lattesUrl,
      contatos: [{ grupo, plataforma, url, usuario }],
      outras: string|null,
+     nuvemPalavras: [[palavra, frequência]] | null,
+     linhaTempo: { anoMin, anoMax, categorias: [{ label, porAno:{ano:qtd} }] } | null,
      secoes: [{ id, num, label, icon, tipos: [{ label, itens:
         [{ titulo, ano, linha, anexos:[{ name, ext, dataUri }] }] }] }],
      geradoEm, totalItens
    }
+   nuvemPalavras/linhaTempo espelham a mesma lógica da aba Linha do tempo do
+   app (ver TabLinhaTempo.contarPalavras/contarPorCategoriaEAno em
+   tab-linha-tempo.js), computados só sobre os itens que também aparecem em
+   "secoes" — nunca vazam dado fora do filtro de privacidade da página.
+
+   Ordem da página: masthead (foto + nome) → introdução (contatos + mini-bio)
+   → nuvem de palavras → linha do tempo → itens do currículo (recolhidos por
+   categoria).
 
    Design: tratamento editorial-acadêmico. Sem webfonts (arquivo offline e
    self-contained) — pilha serifada de sistema para display, sans para corpo.
@@ -106,30 +118,140 @@ window.LzPublish = (function () {
         return (lo <= hi) ? { lo, hi } : null;
     }
 
-    const STYLES = {
-        // Tratamento editorial-acadêmico (claro/escuro), tokens para os 3 estados
-        // de tema (system/light/dark). Componentes usam sempre os tokens.
-        elegante: `
-:root{
-  --paper:#f7f8fa; --surface:#ffffff; --ink:#16202e; --muted:#5b6675; --faint:#8792a1;
-  --line:#e5e8ee; --accent:#123b6b; --accent-2:#1c5aa8; --gold:#a67c3d; --chip:#eef2f7;
-  --hero-bg:#10243f; --hero-ink:#eef3f9; --hero-soft:rgba(238,243,249,.72); --hero-line:rgba(238,243,249,.16);
-  --shadow:0 1px 2px rgba(16,24,40,.05),0 8px 24px -12px rgba(16,24,40,.14);
-  --serif:"Iowan Old Style","Palatino Linotype",Palatino,"Book Antiqua",Georgia,"Times New Roman",serif;
-  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-}
-:root[data-theme="dark"]{
-  --paper:#0e141c; --surface:#151d28; --ink:#e7ecf2; --muted:#9aa6b6; --faint:#6b7787;
-  --line:#253141; --accent:#7db1e8; --accent-2:#9cc4f0; --gold:#cfa863; --chip:#1b2634;
-  --hero-bg:#0a0f17; --hero-ink:#e7ecf2; --hero-soft:rgba(231,236,242,.68); --hero-line:rgba(231,236,242,.14);
-  --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px -14px rgba(0,0,0,.6);
-}
-@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
-  --paper:#0e141c; --surface:#151d28; --ink:#e7ecf2; --muted:#9aa6b6; --faint:#6b7787;
-  --line:#253141; --accent:#7db1e8; --accent-2:#9cc4f0; --gold:#cfa863; --chip:#1b2634;
-  --hero-bg:#0a0f17; --hero-ink:#e7ecf2; --hero-soft:rgba(231,236,242,.68); --hero-line:rgba(231,236,242,.14);
-  --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px -14px rgba(0,0,0,.6);
-}}
+    // Nível de intensidade (0-4, estilo GitHub) — mesma escala usada pela aba
+    // Linha do tempo do app (ver TabLinhaTempo.nivel em tab-linha-tempo.js);
+    // duplicada aqui (função pura, 6 linhas) pra manter publish.js sem
+    // depender de outro módulo em tempo de geração.
+    function nivel(n, max) {
+        if (!n) return 0;
+        if (!max) return 1;
+        const r = n / max;
+        if (r > 0.75) return 4;
+        if (r > 0.5) return 3;
+        if (r > 0.25) return 2;
+        return 1;
+    }
+
+    // Nuvem de palavras: mesma fórmula de tamanho da aba Linha do tempo do
+    // app; o posicionamento em espiral roda no navegador do visitante (ver
+    // <script> no fim de renderHtml), porque depende do tamanho real dos
+    // <span> já renderizados.
+    function nuvemHtml(m) {
+        const palavras = m.nuvemPalavras;
+        if (!palavras || !palavras.length) return '';
+        const max = palavras[0][1], min = palavras[palavras.length - 1][1];
+        const tam = (n) => (max === min ? 1.15 : 0.8 + ((n - min) / (max - min)) * 1.3).toFixed(2);
+        const spans = palavras.map(([w, n]) => `<span class="nuvem-w" style="font-size:${tam(n)}rem" title="${esc(w)}: ${n} ocorrência${n === 1 ? '' : 's'}">${esc(w)}</span>`).join('');
+        return `<section id="nuvem" class="secao secao-simples reveal">
+            <h2 class="secao-simples-title">Nuvem de palavras</h2>
+            <div id="nuvemPub" class="nuvem">${spans}</div>
+        </section>`;
+    }
+
+    // Linha do tempo: mapa de calor por categoria × ano — mesma estrutura de
+    // duas tabelas (rótulos fora da área rolável) usada na aba do app, pra
+    // que a rolagem horizontal fique restrita aos anos (ver tab-linha-tempo.js).
+    function linhaTempoHtml(m) {
+        const lt = m.linhaTempo;
+        if (!lt || !lt.categorias || !lt.categorias.length) return '';
+        const anos = [];
+        for (let y = lt.anoMax; y >= lt.anoMin; y--) anos.push(y);
+        let max = 0;
+        lt.categorias.forEach(c => Object.values(c.porAno).forEach(n => { if (n > max) max = n; }));
+
+        const headCells = anos.map(y => `<th>${y}</th>`).join('');
+        const labelRows = lt.categorias.map(c => `<tr class="gt-row"><th>${esc(c.label)}</th></tr>`).join('');
+        const dataRows = lt.categorias.map(c => {
+            const cells = anos.map(y => {
+                const n = c.porAno[y] || 0;
+                const titulo = `${c.label} — ${y}: ${n} ite${n === 1 ? 'm' : 'ns'}`;
+                return `<td><div class="gt-cell" style="background:var(--heat-${nivel(n, max)})" title="${esc(titulo)}"></div></td>`;
+            }).join('');
+            return `<tr class="gt-row">${cells}</tr>`;
+        }).join('');
+        const legend = [0, 1, 2, 3, 4].map(i => `<span class="sq" style="background:var(--heat-${i})"></span>`).join('');
+
+        return `<section id="tempo" class="secao secao-simples reveal">
+            <h2 class="secao-simples-title">Linha do tempo</h2>
+            <div class="grade-tempo-wrap">
+                <table class="grade-tempo-labels"><thead><tr class="gt-row"><th>&nbsp;</th></tr></thead><tbody>${labelRows}</tbody></table>
+                <div class="grade-tempo-scroll"><table class="grade-tempo-anos"><thead><tr class="gt-row">${headCells}</tr></thead><tbody>${dataRows}</tbody></table></div>
+            </div>
+            <div class="grade-tempo-legend"><span>Menos</span>${legend}<span>Mais</span></div>
+        </section>`;
+    }
+
+    // Paletas de cor ("temas") escolhíveis em Publicar na Web — cada uma só
+    // define os TOKENS (cores + fontes); todos os componentes abaixo (em
+    // BASE_CSS) usam exclusivamente var(--token), nunca uma cor fixa, então
+    // trocar de tema não exige duplicar nenhuma regra de layout.
+    const THEMES = {
+        elegante: {
+            label: 'Editorial (padrão)',
+            light: {
+                paper: '#f7f8fa', surface: '#ffffff', ink: '#16202e', muted: '#5b6675', faint: '#8792a1',
+                line: '#e5e8ee', accent: '#123b6b', 'accent-2': '#1c5aa8', gold: '#a67c3d', chip: '#eef2f7',
+                'hero-bg': '#10243f', 'hero-ink': '#eef3f9', 'hero-soft': 'rgba(238,243,249,.72)', 'hero-line': 'rgba(238,243,249,.16)',
+                shadow: '0 1px 2px rgba(16,24,40,.05),0 8px 24px -12px rgba(16,24,40,.14)',
+                'heat-0': '#eef1f6', 'heat-1': '#cfe0f2', 'heat-2': '#9cc2e8', 'heat-3': '#5a94d1', 'heat-4': '#123b6b',
+                serif: '"Iowan Old Style","Palatino Linotype",Palatino,"Book Antiqua",Georgia,"Times New Roman",serif',
+                sans: '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif',
+            },
+            dark: {
+                paper: '#0e141c', surface: '#151d28', ink: '#e7ecf2', muted: '#9aa6b6', faint: '#6b7787',
+                line: '#253141', accent: '#7db1e8', 'accent-2': '#9cc4f0', gold: '#cfa863', chip: '#1b2634',
+                'hero-bg': '#0a0f17', 'hero-ink': '#e7ecf2', 'hero-soft': 'rgba(231,236,242,.68)', 'hero-line': 'rgba(231,236,242,.14)',
+                shadow: '0 1px 2px rgba(0,0,0,.4),0 10px 28px -14px rgba(0,0,0,.6)',
+                'heat-0': '#1b2634', 'heat-1': '#22344a', 'heat-2': '#2c4c6e', 'heat-3': '#3f74a8', 'heat-4': '#7db1e8',
+            },
+        },
+        moderno: {
+            label: 'Moderno',
+            light: {
+                paper: '#f6f8f8', surface: '#ffffff', ink: '#111827', muted: '#4b5563', faint: '#7d8998',
+                line: '#e2e8e6', accent: '#0f6f66', 'accent-2': '#0e8a7d', gold: '#e0703e', chip: '#eaf3f1',
+                'hero-bg': '#0b2320', 'hero-ink': '#f0f7f5', 'hero-soft': 'rgba(240,247,245,.72)', 'hero-line': 'rgba(240,247,245,.16)',
+                shadow: '0 1px 2px rgba(15,40,35,.06),0 8px 24px -12px rgba(15,40,35,.16)',
+                'heat-0': '#eef5f3', 'heat-1': '#c7e6df', 'heat-2': '#8fd0c1', 'heat-3': '#45ab97', 'heat-4': '#0f6f66',
+                serif: '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif',
+                sans: '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif',
+            },
+            dark: {
+                paper: '#0b1413', surface: '#101d1b', ink: '#e8f2f0', muted: '#9db3ae', faint: '#5e7873',
+                line: '#1e2f2c', accent: '#4fd3c4', 'accent-2': '#7fe3d6', gold: '#f0895a', chip: '#152524',
+                'hero-bg': '#071312', 'hero-ink': '#e8f2f0', 'hero-soft': 'rgba(232,242,240,.68)', 'hero-line': 'rgba(232,242,240,.14)',
+                shadow: '0 1px 2px rgba(0,0,0,.4),0 10px 28px -14px rgba(0,0,0,.6)',
+                'heat-0': '#152524', 'heat-1': '#1c3733', 'heat-2': '#245349', 'heat-3': '#328874', 'heat-4': '#4fd3c4',
+            },
+        },
+        classico: {
+            label: 'Clássico',
+            light: {
+                paper: '#faf6ee', surface: '#fffdf8', ink: '#2b211c', muted: '#6b5d51', faint: '#9c8a7b',
+                line: '#e8ddcd', accent: '#6d2331', 'accent-2': '#8a2f3f', gold: '#9c7a3c', chip: '#f3ece0',
+                'hero-bg': '#3a1620', 'hero-ink': '#f6ece5', 'hero-soft': 'rgba(246,236,229,.72)', 'hero-line': 'rgba(246,236,229,.16)',
+                shadow: '0 1px 2px rgba(43,33,28,.08),0 8px 24px -12px rgba(43,33,28,.2)',
+                'heat-0': '#f2e7db', 'heat-1': '#e3c6bd', 'heat-2': '#c98d94', 'heat-3': '#9c4f5c', 'heat-4': '#6d2331',
+                serif: 'Georgia,"Times New Roman","Iowan Old Style",Palatino,serif',
+                sans: '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif',
+            },
+            dark: {
+                paper: '#180f0d', surface: '#231715', ink: '#f1e6dd', muted: '#c2a999', faint: '#7d6459',
+                line: '#3a2620', accent: '#e18b9a', 'accent-2': '#eaa7b3', gold: '#d1ac6a', chip: '#2b1c18',
+                'hero-bg': '#120a09', 'hero-ink': '#f1e6dd', 'hero-soft': 'rgba(241,230,221,.68)', 'hero-line': 'rgba(241,230,221,.14)',
+                shadow: '0 1px 2px rgba(0,0,0,.45),0 10px 28px -14px rgba(0,0,0,.65)',
+                'heat-0': '#2b1c18', 'heat-1': '#3d241f', 'heat-2': '#5c2d31', 'heat-3': '#8a4451', 'heat-4': '#e18b9a',
+            },
+        },
+    };
+
+    function tokensCss(themeKey) {
+        const t = THEMES[themeKey] || THEMES.elegante;
+        const decl = (o) => Object.keys(o).map(k => `--${k}:${o[k]};`).join('');
+        return `:root{${decl(t.light)}}\n:root[data-theme="dark"]{${decl(t.dark)}}\n@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){${decl(t.dark)}}}\n`;
+    }
+
+    const BASE_CSS = `
 *{box-sizing:border-box}
 html{scroll-behavior:smooth}
 body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);line-height:1.6;
@@ -153,11 +275,15 @@ a{color:var(--accent-2);text-decoration:none}
 .hero .rule{width:56px;height:2px;background:var(--gold);margin:16px 0;border:0}
 .tagline{margin:0;font-size:1.06rem;color:var(--hero-soft)}
 .local{margin:12px 0 0;display:inline-flex;align-items:center;gap:6px;font-size:.9rem;color:var(--hero-soft)}
-.contatos{display:flex;flex-wrap:wrap;gap:9px;margin-top:22px}
-.contato{display:inline-flex;align-items:center;gap:7px;color:var(--hero-ink);padding:6px 14px;border-radius:999px;
-  font-size:.84rem;border:1px solid var(--hero-line);background:rgba(255,255,255,.04);transition:background-color .2s,border-color .2s,transform .2s}
-.contato .ic{opacity:.6;transition:transform .2s,opacity .2s}
-.contato:hover{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.4)}
+
+/* ---- Introdução (contatos + mini-bio, logo abaixo do masthead) ---- */
+.intro{margin:8px 0 0}
+.contatos{display:flex;flex-wrap:wrap;gap:9px}
+.contatos+.bio{margin-top:18px}
+.contato{display:inline-flex;align-items:center;gap:7px;color:var(--ink);padding:6px 14px;border-radius:999px;
+  font-size:.84rem;border:1px solid var(--line);background:var(--chip);transition:background-color .2s,border-color .2s,transform .2s}
+.contato .ic{opacity:.65;color:var(--accent-2);transition:transform .2s,opacity .2s}
+.contato:hover{background:var(--surface);border-color:var(--accent-2)}
 .contato:hover .ic{transform:translate(2px,-2px);opacity:1}
 
 /* ---- Faixa de estatísticas ---- */
@@ -189,8 +315,29 @@ nav.toc a.active::after{transform:scaleX(1)}
 /* ---- Conteúdo ---- */
 main{padding:8px 0 72px}
 .bio{background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--gold);border-radius:12px;
-  padding:20px 24px;margin:34px auto 0;box-shadow:var(--shadow);white-space:pre-wrap;font-size:1.02rem;color:var(--ink)}
+  padding:20px 24px;box-shadow:var(--shadow);white-space:pre-wrap;font-size:1.02rem;color:var(--ink)}
 .secao{margin:44px 0 0}
+.secao-simples-title{font-family:var(--serif);font-weight:600;font-size:clamp(1.2rem,2.2vw,1.45rem);margin:0 0 18px;
+  letter-spacing:-.01em;text-wrap:balance}
+
+/* ---- Nuvem de palavras ---- */
+.nuvem{position:relative;width:100%}
+.nuvem-w{color:var(--accent-2);font-weight:700;white-space:nowrap;line-height:1}
+
+/* ---- Linha do tempo (mapa de calor por categoria × ano) ---- */
+.grade-tempo-wrap{display:flex;align-items:flex-start;overflow:hidden}
+.grade-tempo-labels{border-collapse:separate;border-spacing:2px;flex:0 0 auto}
+.grade-tempo-labels th{padding-right:12px;font-size:.8rem;font-weight:600;text-align:left;white-space:nowrap;color:var(--ink)}
+.grade-tempo-scroll{overflow-x:auto;min-width:0;flex:1;scrollbar-width:thin;scrollbar-color:var(--line) transparent}
+.grade-tempo-scroll::-webkit-scrollbar{height:6px}
+.grade-tempo-scroll::-webkit-scrollbar-track{background:transparent}
+.grade-tempo-scroll::-webkit-scrollbar-thumb{background-color:var(--line);border-radius:999px}
+.grade-tempo-anos{border-collapse:separate;border-spacing:2px}
+.grade-tempo-anos th{font-size:.62rem;font-weight:400;text-align:center;white-space:nowrap;color:var(--faint);padding-bottom:2px}
+.gt-row{height:22px}
+.gt-cell{width:11px;height:11px;border-radius:2px}
+.grade-tempo-legend{display:flex;align-items:center;gap:4px;font-size:.75rem;color:var(--faint);margin-top:12px}
+.grade-tempo-legend .sq{width:8px;height:8px;border-radius:2px;display:inline-block}
 .secao-details{display:block}
 .secao-head{display:flex;align-items:baseline;gap:14px;border-bottom:1px solid var(--line);padding-bottom:10px;margin-bottom:0;
   cursor:pointer;list-style:none;-webkit-tap-highlight-color:transparent}
@@ -255,8 +402,10 @@ footer strong{color:var(--muted);font-weight:700}
   .secao{break-inside:avoid}
   .secao-head{cursor:default}
 }
-`,
-    };
+`;
+
+    const STYLES = {};
+    Object.keys(THEMES).forEach(k => { STYLES[k] = tokensCss(k) + BASE_CSS; });
 
     // opts.externalCss: caminho relativo (ex.: "css/estilo.css") — quando
     // informado, o CSS vai por <link> em vez de embutido em <style> (uso: a
@@ -266,14 +415,23 @@ footer strong{color:var(--muted);font-weight:700}
         opts = opts || {};
         const m = model || {};
         const secoesComItens = (m.secoes || []).filter(s => (s.tipos || []).some(t => t.itens && t.itens.length));
-        const nav = secoesComItens.map(s => `<a href="#${s.id}">${esc(s.label)}</a>`).join('');
+        const navExtra = [];
+        if (m.nuvemPalavras && m.nuvemPalavras.length) navExtra.push('<a href="#nuvem">Nuvem de palavras</a>');
+        if (m.linhaTempo && m.linhaTempo.categorias && m.linhaTempo.categorias.length) navExtra.push('<a href="#tempo">Linha do tempo</a>');
+        const nav = navExtra.join('') + secoesComItens.map(s => `<a href="#${s.id}">${esc(s.label)}</a>`).join('');
         const secoes = (m.secoes || []).map(secaoHtml).join('') || `<p class="wrap empty">Sem itens catalogados.</p>`;
         const avatar = m.foto
             ? `<img class="avatar" src="${m.foto}" alt="Foto de ${esc(m.nome || '')}">`
             : `<div class="avatar ph" aria-hidden="true">${esc(m.iniciais || '·')}</div>`;
         const contatos = (m.contatos || []).map(contatoBtn).join('');
         const outras = m.outras
-            ? `<section id="outras" class="secao reveal"><div class="secao-head"><h2 class="secao-title">Outras informações</h2></div><div class="bio" style="margin-top:0">${esc(m.outras)}</div></section>`
+            ? `<section id="outras" class="secao reveal"><div class="secao-head"><h2 class="secao-title">Outras informações</h2></div><div class="bio">${esc(m.outras)}</div></section>`
+            : '';
+        const intro = (contatos || m.bio)
+            ? `<section class="intro reveal">
+                ${contatos ? `<div class="contatos">${contatos}</div>` : ''}
+                ${m.bio ? `<div class="bio">${esc(m.bio)}</div>` : ''}
+            </section>`
             : '';
 
         // Faixa de estatísticas (resumo antes do detalhe)
@@ -305,7 +463,6 @@ ${opts.externalCss ? `<link rel="stylesheet" href="${esc(opts.externalCss)}">` :
       ${m.tagline ? `<p class="tagline">${esc(m.tagline)}</p>` : ''}
       ${m.local ? `<p class="local">${IC.pin} ${esc(m.local)}</p>` : ''}
       ${(m.areasAtuacao && m.areasAtuacao.length) ? `<p class="local">${esc('Áreas de atuação: ' + m.areasAtuacao.join(' · '))}</p>` : ''}
-      ${contatos ? `<div class="contatos">${contatos}</div>` : ''}
     </div>
   </div>
 </header>
@@ -324,7 +481,9 @@ ${statsHtml}
 </nav>
 
 <main id="conteudo" class="wrap">
-  ${m.bio ? `<div class="bio reveal">${esc(m.bio)}</div>` : ''}
+  ${intro}
+  ${nuvemHtml(m)}
+  ${linhaTempoHtml(m)}
   ${secoes}
   ${outras}
 </main>
@@ -349,6 +508,46 @@ ${statsHtml}
     try{localStorage.setItem('cvtheme',nv);}catch(e){}
   });
   document.getElementById('printBtn').addEventListener('click',function(){window.print();});
+
+  // Nuvem de palavras: espalha os <span> (já em fluxo normal) em espiral a
+  // partir do centro, testando colisão de retângulos — mesmo algoritmo da
+  // aba Linha do tempo do app (ver posicionarNuvem em tab-linha-tempo.js),
+  // rodando aqui porque depende do tamanho real já renderizado dos <span>.
+  var nuvemArea=document.getElementById('nuvemPub');
+  if(nuvemArea && nuvemArea.children.length){
+    var spans=[].slice.call(nuvemArea.children);
+    var larguraArea=nuvemArea.clientWidth||600;
+    var alturaBase=Math.max(160,larguraArea*0.5);
+    var cx=larguraArea/2, cy=alturaBase/2, PAD=5, caixas=[];
+    spans.forEach(function(span,i){
+      var largura=span.offsetWidth+PAD*2, altura=span.offsetHeight+PAD*2;
+      var angulo=(i*2.4)%(Math.PI*2), raio=0, caixa=null;
+      for(var passo=0;passo<2000;passo++){
+        var x=cx+raio*Math.cos(angulo)-largura/2;
+        var y=cy+raio*Math.sin(angulo)*0.7-altura/2;
+        var candidata={x:x,y:y,w:largura,h:altura};
+        var colide=caixas.some(function(c){return candidata.x<c.x+c.w&&c.x<candidata.x+candidata.w&&candidata.y<c.y+c.h&&c.y<candidata.y+candidata.h;});
+        if(!colide){caixa=candidata;break;}
+        angulo+=0.3; raio+=1.4;
+      }
+      caixas.push(caixa||{x:cx-largura/2,y:cy-altura/2,w:largura,h:altura});
+    });
+    var minX=Math.min.apply(null,[0].concat(caixas.map(function(c){return c.x;})));
+    var maxX=Math.max.apply(null,[larguraArea].concat(caixas.map(function(c){return c.x+c.w;})));
+    var minY=Math.min.apply(null,[0].concat(caixas.map(function(c){return c.y;})));
+    var maxY=Math.max.apply(null,caixas.map(function(c){return c.y+c.h;}));
+    var larguraFinal=maxX-minX;
+    var deslocX=larguraArea>larguraFinal?(larguraArea-larguraFinal)/2-minX:-minX;
+    var deslocY=-minY;
+    spans.forEach(function(span,i){
+      var c=caixas[i];
+      span.style.position='absolute';
+      span.style.left=(c.x+PAD+deslocX)+'px';
+      span.style.top=(c.y+PAD+deslocY)+'px';
+    });
+    nuvemArea.style.position='relative';
+    nuvemArea.style.height=((maxY-minY)+10)+'px';
+  }
 
   // Impressão: as seções ficam recolhidas por padrão, então força todas
   // abertas antes de imprimir (senão o conteúdo simplesmente não sai no PDF).
@@ -443,6 +642,8 @@ ${statsHtml}
 
     return {
         renderHtml, styles: Object.keys(STYLES),
+        // Nome amigável de um tema, para o seletor em Publicar na Web.
+        styleLabel(style) { return (THEMES[style] && THEMES[style].label) || style; },
         // CSS puro de um estilo (usado para gravar como arquivo à parte, ex.: css/estilo.css)
         css(style) { return STYLES[style] || STYLES.elegante; },
     };
