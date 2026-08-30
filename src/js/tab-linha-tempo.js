@@ -228,24 +228,38 @@ window.TabLinhaTempo = (function () {
                 let max = 0;
                 catKeys.forEach(k => Object.values(porCategoria[k]).forEach(n => { if (n > max) max = n; }));
 
+                const labelByKey = {};
+                catKeys.forEach(k => { labelByKey[k] = LattesTypes.categoryLabel(k); });
+
+                // Coluna de rótulos (categorias) fica numa tabela separada, FORA
+                // do <div class="overflow-x-auto">, para que a barra de rolagem
+                // horizontal abranja só a área dos anos, não o quadro inteiro —
+                // as duas tabelas usam a mesma altura de linha (h-[18px]/h-[22px])
+                // e o mesmo border-spacing, então as linhas ficam alinhadas.
                 const headCells = anos.map(y => `<th class="px-0.5 pb-1 text-[10px] font-normal text-gray-500 dark:text-gray-400 text-center whitespace-nowrap">${y}</th>`).join('');
-                const linhas = catKeys.map(k => {
-                    const label = LattesTypes.categoryLabel(k);
+                const labelRows = catKeys.map(k => `<tr class="h-[22px]"><th class="pr-3 text-xs font-medium text-left whitespace-nowrap">${esc(labelByKey[k])}</th></tr>`).join('');
+                const dataRows = catKeys.map(k => {
                     const cells = anos.map(y => {
                         const n = porCategoria[k][y] || 0;
                         const cls = NIVEL_CLASSES[nivel(n, max)];
-                        const titulo = `${label} — ${y}: ${n} ite${n === 1 ? 'm' : 'ns'}`;
+                        const titulo = `${labelByKey[k]} — ${y}: ${n} ite${n === 1 ? 'm' : 'ns'}`;
                         return `<td class="p-0.5"><div class="w-[11px] h-[11px] rounded-sm ${cls}" data-ano="${y}" data-qtd="${n}" title="${esc(titulo)}"></div></td>`;
                     }).join('');
-                    return `<tr><th class="pr-3 py-0.5 text-xs font-medium text-left whitespace-nowrap sticky left-0 bg-white dark:bg-gray-900">${esc(label)}</th>${cells}</tr>`;
+                    return `<tr class="h-[22px]">${cells}</tr>`;
                 }).join('');
 
                 return `
-                    <div class="overflow-x-auto">
-                        <table class="border-separate" style="border-spacing:2px">
-                            <thead><tr><th></th>${headCells}</tr></thead>
-                            <tbody>${linhas}</tbody>
+                    <div class="flex items-start">
+                        <table class="border-separate shrink-0" style="border-spacing:2px">
+                            <thead><tr class="h-[18px]"><th class="pr-3">&nbsp;</th></tr></thead>
+                            <tbody>${labelRows}</tbody>
                         </table>
+                        <div class="overflow-x-auto min-w-0 flex-1">
+                            <table class="border-separate" style="border-spacing:2px">
+                                <thead><tr class="h-[18px]">${headCells}</tr></thead>
+                                <tbody>${dataRows}</tbody>
+                            </table>
+                        </div>
                     </div>
                     <div class="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 mt-3">
                         <span>Menos</span>
