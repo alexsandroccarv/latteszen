@@ -5,7 +5,7 @@ name: Publicar lattesZen
 #  - quando você clica em "Run workflow" na aba Actions (execução manual).
 on:
   push:
-    branches: ['latteszen-devel-alexsandroccarv']
+    branches: ['principal']
   workflow_dispatch: {}
 
 permissions:
