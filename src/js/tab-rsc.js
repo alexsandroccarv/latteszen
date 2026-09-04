@@ -79,18 +79,45 @@ window.TabRsc = (function () {
 
             <div class="flex gap-2 flex-wrap mb-4">
                 <button id="btnRscCsv" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-file-csv mr-1"></i> Exportar planilha (CSV)</button>
-                <button id="btnRscMemorial" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-file-lines mr-1"></i> Gerar memorial</button>
+                <button id="btnRscMemorial" class="px-3 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm"><i class="fa-solid fa-file-lines mr-1"></i> Gerar memorial</button>
                 <button id="btnRscForm" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-file-word mr-1"></i> Salvar formulário (.docx)</button>
                 <button id="btnRscPromptIA" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-wand-magic-sparkles mr-1"></i> Gerar prompt (IA)</button>
+            </div>
+
+            <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 mb-4">
+                <div class="flex items-center justify-between gap-2 mb-1 flex-wrap">
+                    <h3 class="font-bold text-sm">Memorial (texto final)</h3>
+                    <button id="btnRscMemorialPadrao" class="px-2 py-1 rounded border border-gray-300 dark:border-gray-600 text-xs"><i class="fa-solid fa-arrows-rotate mr-1"></i> Preencher com modelo automático</button>
+                </div>
+                <p class="text-xs text-gray-500 mb-2">Cole aqui o texto devolvido por uma IA externa (a partir do <strong>Gerar prompt (IA)</strong> acima) ou escreva/edite manualmente. <strong>Gerar memorial</strong> exporta exatamente o que estiver neste campo — se deixar em branco, usa o modelo automático.</p>
+                <textarea id="rscMemorialTexto" rows="16" placeholder="Cole aqui o memorial gerado pela IA, ou escreva o seu…" class="w-full text-sm px-3 py-2 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 font-mono leading-relaxed">${esc(state.rscMemorialTexto || '')}</textarea>
+                <p id="rscMemorialSalvo" class="text-xs text-gray-400 mt-1 h-4"></p>
             </div>
 
             <h3 class="font-bold mb-2">Itens contabilizados</h3>
             ${listaHtml}`;
 
         $('#btnRscCsv').addEventListener('click', () => downloadText(rscCsv(itens), 'rsc-comprovacao.csv', 'text/csv'));
-        $('#btnRscMemorial').addEventListener('click', () => downloadText(rscMemorial(itens, sim, cfg), 'rsc-memorial.txt', 'text/plain'));
+        $('#btnRscMemorial').addEventListener('click', () => exportarMemorial(itens, sim, cfg));
         $('#btnRscForm').addEventListener('click', () => salvarFormularioDocx(itens, sim, cfg));
         $('#btnRscPromptIA').addEventListener('click', () => downloadText(rscPromptIA(itens, sim, cfg), 'prompt-trajetoria-profissional.md', 'text/markdown'));
+
+        const memArea = $('#rscMemorialTexto');
+        const memInfo = $('#rscMemorialSalvo');
+        let memSaveTimer = null;
+        const salvarMemorialTexto = () => {
+            state.rscMemorialTexto = memArea.value;
+            const s = Storage.loadSettings(); s.rscMemorialTexto = state.rscMemorialTexto; Storage.saveSettings(s);
+            if (memInfo) { memInfo.textContent = 'Salvo.'; clearTimeout(memInfo._t); memInfo._t = setTimeout(() => { memInfo.textContent = ''; }, 1500); }
+        };
+        memArea.addEventListener('input', () => { clearTimeout(memSaveTimer); memSaveTimer = setTimeout(salvarMemorialTexto, 500); });
+        memArea.addEventListener('blur', () => { clearTimeout(memSaveTimer); salvarMemorialTexto(); });
+        $('#btnRscMemorialPadrao').addEventListener('click', () => {
+            if (memArea.value.trim() && !confirm('Isso substitui o texto atual do memorial pelo modelo automático. Continuar?')) return;
+            memArea.value = rscMemorial(itens, sim, cfg);
+            salvarMemorialTexto();
+            toast('Memorial preenchido com o modelo automático.', 'ok');
+        });
     }
     function downloadText(txt, nome, mime) {
         const blob = new Blob([txt], { type: (mime || 'text/plain') + ';charset=utf-8' });
@@ -331,6 +358,51 @@ window.TabRsc = (function () {
             await Storage.writeFile(nomeArquivo, bytes, folder);
             toast(`Formulário salvo em "${folder}/${nomeArquivo}".`, 'ok');
         } catch (e) { toast('Falha ao salvar o formulário: ' + e.message, 'erro'); }
+    }
+
+    // Pasta datada (uma por dia) dentro de Exportação/RSC-PCCTAE — reexportar
+    // no mesmo dia sobrescreve os arquivos daquele dia (mesmo padrão de
+    // nomeArquivoFormulario()); dias diferentes não se sobrescrevem.
+    function pastaMemorialHoje() {
+        const hoje = new Date();
+        const dd = String(hoje.getDate()).padStart(2, '0');
+        const mm = String(hoje.getMonth() + 1).padStart(2, '0');
+        const yyyy = hoje.getFullYear();
+        return `${LattesTypes.rscFolder()}/${dd}${mm}${yyyy}`;
+    }
+    function sanitizeArquivo(s) { return String(s || '').replace(/[\\/:*?"<>|]/g, '').trim(); }
+
+    // Exporta o memorial (o texto do campo, editado manualmente ou colado de
+    // uma IA externa — ou o modelo automático, se o campo estiver vazio) e
+    // uma cópia de todos os anexos-arquivo (evidências que não são links) dos
+    // itens contabilizados, tudo numa pasta datada dentro de "Exportação/
+    // RSC-PCCTAE" — pronto pra juntar ao requerimento.
+    async function exportarMemorial(itens, sim, cfg) {
+        if (!Storage.hasDirectory()) { toast('Configure um diretório em Configurações para exportar o memorial.', 'aviso'); return; }
+        try {
+            const texto = (state.rscMemorialTexto && state.rscMemorialTexto.trim()) ? state.rscMemorialTexto : rscMemorial(itens, sim, cfg);
+            const folder = pastaMemorialHoje();
+            const nomeServidor = sanitizeArquivo(nomeServidorAtual()) || 'Servidor';
+            await Storage.writeFile(`Memorial_${nomeServidor}.txt`, texto, folder);
+
+            let nAnexos = 0;
+            for (let i = 0; i < itens.length; i++) {
+                const it = itens[i];
+                const evs = Array.isArray(it.evidencias) ? it.evidencias.filter(e => e.kind !== 'link' && e.basename && e.ext) : [];
+                if (!evs.length) continue;
+                const titulo = sanitizeArquivo(LattesTypes.itemTitle(it)).slice(0, 60) || 'anexo';
+                for (let idx = 0; idx < evs.length; idx++) {
+                    const ev = evs[idx];
+                    const f = await Storage.readAttachmentFile(ev.basename, LattesTypes.categoryFolder(it.categoryKey), ev.ext);
+                    if (!f) continue;
+                    const sufixo = evs.length > 1 ? ` (${idx + 1})` : '';
+                    const nomeArquivo = `${String(i + 1).padStart(2, '0')} - ${titulo}${sufixo}.${ev.ext}`;
+                    await Storage.writeFile(nomeArquivo, f, `${folder}/Anexos`);
+                    nAnexos++;
+                }
+            }
+            toast(`Memorial exportado em "${folder}/"${nAnexos ? ` (+ ${nAnexos} anexo${nAnexos === 1 ? '' : 's'} em "Anexos/")` : ''}.`, 'ok');
+        } catch (e) { toast('Falha ao exportar o memorial: ' + e.message, 'erro'); }
     }
 
     return { render };
