@@ -145,9 +145,7 @@ window.TabRsc = (function () {
             </div>
 
             <div class="flex gap-2 flex-wrap mb-4">
-                <button id="btnRscCsv" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-file-csv mr-1"></i> Exportar planilha (CSV)</button>
-                <button id="btnRscMemorial" class="px-3 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm"><i class="fa-solid fa-file-lines mr-1"></i> Gerar memorial</button>
-                <button id="btnRscForm" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-file-word mr-1"></i> Salvar formulário (.docx)</button>
+                <button id="btnRscExportar" class="px-3 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm"><i class="fa-solid fa-file-export mr-1"></i> Gerar memorial, formulário e anexos</button>
                 <button id="btnRscPromptIA" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-wand-magic-sparkles mr-1"></i> Gerar prompt (IA)</button>
             </div>
 
@@ -165,9 +163,7 @@ window.TabRsc = (function () {
             ${listaHtml}`;
 
         wireRscCfgSection();
-        $('#btnRscCsv').addEventListener('click', () => downloadText(rscCsv(itens), 'rsc-comprovacao.csv', 'text/csv'));
-        $('#btnRscMemorial').addEventListener('click', () => exportarMemorial(itens, sim, cfg));
-        $('#btnRscForm').addEventListener('click', () => salvarFormularioDocx(itens, sim, cfg));
+        $('#btnRscExportar').addEventListener('click', () => exportarRsc(itens, sim, cfg));
         $('#btnRscPromptIA').addEventListener('click', () => downloadText(rscPromptIA(itens, sim, cfg), 'prompt-trajetoria-profissional.md', 'text/markdown'));
 
         const memArea = $('#rscMemorialTexto');
@@ -190,17 +186,6 @@ window.TabRsc = (function () {
     function downloadText(txt, nome, mime) {
         const blob = new Blob([txt], { type: (mime || 'text/plain') + ';charset=utf-8' });
         const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = nome; a.click(); URL.revokeObjectURL(a.href);
-    }
-    function csvCell(s) { s = String(s == null ? '' : s); return /[",;\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }
-    function rscCsv(itens) {
-        const head = ['Requisito', 'Critério', 'Descrição do critério', 'Item (título)', 'Início', 'Fim', 'Papel', 'Qtd', 'Unitário', 'Pontos', 'Evidências'];
-        const rows = itens.map(i => {
-            const pi = LzRSC.pontosItem(i.rsc), c = pi.crit || {};
-            const nEv = Array.isArray(i.evidencias) ? i.evidencias.length : 0;
-            return [c.req || '', c.id || '', c.desc || '', LattesTypes.itemTitle(i), i.rsc.dataInicio || '', i.rsc.dataFim || '',
-                (c.pontosSub != null ? i.rsc.papel : ''), pi.quantidade, pi.unitario, pi.pontos, nEv].map(csvCell).join(';');
-        });
-        return head.map(csvCell).join(';') + '\n' + rows.join('\n');
     }
     function rscMemorial(itens, sim, cfg) {
         const L = [];
@@ -237,12 +222,6 @@ window.TabRsc = (function () {
         6: 'VI - Produção, prospecção e difusão de conhecimento',
     };
     const NUM_PT = n => String(n).replace('.', ',');
-
-    function evidenciasTexto(item) {
-        const evs = Array.isArray(item.evidencias) ? item.evidencias : [];
-        if (!evs.length) return '—';
-        return evs.map(e => e.name || e.basename || 'anexo').join('; ');
-    }
 
     // Prompt master + dados categorizados (markdown) para gerar, com uma IA
     // externa (Claude, ChatGPT etc.), o texto de "Trajetória Profissional"
@@ -327,11 +306,16 @@ window.TabRsc = (function () {
 
     // Monta o corpo (XML OOXML) do formulário padrão RSC-PCCTAE (Anexo da
     // Portaria MEC nº 608/2026), a partir dos dados de configuração, dos
-    // itens marcados e da simulação já calculada.
-    function rscFormularioBody(itens, sim, cfg) {
+    // itens marcados e da simulação já calculada. `anexos` (de
+    // listarAnexosNumerados()) alimenta a coluna "Documentos comprobatórios"
+    // com os mesmos identificadores (3 dígitos + nome) dos PDFs exportados
+    // junto, pra dar pra cruzar um documento com o outro.
+    function rscFormularioBody(itens, sim, cfg, anexos) {
         const D = window.LzDocx;
         const nomeServidor = nomeServidorAtual();
         const parts = [];
+        const nomesPorItem = {};
+        anexos.forEach(a => { (nomesPorItem[a.it.id] = nomesPorItem[a.it.id] || []).push(nomeArquivoAnexo(a)); });
 
         parts.push(D.heading('Requerimento de Reconhecimento de Saberes e Competências (RSC-PCCTAE)', 1));
         parts.push(D.para('Modelo padrão conforme Anexo da Portaria MEC nº 608, de 7 de julho de 2026.', { italic: true, size: 18 }));
@@ -393,7 +377,7 @@ window.TabRsc = (function () {
                     D.cell(c.unidade, { width: colWidths[2] }),
                     D.cell(NUM_PT(pi.unitario), { width: colWidths[3] }),
                     D.cell(NUM_PT(pi.pontos), { width: colWidths[4] }),
-                    D.cell(evidenciasTexto(i), { width: colWidths[5] }),
+                    D.cell((nomesPorItem[i.id] || []).join('; ') || '—', { width: colWidths[5] }),
                 ]);
             }) : [D.row([D.cell('—  nenhum item cadastrado neste critério  —', { width: colWidths.slice(0, 5).reduce((a, b) => a + b, 0) }), D.cell('', { width: colWidths[5] })])];
             const subtotal = D.row([D.cell('Subtotal', { bold: true, width: colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] }),
@@ -417,21 +401,11 @@ window.TabRsc = (function () {
         return parts.join('');
     }
 
-    async function salvarFormularioDocx(itens, sim, cfg) {
-        if (!Storage.hasDirectory()) { toast('Configure um diretório em Configurações para salvar o formulário.', 'aviso'); return; }
-        try {
-            const bytes = window.LzDocx.buildDocx(rscFormularioBody(itens, sim, cfg));
-            const folder = LattesTypes.rscFolder();
-            const nomeArquivo = nomeArquivoFormulario();
-            await Storage.writeFile(nomeArquivo, bytes, folder);
-            toast(`Formulário salvo em "${folder}/${nomeArquivo}".`, 'ok');
-        } catch (e) { toast('Falha ao salvar o formulário: ' + e.message, 'erro'); }
-    }
-
     // Pasta datada (uma por dia) dentro de Exportação/RSC-PCCTAE — reexportar
     // no mesmo dia sobrescreve os arquivos daquele dia (mesmo padrão de
-    // nomeArquivoFormulario()); dias diferentes não se sobrescrevem.
-    function pastaMemorialHoje() {
+    // nomeArquivoFormulario()); dias diferentes não se sobrescrevem. Memorial,
+    // formulário e anexos vão todos juntos aqui.
+    function pastaExportacaoHoje() {
         const hoje = new Date();
         const dd = String(hoje.getDate()).padStart(2, '0');
         const mm = String(hoje.getMonth() + 1).padStart(2, '0');
@@ -443,8 +417,9 @@ window.TabRsc = (function () {
     // Lista, em ordem, todos os anexos-arquivo (evidências que não são links)
     // dos itens contabilizados, com um número sequencial ÚNICO (001, 002…)
     // atribuído de uma vez só — esse é o mesmo número usado no nome do PDF
-    // exportado E no início do item correspondente no memorial, pra dar pra
-    // cruzar um com o outro sem ambiguidade.
+    // exportado, no início do item correspondente no memorial, e na coluna
+    // "Documentos comprobatórios" do formulário, pra dar pra cruzar um com o
+    // outro sem ambiguidade.
     function listarAnexosNumerados(itens) {
         const lista = [];
         itens.forEach(it => {
@@ -455,6 +430,14 @@ window.TabRsc = (function () {
         return lista;
     }
     const numAnexo = (n) => String(n).padStart(3, '0');
+    // Nome do arquivo do PDF exportado — 3 dígitos + espaço (sem hífen, nome
+    // mais curto, evita estourar o tamanho máximo de caminho de arquivo do
+    // SO) + título do item. O mesmo identificador aparece no formulário
+    // (coluna "Documentos comprobatórios") e no memorial (início do item).
+    function nomeArquivoAnexo(a) {
+        const titulo = sanitizeArquivo(LattesTypes.itemTitle(a.it)).slice(0, 60) || 'anexo';
+        return `${numAnexo(a.num)} ${titulo}.${a.ev.ext}`;
+    }
 
     // Corpo (OOXML) do memorial em .docx: o texto do campo (livre — IA ou
     // manual), seguido dos itens contabilizados organizados na mesma
@@ -500,37 +483,37 @@ window.TabRsc = (function () {
         return parts.join('');
     }
 
-    // Exporta o memorial (o texto do campo, editado manualmente ou colado de
-    // uma IA externa — ou o modelo automático, se o campo estiver vazio) em
-    // .docx, e uma cópia de todos os anexos-arquivo dos itens contabilizados
-    // — cada PDF numerado sequencialmente (001, 002…), com o mesmo número no
-    // início do item correspondente dentro do memorial — tudo numa pasta
-    // datada dentro de "Exportação/RSC-PCCTAE", pronto pra juntar ao
-    // requerimento.
-    async function exportarMemorial(itens, sim, cfg) {
-        if (!Storage.hasDirectory()) { toast('Configure um diretório em Configurações para exportar o memorial.', 'aviso'); return; }
+    // Ação única: gera o memorial (o texto do campo, editado manualmente ou
+    // colado de uma IA externa — ou o modelo automático, se o campo estiver
+    // vazio) e o formulário oficial, ambos em .docx, e grava uma cópia de
+    // todos os anexos-arquivo dos itens contabilizados — cada PDF numerado
+    // sequencialmente (001, 002…), com o mesmo número no início do item
+    // correspondente no memorial e na coluna "Documentos comprobatórios" do
+    // formulário — tudo numa única pasta datada dentro de "Exportação/
+    // RSC-PCCTAE", pronto pra juntar ao requerimento.
+    async function exportarRsc(itens, sim, cfg) {
+        if (!Storage.hasDirectory()) { toast('Configure um diretório em Configurações para exportar.', 'aviso'); return; }
         try {
-            const texto = (state.rscMemorialTexto && state.rscMemorialTexto.trim()) ? state.rscMemorialTexto : rscMemorial(itens, sim, cfg);
-            const folder = pastaMemorialHoje();
+            const folder = pastaExportacaoHoje();
             const nomeServidor = sanitizeArquivo(nomeServidorAtual()) || 'Servidor';
             const anexos = listarAnexosNumerados(itens);
 
-            const bytes = window.LzDocx.buildDocx(memorialDocxBody(texto, itens, anexos, cfg));
-            await Storage.writeFile(`Memorial_${nomeServidor}.docx`, bytes, folder);
+            const textoMemorial = (state.rscMemorialTexto && state.rscMemorialTexto.trim()) ? state.rscMemorialTexto : rscMemorial(itens, sim, cfg);
+            const memorialBytes = window.LzDocx.buildDocx(memorialDocxBody(textoMemorial, itens, anexos, cfg));
+            await Storage.writeFile(`Memorial_${nomeServidor}.docx`, memorialBytes, folder);
+
+            const formBytes = window.LzDocx.buildDocx(rscFormularioBody(itens, sim, cfg, anexos));
+            await Storage.writeFile(nomeArquivoFormulario(), formBytes, folder);
 
             let nAnexos = 0;
             for (const a of anexos) {
                 const f = await Storage.readAttachmentFile(a.ev.basename, LattesTypes.categoryFolder(a.it.categoryKey), a.ev.ext);
                 if (!f) continue;
-                // 3 dígitos + espaço (sem hífen) — nome mais curto, evita
-                // estourar o tamanho máximo de caminho de arquivo do SO.
-                const titulo = sanitizeArquivo(LattesTypes.itemTitle(a.it)).slice(0, 60) || 'anexo';
-                const nomeArquivo = `${numAnexo(a.num)} ${titulo}.${a.ev.ext}`;
-                await Storage.writeFile(nomeArquivo, f, `${folder}/Anexos`);
+                await Storage.writeFile(nomeArquivoAnexo(a), f, `${folder}/Anexos`);
                 nAnexos++;
             }
-            toast(`Memorial exportado em "${folder}/"${nAnexos ? ` (+ ${nAnexos} anexo${nAnexos === 1 ? '' : 's'} numerado${nAnexos === 1 ? '' : 's'} em "Anexos/")` : ''}.`, 'ok');
-        } catch (e) { toast('Falha ao exportar o memorial: ' + e.message, 'erro'); }
+            toast(`Memorial e formulário exportados em "${folder}/"${nAnexos ? ` (+ ${nAnexos} anexo${nAnexos === 1 ? '' : 's'} numerado${nAnexos === 1 ? '' : 's'} em "Anexos/")` : ''}.`, 'ok');
+        } catch (e) { toast('Falha ao exportar: ' + e.message, 'erro'); }
     }
 
     return { render };

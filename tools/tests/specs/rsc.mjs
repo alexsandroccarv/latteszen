@@ -3,11 +3,10 @@
    --------------------------------------------------------------------------
    Terceira aba extraída de app.js (tab-rsc.js) — não existia cobertura da
    TELA do simulador em si antes (só um chip da Conformidade). Cobre: aviso
-   de módulo desabilitado, renderização do nível/pontos com um item
-   contabilizado, e a exportação da planilha CSV.
+   de módulo desabilitado e renderização do nível/pontos com um item
+   contabilizado.
    ========================================================================== */
 import { test, assert, assertEqual, makeItem, seedCatalog } from '../harness.mjs';
-import { readFileSync } from 'node:fs';
 
 async function habilitarRsc(page) {
     await page.evaluate(() => {
@@ -45,23 +44,4 @@ test('Aba RSC calcula pontos e lista o item contabilizado', async ({ page, baseU
     assert(texto.includes('Nível alcançável'), 'Deveria mostrar o cartão de nível alcançável');
     assert(texto.includes('Curso RSC Teste'), 'O item contabilizado deveria aparecer na lista');
     assert(/\b3\b/.test(texto), 'Os 3 pontos do critério 1.3 deveriam aparecer em algum lugar da tela');
-});
-
-test('Exportar planilha (CSV) baixa um arquivo com o item contabilizado', async ({ page, baseUrl }) => {
-    const items = [
-        makeItem('FORMACAO_COMPLEMENTAR', 'FORMACAO', { titulo: 'Curso RSC CSV', instituicao: 'X', anoFim: '2024' },
-            { rsc: { conta: true, criterio: '1.3', jaUsado: false } }),
-    ];
-    await seedCatalog(page, baseUrl, items);
-    await habilitarRsc(page);
-    await page.click('[data-tab="rsc"]');
-    await page.waitForTimeout(300);
-
-    const [download] = await Promise.all([
-        page.waitForEvent('download'),
-        page.click('#btnRscCsv'),
-    ]);
-    const conteudo = readFileSync(await download.path(), 'utf-8');
-    assert(conteudo.includes('Curso RSC CSV'), 'O CSV deveria conter o título do item contabilizado');
-    assert(conteudo.includes('1.3'), 'O CSV deveria conter o código do critério usado');
 });

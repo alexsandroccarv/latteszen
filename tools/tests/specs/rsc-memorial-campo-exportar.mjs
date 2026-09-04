@@ -1,8 +1,9 @@
 /* ==========================================================================
-   Regressão: campo de texto do Memorial (RSC) e exportação de "Gerar
-   memorial" — issue "campo de texto grande pro memorial (IA ou manual) +
-   botão Gerar memorial exporta memorial e PDFs vinculados pra uma pasta
-   datada dentro de Exportação/RSC-PCCTAE".
+   Regressão: campo de texto do Memorial (RSC) e a ação unificada "Gerar
+   memorial, formulário e anexos" — um único botão que gera o memorial
+   (.docx), o formulário oficial (.docx) e grava os PDFs vinculados, tudo
+   junto numa pasta datada dentro de Exportação/RSC-PCCTAE (ver também
+   rsc-formulario-docx.mjs, que cobre o conteúdo do formulário em si).
    ========================================================================== */
 import { test, assert, assertEqual, makeItem, seedCatalog } from '../harness.mjs';
 import { execFileSync } from 'node:child_process';
@@ -87,7 +88,7 @@ test('RSC: "Preencher com modelo automático" preenche o campo vazio com o memor
     assert(valor.includes('Curso Modelo Automático'), 'O modelo automático deveria incluir o item contabilizado');
 });
 
-test('RSC: "Gerar memorial" sem diretório configurado avisa e não exporta nada', async ({ page, baseUrl }) => {
+test('RSC: "Gerar memorial, formulário e anexos" sem diretório configurado avisa e não exporta nada', async ({ page, baseUrl }) => {
     const items = [makeItem('FORMACAO_COMPLEMENTAR', 'FORMACAO', { titulo: 'Curso Sem Diretório', instituicao: 'X', anoFim: '2024' },
         { rsc: { conta: true, criterio: '1.3', jaUsado: false } })];
     await seedCatalog(page, baseUrl, items);
@@ -96,13 +97,13 @@ test('RSC: "Gerar memorial" sem diretório configurado avisa e não exporta nada
     await page.click('[data-tab="rsc"]');
     await page.waitForTimeout(300);
 
-    await page.click('#btnRscMemorial');
+    await page.click('#btnRscExportar');
     await page.waitForTimeout(300);
     const toasts = await page.evaluate(() => Array.from(document.querySelectorAll('#toasts > div')).map((d) => d.textContent));
     assert(toasts.some((t) => /configure um diretório/i.test(t)), 'Deveria avisar que é preciso configurar um diretório');
 });
 
-test('RSC: "Gerar memorial" com diretório configurado exporta o texto do campo (em .docx, com Requisito/Critério em Título 2/3) e o anexo numa pasta datada', async ({ page, baseUrl }) => {
+test('RSC: "Gerar memorial, formulário e anexos" exporta o texto do campo (em .docx, com Requisito/Critério em Título 2/3) e o anexo numa pasta datada', async ({ page, baseUrl }) => {
     const items = [
         makeItem('FORMACAO_COMPLEMENTAR', 'FORMACAO', { titulo: 'Curso Com Anexo', instituicao: 'X', anoFim: '2024', cargaHoraria: '40' }, {
             rsc: { conta: true, criterio: '1.3', jaUsado: false, dataInicio: '01/01/2023', dataFim: '01/06/2023' },
@@ -124,7 +125,7 @@ test('RSC: "Gerar memorial" com diretório configurado exporta o texto do campo 
 
     const criterioDesc = await page.evaluate(() => LzRSC.criterio('1.3').desc);
 
-    await page.click('#btnRscMemorial');
+    await page.click('#btnRscExportar');
     await page.waitForTimeout(300);
 
     const saves = await page.evaluate(() => window.__saves.map((s) => ({ filename: s.filename, subdir: s.subdir, bytes: s.data })));
@@ -164,10 +165,10 @@ test('RSC: "Gerar memorial" com diretório configurado exporta o texto do campo 
     assert(anexoSave.filename.endsWith('.pdf'), 'O anexo deveria manter a extensão .pdf');
 
     const toasts = await page.evaluate(() => Array.from(document.querySelectorAll('#toasts > div')).map((d) => d.textContent));
-    assert(toasts.some((t) => /memorial exportado/i.test(t)), 'Deveria confirmar que o memorial foi exportado');
+    assert(toasts.some((t) => /memorial e formulário exportados/i.test(t)), 'Deveria confirmar que memorial e formulário foram exportados');
 });
 
-test('RSC: "Gerar memorial" numera os anexos sequencialmente entre vários itens (001, 002…), sem repetir, e lista os 2 números no mesmo item', async ({ page, baseUrl }) => {
+test('RSC: "Gerar memorial, formulário e anexos" numera os anexos sequencialmente entre vários itens (001, 002…), sem repetir, e lista os 2 números no mesmo item', async ({ page, baseUrl }) => {
     const items = [
         makeItem('FORMACAO_COMPLEMENTAR', 'FORMACAO', { titulo: 'Primeiro Item', instituicao: 'X', anoFim: '2024' }, {
             rsc: { conta: true, criterio: '1.3', jaUsado: false },
@@ -194,7 +195,7 @@ test('RSC: "Gerar memorial" numera os anexos sequencialmente entre vários itens
     await page.fill('#rscMemorialTexto', 'Memorial com múltiplos anexos.');
     await page.waitForTimeout(700);
 
-    await page.click('#btnRscMemorial');
+    await page.click('#btnRscExportar');
     await page.waitForTimeout(300);
 
     const saves = await page.evaluate(() => window.__saves.map((s) => ({ filename: s.filename, subdir: s.subdir, bytes: s.data })));

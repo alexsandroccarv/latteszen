@@ -1,9 +1,10 @@
 /* ==========================================================================
    Regressão: formulário padrão RSC-PCCTAE em .docx (issue #40) — o antigo
    "Gerar formulário" baixava um .txt; agora gera um .docx de verdade (ZIP +
-   OOXML, sem bibliotecas externas — ver src/js/docx-export.js) e grava
-   direto na pasta "Exportação/RSC-PCCTAE" do diretório configurado, em vez
-   de disparar um download do navegador.
+   OOXML, sem bibliotecas externas — ver src/js/docx-export.js). "Gerar
+   memorial, formulário e anexos" (botão único — issue de unificação) grava
+   memorial, formulário e os PDFs juntos, na mesma pasta datada dentro de
+   "Exportação/RSC-PCCTAE" do diretório configurado.
    ========================================================================== */
 import { test, assert, assertEqual, makeItem, seedCatalog } from '../harness.mjs';
 import { execFileSync } from 'node:child_process';
@@ -22,26 +23,13 @@ async function habilitarRsc(page, cfg) {
     await page.waitForTimeout(500);
 }
 
-test('Sem diretório configurado, "Salvar formulário" avisa e não grava nada', async ({ page, baseUrl }) => {
-    const items = [makeItem('FORMACAO_COMPLEMENTAR', 'FORMACAO', { titulo: 'Curso RSC Docx', instituicao: 'X', anoFim: '2024' },
-        { rsc: { conta: true, criterio: '1.3', jaUsado: false } })];
-    await seedCatalog(page, baseUrl, items);
-    await habilitarRsc(page, { cargo: 'Assistente em Administração' });
-    await page.evaluate(() => { window.Storage.writeFile = async () => { throw new Error('não deveria ser chamado'); }; });
-    await page.click('[data-tab="rsc"]');
-    await page.waitForTimeout(300);
-
-    await page.click('#btnRscForm');
-    await page.waitForTimeout(300);
-    const toasts = await page.evaluate(() => Array.from(document.querySelectorAll('#toasts > div')).map((d) => d.textContent));
-    assert(toasts.some((t) => /configure um diretório/i.test(t)), 'Deveria avisar que é preciso configurar um diretório');
-});
-
-test('Com diretório configurado, o formulário é salvo como .docx válido em "Exportação/RSC-PCCTAE"', async ({ page, baseUrl }) => {
+test('Com diretório configurado, o formulário é salvo como .docx válido, numa pasta datada, com os documentos comprobatórios numerados', async ({ page, baseUrl }) => {
     const items = [
         makeItem('IDENTIFICACAO', 'DADOS_GERAIS', { titulo: 'Fulano de Tal Teste' }),
-        makeItem('FORMACAO_COMPLEMENTAR', 'FORMACAO', { titulo: 'Curso RSC Docx', instituicao: 'X', anoFim: '2024' },
-            { rsc: { conta: true, criterio: '1.3', jaUsado: false } }),
+        makeItem('FORMACAO_COMPLEMENTAR', 'FORMACAO', { titulo: 'Curso RSC Docx', instituicao: 'X', anoFim: '2024' }, {
+            rsc: { conta: true, criterio: '1.3', jaUsado: false },
+            evidencias: [{ basename: 'ev-form', ext: 'pdf', name: 'certificado.pdf', publica: false, tag: '' }],
+        }),
     ];
     await seedCatalog(page, baseUrl, items);
     await habilitarRsc(page, {
@@ -50,27 +38,29 @@ test('Com diretório configurado, o formulário é salvo como .docx válido em "
     });
     await page.evaluate(() => {
         window.Storage.hasDirectory = () => true;
-        window.Storage.writeFile = async (filename, data, subdir) => {
-            window.__saved = { filename, subdir, bytes: Array.from(data) };
-        };
+        window.__saves = [];
+        window.Storage.writeFile = async (filename, data, subdir) => { window.__saves.push({ filename, subdir, bytes: Array.from(data) }); };
+        window.Storage.readAttachmentFile = async () => new Blob(['%PDF-1.4 conteúdo falso'], { type: 'application/pdf' });
     });
     await page.click('[data-tab="rsc"]');
     await page.waitForTimeout(300);
 
-    await page.click('#btnRscForm');
+    await page.click('#btnRscExportar');
     await page.waitForTimeout(300);
 
-    const saved = await page.evaluate(() => window.__saved);
-    assert(saved, 'Storage.writeFile deveria ter sido chamado');
-    assertEqual(saved.subdir, 'Exportação/RSC-PCCTAE', 'Pasta de exportação');
-    assert(saved.filename.endsWith('.docx'), `Nome do arquivo deveria terminar em .docx — obtido "${saved.filename}"`);
-
+    const saves = await page.evaluate(() => window.__saves);
     const hoje = new Date();
     const ddmmyyyy = String(hoje.getDate()).padStart(2, '0') + String(hoje.getMonth() + 1).padStart(2, '0') + hoje.getFullYear();
+    const pastaEsperada = `Exportação/RSC-PCCTAE/${ddmmyyyy}`;
+
+    const saved = saves.find((s) => /^RSC_/.test(s.filename));
+    assert(saved, 'Deveria ter salvo o arquivo do formulário ("RSC_*")');
+    assertEqual(saved.subdir, pastaEsperada, 'O formulário deveria ir na mesma pasta datada do memorial/anexos, não direto em "Exportação/RSC-PCCTAE"');
+    assert(saved.filename.endsWith('.docx'), `Nome do arquivo deveria terminar em .docx — obtido "${saved.filename}"`);
     assertEqual(saved.filename, `RSC_Fulano de Tal Teste_${ddmmyyyy}.docx`, 'Nome do arquivo deveria seguir o padrão RSC_NomeCompleto_ddmmyyyy.docx (issue reportada pelo usuário)');
 
     const toasts = await page.evaluate(() => Array.from(document.querySelectorAll('#toasts > div')).map((d) => d.textContent));
-    assert(toasts.some((t) => /formulário salvo/i.test(t)), 'Deveria confirmar que o formulário foi salvo');
+    assert(toasts.some((t) => /memorial e formulário exportados/i.test(t)), 'Deveria confirmar que memorial e formulário foram exportados juntos');
 
     // Valida de verdade que os bytes formam um .docx (ZIP + OOXML) abrível.
     const dir = mkdtempSync(join(tmpdir(), 'lz-docx-'));
@@ -97,4 +87,11 @@ print(doc)
     assert(zipOk.includes('(11) 1234-5678'), 'document.xml deveria conter o Telefone (campo separado do E-mail)');
     assert(zipOk.includes('fulano@ife.gov.br'), 'document.xml deveria conter o E-mail (campo separado do Telefone)');
     assert(zipOk.includes('Assinatura'), 'document.xml deveria conter a linha de assinatura');
+
+    // "Documentos comprobatórios (anexos)": mesmo identificador (3 dígitos +
+    // nome) usado no PDF exportado de verdade — dá pra cruzar um com o outro.
+    const anexoSave = saves.find((s) => s.subdir === `${pastaEsperada}/Anexos`);
+    assert(anexoSave, 'Deveria ter exportado também o PDF do item na subpasta "Anexos"');
+    assertEqual(anexoSave.filename, '001 Curso RSC Docx.pdf', 'O nome do PDF deveria ser "001 Curso RSC Docx.pdf" (3 dígitos + espaço, sem hífen)');
+    assert(zipOk.includes('001 Curso RSC Docx.pdf'), 'A coluna "Documentos comprobatórios" do formulário deveria citar o mesmo identificador do PDF exportado');
 });
