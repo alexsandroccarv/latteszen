@@ -7,7 +7,7 @@ window.APP_CONFIG = {
     // Os dois primeiros números são atualizados manualmente; o terceiro (2
     // dígitos) é incrementado a cada issue fechada no GitHub — ver política
     // completa em CLAUDE.md e o histórico em notas-de-versao.html.
-    version: 'v0.6.62',
+    version: 'v0.6.63',
     lastModified: '04/09/2026',
     author: {
         nome: 'Alexsandro Cardoso Carvalho',
@@ -46,7 +46,7 @@ window.APP_CONFIG = {
     //      backend, a autenticação é toda feita do navegador direto pro Google.
     // Enquanto ficar vazio, a seção "Google Drive" em Configurações aparece
     // desabilitada com um aviso, em vez de quebrar.
-    googleDriveClientId: (typeof window !== 'undefined' && window.__LZ_TEST_GDRIVE_CLIENT_ID) || '',
+    googleDriveClientId: (typeof window !== 'undefined' && window.__LZ_TEST_GDRIVE_CLIENT_ID) || '653369043379-2mrkj5f2le78r11v5np9eev9i0k5hm5v.apps.googleusercontent.com',
     // Google Analytics (GA4) — opcional, desligado por padrão. Passo a passo
     // pra gerar o seu ID de mensuração:
     //   1. https://analytics.google.com/ → Administrador → "Criar propriedade".
