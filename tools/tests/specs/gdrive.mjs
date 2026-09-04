@@ -330,7 +330,7 @@ test('moveInboxToProcessed usa MOVE (addParents/removeParents) e resolve colisã
     assertEqual(movido.content, 'conteudo-a', 'O conteúdo movido deveria ser o do arquivo original, não o que já existia em Processados');
 });
 
-test('Migrar pasta local para o Google Drive copia os arquivos, mantém a estrutura e ativa o Drive como armazenamento em uso', async ({ page, baseUrl }) => {
+test('Assistente: "Já tenho um diretório" > "Google Drive" > "Migrar meus arquivos e conectar" copia os arquivos, mantém a estrutura e ativa o Drive', async ({ page, baseUrl }) => {
     const mock = createMockDrive();
     await mock.install(page);
     await mockGis(page);
@@ -343,15 +343,18 @@ test('Migrar pasta local para o Google Drive copia os arquivos, mantém a estrut
     ]);
     await abrirConfig(page, baseUrl);
 
-    // Pasta local já "escolhida" (acervo pré-existente) antes de migrar.
-    await page.evaluate(async () => { await window.Storage.chooseDirectory(); });
-    await page.evaluate(() => window.AppCore.renderConfig());
-    await page.waitForTimeout(100);
-    assertEqual(await page.locator('#btnGDriveMigrate').count(), 1, 'O botão de migração deveria aparecer com uma pasta local ativa');
+    // Sem diretório configurado ainda: navega o assistente até "Já tenho um
+    // diretório" > "Google Drive" — "Migrar meus arquivos e conectar" pede
+    // pra escolher a pasta local (mock) antes de conectar e copiar tudo.
+    await page.click('[data-wizard-modo="existente"]');
+    await page.waitForTimeout(50);
+    await page.click('[data-wizard-tipo="remoto"]');
+    await page.waitForTimeout(50);
+    assertEqual(await page.locator('#btnGDriveMigrate').count(), 1, 'O botão "Migrar meus arquivos e conectar" deveria aparecer');
 
     await page.fill('#gdrivePasta', 'lattesZen');
     await page.click('#btnGDriveMigrate'); // o confirm() é aceito automaticamente pelo harness (page.on('dialog'))
-    await page.waitForFunction(() => !document.querySelector('#btnGDriveMigrate'), { timeout: 8000 }); // some quando o modo muda pra 'gdrive'
+    await page.waitForFunction(() => !document.querySelector('[data-wizard-modo]'), { timeout: 8000 }); // assistente some quando o diretório fica configurado
     await page.waitForTimeout(100);
 
     const modo = await page.evaluate(() => window.Storage.storageMode());
@@ -371,4 +374,6 @@ test('Migrar pasta local para o Google Drive copia os arquivos, mantém a estrut
     const aviso = await page.locator('#gdriveMigrationNotice').textContent();
     assert(/todas as atualizações.*ocorrem no google drive/i.test(aviso), 'Deveria mostrar um aviso persistente explicando que as atualizações agora ocorrem no Drive');
     assert(/pasta local pode ser exclu[ií]da/i.test(aviso), 'O aviso deveria mencionar que a pasta local pode ser excluída com segurança');
+
+    assertEqual(await page.locator('#btnGDriveConnect').count(), 0, 'Com o diretório já configurado, a seção "Armazenamento remoto" não deveria mais aparecer no painel de estado');
 });

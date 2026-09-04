@@ -1320,6 +1320,12 @@ window.TabConfig = (function () {
             }
             dirSectionHtml = html;
         } else {
+            // Com um diretório já configurado (local ou Google Drive), a seção
+            // "Armazenamento remoto (Google Drive)" não aparece mais aqui —
+            // só faz sentido no assistente, antes de configurar (ou depois de
+            // "Esquecer pasta"). "Pasta atual" já indica qual back-end está
+            // em uso; pra trocar, o caminho é "Esquecer pasta" e refazer o
+            // assistente (inclusive pra migrar arquivos locais pro Drive).
             dirSectionHtml = `
                 <p class="text-sm mb-1">Pasta atual: <strong id="dirNameLbl">${esc(dirName)}</strong></p>
                 <p class="text-sm mb-3" id="dirHealthStatus">${window.AppCore.dirHealthStatusHtml()}</p>
@@ -1327,24 +1333,6 @@ window.TabConfig = (function () {
                     <button id="btnChooseDir" class="px-3 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm" ${Storage.supportsFS ? '' : 'disabled'}><i class="fa-solid fa-folder mr-1"></i> Escolher pasta</button>
                     <button id="btnSync" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-rotate mr-1"></i> Sincronizar do diretório</button>
                     <button id="btnCheckDir" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-stethoscope mr-1"></i> Verificar pasta</button>
-                </div>
-                <div class="mt-4 pt-3 border-t border-gray-200 dark:border-gray-700">
-                    <h3 class="text-sm font-bold mb-1">Armazenamento remoto (Google Drive)</h3>
-                    <p class="text-xs text-gray-500 mb-2">
-                        Alternativa à pasta local: os arquivos ficam numa pasta dedicada no seu Google Drive, acessível de mais de um dispositivo.
-                        O lattesZen só acessa os arquivos que ele mesmo cria (escopo <code class="bg-gray-200 dark:bg-gray-700 px-1 rounded">drive.file</code>) — nunca o restante do seu Drive.
-                        ${APP_CONFIG.googleDriveClientId ? '' : '<span class="text-red-600 font-semibold">Recurso ainda não configurado neste site (falta o Client ID do Google Cloud Console em config.js).</span>'}
-                    </p>
-                    <div class="flex flex-wrap gap-2 mb-2">
-                        <input id="gdrivePasta" type="text" placeholder="Pasta (ex.: lattesZen)" value="lattesZen" ${storageMode === 'gdrive' ? 'disabled' : ''} class="text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900">
-                    </div>
-                    <div class="flex flex-wrap gap-2 items-center">
-                        <button id="btnGDriveConnect" class="px-3 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm" ${APP_CONFIG.googleDriveClientId ? '' : 'disabled'}><i class="fa-brands fa-google mr-1"></i> Conectar ao Google Drive</button>
-                        ${storageMode === 'local' && dirName ? `<button id="btnGDriveMigrate" class="px-3 py-2 rounded border border-govbr-600 dark:border-unifesp-400 text-govbr-700 dark:text-unifesp-300 text-sm" ${APP_CONFIG.googleDriveClientId ? '' : 'disabled'}><i class="fa-solid fa-cloud-arrow-up mr-1"></i> Migrar pasta local para o Google Drive</button>` : ''}
-                        ${storageMode === 'gdrive' ? `<span class="text-xs text-green-700 dark:text-green-400"><i class="fa-solid fa-circle-check mr-1"></i> Este é o armazenamento em uso.</span>` : ''}
-                    </div>
-                    ${storageMode === 'local' && dirName ? `<p class="text-xs text-gray-500 mt-1">"Migrar" copia todos os arquivos da pasta local atual para o Drive antes de trocar — evita ter que reanexar tudo de novo. "Conectar" sozinho começa com uma pasta vazia no Drive.</p>` : ''}
-                    <div id="gdriveStatus" class="text-sm mt-2"></div>
                 </div>`;
         }
 
