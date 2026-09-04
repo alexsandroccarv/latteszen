@@ -169,11 +169,19 @@ test('RSC: explicação de "Data de abrangência (final)" virou um ícone de aju
     await page.waitForTimeout(200);
 
     const label = page.locator('label[for="rsc-dataAbrangenciaFinal"]');
-    const ajudaIcon = label.locator('i.fa-circle-question');
-    assertEqual(await ajudaIcon.count(), 1, 'Deveria haver um ícone de interrogação ao lado do rótulo "Data de abrangência (final)"');
-    const title = await ajudaIcon.getAttribute('title');
-    assert(title && /data de corte do memorial/i.test(title), 'O ícone de ajuda deveria trazer a explicação no atributo title (tooltip)');
+    const ajudaBtn = label.locator('button.rsc-help-btn');
+    assertEqual(await ajudaBtn.count(), 1, 'Deveria haver um botão de ajuda (interrogação) ao lado do rótulo "Data de abrangência (final)"');
+    assertEqual(await ajudaBtn.locator('i.fa-circle-question').count(), 1, 'O botão de ajuda deveria mostrar o ícone de interrogação');
+    const title = await ajudaBtn.getAttribute('title');
+    assert(title && /data de corte do memorial/i.test(title), 'O botão de ajuda deveria trazer a explicação no atributo title (tooltip por hover)');
     assertEqual(await page.locator('#tab-rsc p:has-text("Data de corte do memorial")').count(), 0, 'A explicação não deveria mais aparecer como parágrafo solto no formulário');
+
+    // Clicar também precisa mostrar a ajuda (não só o hover no "title") —
+    // funciona em telas de toque e não depende do delay do tooltip nativo.
+    await ajudaBtn.click();
+    await page.waitForTimeout(200);
+    const toasts = await page.evaluate(() => Array.from(document.querySelectorAll('#toasts > div')).map((d) => d.textContent));
+    assert(toasts.some((t) => /data de corte do memorial/i.test(t)), 'Clicar no ícone de ajuda deveria mostrar o texto de ajuda (ex.: num toast)');
 });
 
 test('RSC: "Dados pessoais" segue a ordem de campos definida — Cargo/SIAPE, Lotação/Matrícula, Nível/Escolaridade, Ingresso/Direção-Função, Início-contagem/Abrangência-final, Telefone/E-mail', async ({ page, baseUrl }) => {

@@ -5,7 +5,7 @@
    das anteriores — lê estado/utilidades de window.AppCore.
    ========================================================================== */
 window.TabRsc = (function () {
-    const { state, $, esc, toast, itemYear } = window.AppCore;
+    const { state, $, $$, esc, toast, itemYear } = window.AppCore;
 
     // Itens que contam para o RSC (elegíveis, marcados, com critério e não usados)
     function rscItensContados() {
@@ -27,7 +27,11 @@ window.TabRsc = (function () {
             else if (/@/.test(c.telefoneEmail)) { c.email = c.telefoneEmail.trim(); }
             else { c.telefone = c.telefoneEmail.trim(); }
         }
-        const labelHtml = (forId, lbl, help) => `<label class="block text-xs font-semibold mb-1" for="${forId}">${esc(lbl)}${help ? ` <i class="fa-solid fa-circle-question text-gray-400 cursor-help" title="${esc(help)}"></i>` : ''}</label>`;
+        // O ícone de ajuda também funciona por clique (não só por hover no
+        // "title") — clicar mostra um toast com o texto completo, pra
+        // funcionar em telas de toque e não depender do delay do tooltip
+        // nativo do navegador.
+        const labelHtml = (forId, lbl, help) => `<label class="block text-xs font-semibold mb-1" for="${forId}">${esc(lbl)}${help ? ` <button type="button" class="rsc-help-btn text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 cursor-help" title="${esc(help)}" data-help="${esc(help)}" aria-label="Ajuda"><i class="fa-solid fa-circle-question"></i></button>` : ''}</label>`;
         const inp = (k, lbl, ph, validateKind, help) => `<div>${labelHtml('rsc-' + k, lbl, help)}
             <input id="rsc-${k}" type="text" value="${esc(c[k] || '')}" placeholder="${esc(ph || '')}" ${validateKind ? `data-validate="${validateKind}"` : ''} class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900"></div>`;
         const escOpts = LzRSC.ESCOLARIDADE.map(e => `<option value="${e.key}" ${c.escolaridade === e.key ? 'selected' : ''}>${esc(e.label)} (nível ${e.maxN}, IQ ${e.iq}%)</option>`).join('');
@@ -65,6 +69,12 @@ window.TabRsc = (function () {
     }
     function wireRscCfgSection() {
         window.AppCore.wireValidators($('#tab-rsc'));
+        // O "title" cobre o hover; o clique garante que a ajuda também
+        // apareça em telas de toque (sem hover) e sem depender do delay do
+        // tooltip nativo do navegador.
+        $$('.rsc-help-btn', $('#tab-rsc')).forEach(btn => {
+            btn.addEventListener('click', () => toast(btn.dataset.help, 'info'));
+        });
         const btn = $('#btnSaveRscCfg'); if (!btn) return;
         btn.addEventListener('click', () => {
             const keys = ['cargo', 'siape', 'matriculaFuncional', 'lotacao', 'ingresso', 'dataInicioContagem', 'dataAbrangenciaFinal',
