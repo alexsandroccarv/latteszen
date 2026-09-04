@@ -5,7 +5,7 @@
    das anteriores — lê estado/utilidades de window.AppCore.
    ========================================================================== */
 window.TabRsc = (function () {
-    const { state, $, esc, toast } = window.AppCore;
+    const { state, $, esc, toast, itemYear } = window.AppCore;
 
     // Itens que contam para o RSC (elegíveis, marcados, com critério e não usados)
     function rscItensContados() {
@@ -112,8 +112,9 @@ window.TabRsc = (function () {
                 <summary class="cursor-pointer px-3 py-1.5 bg-gray-100 dark:bg-gray-800 text-sm font-medium">${esc(LzRSC.REQUISITOS[r] || 'Sem requisito')} <span class="text-xs text-gray-500">— ${pr.itens} ${pr.itens === 1 ? 'item' : 'itens'} · ${pr.criterios.size} ${pr.criterios.size === 1 ? 'critério' : 'critérios'} · <strong class="text-amber-700 dark:text-amber-400 tabular-nums">${String(pr.pontos).replace('.', ',')} pts</strong></span></summary>
                 <div class="p-2 space-y-1">${grupos[r].map(i => {
                     const pi = LzRSC.pontosItem(i.rsc), c = pi.crit;
+                    const ano = itemYear(i);
                     return `<div class="flex items-center justify-between gap-2 text-sm border border-gray-100 dark:border-gray-700/60 rounded px-2 py-1">
-                        <span class="min-w-0"><span class="font-medium">${esc(LattesTypes.itemTitle(i))}</span>
+                        <span class="min-w-0"><span class="font-medium">${ano ? esc(ano) + ' - ' : ''}${esc(LattesTypes.itemTitle(i))}</span>
                         <span class="block text-xs text-gray-500">${c ? c.item + '. ' + esc(c.desc) : ''}</span></span>
                         <span class="shrink-0 font-semibold text-amber-700 dark:text-amber-400 tabular-nums">${String(pi.pontos).replace('.', ',')}</span></div>`;
                 }).join('')}</div>
