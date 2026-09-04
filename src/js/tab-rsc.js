@@ -32,33 +32,33 @@ window.TabRsc = (function () {
         const escOpts = LzRSC.ESCOLARIDADE.map(e => `<option value="${e.key}" ${c.escolaridade === e.key ? 'selected' : ''}>${esc(e.label)} (nível ${e.maxN}, IQ ${e.iq}%)</option>`).join('');
         const nivelClassOpts = ['A', 'B', 'C', 'D', 'E'].map(n => `<option value="${n}" ${c.nivelClassificacao === n ? 'selected' : ''}>${n}</option>`).join('');
         return `<section class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 mb-4">
-            <h3 class="font-bold text-sm mb-2 flex items-center gap-2"><i class="fa-solid fa-id-card text-govbr-600 dark:text-unifesp-400"></i> Dados do servidor</h3>
+            <h3 class="font-bold text-sm mb-2 flex items-center gap-2"><i class="fa-solid fa-id-card text-govbr-600 dark:text-unifesp-400"></i> RSC: Dados pessoais</h3>
             <div class="grid grid-cols-2 gap-2">
                 ${inp('cargo', 'Cargo', 'ex.: Assistente em Administração')}
                 ${inp('siape', 'SIAPE', '(opcional)')}
                 ${inp('lotacao', 'Lotação / unidade', '')}
                 ${inp('ingresso', 'Data de ingresso no cargo', '25/12/2026')}
                 ${inp('dataInicioContagem', 'Início da contagem (RSC)', '25/12/2026')}
-                <div>
-                    <label class="block text-xs font-semibold mb-1" for="rsc-nivelClassificacao">Nível de Classificação</label>
-                    <select id="rsc-nivelClassificacao" class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900"><option value="">—</option>${nivelClassOpts}</select>
-                </div>
-                ${inp('funcaoEncargo', 'Função / Encargo (se houver)', '')}
-                ${inp('telefone', 'Telefone', '(11) 1234-5678')}
-                ${inp('email', 'E-mail', 'fulano@instituicao.br')}
-                ${inp('saldoAnterior', 'Saldo de pontuação de concessão anterior', '')}
-                ${inp('processoAnterior', 'Nº do processo da concessão anterior (se houver)', '')}
                 <div class="col-span-2">
                     ${inp('dataAbrangenciaFinal', 'Data de abrangência (final)', '25/12/2026')}
                     <p class="text-[11px] text-gray-500 mt-0.5">Data de corte do memorial/requerimento. Usada como fim do período em itens ainda <strong>em exercício</strong> (situação "Atual", sem data de fim própria) — sem ela, esses itens não têm o tempo decorrido contado.</p>
                 </div>
+                <div>
+                    <label class="block text-xs font-semibold mb-1" for="rsc-nivelClassificacao">Nível de Classificação</label>
+                    <select id="rsc-nivelClassificacao" class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900"><option value="">—</option>${nivelClassOpts}</select>
+                </div>
+                ${inp('funcaoEncargo', 'Direção ou Função', '')}
+                ${inp('telefone', 'Telefone', '(11) 1234-5678')}
+                ${inp('email', 'E-mail', 'fulano@instituicao.br')}
                 <div class="col-span-2">
                     <label class="block text-xs font-semibold mb-1" for="rsc-escolaridade">Escolaridade (limita o nível máximo)</label>
                     <select id="rsc-escolaridade" class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900"><option value="">—</option>${escOpts}</select>
                 </div>
+                ${inp('saldoAnterior', 'Saldo de pontuação de concessão anterior', '')}
+                ${inp('processoAnterior', 'Nº do processo da concessão anterior (se houver)', '')}
             </div>
             <div class="flex gap-2 mt-3">
-                <button id="btnSaveRscCfg" class="px-3 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm"><i class="fa-solid fa-floppy-disk mr-1"></i> Salvar configuração</button>
+                <button id="btnSaveRscCfg" class="px-3 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm"><i class="fa-solid fa-floppy-disk mr-1"></i> Salvar</button>
             </div>
         </section>`;
     }
@@ -110,7 +110,7 @@ window.TabRsc = (function () {
         const grupos = {};
         itens.forEach(i => { const c = LzRSC.criterio(i.rsc.criterio); const r = c ? c.req : 0; (grupos[r] = grupos[r] || []).push(i); });
         const listaHtml = Object.keys(grupos).sort().map(r => `
-            <details open class="border border-gray-200 dark:border-gray-700 rounded mb-2">
+            <details class="border border-gray-200 dark:border-gray-700 rounded mb-2">
                 <summary class="cursor-pointer px-3 py-1.5 bg-gray-100 dark:bg-gray-800 text-sm font-medium">${esc(LzRSC.REQUISITOS[r] || 'Sem requisito')} <span class="text-xs text-gray-500">(${grupos[r].length})</span></summary>
                 <div class="p-2 space-y-1">${grupos[r].map(i => {
                     const pi = LzRSC.pontosItem(i.rsc), c = pi.crit;
@@ -145,7 +145,6 @@ window.TabRsc = (function () {
             </div>
 
             <div class="flex gap-2 flex-wrap mb-4">
-                <button id="btnRscExportar" class="px-3 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm"><i class="fa-solid fa-file-export mr-1"></i> Gerar memorial, formulário e anexos</button>
                 <button id="btnRscPromptIA" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-wand-magic-sparkles mr-1"></i> Gerar prompt (IA)</button>
             </div>
 
@@ -160,7 +159,11 @@ window.TabRsc = (function () {
             </div>
 
             <h3 class="font-bold mb-2">Itens contabilizados</h3>
-            ${listaHtml}`;
+            ${listaHtml}
+
+            <div class="flex gap-2 flex-wrap mt-4">
+                <button id="btnRscExportar" class="px-3 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm"><i class="fa-solid fa-file-export mr-1"></i> Gerar memorial, formulário e anexos</button>
+            </div>`;
 
         wireRscCfgSection();
         $('#btnRscExportar').addEventListener('click', () => exportarRsc(itens, sim, cfg));
