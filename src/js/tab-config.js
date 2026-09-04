@@ -1030,74 +1030,26 @@ window.TabConfig = (function () {
     }
 
     /* ------------------------- Configuração do RSC ------------------------ */
+    // Os dados funcionais do servidor (cargo, SIAPE, contatos etc.) ficam na
+    // própria aba RSC (ver tab-rsc.js) — aqui só o habilitar/desabilitar do
+    // módulo, pra não duplicar formulário em dois lugares diferentes.
     function rscSectionHtml() {
-        const c = state.rscCfg || {};
-        // Compatibilidade: valor antigo (campo único "Telefone/E-mail") migra
-        // pra exibição nos 2 campos novos, na primeira vez que a tela abre
-        // depois da separação — só grava de fato quando "Salvar RSC" é clicado.
-        if (c.telefone == null && c.email == null && c.telefoneEmail) {
-            const partes = c.telefoneEmail.split('/');
-            if (partes.length >= 2) { c.telefone = partes[0].trim(); c.email = partes.slice(1).join('/').trim(); }
-            else if (/@/.test(c.telefoneEmail)) { c.email = c.telefoneEmail.trim(); }
-            else { c.telefone = c.telefoneEmail.trim(); }
-        }
-        const inp = (k, lbl, ph) => `<div><label class="block text-xs font-semibold mb-1" for="rsc-${k}">${esc(lbl)}</label>
-            <input id="rsc-${k}" type="text" value="${esc(c[k] || '')}" placeholder="${esc(ph || '')}" class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900"></div>`;
-        const escOpts = LzRSC.ESCOLARIDADE.map(e => `<option value="${e.key}" ${c.escolaridade === e.key ? 'selected' : ''}>${esc(e.label)} (nível ${e.maxN}, IQ ${e.iq}%)</option>`).join('');
-        const nivelClassOpts = ['A', 'B', 'C', 'D', 'E'].map(n => `<option value="${n}" ${c.nivelClassificacao === n ? 'selected' : ''}>${n}</option>`).join('');
         return `<section id="rscSection" class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
             <h2 class="text-lg font-bold mb-2 flex items-center gap-2"><i class="fa-solid fa-award text-govbr-600 dark:text-unifesp-400"></i> RSC-PCCTAE (opcional)</h2>
-            <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">Reconhecimento de Saberes e Competências (Decreto nº 13.048/2026). Quando habilitado, cada item elegível ganha, abaixo dos campos, uma camada com os dados do RSC, e surge a aba <strong>RSC</strong> (simulador). Uso individual.</p>
-            <label class="flex items-center gap-2 text-sm mb-3">
+            <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">Reconhecimento de Saberes e Competências (Decreto nº 13.048/2026). Quando habilitado, cada item elegível ganha uma camada com os dados do RSC, e surge a aba <strong>RSC</strong> (simulador) — os dados do servidor (cargo, SIAPE, contatos etc.) são preenchidos lá. Uso individual.</p>
+            <label class="flex items-center gap-2 text-sm">
                 <input type="checkbox" id="rscEnable" ${state.rscEnabled ? 'checked' : ''}>
                 <span>Habilitar módulo <strong>RSC-PCCTAE</strong></span>
             </label>
-            <div id="rscCfgFields" class="${state.rscEnabled ? '' : 'hidden'} space-y-3">
-                <div class="grid grid-cols-2 gap-2">
-                    ${inp('cargo', 'Cargo', 'ex.: Assistente em Administração')}
-                    ${inp('siape', 'SIAPE', '(opcional)')}
-                    ${inp('lotacao', 'Lotação / unidade', '')}
-                    ${inp('ingresso', 'Data de ingresso no cargo', '25/12/2026')}
-                    ${inp('dataInicioContagem', 'Início da contagem (RSC)', '25/12/2026')}
-                    <div>
-                        <label class="block text-xs font-semibold mb-1" for="rsc-nivelClassificacao">Nível de Classificação</label>
-                        <select id="rsc-nivelClassificacao" class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900"><option value="">—</option>${nivelClassOpts}</select>
-                    </div>
-                    ${inp('funcaoEncargo', 'Função / Encargo (se houver)', '')}
-                    ${inp('telefone', 'Telefone', '(11) 1234-5678')}
-                    ${inp('email', 'E-mail', 'fulano@instituicao.br')}
-                    ${inp('saldoAnterior', 'Saldo de pontuação de concessão anterior', '')}
-                    ${inp('processoAnterior', 'Nº do processo da concessão anterior (se houver)', '')}
-                    <div class="col-span-2">
-                        ${inp('dataAbrangenciaFinal', 'Data de abrangência (final)', '25/12/2026')}
-                        <p class="text-[11px] text-gray-500 mt-0.5">Data de corte do memorial/requerimento. Usada como fim do período em itens ainda <strong>em exercício</strong> (situação "Atual", sem data de fim própria) — sem ela, esses itens não têm o tempo decorrido contado.</p>
-                    </div>
-                    <div class="col-span-2">
-                        <label class="block text-xs font-semibold mb-1" for="rsc-escolaridade">Escolaridade (limita o nível máximo)</label>
-                        <select id="rsc-escolaridade" class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900"><option value="">—</option>${escOpts}</select>
-                    </div>
-                </div>
-            </div>
-            <div class="flex gap-2 mt-3">
-                <button id="btnSaveRsc" class="px-3 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm"><i class="fa-solid fa-floppy-disk mr-1"></i> Salvar RSC</button>
-            </div>
         </section>`;
     }
     function wireRscConfig() {
         const en = $('#rscEnable'); if (!en) return;
-        en.addEventListener('change', () => { $('#rscCfgFields').classList.toggle('hidden', !en.checked); });
-        $('#btnSaveRsc').addEventListener('click', () => {
-            state.rscEnabled = $('#rscEnable').checked;
-            const keys = ['cargo', 'siape', 'lotacao', 'ingresso', 'dataInicioContagem', 'dataAbrangenciaFinal',
-                'nivelClassificacao', 'funcaoEncargo', 'telefone', 'email', 'saldoAnterior', 'processoAnterior'];
-            const cfg = {};
-            keys.forEach(k => { const el = $('#rsc-' + k); if (el) cfg[k] = el.value.trim(); });
-            cfg.escolaridade = $('#rsc-escolaridade').value;
-            state.rscCfg = cfg;
-            const s = Storage.loadSettings(); s.rscEnabled = state.rscEnabled; s.rsc = cfg; Storage.saveSettings(s);
+        en.addEventListener('change', () => {
+            state.rscEnabled = en.checked;
+            const s = Storage.loadSettings(); s.rscEnabled = state.rscEnabled; Storage.saveSettings(s);
             window.AppCore.applyRscVisibility();
             toast(state.rscEnabled ? 'Módulo RSC habilitado.' : 'Módulo RSC desabilitado.', 'ok');
-            render();
         });
     }
     // Duas listas configuráveis que a aba "Linha do tempo" usa para montar a
