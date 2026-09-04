@@ -114,14 +114,21 @@ window.LzDocx = (function () {
         opts = opts || {};
         const runsXml = Array.isArray(runsOrText) ? runsOrText.join('') : run(runsOrText, opts);
         const pPrParts = [];
+        if (opts.style) pPrParts.push(`<w:pStyle w:val="${opts.style}"/>`);
         if (opts.align) pPrParts.push(`<w:jc w:val="${opts.align}"/>`);
         pPrParts.push(`<w:spacing w:after="${opts.spacingAfter != null ? opts.spacingAfter : 120}"/>`);
         const pPr = `<w:pPr>${pPrParts.join('')}</w:pPr>`;
         return `<w:p>${pPr}${runsXml}</w:p>`;
     }
+    // Aplica o estilo nomeado "Heading{level}" — o Word (em qualquer idioma)
+    // reconhece esse ID reservado e mostra o nome traduzido próprio da UI
+    // (ex.: "Título 2"/"Título 3" no Word em português), além de habilitar
+    // navegação por título e sumário automático. Mantém também a formatação
+    // direta (negrito/tamanho) para ficar legível em visualizadores que
+    // ignorem o styles.xml.
     function heading(text, level) {
-        const size = level === 1 ? 28 : 24; // meios-pontos: 14pt / 12pt
-        return para(text, { bold: true, size, spacingAfter: 160 });
+        const sizes = { 1: 28, 2: 24, 3: 22 }; // meios-pontos: 14pt / 12pt / 11pt
+        return para(text, { bold: true, size: sizes[level] || 22, spacingAfter: 160, style: 'Heading' + (level || 1) });
     }
     function cell(text, opts) {
         opts = opts || {};
@@ -142,11 +149,37 @@ window.LzDocx = (function () {
         + '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>'
         + '<Default Extension="xml" ContentType="application/xml"/>'
         + '<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>'
+        + '<Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>'
         + '</Types>';
     const RELS_XML = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
         + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
         + '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>'
         + '</Relationships>';
+    const DOCUMENT_RELS_XML = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+        + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+        + '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>'
+        + '</Relationships>';
+
+    // Estilos de parágrafo nomeados com os IDs reservados "Heading1/2/3" —
+    // é esse ID (não o w:name) que o Word usa para exibir o nome traduzido
+    // ("Título 1/2/3" em português) e habilitar o painel de navegação e
+    // sumário automático por título.
+    function headingStyleXml(id, size, outlineLvl, spacingBefore) {
+        return `<w:style w:type="paragraph" w:styleId="${id}">`
+            + `<w:name w:val="heading ${outlineLvl + 1}"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/>`
+            + `<w:uiPriority w:val="9"/><w:qFormat/>`
+            + `<w:pPr><w:outlineLvl w:val="${outlineLvl}"/><w:spacing w:before="${spacingBefore}" w:after="160"/></w:pPr>`
+            + `<w:rPr><w:b/><w:sz w:val="${size}"/><w:szCs w:val="${size}"/></w:rPr>`
+            + '</w:style>';
+    }
+    const STYLES_XML = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+        + '<w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
+        + '<w:docDefaults><w:rPrDefault><w:rPr><w:sz w:val="22"/><w:szCs w:val="22"/></w:rPr></w:rPrDefault></w:docDefaults>'
+        + '<w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/><w:qFormat/></w:style>'
+        + headingStyleXml('Heading1', 28, 0, 240)
+        + headingStyleXml('Heading2', 24, 1, 200)
+        + headingStyleXml('Heading3', 22, 2, 160)
+        + '</w:styles>';
 
     function buildDocumentXml(bodyXml) {
         return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
@@ -160,7 +193,9 @@ window.LzDocx = (function () {
         const files = [
             { name: '[Content_Types].xml', data: strToBytes(CONTENT_TYPES_XML) },
             { name: '_rels/.rels', data: strToBytes(RELS_XML) },
+            { name: 'word/_rels/document.xml.rels', data: strToBytes(DOCUMENT_RELS_XML) },
             { name: 'word/document.xml', data: strToBytes(buildDocumentXml(bodyXml)) },
+            { name: 'word/styles.xml', data: strToBytes(STYLES_XML) },
         ];
         return buildZip(files);
     }

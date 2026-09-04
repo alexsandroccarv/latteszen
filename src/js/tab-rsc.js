@@ -441,27 +441,28 @@ window.TabRsc = (function () {
     function sanitizeArquivo(s) { return String(s || '').replace(/[\\/:*?"<>|]/g, '').trim(); }
 
     // Lista, em ordem, todos os anexos-arquivo (evidências que não são links)
-    // dos itens contabilizados, com um número sequencial ÚNICO (01, 02, 03…)
+    // dos itens contabilizados, com um número sequencial ÚNICO (001, 002…)
     // atribuído de uma vez só — esse é o mesmo número usado no nome do PDF
-    // exportado E na tabela de anexos do memorial, pra dar pra cruzar um com
-    // o outro sem ambiguidade.
+    // exportado E no início do item correspondente no memorial, pra dar pra
+    // cruzar um com o outro sem ambiguidade.
     function listarAnexosNumerados(itens) {
         const lista = [];
         itens.forEach(it => {
             const evs = Array.isArray(it.evidencias) ? it.evidencias.filter(e => e.kind !== 'link' && e.basename && e.ext) : [];
-            evs.forEach(ev => {
-                const c = LzRSC.criterio(it.rsc.criterio);
-                lista.push({ it, ev, criterio: c ? `${c.item}. ${c.desc}` : '' });
-            });
+            evs.forEach(ev => lista.push({ it, ev }));
         });
         lista.forEach((a, i) => { a.num = i + 1; });
         return lista;
     }
+    const numAnexo = (n) => String(n).padStart(3, '0');
 
     // Corpo (OOXML) do memorial em .docx: o texto do campo (livre — IA ou
-    // manual), dividido em parágrafos, seguido de uma tabela "Documentos
-    // comprobatórios" com o mesmo número sequencial de cada PDF exportado.
-    function memorialDocxBody(texto, anexos, cfg) {
+    // manual), seguido dos itens contabilizados organizados na mesma
+    // hierarquia do requerimento oficial — Requisito (Título 2) > Critério,
+    // só os que têm item (Título 3) > itens, cada um já com o número do(s)
+    // anexo(s) correspondente(s) no início (mesmo número do PDF exportado),
+    // nome, período e carga horária, quando houver.
+    function memorialDocxBody(texto, itens, anexos, cfg) {
         const D = window.LzDocx;
         const parts = [];
         parts.push(D.heading('Memorial — RSC-PCCTAE', 1));
@@ -470,24 +471,31 @@ window.TabRsc = (function () {
         parts.push(D.para(' '));
         String(texto || '').split('\n').forEach(linha => { parts.push(D.para(linha)); });
 
-        if (anexos.length) {
-            parts.push(D.para(' '));
-            parts.push(D.heading('Documentos comprobatórios (anexos)', 2));
-            parts.push(D.para('Numeração sequencial correspondente aos arquivos exportados junto (pasta "Anexos").', { italic: true, size: 18 }));
-            const colWidths = [700, 4200, 2400, 2500];
-            const head = D.row([
-                D.cell('Nº', { bold: true, width: colWidths[0], shade: 'EEEEEE' }),
-                D.cell('Item do currículo', { bold: true, width: colWidths[1], shade: 'EEEEEE' }),
-                D.cell('Critério', { bold: true, width: colWidths[2], shade: 'EEEEEE' }),
-                D.cell('Arquivo original', { bold: true, width: colWidths[3], shade: 'EEEEEE' }),
-            ]);
-            const rows = anexos.map(a => D.row([
-                D.cell(String(a.num).padStart(2, '0'), { width: colWidths[0] }),
-                D.cell(LattesTypes.itemTitle(a.it), { width: colWidths[1] }),
-                D.cell(a.criterio, { width: colWidths[2] }),
-                D.cell(a.ev.name || `${a.ev.basename}.${a.ev.ext}`, { width: colWidths[3] }),
-            ]));
-            parts.push(D.table([head, ...rows], colWidths));
+        const numerosPorItem = {};
+        anexos.forEach(a => { (numerosPorItem[a.it.id] = numerosPorItem[a.it.id] || []).push(a.num); });
+
+        const porRequisito = {};
+        itens.forEach(it => { const c = LzRSC.criterio(it.rsc.criterio); const r = c ? c.req : 0; (porRequisito[r] = porRequisito[r] || []).push(it); });
+
+        if (itens.length) parts.push(D.para(' '));
+        for (let r = 1; r <= 6; r++) {
+            const grp = porRequisito[r] || [];
+            if (!grp.length) continue;
+            parts.push(D.heading(`REQUISITO ${REQUISITOS_FORM[r]}`, 2));
+
+            const porCriterio = {};
+            grp.forEach(it => { (porCriterio[it.rsc.criterio] = porCriterio[it.rsc.criterio] || []).push(it); });
+            Object.keys(porCriterio).forEach(critKey => {
+                const c = LzRSC.criterio(critKey);
+                parts.push(D.heading(c ? `${c.item}. ${c.desc}` : critKey, 3));
+                porCriterio[critKey].forEach(it => {
+                    const nums = (numerosPorItem[it.id] || []).map(numAnexo);
+                    const prefixo = nums.length ? `${nums.join(', ')} — ` : '';
+                    const periodo = (it.rsc.dataInicio || it.rsc.dataFim) ? ` (${it.rsc.dataInicio || '?'} a ${it.rsc.dataFim || '?'})` : '';
+                    const ch = (it.fields && it.fields.cargaHoraria) ? ` — Carga horária: ${it.fields.cargaHoraria}h` : '';
+                    parts.push(D.para(`${prefixo}${LattesTypes.itemTitle(it)}${periodo}${ch}`));
+                });
+            });
         }
         return parts.join('');
     }
@@ -495,9 +503,10 @@ window.TabRsc = (function () {
     // Exporta o memorial (o texto do campo, editado manualmente ou colado de
     // uma IA externa — ou o modelo automático, se o campo estiver vazio) em
     // .docx, e uma cópia de todos os anexos-arquivo dos itens contabilizados
-    // — cada PDF numerado sequencialmente (01, 02…), com o mesmo número
-    // listado na tabela de anexos do memorial — tudo numa pasta datada
-    // dentro de "Exportação/RSC-PCCTAE", pronto pra juntar ao requerimento.
+    // — cada PDF numerado sequencialmente (001, 002…), com o mesmo número no
+    // início do item correspondente dentro do memorial — tudo numa pasta
+    // datada dentro de "Exportação/RSC-PCCTAE", pronto pra juntar ao
+    // requerimento.
     async function exportarMemorial(itens, sim, cfg) {
         if (!Storage.hasDirectory()) { toast('Configure um diretório em Configurações para exportar o memorial.', 'aviso'); return; }
         try {
@@ -506,15 +515,17 @@ window.TabRsc = (function () {
             const nomeServidor = sanitizeArquivo(nomeServidorAtual()) || 'Servidor';
             const anexos = listarAnexosNumerados(itens);
 
-            const bytes = window.LzDocx.buildDocx(memorialDocxBody(texto, anexos, cfg));
+            const bytes = window.LzDocx.buildDocx(memorialDocxBody(texto, itens, anexos, cfg));
             await Storage.writeFile(`Memorial_${nomeServidor}.docx`, bytes, folder);
 
             let nAnexos = 0;
             for (const a of anexos) {
                 const f = await Storage.readAttachmentFile(a.ev.basename, LattesTypes.categoryFolder(a.it.categoryKey), a.ev.ext);
                 if (!f) continue;
+                // 3 dígitos + espaço (sem hífen) — nome mais curto, evita
+                // estourar o tamanho máximo de caminho de arquivo do SO.
                 const titulo = sanitizeArquivo(LattesTypes.itemTitle(a.it)).slice(0, 60) || 'anexo';
-                const nomeArquivo = `${String(a.num).padStart(2, '0')} - ${titulo}.${a.ev.ext}`;
+                const nomeArquivo = `${numAnexo(a.num)} ${titulo}.${a.ev.ext}`;
                 await Storage.writeFile(nomeArquivo, f, `${folder}/Anexos`);
                 nAnexos++;
             }
