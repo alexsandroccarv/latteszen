@@ -100,24 +100,37 @@ window.TabRsc = (function () {
         const rscList = itens.map(i => i.rsc);
         const sim = LzRSC.simular(rscList, cfg.escolaridade);
 
-        // Lista de itens contados (conformidade RSC), agrupada por requisito —
-        // o cabeçalho de cada grupo já traz Itens/Critérios/Pontos (antes numa
-        // tabela "Pontos por requisito" à parte, redundante com esta lista).
+        // Lista de itens contados (conformidade RSC), em 3 níveis: Requisito
+        // (I–VI, com Itens/Critérios/Pontos no cabeçalho — antes numa tabela
+        // "Pontos por requisito" à parte, redundante) > Critério > itens.
         const grupos = {};
         itens.forEach(i => { const c = LzRSC.criterio(i.rsc.criterio); const r = c ? c.req : 0; (grupos[r] = grupos[r] || []).push(i); });
         const listaHtml = Object.keys(grupos).sort().map(r => {
             const pr = sim.porRequisito[r] || { itens: grupos[r].length, criterios: new Set(), pontos: 0 };
+            const porCriterio = {};
+            grupos[r].forEach(i => { (porCriterio[i.rsc.criterio] = porCriterio[i.rsc.criterio] || []).push(i); });
+            const critKeysOrdenados = Object.keys(porCriterio).sort((a, b) => {
+                const ca = LzRSC.criterio(a), cb = LzRSC.criterio(b);
+                return (ca ? ca.item : 0) - (cb ? cb.item : 0);
+            });
+            const criteriosHtml = critKeysOrdenados.map(critKey => {
+                const c = LzRSC.criterio(critKey);
+                const itensHtml = porCriterio[critKey].map(i => {
+                    const pi = LzRSC.pontosItem(i.rsc);
+                    const ano = itemYear(i);
+                    return `<div class="flex items-center justify-between gap-2 text-sm border border-gray-100 dark:border-gray-700/60 rounded px-2 py-1">
+                        <span class="min-w-0 font-medium">${ano ? esc(ano) + ' - ' : ''}${esc(LattesTypes.itemTitle(i))}</span>
+                        <span class="shrink-0 font-semibold text-amber-700 dark:text-amber-400 tabular-nums">${String(pi.pontos).replace('.', ',')}</span></div>`;
+                }).join('');
+                return `<div class="mb-2 last:mb-0">
+                    <p class="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">${c ? esc(c.item + '. ' + c.desc) : esc(critKey)}</p>
+                    <div class="space-y-1">${itensHtml}</div>
+                </div>`;
+            }).join('');
             return `
             <details class="border border-gray-200 dark:border-gray-700 rounded mb-2">
                 <summary class="cursor-pointer px-3 py-1.5 bg-gray-100 dark:bg-gray-800 text-sm font-medium">${esc(LzRSC.REQUISITOS[r] || 'Sem requisito')} <span class="text-xs text-gray-500">— ${pr.itens} ${pr.itens === 1 ? 'item' : 'itens'} · ${pr.criterios.size} ${pr.criterios.size === 1 ? 'critério' : 'critérios'} · <strong class="text-amber-700 dark:text-amber-400 tabular-nums">${String(pr.pontos).replace('.', ',')} pts</strong></span></summary>
-                <div class="p-2 space-y-1">${grupos[r].map(i => {
-                    const pi = LzRSC.pontosItem(i.rsc), c = pi.crit;
-                    const ano = itemYear(i);
-                    return `<div class="flex items-center justify-between gap-2 text-sm border border-gray-100 dark:border-gray-700/60 rounded px-2 py-1">
-                        <span class="min-w-0"><span class="font-medium">${ano ? esc(ano) + ' - ' : ''}${esc(LattesTypes.itemTitle(i))}</span>
-                        <span class="block text-xs text-gray-500">${c ? c.item + '. ' + esc(c.desc) : ''}</span></span>
-                        <span class="shrink-0 font-semibold text-amber-700 dark:text-amber-400 tabular-nums">${String(pi.pontos).replace('.', ',')}</span></div>`;
-                }).join('')}</div>
+                <div class="p-2">${criteriosHtml}</div>
             </details>`;
         }).join('') || `<p class="text-sm text-gray-500 italic">Nenhum item marcado para o RSC ainda. Em Catalogar, marque “Contabilizar este item no RSC”.</p>`;
 
