@@ -153,7 +153,7 @@ test('RSC: "Gerar memorial, formulário e anexos" exporta o texto do campo (em .
     const itemPara = paras.find((p) => p.text.includes('Curso Com Anexo'));
     assert(itemPara, 'Deveria haver um parágrafo com o item');
     assert(itemPara.style !== 'Heading2' && itemPara.style !== 'Heading3', 'O item em si não deveria usar estilo de título');
-    assert(itemPara.text.startsWith('001 — '), `O item deveria começar com o número do anexo "001 — " — obtido "${itemPara.text}"`);
+    assert(itemPara.text.startsWith('001: '), `O item deveria começar com o número do anexo "001: " — obtido "${itemPara.text}"`);
     assert(itemPara.text.includes('01/01/2023') && itemPara.text.includes('01/06/2023'), 'O item deveria trazer o período (data)');
     assert(itemPara.text.includes('Carga horária: 40h'), 'O item deveria trazer a carga horária');
 
@@ -210,6 +210,53 @@ test('RSC: "Gerar memorial, formulário e anexos" numera os anexos sequencialmen
     const paras = docxParagraphs(xml);
     const item1 = paras.find((p) => p.text.includes('Primeiro Item'));
     const item2 = paras.find((p) => p.text.includes('Segundo Item'));
-    assert(item1 && item1.text.startsWith('001 — '), `"Primeiro Item" deveria começar com "001 — " — obtido "${item1 && item1.text}"`);
-    assert(item2 && item2.text.startsWith('002, 003 — '), `"Segundo Item" (2 anexos) deveria listar os 2 números "002, 003 — " — obtido "${item2 && item2.text}"`);
+    assert(item1 && item1.text.startsWith('001: '), `"Primeiro Item" deveria começar com "001: " — obtido "${item1 && item1.text}"`);
+    assert(item2 && item2.text.startsWith('002, 003: '), `"Segundo Item" (2 anexos) deveria listar os 2 números "002, 003: " — obtido "${item2 && item2.text}"`);
+});
+
+test('RSC: a numeração dos anexos segue a ordem de leitura do memorial/formulário (por Requisito), não a ordem do catálogo', async ({ page, baseUrl }) => {
+    // Cadastrado primeiro (ordem do catálogo), mas pertence ao Requisito III
+    // — deveria aparecer DEPOIS no memorial/formulário (que vão do
+    // Requisito I ao VI), então deveria ganhar o número 002, não o 001.
+    const items = [
+        makeItem('PARTICIPACAO_EVENTOS', 'EVENTOS', { titulo: 'Item do Requisito III', instituicao: 'X', ano: '2022' }, {
+            rsc: { conta: true, criterio: '3.1', jaUsado: false },
+            evidencias: [{ basename: 'ev-r3', ext: 'pdf', name: 'doc-r3.pdf', publica: false, tag: '' }],
+        }),
+        // Cadastrado depois, mas do Requisito I — deveria vir primeiro na
+        // leitura dos documentos, e por isso ganhar o número 001.
+        makeItem('FORMACAO_COMPLEMENTAR', 'FORMACAO', { titulo: 'Item do Requisito I', instituicao: 'X', anoFim: '2024' }, {
+            rsc: { conta: true, criterio: '1.3', jaUsado: false },
+            evidencias: [{ basename: 'ev-r1', ext: 'pdf', name: 'doc-r1.pdf', publica: false, tag: '' }],
+        }),
+    ];
+    await seedCatalog(page, baseUrl, items);
+    await habilitarRsc(page, { cargo: 'Assistente em Administração' });
+    await page.evaluate(() => {
+        window.Storage.hasDirectory = () => true;
+        window.__saves = [];
+        window.Storage.writeFile = async (filename, data, subdir) => { window.__saves.push({ filename, subdir, data: Array.from(data) }); };
+        window.Storage.readAttachmentFile = async () => new Blob(['%PDF-1.4 conteúdo falso'], { type: 'application/pdf' });
+    });
+    await page.click('[data-tab="rsc"]');
+    await page.waitForTimeout(300);
+    await page.fill('#rscMemorialTexto', 'Memorial com itens fora de ordem no catálogo.');
+    await page.waitForTimeout(700);
+
+    await page.click('#btnRscExportar');
+    await page.waitForTimeout(300);
+
+    const saves = await page.evaluate(() => window.__saves.map((s) => ({ filename: s.filename, subdir: s.subdir, bytes: s.data })));
+    const anexoR1 = saves.find((s) => /Anexos$/.test(s.subdir) && s.filename.includes('Item do Requisito I'));
+    const anexoR3 = saves.find((s) => /Anexos$/.test(s.subdir) && s.filename.includes('Item do Requisito III'));
+    assert(anexoR1, 'Deveria ter exportado o anexo do item do Requisito I');
+    assert(anexoR3, 'Deveria ter exportado o anexo do item do Requisito III');
+    assert(anexoR1.filename.startsWith('001 '), `O item do Requisito I (lido primeiro nos documentos) deveria ser o anexo "001" — obtido "${anexoR1.filename}"`);
+    assert(anexoR3.filename.startsWith('002 '), `O item do Requisito III (lido depois, mesmo cadastrado antes no catálogo) deveria ser o anexo "002" — obtido "${anexoR3.filename}"`);
+
+    const memorialSave = saves.find((s) => /^Memorial_/.test(s.filename));
+    const paras = docxParagraphs(docxDocumentXml(memorialSave.bytes));
+    const iReq1 = paras.findIndex((p) => p.text.includes('Item do Requisito I'));
+    const iReq3 = paras.findIndex((p) => p.text.includes('Item do Requisito III'));
+    assert(iReq1 > -1 && iReq3 > -1 && iReq1 < iReq3, 'No memorial, o item do Requisito I deveria aparecer antes do item do Requisito III');
 });

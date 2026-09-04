@@ -414,12 +414,27 @@ window.TabRsc = (function () {
     }
     function sanitizeArquivo(s) { return String(s || '').replace(/[\\/:*?"<>|]/g, '').trim(); }
 
-    // Lista, em ordem, todos os anexos-arquivo (evidências que não são links)
-    // dos itens contabilizados, com um número sequencial ÚNICO (001, 002…)
-    // atribuído de uma vez só — esse é o mesmo número usado no nome do PDF
-    // exportado, no início do item correspondente no memorial, e na coluna
-    // "Documentos comprobatórios" do formulário, pra dar pra cruzar um com o
-    // outro sem ambiguidade.
+    // Ordena os itens contabilizados por Requisito (1-6) e, dentro dele, por
+    // critério — a MESMA ordem usada tanto no memorial quanto no formulário,
+    // pra que o primeiro documento citado em qualquer um dos dois seja
+    // sempre o 001, o segundo o 002, e assim por diante (facilita conferir a
+    // correspondência entre os PDFs, o memorial e o formulário).
+    function itensOrdenadosParaExportacao(itens) {
+        return itens.slice().sort((a, b) => {
+            const ca = LzRSC.criterio(a.rsc.criterio), cb = LzRSC.criterio(b.rsc.criterio);
+            const ra = ca ? ca.req : 99, rb = cb ? cb.req : 99;
+            if (ra !== rb) return ra - rb;
+            return String(a.rsc.criterio).localeCompare(String(b.rsc.criterio));
+        });
+    }
+
+    // Lista, na mesma ordem de leitura do memorial/formulário (ver
+    // itensOrdenadosParaExportacao), todos os anexos-arquivo (evidências que
+    // não são links) dos itens contabilizados, com um número sequencial
+    // ÚNICO (001, 002…) atribuído de uma vez só — esse é o mesmo número
+    // usado no nome do PDF exportado, no início do item correspondente no
+    // memorial, e na coluna "Documentos comprobatórios" do formulário, pra
+    // dar pra cruzar um com o outro sem ambiguidade.
     function listarAnexosNumerados(itens) {
         const lista = [];
         itens.forEach(it => {
@@ -473,9 +488,9 @@ window.TabRsc = (function () {
                 parts.push(D.heading(c ? `${c.item}. ${c.desc}` : critKey, 3));
                 porCriterio[critKey].forEach(it => {
                     const nums = (numerosPorItem[it.id] || []).map(numAnexo);
-                    const prefixo = nums.length ? `${nums.join(', ')} — ` : '';
+                    const prefixo = nums.length ? `${nums.join(', ')}: ` : '';
                     const periodo = (it.rsc.dataInicio || it.rsc.dataFim) ? ` (${it.rsc.dataInicio || '?'} a ${it.rsc.dataFim || '?'})` : '';
-                    const ch = (it.fields && it.fields.cargaHoraria) ? ` — Carga horária: ${it.fields.cargaHoraria}h` : '';
+                    const ch = (it.fields && it.fields.cargaHoraria) ? ` | Carga horária: ${it.fields.cargaHoraria}h` : '';
                     parts.push(D.para(`${prefixo}${LattesTypes.itemTitle(it)}${periodo}${ch}`));
                 });
             });
@@ -496,13 +511,14 @@ window.TabRsc = (function () {
         try {
             const folder = pastaExportacaoHoje();
             const nomeServidor = sanitizeArquivo(nomeServidorAtual()) || 'Servidor';
-            const anexos = listarAnexosNumerados(itens);
+            const ordenados = itensOrdenadosParaExportacao(itens);
+            const anexos = listarAnexosNumerados(ordenados);
 
             const textoMemorial = (state.rscMemorialTexto && state.rscMemorialTexto.trim()) ? state.rscMemorialTexto : rscMemorial(itens, sim, cfg);
-            const memorialBytes = window.LzDocx.buildDocx(memorialDocxBody(textoMemorial, itens, anexos, cfg));
+            const memorialBytes = window.LzDocx.buildDocx(memorialDocxBody(textoMemorial, ordenados, anexos, cfg));
             await Storage.writeFile(`Memorial_${nomeServidor}.docx`, memorialBytes, folder);
 
-            const formBytes = window.LzDocx.buildDocx(rscFormularioBody(itens, sim, cfg, anexos));
+            const formBytes = window.LzDocx.buildDocx(rscFormularioBody(ordenados, sim, cfg, anexos));
             await Storage.writeFile(nomeArquivoFormulario(), formBytes, folder);
 
             let nAnexos = 0;
