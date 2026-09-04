@@ -28,13 +28,15 @@ test('Sem diretório configurado, a seção "Diretório de armazenamento" mostra
     assertEqual(await page.locator('#btnChooseDir').count(), 0, 'Sem escolher um caminho no assistente ainda, "Escolher pasta" não deveria aparecer');
     assertEqual(await page.locator('#btnGDriveConnect').count(), 0, 'Sem escolher um caminho no assistente ainda, "Conectar ao Google Drive" não deveria aparecer');
 
-    // Prefixo do identificador aparece ANTES do bloco de diretório no DOM.
+    // Prefixo do identificador é o 1º passo do assistente, antes da pergunta
+    // "Primeira configuração ou já tenho um diretório".
+    assertEqual(await page.locator('#idPrefix').count(), 1, 'O campo de prefixo deveria fazer parte do assistente');
     const ordem = await page.evaluate(() => {
         const sec = document.querySelector('#dirSection');
         const html = sec.innerHTML;
-        return html.indexOf('Prefixo do identificador') < html.indexOf('Diretório de armazenamento');
+        return html.indexOf('Prefixo do identificador') < html.indexOf('Primeira configuração');
     });
-    assert(ordem, 'O "Prefixo do identificador dos arquivos" deveria aparecer antes de "Diretório de armazenamento"');
+    assert(ordem, 'O "Prefixo do identificador dos arquivos" deveria aparecer antes da pergunta "Primeira configuração ou já tenho um diretório"');
 });
 
 test('Assistente: "Primeira configuração" > "Pasta no computador" mostra só "Escolher pasta" (sem "Sincronizar")', async ({ page, baseUrl }) => {
@@ -108,4 +110,33 @@ test('Com um diretório já configurado, a seção mostra o painel de estado dir
     assertEqual(await page.locator('#dirNameLbl').count(), 1, 'Deveria mostrar direto o painel "Pasta atual"');
     const dirLbl = await page.$eval('#dirNameLbl', (el) => el.textContent);
     assert(dirLbl.includes('PastaFake'), 'Deveria mostrar o nome da pasta já configurada');
+    assertEqual(await page.locator('#idPrefix').count(), 0, 'Com diretório já configurado, o passo de "Prefixo do identificador" não precisa mais aparecer');
+});
+
+test('"Esquecer pasta" volta a mostrar o assistente do início (passo 1: prefixo; passo 2: primeira configuração/já tenho)', async ({ page, baseUrl }) => {
+    await page.addInitScript(() => {
+        Object.defineProperty(window, 'Storage', {
+            configurable: true,
+            set(real) {
+                let esquecida = false;
+                real.hasDirectory = () => !esquecida;
+                real.directoryName = async () => 'PastaFake';
+                real.checkHealth = async () => ({ ok: true, hasDir: true });
+                real.forgetDirectory = async () => { esquecida = true; };
+                Object.defineProperty(window, 'Storage', { value: real, writable: true, configurable: true });
+            },
+            get() { return undefined; },
+        });
+    });
+    await abrirConfig(page, baseUrl);
+    assertEqual(await page.locator('[data-wizard-modo]').count(), 0, 'Pré-condição: com diretório configurado, o assistente não deveria aparecer ainda');
+
+    await page.click('#btnForget');
+    await page.waitForTimeout(150);
+
+    const toasts = await page.evaluate(() => Array.from(document.querySelectorAll('#toasts > div')).map((d) => d.textContent));
+    assert(toasts.some((t) => /pasta esquecida/i.test(t) && /escolha um novo diret[oó]rio|drive/i.test(t)), 'O aviso deveria confirmar que a pasta foi esquecida e indicar o que fazer a seguir');
+
+    assertEqual(await page.locator('[data-wizard-modo]').count(), 2, 'Depois de esquecer a pasta, o assistente deveria reaparecer do zero (passo 2)');
+    assertEqual(await page.locator('#idPrefix').count(), 1, 'O passo 1 (prefixo) do assistente também deveria voltar a aparecer');
 });

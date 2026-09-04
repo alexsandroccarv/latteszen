@@ -1268,8 +1268,17 @@ window.TabConfig = (function () {
         let dirSectionHtml;
         if (semDiretorio) {
             let html = `
+                <div class="mb-4 pb-4 border-b border-gray-200 dark:border-gray-700">
+                    <h3 class="text-sm font-bold mb-1">1. Prefixo do identificador dos arquivos</h3>
+                    <p class="text-xs text-gray-500 mb-2">Os arquivos são nomeados como <code class="bg-gray-200 dark:bg-gray-700 px-1 rounded">prefixo-XXX.pdf</code> (3 alfanuméricos). Prefixo de até 3 caracteres (letras minúsculas/números). Só precisa definir uma vez — depois de configurar o diretório, esta opção some daqui.</p>
+                    <div class="flex items-center gap-2">
+                        <input id="idPrefix" type="text" maxlength="3" value="${esc(state.idPrefix)}" class="w-20 text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 font-mono">
+                        <span class="text-xs text-gray-500">Exemplo: <code id="idPrefixEx" class="bg-gray-200 dark:bg-gray-700 px-1 rounded">${esc(state.idPrefix)}-k7p</code></span>
+                        <button id="btnSavePrefix" class="ml-auto px-3 py-1.5 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm"><i class="fa-solid fa-floppy-disk mr-1"></i> Salvar prefixo</button>
+                    </div>
+                </div>
                 <div class="mb-3">
-                    <p class="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Isto é uma primeira configuração, ou você já tem um diretório (local ou no Drive) com itens?</p>
+                    <p class="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">2. Isto é uma primeira configuração, ou você já tem um diretório (local ou no Drive) com itens?</p>
                     <div class="flex flex-wrap gap-2">
                         ${modoBtn('novo', 'Primeira configuração')}
                         ${modoBtn('existente', 'Já tenho um diretório')}
@@ -1278,7 +1287,7 @@ window.TabConfig = (function () {
             if (dirWizardModo) {
                 html += `
                 <div class="mb-3">
-                    <p class="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Onde ficam os arquivos?</p>
+                    <p class="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">3. Onde ficam os arquivos?</p>
                     <div class="flex flex-wrap gap-2">
                         ${tipoBtn('local', 'Pasta no computador')}
                         ${tipoBtn('remoto', 'Google Drive')}
@@ -1343,16 +1352,6 @@ window.TabConfig = (function () {
             <div class="space-y-6 max-w-2xl">
                 ${cfgGroup('fa-folder-tree', 'Diretório e dados')}
                 <section id="dirSection" class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-                    <div class="mb-4 pb-4 border-b border-gray-200 dark:border-gray-700">
-                        <h3 class="text-sm font-bold mb-1">Prefixo do identificador dos arquivos</h3>
-                        <p class="text-xs text-gray-500 mb-2">Os arquivos são nomeados como <code class="bg-gray-200 dark:bg-gray-700 px-1 rounded">prefixo-XXX.pdf</code> (3 alfanuméricos). Prefixo de até 3 caracteres (letras minúsculas/números).</p>
-                        <div class="flex items-center gap-2">
-                            <input id="idPrefix" type="text" maxlength="3" value="${esc(state.idPrefix)}" class="w-20 text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 font-mono">
-                            <span class="text-xs text-gray-500">Exemplo: <code id="idPrefixEx" class="bg-gray-200 dark:bg-gray-700 px-1 rounded">${esc(state.idPrefix)}-k7p</code></span>
-                            <button id="btnSavePrefix" class="ml-auto px-3 py-1.5 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm"><i class="fa-solid fa-floppy-disk mr-1"></i> Salvar prefixo</button>
-                        </div>
-                    </div>
-
                     <h2 class="text-lg font-bold mb-2 flex items-center gap-2"><i class="fa-solid fa-folder-open text-govbr-600 dark:text-unifesp-400"></i> Diretório de armazenamento</h2>
                     <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
                         Cada item catalogado é salvo aqui como <code class="text-xs bg-gray-200 dark:bg-gray-700 px-1 rounded">ID.pdf</code> +
@@ -1478,10 +1477,12 @@ window.TabConfig = (function () {
         $('#bibInput').addEventListener('change', onBibFileSelected);
         wireBibExport();
         $('#xmlInput').addEventListener('change', onXmlSelected);
-        $('#idPrefix').addEventListener('input', (e) => {
+        const idPrefixInput = $('#idPrefix');
+        if (idPrefixInput) idPrefixInput.addEventListener('input', (e) => {
             $('#idPrefixEx').textContent = `${window.AppCore.sanitizePrefix(e.target.value)}-k7p`;
         });
-        $('#btnSavePrefix').addEventListener('click', () => {
+        const btnSavePrefix = $('#btnSavePrefix');
+        if (btnSavePrefix) btnSavePrefix.addEventListener('click', () => {
             state.idPrefix = window.AppCore.sanitizePrefix($('#idPrefix').value);
             const s = Storage.loadSettings(); s.idPrefix = state.idPrefix; Storage.saveSettings(s);
             toast(`Prefixo definido: "${state.idPrefix}". Novos arquivos: ${state.idPrefix}-XXX.`, 'ok');
@@ -1523,7 +1524,7 @@ window.TabConfig = (function () {
             state.dirHealth = null;
             dirWizardModo = null; dirWizardTipo = null; // volta o assistente pro início
             window.AppCore.renderDirBanner();
-            toast('Pasta esquecida.', 'ok');
+            toast('Pasta esquecida — escolha um novo diretório ou pasta no Drive abaixo.', 'ok');
             render();
         });
         $$('[data-wizard-modo]').forEach(btn => {
