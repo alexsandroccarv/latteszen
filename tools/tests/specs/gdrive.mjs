@@ -188,6 +188,15 @@ async function mockLocalDir(page, entries) {
 }
 
 async function conectar(page, pasta) {
+    // Sem diretório configurado ainda, a seção mostra o assistente guiado
+    // (Primeira configuração/Já tenho → Local/Remoto) em vez dos campos do
+    // Drive direto — navega os passos antes de preencher/clicar.
+    if (await page.locator('[data-wizard-modo="novo"]').count()) {
+        await page.click('[data-wizard-modo="novo"]');
+        await page.waitForTimeout(50);
+        await page.click('[data-wizard-tipo="remoto"]');
+        await page.waitForTimeout(50);
+    }
     if (pasta) await page.fill('#gdrivePasta', pasta);
     await page.click('#btnGDriveConnect');
     // O clique dispara conectar + criar toda a estrutura de pastas + sincronizar

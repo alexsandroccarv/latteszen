@@ -42,6 +42,12 @@ test('Sincronização manual mescla por id (mantém locais, atualiza/soma da pas
 
     await page.click('[data-tab="config"]');
     await page.waitForTimeout(300);
+    // Sem diretório configurado, a seção mostra o assistente guiado — navega
+    // até "Já tenho um diretório" > "Local" pra revelar o botão de sincronizar.
+    await page.click('[data-wizard-modo="existente"]');
+    await page.waitForTimeout(50);
+    await page.click('[data-wizard-tipo="local"]');
+    await page.waitForTimeout(50);
     await page.click('#btnSync');
     await page.waitForTimeout(400);
 

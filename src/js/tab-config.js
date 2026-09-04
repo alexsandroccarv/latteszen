@@ -33,6 +33,14 @@ window.TabConfig = (function () {
     // recarregar a página.
     let gdriveMigrationNotice = null;
 
+    // Assistente guiado de "Diretório de armazenamento", mostrado só enquanto
+    // NENHUM diretório está configurado ainda (Storage.hasDirectory() falso)
+    // — depois de configurado, a seção volta a mostrar o painel de estado
+    // atual direto (pasta ativa + botões de gerenciar), sem o assistente.
+    // 'novo' | 'existente' | null, e 'local' | 'remoto' | null.
+    let dirWizardModo = null;
+    let dirWizardTipo = null;
+
     /* =====================================================================
        IMPORTAR LATTES (XML) — seção dentro de Configurações
        ===================================================================== */
@@ -1248,47 +1256,94 @@ window.TabConfig = (function () {
         // pra manter o status em dia sem precisar clicar em "Verificar pasta".
         if (Storage.hasDirectory()) await window.AppCore.checkDirHealth();
 
+        // Sem diretório configurado ainda: assistente guiado (passo a passo)
+        // em vez da parede de botões — pergunta primeiro configuração ou já
+        // tem um diretório, depois local ou remoto, só então mostra a ação
+        // certa. Com um diretório já ativo, pula direto pro painel de estado
+        // (pasta atual + botões de gerenciar), como sempre foi.
+        const semDiretorio = !Storage.hasDirectory();
+        const modoBtn = (val, label) => `<button type="button" data-wizard-modo="${val}" class="px-3 py-2 rounded text-sm border ${dirWizardModo === val ? 'bg-govbr-600 dark:bg-unifesp-700 text-white border-govbr-600 dark:border-unifesp-700' : 'border-gray-300 dark:border-gray-600'}">${esc(label)}</button>`;
+        const tipoBtn = (val, label) => `<button type="button" data-wizard-tipo="${val}" class="px-3 py-2 rounded text-sm border ${dirWizardTipo === val ? 'bg-govbr-600 dark:bg-unifesp-700 text-white border-govbr-600 dark:border-unifesp-700' : 'border-gray-300 dark:border-gray-600'}">${esc(label)}</button>`;
+
+        let dirSectionHtml;
+        if (semDiretorio) {
+            let html = `
+                <div class="mb-3">
+                    <p class="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Isto é uma primeira configuração, ou você já tem um diretório (local ou no Drive) com itens?</p>
+                    <div class="flex flex-wrap gap-2">
+                        ${modoBtn('novo', 'Primeira configuração')}
+                        ${modoBtn('existente', 'Já tenho um diretório')}
+                    </div>
+                </div>`;
+            if (dirWizardModo) {
+                html += `
+                <div class="mb-3">
+                    <p class="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Onde ficam os arquivos?</p>
+                    <div class="flex flex-wrap gap-2">
+                        ${tipoBtn('local', 'Pasta no computador')}
+                        ${tipoBtn('remoto', 'Google Drive')}
+                    </div>
+                </div>`;
+            }
+            if (dirWizardModo && dirWizardTipo === 'local') {
+                html += `
+                <div class="flex flex-wrap gap-2">
+                    <button id="btnChooseDir" class="px-3 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm" ${Storage.supportsFS ? '' : 'disabled'}><i class="fa-solid fa-folder mr-1"></i> Escolher pasta</button>
+                    ${dirWizardModo === 'existente' ? `<button id="btnSync" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-rotate mr-1"></i> Sincronizar do diretório</button>` : ''}
+                </div>
+                ${Storage.supportsFS ? '' : '<p class="text-xs text-red-600 font-semibold mt-1">Seu navegador não suporta esta função — use Chrome ou Edge.</p>'}`;
+            }
+            if (dirWizardModo && dirWizardTipo === 'remoto') {
+                html += `
+                <div class="flex flex-wrap gap-2 mb-2">
+                    <input id="gdrivePasta" type="text" placeholder="Pasta (ex.: lattesZen)" value="lattesZen" class="text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900">
+                </div>
+                <p class="text-xs text-gray-500 mb-2">
+                    O lattesZen só acessa os arquivos que ele mesmo cria (escopo <code class="bg-gray-200 dark:bg-gray-700 px-1 rounded">drive.file</code>) — nunca o restante do seu Drive.
+                    ${APP_CONFIG.googleDriveClientId ? '' : '<span class="text-red-600 font-semibold">Recurso ainda não configurado neste site (falta o Client ID do Google Cloud Console em config.js).</span>'}
+                </p>
+                <div class="flex flex-wrap gap-2">
+                    <button id="btnGDriveConnect" class="px-3 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm" ${APP_CONFIG.googleDriveClientId ? '' : 'disabled'}><i class="fa-brands fa-google mr-1"></i> Conectar ao Google Drive</button>
+                    ${dirWizardModo === 'existente' ? `<button id="btnGDriveMigrate" class="px-3 py-2 rounded border border-govbr-600 dark:border-unifesp-400 text-govbr-700 dark:text-unifesp-300 text-sm" ${APP_CONFIG.googleDriveClientId ? '' : 'disabled'}><i class="fa-solid fa-cloud-arrow-up mr-1"></i> Migrar meus arquivos e conectar</button>` : ''}
+                </div>
+                ${dirWizardModo === 'existente' ? `<p class="text-xs text-gray-500 mt-1">"Migrar meus arquivos e conectar" pede pra você escolher a pasta local atual e copia tudo pro Drive antes de trocar. "Conectar" sozinho começa com uma pasta vazia no Drive.</p>` : ''}
+                <div id="gdriveStatus" class="text-sm mt-2"></div>`;
+            }
+            dirSectionHtml = html;
+        } else {
+            dirSectionHtml = `
+                <p class="text-sm mb-1">Pasta atual: <strong id="dirNameLbl">${esc(dirName)}</strong></p>
+                <p class="text-sm mb-3" id="dirHealthStatus">${window.AppCore.dirHealthStatusHtml()}</p>
+                <div class="flex flex-wrap gap-2">
+                    <button id="btnChooseDir" class="px-3 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm" ${Storage.supportsFS ? '' : 'disabled'}><i class="fa-solid fa-folder mr-1"></i> Escolher pasta</button>
+                    <button id="btnSync" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-rotate mr-1"></i> Sincronizar do diretório</button>
+                    <button id="btnCheckDir" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-stethoscope mr-1"></i> Verificar pasta</button>
+                </div>
+                <div class="mt-4 pt-3 border-t border-gray-200 dark:border-gray-700">
+                    <h3 class="text-sm font-bold mb-1">Armazenamento remoto (Google Drive)</h3>
+                    <p class="text-xs text-gray-500 mb-2">
+                        Alternativa à pasta local: os arquivos ficam numa pasta dedicada no seu Google Drive, acessível de mais de um dispositivo.
+                        O lattesZen só acessa os arquivos que ele mesmo cria (escopo <code class="bg-gray-200 dark:bg-gray-700 px-1 rounded">drive.file</code>) — nunca o restante do seu Drive.
+                        ${APP_CONFIG.googleDriveClientId ? '' : '<span class="text-red-600 font-semibold">Recurso ainda não configurado neste site (falta o Client ID do Google Cloud Console em config.js).</span>'}
+                    </p>
+                    <div class="flex flex-wrap gap-2 mb-2">
+                        <input id="gdrivePasta" type="text" placeholder="Pasta (ex.: lattesZen)" value="lattesZen" ${storageMode === 'gdrive' ? 'disabled' : ''} class="text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900">
+                    </div>
+                    <div class="flex flex-wrap gap-2 items-center">
+                        <button id="btnGDriveConnect" class="px-3 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm" ${APP_CONFIG.googleDriveClientId ? '' : 'disabled'}><i class="fa-brands fa-google mr-1"></i> Conectar ao Google Drive</button>
+                        ${storageMode === 'local' && dirName ? `<button id="btnGDriveMigrate" class="px-3 py-2 rounded border border-govbr-600 dark:border-unifesp-400 text-govbr-700 dark:text-unifesp-300 text-sm" ${APP_CONFIG.googleDriveClientId ? '' : 'disabled'}><i class="fa-solid fa-cloud-arrow-up mr-1"></i> Migrar pasta local para o Google Drive</button>` : ''}
+                        ${storageMode === 'gdrive' ? `<span class="text-xs text-green-700 dark:text-green-400"><i class="fa-solid fa-circle-check mr-1"></i> Este é o armazenamento em uso.</span>` : ''}
+                    </div>
+                    ${storageMode === 'local' && dirName ? `<p class="text-xs text-gray-500 mt-1">"Migrar" copia todos os arquivos da pasta local atual para o Drive antes de trocar — evita ter que reanexar tudo de novo. "Conectar" sozinho começa com uma pasta vazia no Drive.</p>` : ''}
+                    <div id="gdriveStatus" class="text-sm mt-2"></div>
+                </div>`;
+        }
+
         panel.innerHTML = `
             <div class="space-y-6 max-w-2xl">
                 ${cfgGroup('fa-folder-tree', 'Diretório e dados')}
                 <section id="dirSection" class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-                    <h2 class="text-lg font-bold mb-2 flex items-center gap-2"><i class="fa-solid fa-folder-open text-govbr-600 dark:text-unifesp-400"></i> Diretório de arquivos</h2>
-                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
-                        Cada item catalogado é salvo aqui como <code class="text-xs bg-gray-200 dark:bg-gray-700 px-1 rounded">ID.pdf</code> +
-                        <code class="text-xs bg-gray-200 dark:bg-gray-700 px-1 rounded">ID.json</code>.
-                        ${Storage.supportsFS ? '' : '<span class="text-red-600 font-semibold">Seu navegador não suporta esta função — use Chrome ou Edge.</span>'}
-                    </p>
-                    <p class="text-sm mb-1">Pasta atual: <strong id="dirNameLbl">${dirName ? esc(dirName) : '<em>nenhuma</em>'}</strong></p>
-                    ${dirName ? `<p class="text-sm mb-3" id="dirHealthStatus">${window.AppCore.dirHealthStatusHtml()}</p>` : ''}
-                    <div class="flex flex-wrap gap-2">
-                        <button id="btnChooseDir" class="px-3 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm" ${Storage.supportsFS ? '' : 'disabled'}><i class="fa-solid fa-folder mr-1"></i> Escolher pasta</button>
-                        <button id="btnSync" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-rotate mr-1"></i> Sincronizar do diretório</button>
-                        ${dirName ? `<button id="btnCheckDir" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-stethoscope mr-1"></i> Verificar pasta</button>` : ''}
-                        <button id="btnForget" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-link-slash mr-1"></i> Esquecer pasta</button>
-                    </div>
-                    <div class="mt-4 pt-3 border-t border-gray-200 dark:border-gray-700">
-                        <h3 class="text-sm font-bold mb-1">Armazenamento remoto (Google Drive)</h3>
-                        <p class="text-xs text-gray-500 mb-2">
-                            Alternativa à pasta local: os arquivos ficam numa pasta dedicada no seu Google Drive, acessível de mais de um dispositivo.
-                            O lattesZen só acessa os arquivos que ele mesmo cria (escopo <code class="bg-gray-200 dark:bg-gray-700 px-1 rounded">drive.file</code>) — nunca o restante do seu Drive.
-                            ${APP_CONFIG.googleDriveClientId ? '' : '<span class="text-red-600 font-semibold">Recurso ainda não configurado neste site (falta o Client ID do Google Cloud Console em config.js).</span>'}
-                        </p>
-                        <div class="flex flex-wrap gap-2 mb-2">
-                            <input id="gdrivePasta" type="text" placeholder="Pasta (ex.: lattesZen)" value="lattesZen" ${storageMode === 'gdrive' ? 'disabled' : ''} class="text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900">
-                        </div>
-                        <div class="flex flex-wrap gap-2 items-center">
-                            <button id="btnGDriveConnect" class="px-3 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm" ${APP_CONFIG.googleDriveClientId ? '' : 'disabled'}><i class="fa-brands fa-google mr-1"></i> Conectar ao Google Drive</button>
-                            ${storageMode === 'local' && dirName ? `<button id="btnGDriveMigrate" class="px-3 py-2 rounded border border-govbr-600 dark:border-unifesp-400 text-govbr-700 dark:text-unifesp-300 text-sm" ${APP_CONFIG.googleDriveClientId ? '' : 'disabled'}><i class="fa-solid fa-cloud-arrow-up mr-1"></i> Migrar pasta local para o Google Drive</button>` : ''}
-                            ${storageMode === 'gdrive' ? `<span class="text-xs text-green-700 dark:text-green-400"><i class="fa-solid fa-circle-check mr-1"></i> Este é o armazenamento em uso.</span>` : ''}
-                        </div>
-                        ${storageMode === 'local' && dirName ? `<p class="text-xs text-gray-500 mt-1">"Migrar" copia todos os arquivos da pasta local atual para o Drive antes de trocar — evita ter que reanexar tudo de novo. "Conectar" sozinho começa com uma pasta vazia no Drive.</p>` : ''}
-                        <div id="gdriveStatus" class="text-sm mt-2"></div>
-                        ${gdriveMigrationNotice ? `<div id="gdriveMigrationNotice" class="text-sm mt-2 p-3 rounded border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-300">
-                            <i class="fa-solid fa-triangle-exclamation mr-1"></i> ${esc(gdriveMigrationNotice)}
-                            <button id="btnDismissGDriveNotice" class="block mt-1 text-xs underline">Entendi, dispensar</button>
-                        </div>` : ''}
-                    </div>
-                    <div class="mt-4 pt-3 border-t border-gray-200 dark:border-gray-700">
+                    <div class="mb-4 pb-4 border-b border-gray-200 dark:border-gray-700">
                         <h3 class="text-sm font-bold mb-1">Prefixo do identificador dos arquivos</h3>
                         <p class="text-xs text-gray-500 mb-2">Os arquivos são nomeados como <code class="bg-gray-200 dark:bg-gray-700 px-1 rounded">prefixo-XXX.pdf</code> (3 alfanuméricos). Prefixo de até 3 caracteres (letras minúsculas/números).</p>
                         <div class="flex items-center gap-2">
@@ -1296,6 +1351,21 @@ window.TabConfig = (function () {
                             <span class="text-xs text-gray-500">Exemplo: <code id="idPrefixEx" class="bg-gray-200 dark:bg-gray-700 px-1 rounded">${esc(state.idPrefix)}-k7p</code></span>
                             <button id="btnSavePrefix" class="ml-auto px-3 py-1.5 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm"><i class="fa-solid fa-floppy-disk mr-1"></i> Salvar prefixo</button>
                         </div>
+                    </div>
+
+                    <h2 class="text-lg font-bold mb-2 flex items-center gap-2"><i class="fa-solid fa-folder-open text-govbr-600 dark:text-unifesp-400"></i> Diretório de armazenamento</h2>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                        Cada item catalogado é salvo aqui como <code class="text-xs bg-gray-200 dark:bg-gray-700 px-1 rounded">ID.pdf</code> +
+                        <code class="text-xs bg-gray-200 dark:bg-gray-700 px-1 rounded">ID.json</code>.
+                        ${Storage.supportsFS ? '' : '<span class="text-red-600 font-semibold">Seu navegador não suporta esta função — use Chrome ou Edge.</span>'}
+                    </p>
+                    ${dirSectionHtml}
+                    ${gdriveMigrationNotice ? `<div id="gdriveMigrationNotice" class="text-sm mt-3 p-3 rounded border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-300">
+                        <i class="fa-solid fa-triangle-exclamation mr-1"></i> ${esc(gdriveMigrationNotice)}
+                        <button id="btnDismissGDriveNotice" class="block mt-1 text-xs underline">Entendi, dispensar</button>
+                    </div>` : ''}
+                    <div class="mt-4 pt-3 border-t border-gray-200 dark:border-gray-700">
+                        <button id="btnForget" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-link-slash mr-1"></i> Esquecer pasta</button>
                     </div>
                 </section>
 
@@ -1417,7 +1487,8 @@ window.TabConfig = (function () {
             toast(`Prefixo definido: "${state.idPrefix}". Novos arquivos: ${state.idPrefix}-XXX.`, 'ok');
             render();
         });
-        $('#btnChooseDir').addEventListener('click', async () => {
+        const btnChooseDir = $('#btnChooseDir');
+        if (btnChooseDir) btnChooseDir.addEventListener('click', async () => {
             try {
                 await Storage.chooseDirectory();
                 await Storage.ensureSubdirs(LattesTypes.allFolders()); // cria a estrutura de pastas
@@ -1439,14 +1510,28 @@ window.TabConfig = (function () {
                 render();
             } catch (e) { if (e.name !== 'AbortError') toast(e.message, 'erro'); }
         });
-        $('#btnSync').addEventListener('click', async () => {
+        const btnSync = $('#btnSync');
+        if (btnSync) btnSync.addEventListener('click', async () => {
             try {
                 const { encontrados } = await window.AppCore.syncFromDirectory();
                 toast(`${encontrados} arquivo(s) .json lido(s) do diretório.`, 'ok');
                 window.AppCore.renderItemList();
             } catch (e) { toast(e.message, 'erro'); }
         });
-        $('#btnForget').addEventListener('click', async () => { await Storage.forgetDirectory(); state.dirHealth = null; window.AppCore.renderDirBanner(); toast('Pasta esquecida.', 'ok'); render(); });
+        $('#btnForget').addEventListener('click', async () => {
+            await Storage.forgetDirectory();
+            state.dirHealth = null;
+            dirWizardModo = null; dirWizardTipo = null; // volta o assistente pro início
+            window.AppCore.renderDirBanner();
+            toast('Pasta esquecida.', 'ok');
+            render();
+        });
+        $$('[data-wizard-modo]').forEach(btn => {
+            btn.addEventListener('click', () => { dirWizardModo = btn.dataset.wizardModo; dirWizardTipo = null; render(); });
+        });
+        $$('[data-wizard-tipo]').forEach(btn => {
+            btn.addEventListener('click', () => { dirWizardTipo = btn.dataset.wizardTipo; render(); });
+        });
         const btnCheckDir = $('#btnCheckDir');
         if (btnCheckDir) btnCheckDir.addEventListener('click', async () => {
             await window.AppCore.checkDirHealth({ requestIfNeeded: true });
@@ -1493,6 +1578,13 @@ window.TabConfig = (function () {
             btnGDriveMigrate.disabled = true;
             if (btnGDriveConnect) btnGDriveConnect.disabled = true;
             try {
+                // No assistente (sem diretório ativo ainda), "Migrar meus
+                // arquivos e conectar" ainda não tem uma pasta local pra
+                // migrar — pede pra escolher agora, antes de conectar.
+                if (!Storage.hasDirectory()) {
+                    if (statusEl) statusEl.innerHTML = '<span class="text-gray-500">Escolha a pasta local com os seus arquivos…</span>';
+                    await Storage.chooseDirectory();
+                }
                 if (statusEl) statusEl.innerHTML = '<span class="text-gray-500">Conectando… (autorize na janela do Google)</span>';
                 await Storage.connectGoogleDrive({ pasta });
                 await Storage.ensureSubdirs(LattesTypes.allFolders()); // cria a estrutura de pastas
@@ -1512,6 +1604,7 @@ window.TabConfig = (function () {
                 window.AppCore.renderItemList();
                 render();
             } catch (e) {
+                if (e.name === 'AbortError') { btnGDriveMigrate.disabled = false; if (btnGDriveConnect) btnGDriveConnect.disabled = false; return; } // cancelou o seletor de pasta
                 if (statusEl) statusEl.innerHTML = `<span class="text-red-700 dark:text-red-400"><i aria-hidden="true" class="fa-solid fa-triangle-exclamation mr-1"></i> ${esc(e.message)}</span>`;
                 toast('Falha na migração: ' + e.message, 'erro');
                 btnGDriveMigrate.disabled = false;

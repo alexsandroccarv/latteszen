@@ -162,7 +162,7 @@
     }
     // Publicado em AppCore para tab-config.js — mesmo motivo de uid/nowISO.
     window.AppCore.renderDirBanner = renderDirBanner;
-    // Texto de status usado na seção "Diretório de arquivos" em Configurações.
+    // Texto de status usado na seção "Diretório de armazenamento" em Configurações.
     function dirHealthStatusHtml() {
         if (!state.dirHealth) return `<span class="text-gray-500"><i aria-hidden="true" class="fa-solid fa-circle-question mr-1"></i> Ainda não verificado.</span>`;
         if (state.dirHealth.ok) return `<span class="text-green-700 dark:text-green-400"><i aria-hidden="true" class="fa-solid fa-circle-check mr-1"></i> Acessível.</span>`;
