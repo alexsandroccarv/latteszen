@@ -11,6 +11,71 @@ window.TabRsc = (function () {
     function rscItensContados() {
         return state.items.filter(i => i.rsc && i.rsc.conta && i.rsc.criterio && !i.rsc.jaUsado);
     }
+
+    // Dados funcionais do servidor (cargo, SIAPE, contatos etc.) — antes em
+    // Configurações › RSC, movidos pra cá (issue de usabilidade): fica tudo
+    // num só lugar, junto do simulador que os usa. Em Configurações só resta
+    // o "Habilitar módulo RSC-PCCTAE".
+    function rscCfgSectionHtml(cfg) {
+        const c = cfg || {};
+        // Compatibilidade: valor antigo (campo único "Telefone/E-mail") migra
+        // pra exibição nos 2 campos novos, na primeira vez que a tela abre
+        // depois da separação — só grava de fato quando "Salvar configuração" é clicado.
+        if (c.telefone == null && c.email == null && c.telefoneEmail) {
+            const partes = c.telefoneEmail.split('/');
+            if (partes.length >= 2) { c.telefone = partes[0].trim(); c.email = partes.slice(1).join('/').trim(); }
+            else if (/@/.test(c.telefoneEmail)) { c.email = c.telefoneEmail.trim(); }
+            else { c.telefone = c.telefoneEmail.trim(); }
+        }
+        const inp = (k, lbl, ph) => `<div><label class="block text-xs font-semibold mb-1" for="rsc-${k}">${esc(lbl)}</label>
+            <input id="rsc-${k}" type="text" value="${esc(c[k] || '')}" placeholder="${esc(ph || '')}" class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900"></div>`;
+        const escOpts = LzRSC.ESCOLARIDADE.map(e => `<option value="${e.key}" ${c.escolaridade === e.key ? 'selected' : ''}>${esc(e.label)} (nível ${e.maxN}, IQ ${e.iq}%)</option>`).join('');
+        const nivelClassOpts = ['A', 'B', 'C', 'D', 'E'].map(n => `<option value="${n}" ${c.nivelClassificacao === n ? 'selected' : ''}>${n}</option>`).join('');
+        return `<section class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 mb-4">
+            <h3 class="font-bold text-sm mb-2 flex items-center gap-2"><i class="fa-solid fa-id-card text-govbr-600 dark:text-unifesp-400"></i> Dados do servidor</h3>
+            <div class="grid grid-cols-2 gap-2">
+                ${inp('cargo', 'Cargo', 'ex.: Assistente em Administração')}
+                ${inp('siape', 'SIAPE', '(opcional)')}
+                ${inp('lotacao', 'Lotação / unidade', '')}
+                ${inp('ingresso', 'Data de ingresso no cargo', '25/12/2026')}
+                ${inp('dataInicioContagem', 'Início da contagem (RSC)', '25/12/2026')}
+                <div>
+                    <label class="block text-xs font-semibold mb-1" for="rsc-nivelClassificacao">Nível de Classificação</label>
+                    <select id="rsc-nivelClassificacao" class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900"><option value="">—</option>${nivelClassOpts}</select>
+                </div>
+                ${inp('funcaoEncargo', 'Função / Encargo (se houver)', '')}
+                ${inp('telefone', 'Telefone', '(11) 1234-5678')}
+                ${inp('email', 'E-mail', 'fulano@instituicao.br')}
+                ${inp('saldoAnterior', 'Saldo de pontuação de concessão anterior', '')}
+                ${inp('processoAnterior', 'Nº do processo da concessão anterior (se houver)', '')}
+                <div class="col-span-2">
+                    ${inp('dataAbrangenciaFinal', 'Data de abrangência (final)', '25/12/2026')}
+                    <p class="text-[11px] text-gray-500 mt-0.5">Data de corte do memorial/requerimento. Usada como fim do período em itens ainda <strong>em exercício</strong> (situação "Atual", sem data de fim própria) — sem ela, esses itens não têm o tempo decorrido contado.</p>
+                </div>
+                <div class="col-span-2">
+                    <label class="block text-xs font-semibold mb-1" for="rsc-escolaridade">Escolaridade (limita o nível máximo)</label>
+                    <select id="rsc-escolaridade" class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900"><option value="">—</option>${escOpts}</select>
+                </div>
+            </div>
+            <div class="flex gap-2 mt-3">
+                <button id="btnSaveRscCfg" class="px-3 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm"><i class="fa-solid fa-floppy-disk mr-1"></i> Salvar configuração</button>
+            </div>
+        </section>`;
+    }
+    function wireRscCfgSection() {
+        const btn = $('#btnSaveRscCfg'); if (!btn) return;
+        btn.addEventListener('click', () => {
+            const keys = ['cargo', 'siape', 'lotacao', 'ingresso', 'dataInicioContagem', 'dataAbrangenciaFinal',
+                'nivelClassificacao', 'funcaoEncargo', 'telefone', 'email', 'saldoAnterior', 'processoAnterior'];
+            const cfg = {};
+            keys.forEach(k => { const el = $('#rsc-' + k); if (el) cfg[k] = el.value.trim(); });
+            cfg.escolaridade = $('#rsc-escolaridade').value;
+            state.rscCfg = cfg;
+            const s = Storage.loadSettings(); s.rsc = cfg; Storage.saveSettings(s);
+            toast('Configuração do RSC salva.', 'ok');
+            render();
+        });
+    }
     function render() {
         const panel = $('#tab-rsc');
         if (!state.rscEnabled) {
@@ -57,13 +122,15 @@ window.TabRsc = (function () {
             </details>`).join('') || `<p class="text-sm text-gray-500 italic">Nenhum item marcado para o RSC ainda. Em Catalogar, marque “Contabilizar este item no RSC”.</p>`;
 
         panel.innerHTML = `
+            ${rscCfgSectionHtml(cfg)}
+
             <div class="grid lg:grid-cols-3 gap-4 mb-4">
                 <div class="lg:col-span-1 bg-gradient-to-br from-govbr-600 to-govbr-800 dark:from-unifesp-700 dark:to-unifesp-900 text-white rounded-lg p-4">
                     <p class="text-sm opacity-90">Nível alcançável</p>
                     <p class="text-3xl font-bold">${esc(sim.nivelNome)}</p>
                     <p class="text-sm mt-1">Incentivo à Qualificação: <strong>${sim.iq}%</strong></p>
                     <p class="text-xs opacity-80 mt-2">${sim.total.toString().replace('.', ',')} pontos · ${sim.criteriosDistintos} critérios distintos</p>
-                    ${cfg.escolaridade ? `<p class="text-xs opacity-80">Escolaridade limita a nível ${sim.capNivel}.</p>` : `<p class="text-xs opacity-90">⚠ Informe a escolaridade em Configurações.</p>`}
+                    ${cfg.escolaridade ? `<p class="text-xs opacity-80">Escolaridade limita a nível ${sim.capNivel}.</p>` : `<p class="text-xs opacity-90">⚠ Informe a escolaridade acima.</p>`}
                 </div>
                 <div class="lg:col-span-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
                     <h3 class="font-bold text-sm mb-2">Progresso por nível</h3>
@@ -97,6 +164,7 @@ window.TabRsc = (function () {
             <h3 class="font-bold mb-2">Itens contabilizados</h3>
             ${listaHtml}`;
 
+        wireRscCfgSection();
         $('#btnRscCsv').addEventListener('click', () => downloadText(rscCsv(itens), 'rsc-comprovacao.csv', 'text/csv'));
         $('#btnRscMemorial').addEventListener('click', () => exportarMemorial(itens, sim, cfg));
         $('#btnRscForm').addEventListener('click', () => salvarFormularioDocx(itens, sim, cfg));
