@@ -110,8 +110,7 @@ window.TabRsc = (function () {
     function rscMemorial(itens, sim, cfg) {
         const L = [];
         L.push('MEMORIAL — RSC-PCCTAE'); L.push('='.repeat(40));
-        L.push(`Cargo: ${cfg.cargo || '—'}   Classe/nível: ${cfg.classe || '—'}`);
-        L.push(`Lotação: ${cfg.lotacao || '—'}   SIAPE: ${cfg.siape || '—'}`);
+        L.push(`Cargo: ${cfg.cargo || '—'}   Lotação: ${cfg.lotacao || '—'}   SIAPE: ${cfg.siape || '—'}`);
         L.push(`Ingresso no cargo: ${cfg.ingresso || '—'}   Escolaridade: ${(LzRSC.escInfo(cfg.escolaridade) || {}).label || '—'}`);
         L.push(`Nível pleiteável (simulado): ${sim.nivelNome} — ${sim.total.toString().replace('.', ',')} pontos, ${sim.criteriosDistintos} critérios.`);
         L.push('');
@@ -253,7 +252,8 @@ window.TabRsc = (function () {
             D.row([D.cell('Nível de Classificação', { bold: true }), D.cell(['A', 'B', 'C', 'D', 'E'].map(classeMarcada).join('   '))]),
             D.row([D.cell('Lotação', { bold: true }), D.cell(cfg.lotacao || '')]),
             D.row([D.cell('Função/Encargo (se houver)', { bold: true }), D.cell(cfg.funcaoEncargo || '')]),
-            D.row([D.cell('Telefone/E-mail', { bold: true }), D.cell(cfg.telefoneEmail || '')]),
+            D.row([D.cell('Telefone', { bold: true }), D.cell(cfg.telefone || '')]),
+            D.row([D.cell('E-mail', { bold: true }), D.cell(cfg.email || '')]),
         ], [3000, 6000]));
 
         // ---- 2. Informações do Requerimento ----

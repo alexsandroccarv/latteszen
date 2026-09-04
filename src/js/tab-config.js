@@ -1032,6 +1032,15 @@ window.TabConfig = (function () {
     /* ------------------------- Configuração do RSC ------------------------ */
     function rscSectionHtml() {
         const c = state.rscCfg || {};
+        // Compatibilidade: valor antigo (campo único "Telefone/E-mail") migra
+        // pra exibição nos 2 campos novos, na primeira vez que a tela abre
+        // depois da separação — só grava de fato quando "Salvar RSC" é clicado.
+        if (c.telefone == null && c.email == null && c.telefoneEmail) {
+            const partes = c.telefoneEmail.split('/');
+            if (partes.length >= 2) { c.telefone = partes[0].trim(); c.email = partes.slice(1).join('/').trim(); }
+            else if (/@/.test(c.telefoneEmail)) { c.email = c.telefoneEmail.trim(); }
+            else { c.telefone = c.telefoneEmail.trim(); }
+        }
         const inp = (k, lbl, ph) => `<div><label class="block text-xs font-semibold mb-1" for="rsc-${k}">${esc(lbl)}</label>
             <input id="rsc-${k}" type="text" value="${esc(c[k] || '')}" placeholder="${esc(ph || '')}" class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900"></div>`;
         const escOpts = LzRSC.ESCOLARIDADE.map(e => `<option value="${e.key}" ${c.escolaridade === e.key ? 'selected' : ''}>${esc(e.label)} (nível ${e.maxN}, IQ ${e.iq}%)</option>`).join('');
@@ -1046,7 +1055,6 @@ window.TabConfig = (function () {
             <div id="rscCfgFields" class="${state.rscEnabled ? '' : 'hidden'} space-y-3">
                 <div class="grid grid-cols-2 gap-2">
                     ${inp('cargo', 'Cargo', 'ex.: Assistente em Administração')}
-                    ${inp('classe', 'Classe / nível', 'ex.: Classe D, Nível IV')}
                     ${inp('siape', 'SIAPE', '(opcional)')}
                     ${inp('lotacao', 'Lotação / unidade', '')}
                     ${inp('ingresso', 'Data de ingresso no cargo', '25/12/2026')}
@@ -1056,7 +1064,8 @@ window.TabConfig = (function () {
                         <select id="rsc-nivelClassificacao" class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900"><option value="">—</option>${nivelClassOpts}</select>
                     </div>
                     ${inp('funcaoEncargo', 'Função / Encargo (se houver)', '')}
-                    ${inp('telefoneEmail', 'Telefone / E-mail', '')}
+                    ${inp('telefone', 'Telefone', '(11) 1234-5678')}
+                    ${inp('email', 'E-mail', 'fulano@instituicao.br')}
                     ${inp('saldoAnterior', 'Saldo de pontuação de concessão anterior', '')}
                     ${inp('processoAnterior', 'Nº do processo da concessão anterior (se houver)', '')}
                     <div class="col-span-2">
@@ -1079,8 +1088,8 @@ window.TabConfig = (function () {
         en.addEventListener('change', () => { $('#rscCfgFields').classList.toggle('hidden', !en.checked); });
         $('#btnSaveRsc').addEventListener('click', () => {
             state.rscEnabled = $('#rscEnable').checked;
-            const keys = ['cargo', 'classe', 'siape', 'lotacao', 'ingresso', 'dataInicioContagem', 'dataAbrangenciaFinal',
-                'nivelClassificacao', 'funcaoEncargo', 'telefoneEmail', 'saldoAnterior', 'processoAnterior'];
+            const keys = ['cargo', 'siape', 'lotacao', 'ingresso', 'dataInicioContagem', 'dataAbrangenciaFinal',
+                'nivelClassificacao', 'funcaoEncargo', 'telefone', 'email', 'saldoAnterior', 'processoAnterior'];
             const cfg = {};
             keys.forEach(k => { const el = $('#rsc-' + k); if (el) cfg[k] = el.value.trim(); });
             cfg.escolaridade = $('#rsc-escolaridade').value;

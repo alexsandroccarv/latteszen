@@ -48,6 +48,7 @@ import './specs/eventos-campos.mjs';
 import './specs/orientacoes-campos.mjs';
 import './specs/bancas-campos.mjs';
 import './specs/publicar-nuvem-tema.mjs';
+import './specs/rsc-config-campos.mjs';
 
 console.log('Rodando suíte de testes de regressão (Playwright)...\n');
 await runAll();
