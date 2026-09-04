@@ -29,6 +29,7 @@ window.AppCore = (function () {
         idPrefix: 'lz',     // prefixo do ID dos arquivos (configurável, até 3 chars)
         rscEnabled: false,  // módulo RSC-PCCTAE habilitado?
         rscCfg: {},         // dados funcionais do servidor (cargo, escolaridade, etc.)
+        rscMemorialTexto: '', // texto final do memorial (gerado por IA ou editado manualmente)
         nuvemExclusao: [],  // Linha do tempo: palavras que nunca devem aparecer na nuvem
         nuvemCompostas: [], // Linha do tempo: termos de mais de uma palavra tratados como um só (ex.: "tech talks")
         dirHealth: null,    // último resultado de Storage.checkHealth() (null = sem pasta/não verificado)

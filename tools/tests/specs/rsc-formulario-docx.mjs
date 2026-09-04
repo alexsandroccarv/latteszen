@@ -46,7 +46,7 @@ test('Com diretório configurado, o formulário é salvo como .docx válido em "
     await seedCatalog(page, baseUrl, items);
     await habilitarRsc(page, {
         cargo: 'Assistente em Administração', nivelClassificacao: 'D', funcaoEncargo: 'Chefe de Setor',
-        telefoneEmail: 'fulano@ife.gov.br', saldoAnterior: '2,5', processoAnterior: '23000.000001/2020-00',
+        telefone: '(11) 1234-5678', email: 'fulano@ife.gov.br', saldoAnterior: '2,5', processoAnterior: '23000.000001/2020-00',
     });
     await page.evaluate(() => {
         window.Storage.hasDirectory = () => true;
@@ -94,5 +94,7 @@ print(doc)
     assert(zipOk.includes('Participação como membro de núcleos'), 'document.xml deveria listar a descrição do critério 1.3 do item cadastrado');
     assert(zipOk.includes('Chefe de Setor'), 'document.xml deveria conter a Função/Encargo configurada');
     assert(zipOk.includes('(X) D'), 'document.xml deveria marcar o Nível de Classificação "D"');
+    assert(zipOk.includes('(11) 1234-5678'), 'document.xml deveria conter o Telefone (campo separado do E-mail)');
+    assert(zipOk.includes('fulano@ife.gov.br'), 'document.xml deveria conter o E-mail (campo separado do Telefone)');
     assert(zipOk.includes('Assinatura'), 'document.xml deveria conter a linha de assinatura');
 });
