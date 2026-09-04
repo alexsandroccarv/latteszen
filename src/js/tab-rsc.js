@@ -27,8 +27,8 @@ window.TabRsc = (function () {
             else if (/@/.test(c.telefoneEmail)) { c.email = c.telefoneEmail.trim(); }
             else { c.telefone = c.telefoneEmail.trim(); }
         }
-        const inp = (k, lbl, ph) => `<div><label class="block text-xs font-semibold mb-1" for="rsc-${k}">${esc(lbl)}</label>
-            <input id="rsc-${k}" type="text" value="${esc(c[k] || '')}" placeholder="${esc(ph || '')}" class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900"></div>`;
+        const inp = (k, lbl, ph, validateKind) => `<div><label class="block text-xs font-semibold mb-1" for="rsc-${k}">${esc(lbl)}</label>
+            <input id="rsc-${k}" type="text" value="${esc(c[k] || '')}" placeholder="${esc(ph || '')}" ${validateKind ? `data-validate="${validateKind}"` : ''} class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900"></div>`;
         const escOpts = LzRSC.ESCOLARIDADE.map(e => `<option value="${e.key}" ${c.escolaridade === e.key ? 'selected' : ''}>${esc(e.label)} (nível ${e.maxN}, IQ ${e.iq}%)</option>`).join('');
         const nivelClassOpts = ['A', 'B', 'C', 'D', 'E'].map(n => `<option value="${n}" ${c.nivelClassificacao === n ? 'selected' : ''}>${n}</option>`).join('');
         return `<section class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 mb-4">
@@ -36,11 +36,13 @@ window.TabRsc = (function () {
             <div class="grid grid-cols-2 gap-2">
                 ${inp('cargo', 'Cargo', 'ex.: Assistente em Administração')}
                 ${inp('siape', 'SIAPE', '(opcional)')}
+                ${inp('matriculaFuncional', 'Matrícula ou Funcional', '')}
                 ${inp('lotacao', 'Lotação / unidade', '')}
-                ${inp('ingresso', 'Data de ingresso no cargo', '25/12/2026')}
-                ${inp('dataInicioContagem', 'Início da contagem (RSC)', '25/12/2026')}
-                <div class="col-span-2">
-                    ${inp('dataAbrangenciaFinal', 'Data de abrangência (final)', '25/12/2026')}
+                ${inp('ingresso', 'Data de ingresso no cargo', '25/12/2026', 'dataCompleta')}
+                ${inp('dataInicioContagem', 'Início da contagem (RSC)', '25/12/2026', 'dataCompleta')}
+                <div>
+                    <label class="block text-xs font-semibold mb-1" for="rsc-dataAbrangenciaFinal">Data de abrangência (final)</label>
+                    <input id="rsc-dataAbrangenciaFinal" type="text" value="${esc(c.dataAbrangenciaFinal || '')}" placeholder="25/12/2026" data-validate="dataCompleta" class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900">
                     <p class="text-[11px] text-gray-500 mt-0.5">Data de corte do memorial/requerimento. Usada como fim do período em itens ainda <strong>em exercício</strong> (situação "Atual", sem data de fim própria) — sem ela, esses itens não têm o tempo decorrido contado.</p>
                 </div>
                 <div>
@@ -48,14 +50,16 @@ window.TabRsc = (function () {
                     <select id="rsc-nivelClassificacao" class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900"><option value="">—</option>${nivelClassOpts}</select>
                 </div>
                 ${inp('funcaoEncargo', 'Direção ou Função', '')}
-                ${inp('telefone', 'Telefone', '(11) 1234-5678')}
-                ${inp('email', 'E-mail', 'fulano@instituicao.br')}
+                ${inp('telefone', 'Telefone', '(11) 1234-5678', 'telefoneDDD')}
+                ${inp('email', 'E-mail', 'fulano@instituicao.br', 'email')}
                 <div class="col-span-2">
                     <label class="block text-xs font-semibold mb-1" for="rsc-escolaridade">Escolaridade (limita o nível máximo)</label>
                     <select id="rsc-escolaridade" class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900"><option value="">—</option>${escOpts}</select>
                 </div>
-                ${inp('saldoAnterior', 'Saldo de pontuação de concessão anterior', '')}
-                ${inp('processoAnterior', 'Nº do processo da concessão anterior (se houver)', '')}
+                <div class="col-span-2 border-t border-gray-200 dark:border-gray-700 pt-2 mt-1 grid grid-cols-2 gap-2">
+                    ${inp('saldoAnterior', 'Saldo de pontuação de concessão anterior', '')}
+                    ${inp('processoAnterior', 'Nº do processo da concessão anterior (se houver)', '')}
+                </div>
             </div>
             <div class="flex gap-2 mt-3">
                 <button id="btnSaveRscCfg" class="px-3 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm"><i class="fa-solid fa-floppy-disk mr-1"></i> Salvar</button>
@@ -63,12 +67,24 @@ window.TabRsc = (function () {
         </section>`;
     }
     function wireRscCfgSection() {
+        window.AppCore.wireValidators($('#tab-rsc'));
         const btn = $('#btnSaveRscCfg'); if (!btn) return;
         btn.addEventListener('click', () => {
-            const keys = ['cargo', 'siape', 'lotacao', 'ingresso', 'dataInicioContagem', 'dataAbrangenciaFinal',
+            const keys = ['cargo', 'siape', 'matriculaFuncional', 'lotacao', 'ingresso', 'dataInicioContagem', 'dataAbrangenciaFinal',
                 'nivelClassificacao', 'funcaoEncargo', 'telefone', 'email', 'saldoAnterior', 'processoAnterior'];
             const cfg = {};
-            keys.forEach(k => { const el = $('#rsc-' + k); if (el) cfg[k] = el.value.trim(); });
+            let temErro = false;
+            keys.forEach(k => {
+                const el = $('#rsc-' + k); if (!el) return;
+                const v = el.value.trim();
+                if (el.dataset.validate) {
+                    const res = window.AppCore.validateField(el.dataset.validate, v);
+                    if (v && !res.ok) { window.AppCore.setFieldError(el, res.msg); temErro = true; return; }
+                    window.AppCore.setFieldError(el, '');
+                }
+                cfg[k] = v;
+            });
+            if (temErro) { toast('Corrija os campos destacados antes de salvar.', 'erro'); return; }
             cfg.escolaridade = $('#rsc-escolaridade').value;
             state.rscCfg = cfg;
             const s = Storage.loadSettings(); s.rsc = cfg; Storage.saveSettings(s);
@@ -144,7 +160,10 @@ window.TabRsc = (function () {
                 <tbody>${[1, 2, 3, 4, 5, 6].map(reqLinha).join('')}</tbody></table>
             </div>
 
-            <div class="flex gap-2 flex-wrap mb-4">
+            <h3 class="font-bold mb-2">Itens contabilizados</h3>
+            ${listaHtml}
+
+            <div class="flex gap-2 flex-wrap mb-4 mt-4">
                 <button id="btnRscPromptIA" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-wand-magic-sparkles mr-1"></i> Gerar prompt (IA)</button>
             </div>
 
@@ -157,9 +176,6 @@ window.TabRsc = (function () {
                 <textarea id="rscMemorialTexto" rows="16" placeholder="Cole aqui o memorial gerado pela IA, ou escreva o seu…" class="w-full text-sm px-3 py-2 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 font-mono leading-relaxed">${esc(state.rscMemorialTexto || '')}</textarea>
                 <p id="rscMemorialSalvo" class="text-xs text-gray-400 mt-1 h-4"></p>
             </div>
-
-            <h3 class="font-bold mb-2">Itens contabilizados</h3>
-            ${listaHtml}
 
             <div class="flex gap-2 flex-wrap mt-4">
                 <button id="btnRscExportar" class="px-3 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm"><i class="fa-solid fa-file-export mr-1"></i> Gerar memorial, formulário e anexos</button>

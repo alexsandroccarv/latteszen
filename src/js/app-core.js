@@ -167,11 +167,39 @@ window.AppCore = (function () {
         try { new URL(u); return { ok: true, value: u }; }
         catch (_) { return { ok: false, msg: 'URL inválida.' }; }
     }
+    // E-mail: regex simples (não valida entrega, só o formato).
+    function validateEmail(v) {
+        const s = String(v || '').trim();
+        if (!s) return { ok: true, value: '' };
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s)) return { ok: false, msg: 'E-mail inválido.' };
+        return { ok: true, value: s };
+    }
+    // Data dd/mm/aaaa completa e existente no calendário (usa LzRSC.parseBR).
+    // Usado só nos campos de data do módulo RSC que exigem data exata (não
+    // aceita mês/ano soltos nem dias inexistentes).
+    function validateDataCompleta(v) {
+        const s = String(v || '').trim();
+        if (!s) return { ok: true, value: '' };
+        if (!/^\d{2}\/\d{2}\/\d{4}$/.test(s)) return { ok: false, msg: 'Data incompleta — use o formato dd/mm/aaaa.' };
+        if (!window.LzRSC || !window.LzRSC.parseBR(s)) return { ok: false, msg: 'Data inválida.' };
+        return { ok: true, value: s };
+    }
+    // Telefone: exige DDD (2 dígitos), permite DDI opcional na frente (+55, 55...).
+    function validateTelefoneDDD(v) {
+        const s = String(v || '').trim();
+        if (!s) return { ok: true, value: '' };
+        const re = /^(\+\d{1,3}[\s.-]?)?\(?\d{2}\)?[\s.-]?\d{4,5}-?\d{4}$/;
+        if (!re.test(s)) return { ok: false, msg: 'Telefone inválido — informe com DDD, ex.: (11) 91234-5678 (DDI opcional, ex.: +55).' };
+        return { ok: true, value: s };
+    }
     function validateField(kind, value) {
         if (kind === 'issn') return validateISSN(value);
         if (kind === 'isbn') return validateISBN(value);
         if (kind === 'isbnIssn') return validateISBNorISSN(value);
         if (kind === 'doi') return validateDOI(value);
+        if (kind === 'email') return validateEmail(value);
+        if (kind === 'dataCompleta') return validateDataCompleta(value);
+        if (kind === 'telefoneDDD') return validateTelefoneDDD(value);
         if (kind === 'url') return validateURL(value);
         return { ok: true, value: value };
     }
