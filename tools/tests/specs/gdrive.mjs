@@ -157,6 +157,36 @@ async function abrirConfig(page, baseUrl) {
     await page.waitForTimeout(200);
 }
 
+// Simula uma pasta local já escolhida (com arquivos, como se o usuário já
+// tivesse um acervo) — só leitura, pra testar a migração local → Drive.
+// window.showDirectoryPicker não é automatizável de verdade via Playwright,
+// então é substituído por uma árvore fake em memória. Storage.chooseDirectory()
+// também persiste o handle no IndexedDB de verdade (idbSet) — por isso os
+// métodos (entries/getFile/etc.) ficam no PROTÓTIPO compartilhado, não como
+// propriedade própria de cada objeto: o algoritmo de clonagem estruturada do
+// IndexedDB clona só as propriedades PRÓPRIAS enumeráveis, então ignora o
+// protótipo (sem erro de clonagem) — e o handle original em memória continua
+// com os métodos disponíveis normalmente, via a cadeia de protótipos.
+async function mockLocalDir(page, entries) {
+    await page.addInitScript((tree) => {
+        const FileProto = {
+            async getFile() { return new File([this._content], this.name, { type: this._mime || 'application/octet-stream' }); },
+        };
+        const DirProto = {
+            async queryPermission() { return 'granted'; },
+            async requestPermission() { return 'granted'; },
+            async *entries() {
+                for (const e of this._list) {
+                    if (e.kind === 'file') yield [e.name, Object.assign(Object.create(FileProto), { name: e.name, kind: 'file', _content: e.content, _mime: e.mimeType })];
+                    else yield [e.name, Object.assign(Object.create(DirProto), { name: e.name, kind: 'directory', _list: e.children || [] })];
+                }
+            },
+            async *values() { for await (const [, h] of this.entries()) yield h; },
+        };
+        window.showDirectoryPicker = async () => Object.assign(Object.create(DirProto), { name: 'MinhaPastaLocal', kind: 'directory', _list: tree });
+    }, entries);
+}
+
 async function conectar(page, pasta) {
     if (pasta) await page.fill('#gdrivePasta', pasta);
     await page.click('#btnGDriveConnect');
@@ -289,4 +319,47 @@ test('moveInboxToProcessed usa MOVE (addParents/removeParents) e resolve colisã
     assertEqual(movido.parentId, processados.id, 'O arquivo deveria ter sido movido para dentro de Processados (addParents/removeParents)');
     assertEqual(movido.name, 'documento-2.pdf', 'O arquivo movido deveria ter sido renomeado com o sufixo');
     assertEqual(movido.content, 'conteudo-a', 'O conteúdo movido deveria ser o do arquivo original, não o que já existia em Processados');
+});
+
+test('Migrar pasta local para o Google Drive copia os arquivos, mantém a estrutura e ativa o Drive como armazenamento em uso', async ({ page, baseUrl }) => {
+    const mock = createMockDrive();
+    await mock.install(page);
+    await mockGis(page);
+    await mockLocalDir(page, [
+        { name: 'it-1.json', kind: 'file', content: '{"id":"it-1"}' },
+        { name: 'Produções', kind: 'directory', children: [
+            { name: 'it-2.json', kind: 'file', content: '{"id":"it-2"}' },
+            { name: 'it-2.pdf', kind: 'file', content: 'PDF-CONTEUDO-FAKE', mimeType: 'application/pdf' },
+        ] },
+    ]);
+    await abrirConfig(page, baseUrl);
+
+    // Pasta local já "escolhida" (acervo pré-existente) antes de migrar.
+    await page.evaluate(async () => { await window.Storage.chooseDirectory(); });
+    await page.evaluate(() => window.AppCore.renderConfig());
+    await page.waitForTimeout(100);
+    assertEqual(await page.locator('#btnGDriveMigrate').count(), 1, 'O botão de migração deveria aparecer com uma pasta local ativa');
+
+    await page.fill('#gdrivePasta', 'lattesZen');
+    await page.click('#btnGDriveMigrate'); // o confirm() é aceito automaticamente pelo harness (page.on('dialog'))
+    await page.waitForFunction(() => !document.querySelector('#btnGDriveMigrate'), { timeout: 8000 }); // some quando o modo muda pra 'gdrive'
+    await page.waitForTimeout(100);
+
+    const modo = await page.evaluate(() => window.Storage.storageMode());
+    assertEqual(modo, 'gdrive', 'Depois de migrar, o armazenamento em uso deveria passar a ser o Google Drive');
+
+    const nomes = Array.from(mock.files.values()).map((f) => f.name);
+    assert(nomes.includes('it-1.json'), 'O arquivo da raiz da pasta local deveria ter sido copiado para o Drive');
+    assert(nomes.includes('it-2.json') && nomes.includes('it-2.pdf'), 'Os arquivos da subpasta "Produções" deveriam ter sido copiados para o Drive');
+
+    const pastaProducoes = Array.from(mock.files.values()).find((f) => f.name === 'Produções' && f.isDir);
+    assert(pastaProducoes, 'A subpasta "Produções" deveria ter sido criada no Drive, preservando a estrutura da pasta local');
+    const it2json = Array.from(mock.files.values()).find((f) => f.name === 'it-2.json');
+    assertEqual(it2json.parentId, pastaProducoes.id, 'it-2.json deveria estar dentro da subpasta "Produções" no Drive');
+    const it2pdf = Array.from(mock.files.values()).find((f) => f.name === 'it-2.pdf');
+    assertEqual(it2pdf.content.trim(), 'PDF-CONTEUDO-FAKE', 'O conteúdo do PDF copiado deveria ser preservado');
+
+    const aviso = await page.locator('#gdriveMigrationNotice').textContent();
+    assert(/todas as atualizações.*ocorrem no google drive/i.test(aviso), 'Deveria mostrar um aviso persistente explicando que as atualizações agora ocorrem no Drive');
+    assert(/pasta local pode ser exclu[ií]da/i.test(aviso), 'O aviso deveria mencionar que a pasta local pode ser excluída com segurança');
 });

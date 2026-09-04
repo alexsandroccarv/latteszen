@@ -27,6 +27,12 @@ window.TabConfig = (function () {
         AUTOCOMPLETE_KEYS, VOCAB_LABELS,
     } = window.AppCore;
 
+    // Aviso persistente exibido logo após uma migração local → Google Drive
+    // (não usa toast pra isso — some rápido demais pra uma mensagem
+    // importante). Fica até o usuário clicar em "Entendi, dispensar", ou até
+    // recarregar a página.
+    let gdriveMigrationNotice = null;
+
     /* =====================================================================
        IMPORTAR LATTES (XML) — seção dentro de Configurações
        ===================================================================== */
@@ -1272,9 +1278,15 @@ window.TabConfig = (function () {
                         </div>
                         <div class="flex flex-wrap gap-2 items-center">
                             <button id="btnGDriveConnect" class="px-3 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm" ${APP_CONFIG.googleDriveClientId ? '' : 'disabled'}><i class="fa-brands fa-google mr-1"></i> Conectar ao Google Drive</button>
+                            ${storageMode === 'local' && dirName ? `<button id="btnGDriveMigrate" class="px-3 py-2 rounded border border-govbr-600 dark:border-unifesp-400 text-govbr-700 dark:text-unifesp-300 text-sm" ${APP_CONFIG.googleDriveClientId ? '' : 'disabled'}><i class="fa-solid fa-cloud-arrow-up mr-1"></i> Migrar pasta local para o Google Drive</button>` : ''}
                             ${storageMode === 'gdrive' ? `<span class="text-xs text-green-700 dark:text-green-400"><i class="fa-solid fa-circle-check mr-1"></i> Este é o armazenamento em uso.</span>` : ''}
                         </div>
+                        ${storageMode === 'local' && dirName ? `<p class="text-xs text-gray-500 mt-1">"Migrar" copia todos os arquivos da pasta local atual para o Drive antes de trocar — evita ter que reanexar tudo de novo. "Conectar" sozinho começa com uma pasta vazia no Drive.</p>` : ''}
                         <div id="gdriveStatus" class="text-sm mt-2"></div>
+                        ${gdriveMigrationNotice ? `<div id="gdriveMigrationNotice" class="text-sm mt-2 p-3 rounded border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-300">
+                            <i class="fa-solid fa-triangle-exclamation mr-1"></i> ${esc(gdriveMigrationNotice)}
+                            <button id="btnDismissGDriveNotice" class="block mt-1 text-xs underline">Entendi, dispensar</button>
+                        </div>` : ''}
                     </div>
                     <div class="mt-4 pt-3 border-t border-gray-200 dark:border-gray-700">
                         <h3 class="text-sm font-bold mb-1">Prefixo do identificador dos arquivos</h3>
@@ -1469,6 +1481,45 @@ window.TabConfig = (function () {
                 btnGDriveConnect.disabled = false;
             }
         });
+        const btnGDriveMigrate = $('#btnGDriveMigrate');
+        if (btnGDriveMigrate) btnGDriveMigrate.addEventListener('click', async () => {
+            const aviso = 'Isso copia TODOS os arquivos da pasta local atual para uma pasta no seu Google Drive (a pasta local não é apagada durante a cópia).\n\n' +
+                'Ao terminar, o lattesZen passa a usar o Google Drive — TODAS as atualizações futuras (novos itens, edições, anexos) vão para lá, não mais para a pasta local.\n\n' +
+                'Depois de conferir que os arquivos foram copiados corretamente, você pode excluir a pasta local com segurança.\n\n' +
+                'Deseja continuar?';
+            if (!confirm(aviso)) return;
+            const pasta = $('#gdrivePasta').value.trim() || 'lattesZen';
+            const statusEl = $('#gdriveStatus');
+            btnGDriveMigrate.disabled = true;
+            if (btnGDriveConnect) btnGDriveConnect.disabled = true;
+            try {
+                if (statusEl) statusEl.innerHTML = '<span class="text-gray-500">Conectando… (autorize na janela do Google)</span>';
+                await Storage.connectGoogleDrive({ pasta });
+                await Storage.ensureSubdirs(LattesTypes.allFolders()); // cria a estrutura de pastas
+                try { await Storage.ensureInbox(); } catch (_) {}      // cria "Caixa de Entrada" / "Processados"
+                if (statusEl) statusEl.innerHTML = '<span class="text-gray-500">Copiando arquivos da pasta local para o Google Drive…</span>';
+                const copiados = await Storage.migrateLocalToGoogleDrive((n, name) => {
+                    if (statusEl) statusEl.innerHTML = `<span class="text-gray-500">Copiando arquivos… (${n} até agora — ${esc(name)})</span>`;
+                });
+                state.dirHealth = null; // acabou de trocar de armazenamento; revalidada no próximo render
+                let msg = `Migração concluída: ${copiados} arquivo(s) copiado(s) para o Google Drive.`;
+                try {
+                    const { encontrados } = await window.AppCore.syncFromDirectory();
+                    if (encontrados) msg += ` ${encontrados} item(ns) sincronizado(s).`;
+                } catch (_) {}
+                toast(msg, 'ok');
+                gdriveMigrationNotice = 'Migração concluída. A partir de agora, todas as atualizações do lattesZen ocorrem no Google Drive — a pasta local não será mais usada pelo app. Confira na pasta do Drive se os arquivos foram copiados corretamente; depois disso, a pasta local pode ser excluída com segurança.';
+                window.AppCore.renderItemList();
+                render();
+            } catch (e) {
+                if (statusEl) statusEl.innerHTML = `<span class="text-red-700 dark:text-red-400"><i aria-hidden="true" class="fa-solid fa-triangle-exclamation mr-1"></i> ${esc(e.message)}</span>`;
+                toast('Falha na migração: ' + e.message, 'erro');
+                btnGDriveMigrate.disabled = false;
+                if (btnGDriveConnect) btnGDriveConnect.disabled = false;
+            }
+        });
+        const btnDismissGDriveNotice = $('#btnDismissGDriveNotice');
+        if (btnDismissGDriveNotice) btnDismissGDriveNotice.addEventListener('click', () => { gdriveMigrationNotice = null; render(); });
 
         $('#btnExport').addEventListener('click', exportCatalog);
         $('#importJson').addEventListener('change', importCatalog);
