@@ -440,36 +440,85 @@ window.TabRsc = (function () {
     }
     function sanitizeArquivo(s) { return String(s || '').replace(/[\\/:*?"<>|]/g, '').trim(); }
 
+    // Lista, em ordem, todos os anexos-arquivo (evidências que não são links)
+    // dos itens contabilizados, com um número sequencial ÚNICO (01, 02, 03…)
+    // atribuído de uma vez só — esse é o mesmo número usado no nome do PDF
+    // exportado E na tabela de anexos do memorial, pra dar pra cruzar um com
+    // o outro sem ambiguidade.
+    function listarAnexosNumerados(itens) {
+        const lista = [];
+        itens.forEach(it => {
+            const evs = Array.isArray(it.evidencias) ? it.evidencias.filter(e => e.kind !== 'link' && e.basename && e.ext) : [];
+            evs.forEach(ev => {
+                const c = LzRSC.criterio(it.rsc.criterio);
+                lista.push({ it, ev, criterio: c ? `${c.item}. ${c.desc}` : '' });
+            });
+        });
+        lista.forEach((a, i) => { a.num = i + 1; });
+        return lista;
+    }
+
+    // Corpo (OOXML) do memorial em .docx: o texto do campo (livre — IA ou
+    // manual), dividido em parágrafos, seguido de uma tabela "Documentos
+    // comprobatórios" com o mesmo número sequencial de cada PDF exportado.
+    function memorialDocxBody(texto, anexos, cfg) {
+        const D = window.LzDocx;
+        const parts = [];
+        parts.push(D.heading('Memorial — RSC-PCCTAE', 1));
+        const subtitulo = [nomeServidorAtual(), cfg.cargo].filter(Boolean).join(' — ');
+        if (subtitulo) parts.push(D.para(subtitulo, { italic: true, size: 18 }));
+        parts.push(D.para(' '));
+        String(texto || '').split('\n').forEach(linha => { parts.push(D.para(linha)); });
+
+        if (anexos.length) {
+            parts.push(D.para(' '));
+            parts.push(D.heading('Documentos comprobatórios (anexos)', 2));
+            parts.push(D.para('Numeração sequencial correspondente aos arquivos exportados junto (pasta "Anexos").', { italic: true, size: 18 }));
+            const colWidths = [700, 4200, 2400, 2500];
+            const head = D.row([
+                D.cell('Nº', { bold: true, width: colWidths[0], shade: 'EEEEEE' }),
+                D.cell('Item do currículo', { bold: true, width: colWidths[1], shade: 'EEEEEE' }),
+                D.cell('Critério', { bold: true, width: colWidths[2], shade: 'EEEEEE' }),
+                D.cell('Arquivo original', { bold: true, width: colWidths[3], shade: 'EEEEEE' }),
+            ]);
+            const rows = anexos.map(a => D.row([
+                D.cell(String(a.num).padStart(2, '0'), { width: colWidths[0] }),
+                D.cell(LattesTypes.itemTitle(a.it), { width: colWidths[1] }),
+                D.cell(a.criterio, { width: colWidths[2] }),
+                D.cell(a.ev.name || `${a.ev.basename}.${a.ev.ext}`, { width: colWidths[3] }),
+            ]));
+            parts.push(D.table([head, ...rows], colWidths));
+        }
+        return parts.join('');
+    }
+
     // Exporta o memorial (o texto do campo, editado manualmente ou colado de
-    // uma IA externa — ou o modelo automático, se o campo estiver vazio) e
-    // uma cópia de todos os anexos-arquivo (evidências que não são links) dos
-    // itens contabilizados, tudo numa pasta datada dentro de "Exportação/
-    // RSC-PCCTAE" — pronto pra juntar ao requerimento.
+    // uma IA externa — ou o modelo automático, se o campo estiver vazio) em
+    // .docx, e uma cópia de todos os anexos-arquivo dos itens contabilizados
+    // — cada PDF numerado sequencialmente (01, 02…), com o mesmo número
+    // listado na tabela de anexos do memorial — tudo numa pasta datada
+    // dentro de "Exportação/RSC-PCCTAE", pronto pra juntar ao requerimento.
     async function exportarMemorial(itens, sim, cfg) {
         if (!Storage.hasDirectory()) { toast('Configure um diretório em Configurações para exportar o memorial.', 'aviso'); return; }
         try {
             const texto = (state.rscMemorialTexto && state.rscMemorialTexto.trim()) ? state.rscMemorialTexto : rscMemorial(itens, sim, cfg);
             const folder = pastaMemorialHoje();
             const nomeServidor = sanitizeArquivo(nomeServidorAtual()) || 'Servidor';
-            await Storage.writeFile(`Memorial_${nomeServidor}.txt`, texto, folder);
+            const anexos = listarAnexosNumerados(itens);
+
+            const bytes = window.LzDocx.buildDocx(memorialDocxBody(texto, anexos, cfg));
+            await Storage.writeFile(`Memorial_${nomeServidor}.docx`, bytes, folder);
 
             let nAnexos = 0;
-            for (let i = 0; i < itens.length; i++) {
-                const it = itens[i];
-                const evs = Array.isArray(it.evidencias) ? it.evidencias.filter(e => e.kind !== 'link' && e.basename && e.ext) : [];
-                if (!evs.length) continue;
-                const titulo = sanitizeArquivo(LattesTypes.itemTitle(it)).slice(0, 60) || 'anexo';
-                for (let idx = 0; idx < evs.length; idx++) {
-                    const ev = evs[idx];
-                    const f = await Storage.readAttachmentFile(ev.basename, LattesTypes.categoryFolder(it.categoryKey), ev.ext);
-                    if (!f) continue;
-                    const sufixo = evs.length > 1 ? ` (${idx + 1})` : '';
-                    const nomeArquivo = `${String(i + 1).padStart(2, '0')} - ${titulo}${sufixo}.${ev.ext}`;
-                    await Storage.writeFile(nomeArquivo, f, `${folder}/Anexos`);
-                    nAnexos++;
-                }
+            for (const a of anexos) {
+                const f = await Storage.readAttachmentFile(a.ev.basename, LattesTypes.categoryFolder(a.it.categoryKey), a.ev.ext);
+                if (!f) continue;
+                const titulo = sanitizeArquivo(LattesTypes.itemTitle(a.it)).slice(0, 60) || 'anexo';
+                const nomeArquivo = `${String(a.num).padStart(2, '0')} - ${titulo}.${a.ev.ext}`;
+                await Storage.writeFile(nomeArquivo, f, `${folder}/Anexos`);
+                nAnexos++;
             }
-            toast(`Memorial exportado em "${folder}/"${nAnexos ? ` (+ ${nAnexos} anexo${nAnexos === 1 ? '' : 's'} em "Anexos/")` : ''}.`, 'ok');
+            toast(`Memorial exportado em "${folder}/"${nAnexos ? ` (+ ${nAnexos} anexo${nAnexos === 1 ? '' : 's'} numerado${nAnexos === 1 ? '' : 's'} em "Anexos/")` : ''}.`, 'ok');
         } catch (e) { toast('Falha ao exportar o memorial: ' + e.message, 'erro'); }
     }
 
