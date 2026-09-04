@@ -73,7 +73,7 @@ test('RSC: valor antigo de "Telefone/E-mail" migra pra exibição nos 2 campos n
     assertEqual(email, 'fulano@instituicao.br', 'E-mail deveria vir pré-preenchido a partir do valor antigo combinado');
 });
 
-test('RSC: campo "Matrícula ou Funcional" existe logo após o SIAPE e salva corretamente', async ({ page, baseUrl }) => {
+test('RSC: campo "Matrícula ou Funcional" existe ao lado da Lotação (mesma linha) e salva corretamente', async ({ page, baseUrl }) => {
     await seedCatalog(page, baseUrl, []);
     await page.click('[data-tab="config"]');
     await page.waitForTimeout(200);
@@ -84,8 +84,8 @@ test('RSC: campo "Matrícula ou Funcional" existe logo após o SIAPE e salva cor
 
     assertEqual(await page.locator('#rsc-matriculaFuncional').count(), 1, 'Deveria existir um campo "Matrícula ou Funcional"');
     const ordem = await page.evaluate(() => Array.from(document.querySelectorAll('#tab-rsc input[id^="rsc-"]')).map((el) => el.id));
-    const iSiape = ordem.indexOf('rsc-siape'), iMatricula = ordem.indexOf('rsc-matriculaFuncional');
-    assert(iSiape > -1 && iMatricula === iSiape + 1, 'O campo "Matrícula ou Funcional" deveria vir logo após o SIAPE');
+    const iLotacao = ordem.indexOf('rsc-lotacao'), iMatricula = ordem.indexOf('rsc-matriculaFuncional');
+    assert(iLotacao > -1 && iMatricula === iLotacao + 1, 'O campo "Matrícula ou Funcional" deveria vir logo após "Lotação / unidade" (mesma linha do grid)');
 
     await page.fill('#rsc-matriculaFuncional', '12345-6');
     await page.click('#btnSaveRscCfg');
@@ -157,4 +157,42 @@ test('RSC: data inválida em "Data de abrangência (final)" também é bloqueada
     assertEqual(invalid, 'true', 'Data de calendário inexistente deveria ser rejeitada');
     const cfg = await page.evaluate(() => JSON.parse(localStorage.getItem('lz_settings') || '{}').rsc || {});
     assert(!cfg.dataAbrangenciaFinal, 'Não deveria ter salvo a data inexistente');
+});
+
+test('RSC: explicação de "Data de abrangência (final)" virou um ícone de ajuda (interrogação) ao lado do rótulo, não um parágrafo solto', async ({ page, baseUrl }) => {
+    await seedCatalog(page, baseUrl, []);
+    await page.click('[data-tab="config"]');
+    await page.waitForTimeout(200);
+    await page.click('#rscEnable');
+    await page.waitForTimeout(100);
+    await page.click('[data-tab="rsc"]');
+    await page.waitForTimeout(200);
+
+    const label = page.locator('label[for="rsc-dataAbrangenciaFinal"]');
+    const ajudaIcon = label.locator('i.fa-circle-question');
+    assertEqual(await ajudaIcon.count(), 1, 'Deveria haver um ícone de interrogação ao lado do rótulo "Data de abrangência (final)"');
+    const title = await ajudaIcon.getAttribute('title');
+    assert(title && /data de corte do memorial/i.test(title), 'O ícone de ajuda deveria trazer a explicação no atributo title (tooltip)');
+    assertEqual(await page.locator('#tab-rsc p:has-text("Data de corte do memorial")').count(), 0, 'A explicação não deveria mais aparecer como parágrafo solto no formulário');
+});
+
+test('RSC: "Dados pessoais" segue a ordem de campos definida — Cargo/SIAPE, Lotação/Matrícula, Nível/Escolaridade, Ingresso/Direção-Função, Início-contagem/Abrangência-final, Telefone/E-mail', async ({ page, baseUrl }) => {
+    await seedCatalog(page, baseUrl, []);
+    await page.click('[data-tab="config"]');
+    await page.waitForTimeout(200);
+    await page.click('#rscEnable');
+    await page.waitForTimeout(100);
+    await page.click('[data-tab="rsc"]');
+    await page.waitForTimeout(200);
+
+    const ordem = await page.evaluate(() => Array.from(document.querySelectorAll('#tab-rsc input[id^="rsc-"], #tab-rsc select[id^="rsc-"]')).map((el) => el.id));
+
+    assertEqual(ordem.slice(0, 12), [
+        'rsc-cargo', 'rsc-siape',
+        'rsc-lotacao', 'rsc-matriculaFuncional',
+        'rsc-nivelClassificacao', 'rsc-escolaridade',
+        'rsc-ingresso', 'rsc-funcaoEncargo',
+        'rsc-dataInicioContagem', 'rsc-dataAbrangenciaFinal',
+        'rsc-telefone', 'rsc-email',
+    ], 'A ordem dos campos em "RSC: Dados pessoais" deveria seguir os pares pedidos, linha a linha');
 });

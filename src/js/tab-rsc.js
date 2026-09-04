@@ -27,7 +27,8 @@ window.TabRsc = (function () {
             else if (/@/.test(c.telefoneEmail)) { c.email = c.telefoneEmail.trim(); }
             else { c.telefone = c.telefoneEmail.trim(); }
         }
-        const inp = (k, lbl, ph, validateKind) => `<div><label class="block text-xs font-semibold mb-1" for="rsc-${k}">${esc(lbl)}</label>
+        const labelHtml = (forId, lbl, help) => `<label class="block text-xs font-semibold mb-1" for="${forId}">${esc(lbl)}${help ? ` <i class="fa-solid fa-circle-question text-gray-400 cursor-help" title="${esc(help)}"></i>` : ''}</label>`;
+        const inp = (k, lbl, ph, validateKind, help) => `<div>${labelHtml('rsc-' + k, lbl, help)}
             <input id="rsc-${k}" type="text" value="${esc(c[k] || '')}" placeholder="${esc(ph || '')}" ${validateKind ? `data-validate="${validateKind}"` : ''} class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900"></div>`;
         const escOpts = LzRSC.ESCOLARIDADE.map(e => `<option value="${e.key}" ${c.escolaridade === e.key ? 'selected' : ''}>${esc(e.label)} (nível ${e.maxN}, IQ ${e.iq}%)</option>`).join('');
         const nivelClassOpts = ['A', 'B', 'C', 'D', 'E'].map(n => `<option value="${n}" ${c.nivelClassificacao === n ? 'selected' : ''}>${n}</option>`).join('');
@@ -36,26 +37,22 @@ window.TabRsc = (function () {
             <div class="grid grid-cols-2 gap-2">
                 ${inp('cargo', 'Cargo', 'ex.: Assistente em Administração')}
                 ${inp('siape', 'SIAPE', '(opcional)')}
-                ${inp('matriculaFuncional', 'Matrícula ou Funcional', '')}
                 ${inp('lotacao', 'Lotação / unidade', '')}
-                ${inp('ingresso', 'Data de ingresso no cargo', '25/12/2026', 'dataCompleta')}
-                ${inp('dataInicioContagem', 'Início da contagem (RSC)', '25/12/2026', 'dataCompleta')}
+                ${inp('matriculaFuncional', 'Matrícula ou Funcional', '')}
                 <div>
-                    <label class="block text-xs font-semibold mb-1" for="rsc-dataAbrangenciaFinal">Data de abrangência (final)</label>
-                    <input id="rsc-dataAbrangenciaFinal" type="text" value="${esc(c.dataAbrangenciaFinal || '')}" placeholder="25/12/2026" data-validate="dataCompleta" class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900">
-                    <p class="text-[11px] text-gray-500 mt-0.5">Data de corte do memorial/requerimento. Usada como fim do período em itens ainda <strong>em exercício</strong> (situação "Atual", sem data de fim própria) — sem ela, esses itens não têm o tempo decorrido contado.</p>
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold mb-1" for="rsc-nivelClassificacao">Nível de Classificação</label>
+                    ${labelHtml('rsc-nivelClassificacao', 'Nível de Classificação')}
                     <select id="rsc-nivelClassificacao" class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900"><option value="">—</option>${nivelClassOpts}</select>
                 </div>
-                ${inp('funcaoEncargo', 'Direção ou Função', '')}
-                ${inp('telefone', 'Telefone', '(11) 1234-5678', 'telefoneDDD')}
-                ${inp('email', 'E-mail', 'fulano@instituicao.br', 'email')}
-                <div class="col-span-2">
-                    <label class="block text-xs font-semibold mb-1" for="rsc-escolaridade">Escolaridade (limita o nível máximo)</label>
+                <div>
+                    ${labelHtml('rsc-escolaridade', 'Escolaridade (limita o nível máximo)')}
                     <select id="rsc-escolaridade" class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900"><option value="">—</option>${escOpts}</select>
                 </div>
+                ${inp('ingresso', 'Data de ingresso no cargo', '25/12/2026', 'dataCompleta')}
+                ${inp('funcaoEncargo', 'Direção ou Função', '')}
+                ${inp('dataInicioContagem', 'Início da contagem (RSC)', '25/12/2026', 'dataCompleta')}
+                ${inp('dataAbrangenciaFinal', 'Data de abrangência (final)', '25/12/2026', 'dataCompleta', 'Data de corte do memorial/requerimento. Usada como fim do período em itens ainda em exercício (situação "Atual", sem data de fim própria) — sem ela, esses itens não têm o tempo decorrido contado.')}
+                ${inp('telefone', 'Telefone', '(11) 1234-5678', 'telefoneDDD')}
+                ${inp('email', 'E-mail', 'fulano@instituicao.br', 'email')}
                 <div class="col-span-2 border-t border-gray-200 dark:border-gray-700 pt-2 mt-1 grid grid-cols-2 gap-2">
                     ${inp('saldoAnterior', 'Saldo de pontuação de concessão anterior', '')}
                     ${inp('processoAnterior', 'Nº do processo da concessão anterior (se houver)', '')}
