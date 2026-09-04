@@ -44,13 +44,13 @@ window.TabRsc = (function () {
                     <select id="rsc-nivelClassificacao" class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900"><option value="">—</option>${nivelClassOpts}</select>
                 </div>
                 <div>
-                    ${labelHtml('rsc-escolaridade', 'Escolaridade (limita o nível máximo)')}
+                    ${labelHtml('rsc-escolaridade', 'Escolaridade atual (limita o nível máximo)')}
                     <select id="rsc-escolaridade" class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900"><option value="">—</option>${escOpts}</select>
                 </div>
                 ${inp('ingresso', 'Data de ingresso no cargo', '25/12/2026', 'dataCompleta')}
                 ${inp('funcaoEncargo', 'Direção ou Função', '')}
                 ${inp('dataInicioContagem', 'Início da contagem (RSC)', '25/12/2026', 'dataCompleta')}
-                ${inp('dataAbrangenciaFinal', 'Data de abrangência (final)', '25/12/2026', 'dataCompleta', 'Data de corte do memorial/requerimento. Usada como fim do período em itens ainda em exercício (situação "Atual", sem data de fim própria) — sem ela, esses itens não têm o tempo decorrido contado.')}
+                ${inp('dataAbrangenciaFinal', 'Final da contagem (RSC)', '25/12/2026', 'dataCompleta', 'Data de corte do memorial/requerimento. Usada como fim do período em itens ainda em exercício (situação "Atual", sem data de fim própria) — sem ela, esses itens não têm o tempo decorrido contado.')}
                 ${inp('telefone', 'Telefone', '(11) 1234-5678', 'telefoneDDD')}
                 ${inp('email', 'E-mail', 'fulano@instituicao.br', 'email')}
                 <div class="col-span-2 border-t border-gray-200 dark:border-gray-700 pt-2 mt-1 grid grid-cols-2 gap-2">
@@ -100,31 +100,16 @@ window.TabRsc = (function () {
         const rscList = itens.map(i => i.rsc);
         const sim = LzRSC.simular(rscList, cfg.escolaridade);
 
-        const reqLinha = (r) => {
-            const pr = sim.porRequisito[r];
-            return `<tr class="border-b border-gray-100 dark:border-gray-700/60">
-                <td class="py-1 pr-2 text-xs">${esc(LzRSC.REQUISITOS[r])}</td>
-                <td class="py-1 px-2 text-right tabular-nums">${pr.itens}</td>
-                <td class="py-1 px-2 text-right tabular-nums">${pr.criterios.size}</td>
-                <td class="py-1 pl-2 text-right tabular-nums font-semibold">${String(pr.pontos).replace('.', ',')}</td></tr>`;
-        };
-        const niveisLinha = sim.niveis.map(n => {
-            const cls = n.atingido ? 'text-green-700 dark:text-green-400' : 'text-gray-500';
-            const ic = n.atingido ? 'fa-circle-check' : 'fa-circle';
-            const falta = [];
-            if (!n.okPontos) falta.push(`+${String(n.faltaPontos).replace('.', ',')} pts`);
-            if (!n.okCrit) falta.push(`+${n.faltaCriterios} critério(s)`);
-            if (!n.okReq) falta.push('requisito específico');
-            if (!n.okEsc) falta.push('escolaridade insuficiente');
-            return `<li class="flex items-center gap-2 text-sm ${cls}"><i class="fa-solid ${ic}"></i> ${esc(n.nome)} <span class="text-xs text-gray-400">(${n.min.pontos} pts${n.min.criterios ? ', ' + n.min.criterios + ' crit.' : ''})</span> ${falta.length ? `<span class="text-xs text-amber-600">— falta ${falta.join(', ')}</span>` : ''}</li>`;
-        }).join('');
-
-        // Lista de itens contados (conformidade RSC), agrupada por requisito
+        // Lista de itens contados (conformidade RSC), agrupada por requisito —
+        // o cabeçalho de cada grupo já traz Itens/Critérios/Pontos (antes numa
+        // tabela "Pontos por requisito" à parte, redundante com esta lista).
         const grupos = {};
         itens.forEach(i => { const c = LzRSC.criterio(i.rsc.criterio); const r = c ? c.req : 0; (grupos[r] = grupos[r] || []).push(i); });
-        const listaHtml = Object.keys(grupos).sort().map(r => `
+        const listaHtml = Object.keys(grupos).sort().map(r => {
+            const pr = sim.porRequisito[r] || { itens: grupos[r].length, criterios: new Set(), pontos: 0 };
+            return `
             <details class="border border-gray-200 dark:border-gray-700 rounded mb-2">
-                <summary class="cursor-pointer px-3 py-1.5 bg-gray-100 dark:bg-gray-800 text-sm font-medium">${esc(LzRSC.REQUISITOS[r] || 'Sem requisito')} <span class="text-xs text-gray-500">(${grupos[r].length})</span></summary>
+                <summary class="cursor-pointer px-3 py-1.5 bg-gray-100 dark:bg-gray-800 text-sm font-medium">${esc(LzRSC.REQUISITOS[r] || 'Sem requisito')} <span class="text-xs text-gray-500">— ${pr.itens} ${pr.itens === 1 ? 'item' : 'itens'} · ${pr.criterios.size} ${pr.criterios.size === 1 ? 'critério' : 'critérios'} · <strong class="text-amber-700 dark:text-amber-400 tabular-nums">${String(pr.pontos).replace('.', ',')} pts</strong></span></summary>
                 <div class="p-2 space-y-1">${grupos[r].map(i => {
                     const pi = LzRSC.pontosItem(i.rsc), c = pi.crit;
                     return `<div class="flex items-center justify-between gap-2 text-sm border border-gray-100 dark:border-gray-700/60 rounded px-2 py-1">
@@ -132,29 +117,18 @@ window.TabRsc = (function () {
                         <span class="block text-xs text-gray-500">${c ? c.item + '. ' + esc(c.desc) : ''}</span></span>
                         <span class="shrink-0 font-semibold text-amber-700 dark:text-amber-400 tabular-nums">${String(pi.pontos).replace('.', ',')}</span></div>`;
                 }).join('')}</div>
-            </details>`).join('') || `<p class="text-sm text-gray-500 italic">Nenhum item marcado para o RSC ainda. Em Catalogar, marque “Contabilizar este item no RSC”.</p>`;
+            </details>`;
+        }).join('') || `<p class="text-sm text-gray-500 italic">Nenhum item marcado para o RSC ainda. Em Catalogar, marque “Contabilizar este item no RSC”.</p>`;
 
         panel.innerHTML = `
             ${rscCfgSectionHtml(cfg)}
 
-            <div class="grid lg:grid-cols-3 gap-4 mb-4">
-                <div class="lg:col-span-1 bg-gradient-to-br from-govbr-600 to-govbr-800 dark:from-unifesp-700 dark:to-unifesp-900 text-white rounded-lg p-4">
-                    <p class="text-sm opacity-90">Nível alcançável</p>
-                    <p class="text-3xl font-bold">${esc(sim.nivelNome)}</p>
-                    <p class="text-sm mt-1">Incentivo à Qualificação: <strong>${sim.iq}%</strong></p>
-                    <p class="text-xs opacity-80 mt-2">${sim.total.toString().replace('.', ',')} pontos · ${sim.criteriosDistintos} critérios distintos</p>
-                    ${cfg.escolaridade ? `<p class="text-xs opacity-80">Escolaridade limita a nível ${sim.capNivel}.</p>` : `<p class="text-xs opacity-90">⚠ Informe a escolaridade acima.</p>`}
-                </div>
-                <div class="lg:col-span-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-                    <h3 class="font-bold text-sm mb-2">Progresso por nível</h3>
-                    <ul class="space-y-1">${niveisLinha}</ul>
-                </div>
-            </div>
-
-            <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 mb-4">
-                <h3 class="font-bold text-sm mb-2">Pontos por requisito</h3>
-                <table class="w-full text-sm"><thead><tr class="text-xs text-gray-500 text-right"><th class="text-left">Requisito</th><th>Itens</th><th>Critérios</th><th>Pontos</th></tr></thead>
-                <tbody>${[1, 2, 3, 4, 5, 6].map(reqLinha).join('')}</tbody></table>
+            <div class="bg-gradient-to-br from-govbr-600 to-govbr-800 dark:from-unifesp-700 dark:to-unifesp-900 text-white rounded-lg p-4 mb-4">
+                <p class="text-sm opacity-90">Nível alcançável</p>
+                <p class="text-3xl font-bold">${esc(sim.nivelNome)}</p>
+                <p class="text-sm mt-1">Incentivo à Qualificação: <strong>${sim.iq}%</strong></p>
+                <p class="text-xs opacity-80 mt-2">${sim.total.toString().replace('.', ',')} pontos · ${sim.criteriosDistintos} critérios distintos</p>
+                ${cfg.escolaridade ? `<p class="text-xs opacity-80">Escolaridade limita a nível ${sim.capNivel}.</p>` : `<p class="text-xs opacity-90">⚠ Informe a escolaridade acima.</p>`}
             </div>
 
             <h3 class="font-bold mb-2">Itens contabilizados</h3>
