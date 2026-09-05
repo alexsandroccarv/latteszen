@@ -59,38 +59,59 @@ window.TabConfig = (function () {
         toast('Lembrete: edite no lattesZen (não direto na Plataforma Lattes) para manter a consistência dos dados.', 'aviso');
     }
 
-    function importLattesSectionHtml() {
+    // Import + export do XML do Lattes unificados num card só (mesmo padrão
+    // já usado em Publicações BibTeX/RIS) — antes eram duas seções soltas,
+    // uma logo após a outra, sem necessidade. A verificação de compatibilidade
+    // ISO-8859-1 também mora aqui dentro (recolhida por padrão), já que só faz
+    // sentido no contexto de "vou exportar para o Lattes".
+    function lattesXmlSectionHtml() {
         return `
             <section id="importXmlSection" class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
                 <h2 class="text-lg font-bold mb-2 flex items-center gap-2">
-                    <i aria-hidden="true" class="fa-solid fa-file-import text-govbr-600 dark:text-unifesp-400"></i> Importar Currículo Lattes (XML)
+                    <i aria-hidden="true" class="fa-solid fa-file-import text-govbr-600 dark:text-unifesp-400"></i> Currículo Lattes (XML)
                 </h2>
+                ${xmlConsistencyNoticeHtml()}
+
+                <h3 class="text-sm font-semibold mb-1">Importar</h3>
                 <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
                     Exporte seu currículo em XML na Plataforma Lattes (Menu <em>&rarr; Exportar &rarr; XML</em>) e selecione o arquivo abaixo.
                     Os itens serão listados para você escolher quais importar; cada um poderá receber um PDF depois.
                 </p>
-                ${xmlConsistencyNoticeHtml()}
                 <input type="file" id="xmlInput" accept=".xml,application/xml,text/xml"
                        class="text-sm file:mr-2 file:px-3 file:py-1.5 file:rounded file:border-0 file:bg-govbr-600 dark:file:bg-unifesp-700 file:text-white">
                 <div id="xmlResult" class="mt-3"></div>
-            </section>`;
-    }
 
-    function exportLattesSectionHtml() {
-        return `
-            <section class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-                <h2 class="text-lg font-bold mb-2 flex items-center gap-2"><i class="fa-solid fa-file-code text-govbr-600 dark:text-unifesp-400"></i> Exportar para a Plataforma Lattes (XML)</h2>
+                <h3 class="text-sm font-semibold mt-5 mb-1">Exportar</h3>
                 <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">Gera um arquivo <strong>curriculo-&lt;nome&gt;-&lt;data e hora&gt;.xml</strong> no formato oficial do CNPq (schema <em>CurriculoLattes</em>, codificação ISO-8859-1). O nome traz a data/hora da geração, então exportações anteriores não são sobrescritas. Inclui apenas os itens das categorias do Lattes — <strong>RSC, Conexões e Registros pessoais não são exportados</strong>. As evidências (PDFs) não fazem parte do XML.</p>
                 <div class="text-sm rounded-md border-l-4 border-amber-500 bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-300 px-3 py-2 mb-3 flex gap-2">
                     <i class="fa-solid fa-hourglass-half mt-0.5"></i>
                     <span><strong>Funcionalidade futura:</strong> a exportação para XML ainda está em desenvolvimento e está temporariamente desativada.</span>
                 </div>
-                ${xmlConsistencyNoticeHtml()}
                 <div class="flex gap-2 flex-wrap">
                     <button id="btnXmlDownload" disabled class="px-3 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm opacity-50 cursor-not-allowed"><i class="fa-solid fa-download mr-1"></i> Baixar XML (.xml)</button>
                     <button id="btnXmlSave" disabled class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm opacity-50 cursor-not-allowed"><i class="fa-solid fa-folder-open mr-1"></i> Salvar na pasta (${esc(LattesTypes.lattesXmlFolder())})</button>
                 </div>
                 <p id="xmlStatus" class="text-xs text-gray-500 mt-2"></p>
+
+                <details class="mt-5 pt-3 border-t border-gray-200 dark:border-gray-700">
+                    <summary class="cursor-pointer select-none text-sm font-semibold flex items-center gap-2">
+                        <i aria-hidden="true" class="fa-solid fa-angle-right text-xs text-gray-400"></i>
+                        <i aria-hidden="true" class="fa-solid fa-language text-govbr-600 dark:text-unifesp-400"></i>
+                        Verificar compatibilidade com o Lattes (ISO-8859-1)
+                    </summary>
+                    <div class="pt-3">
+                        <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                            O Currículo Lattes usa a codificação <code class="text-xs bg-gray-200 dark:bg-gray-700 px-1 rounded">ISO-8859-1</code>.
+                            A verificação abaixo aponta caracteres fora dessa tabela (ex.: aspas “curvas”, travessão —, emoji) que,
+                            na exportação, viram entidades numéricas. Você pode normalizá-los automaticamente.
+                        </p>
+                        <div class="flex flex-wrap gap-2">
+                            <button id="btnCheckEnc" class="px-3 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm"><i class="fa-solid fa-spell-check mr-1"></i> Verificar codificação</button>
+                            <button id="btnNormalize" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-wand-magic-sparkles mr-1"></i> Normalizar pontuação</button>
+                        </div>
+                        <div id="encResult" class="text-sm mt-3"></div>
+                    </div>
+                </details>
             </section>`;
     }
 
@@ -773,6 +794,7 @@ window.TabConfig = (function () {
         return `<details class="border border-gray-200 dark:border-gray-700 rounded bg-white dark:bg-gray-900">
             <summary class="cursor-pointer select-none px-3 py-2 text-sm font-medium flex items-center gap-2">
                 <i aria-hidden="true" class="fa-solid fa-angle-right text-xs text-gray-400"></i>
+                <i aria-hidden="true" class="fa-solid ${item ? 'fa-circle-check text-green-600 dark:text-green-400' : 'fa-circle text-gray-300 dark:text-gray-600'} text-xs"></i>
                 ${esc(def.label)}
                 <span class="text-xs font-normal ${item ? 'text-green-600 dark:text-green-400' : 'text-gray-400'} truncate min-w-0">· ${resumo}</span>
             </summary>
@@ -785,9 +807,22 @@ window.TabConfig = (function () {
             </form>
         </details>`;
     }
+    // Conta quantos itens de perfil de instância ÚNICA (cartões + Identidade/
+    // Passaporte) já têm algo preenchido — vira o "X/N preenchidos" no
+    // cabeçalho. Áreas de atuação e Documentos pessoais ficam de fora (são de
+    // instância múltipla, já mostram sua própria contagem no acordeão deles).
+    function perfilProgressCount() {
+        const singleTypes = LattesTypes.perfilTypes().filter(k => k !== 'AREA_ATUACAO' && k !== 'DOCUMENTO_PESSOAL');
+        const preenchidos = singleTypes.filter(tk => state.items.some(i => i.typeKey === tk)).length;
+        return { preenchidos, total: singleTypes.length };
+    }
     function perfilSectionHtml() {
+        const { preenchidos, total } = perfilProgressCount();
         return `<section id="perfilSection" class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-            <h2 class="text-lg font-bold mb-2 flex items-center gap-2"><i class="fa-solid fa-id-card text-govbr-600 dark:text-unifesp-400"></i> Dados gerais (perfil)</h2>
+            <h2 class="text-lg font-bold mb-2 flex items-center gap-2">
+                <i class="fa-solid fa-id-card text-govbr-600 dark:text-unifesp-400"></i> Dados gerais (perfil)
+                <span class="text-sm font-normal text-gray-500">(${preenchidos}/${total} preenchidos)</span>
+            </h2>
             <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">Informações autodeclaradas do Currículo Lattes (Identificação, Foto, Endereço, Texto inicial, Outras informações, Áreas de atuação, Identidade, Passaporte e Documentos pessoais). São itens <strong>do Lattes</strong> — a maioria não exige evidência, exceto Identidade, Passaporte e Documentos pessoais.</p>
             <div class="space-y-2">
                 ${LattesTypes.perfilTypes().filter(k => k !== 'AREA_ATUACAO' && k !== 'DOCUMENTO_PESSOAL' && k !== 'DOC_IDENTIDADE' && k !== 'DOC_PASSAPORTE').map(perfilCardHtml).join('')}
@@ -1338,7 +1373,7 @@ window.TabConfig = (function () {
 
         panel.innerHTML = `
             <div class="space-y-6 max-w-2xl">
-                ${cfgGroup('fa-folder-tree', 'Diretório e dados')}
+                ${cfgGroup('fa-folder-tree', 'Armazenamento e backup')}
                 <section id="dirSection" class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
                     <h2 class="text-lg font-bold mb-2 flex items-center gap-2"><i class="fa-solid fa-folder-open text-govbr-600 dark:text-unifesp-400"></i> Diretório de armazenamento</h2>
                     <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
@@ -1367,39 +1402,24 @@ window.TabConfig = (function () {
                     </div>
                 </section>
 
-                ${cfgGroup('fa-id-card', 'Perfil')}
+                ${cfgGroup('fa-id-card', 'Meu perfil')}
                 ${perfilSectionHtml()}
 
-                ${cfgGroup('fa-arrow-right-arrow-left', 'Plataforma Lattes')}
-                ${importLattesSectionHtml()}
-                ${exportLattesSectionHtml()}
-
-                ${cfgGroup('fa-id-badge', 'Outras fontes')}
+                ${cfgGroup('fa-arrow-right-arrow-left', 'Trazer e levar dados')}
+                ${lattesXmlSectionHtml()}
                 ${orcidImportSectionHtml()}
                 ${bibImportSectionHtml()}
-                <section class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-                    <h2 class="text-lg font-bold mb-2 flex items-center gap-2"><i class="fa-solid fa-language text-govbr-600 dark:text-unifesp-400"></i> Compatibilidade com o Lattes (ISO-8859-1)</h2>
-                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
-                        O Currículo Lattes usa a codificação <code class="text-xs bg-gray-200 dark:bg-gray-700 px-1 rounded">ISO-8859-1</code>.
-                        A verificação abaixo aponta caracteres fora dessa tabela (ex.: aspas “curvas”, travessão —, emoji) que,
-                        na exportação, viram entidades numéricas. Você pode normalizá-los automaticamente.
-                    </p>
-                    <div class="flex flex-wrap gap-2">
-                        <button id="btnCheckEnc" class="px-3 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm"><i class="fa-solid fa-spell-check mr-1"></i> Verificar codificação</button>
-                        <button id="btnNormalize" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-wand-magic-sparkles mr-1"></i> Normalizar pontuação</button>
-                    </div>
-                    <div id="encResult" class="text-sm mt-3"></div>
-                </section>
 
-                ${cfgGroup('fa-award', 'RSC-PCCTAE')}
+                ${cfgGroup('fa-puzzle-piece', 'Recursos opcionais')}
                 ${rscSectionHtml()}
-
-                ${cfgGroup('fa-cloud', 'Nuvem de palavras')}
                 ${nuvemPalavrasSectionHtml()}
 
                 ${cfgGroup('fa-sliders', 'Avançado')}
-                <section class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-                    <h2 class="text-lg font-bold mb-2 flex items-center gap-2"><i class="fa-solid fa-list-check text-govbr-600 dark:text-unifesp-400"></i> Listas de autocomplete</h2>
+                <details class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+                    <summary class="text-lg font-bold mb-2 flex items-center gap-2 cursor-pointer select-none">
+                        <i aria-hidden="true" class="fa-solid fa-angle-right text-sm text-gray-400"></i>
+                        <i class="fa-solid fa-list-check text-govbr-600 dark:text-unifesp-400"></i> Listas de autocomplete
+                    </summary>
                     <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
                         Listas de sugestões dos campos (Instituições, Financiadores/Agências, etc.). Valores já usados no catálogo
                         aparecem automaticamente. Estas listas são <strong>apenas para visualização</strong> — a única forma de
@@ -1439,15 +1459,15 @@ window.TabConfig = (function () {
                                 </div>
                             </details>`).join('')}
                     </div>
-                </section>
+                </details>
 
                 ${cfgGroup('fa-trash-can', 'Lixeira')}
                 ${lixeiraSectionHtml()}
 
-                ${cfgGroup('fa-circle-info', 'Sobre')}
+                ${cfgGroup('fa-circle-info', 'Sobre e suporte')}
                 <section class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
                     <h2 class="text-lg font-bold mb-2 flex items-center gap-2"><i class="fa-solid fa-circle-info text-govbr-600 dark:text-unifesp-400"></i> Sobre o lattesZen</h2>
-                    <p class="text-sm text-gray-600 dark:text-gray-400">Versão <span class="font-mono">${esc(APP_CONFIG.version)}</span> — veja o que mudou em cada versão nas <a href="notas-de-versao.html" target="_blank" rel="noopener" class="text-govbr-600 dark:text-unifesp-400 underline">notas de versão</a>.</p>
+                    <p class="text-sm text-gray-600 dark:text-gray-400">Versão <span class="font-mono">${esc(APP_CONFIG.version)}</span> — veja o que mudou em cada versão nas <a href="notas-de-versao.html" target="_blank" rel="noopener" class="text-govbr-600 dark:text-unifesp-400 underline">notas de versão</a>. Precisa de ajuda? Confira a <a href="ajuda.html" target="_blank" rel="noopener" class="text-govbr-600 dark:text-unifesp-400 underline">página de Ajuda</a>.</p>
                 </section>
 
                 ${cfgGroup('fa-triangle-exclamation', 'Zona de risco')}
