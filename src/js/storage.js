@@ -92,6 +92,16 @@ window.Storage = (function () {
         persistGDriveConfig();
         return parentId;
     }
+    // URL da pasta no Google Drive que guarda os arquivos de um subdiretório
+    // (null fora do modo Google Drive, ou se a pasta ainda não existir — ou
+    // seja, nada foi enviado ali ainda). Não cria a pasta, só localiza.
+    async function gdriveFolderUrl(subdir) {
+        if (mode !== 'gdrive' || !gdriveCfg) return null;
+        try {
+            const parentId = await resolveFolder(subdir, false);
+            return parentId ? `https://drive.google.com/drive/folders/${parentId}` : null;
+        } catch (_) { return null; }
+    }
     async function connectGoogleDrive(cfg) {
         const pasta = String((cfg && cfg.pasta) || '').trim() || 'lattesZen';
         window.GDriveClient.configure(APP_CONFIG.googleDriveClientId);
@@ -723,7 +733,7 @@ window.Storage = (function () {
         chooseDirectory, restoreDirectory, ensureDirReady, hasDirectory,
         directoryName, forgetDirectory, verifyPermission, checkHealth,
         // Google Drive
-        storageMode, connectGoogleDrive, migrateLocalToGoogleDrive,
+        storageMode, connectGoogleDrive, migrateLocalToGoogleDrive, gdriveFolderUrl,
         // arquivos
         writeJson, writeFile, writeAttachment, deleteEntry, deleteItemFiles, moveItemFiles, removeSubdirIfEmpty, renameRootFolder, renameNestedFolder, readAttachmentUrl, readAttachmentFile, scanDirectory, ensureSubdirs,
         // bandeja de entrada (inbox)
