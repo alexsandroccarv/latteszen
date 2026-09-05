@@ -818,13 +818,13 @@ window.TabConfig = (function () {
     }
     function perfilSectionHtml() {
         const { preenchidos, total } = perfilProgressCount();
-        return `<section id="perfilSection" class="scroll-mt-20 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+        return `<section id="perfilSection" class="lg:col-span-2 scroll-mt-20 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
             <h2 class="text-lg font-bold mb-2 flex items-center gap-2">
                 <i class="fa-solid fa-id-card text-govbr-600 dark:text-unifesp-400"></i> Dados gerais (perfil)
                 <span class="text-sm font-normal text-gray-500">(${preenchidos}/${total} preenchidos)</span>
             </h2>
             <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">Informações autodeclaradas do Currículo Lattes (Identificação, Foto, Endereço, Texto inicial, Outras informações, Áreas de atuação, Identidade, Passaporte e Documentos pessoais). São itens <strong>do Lattes</strong> — a maioria não exige evidência, exceto Identidade, Passaporte e Documentos pessoais.</p>
-            <div class="space-y-2">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-2 items-start">
                 ${LattesTypes.perfilTypes().filter(k => k !== 'AREA_ATUACAO' && k !== 'DOCUMENTO_PESSOAL' && k !== 'DOC_IDENTIDADE' && k !== 'DOC_PASSAPORTE').map(perfilCardHtml).join('')}
                 ${areaAtuacaoSectionHtml()}
                 ${fixedDocCardHtml('DOC_IDENTIDADE')}
@@ -1240,7 +1240,7 @@ window.TabConfig = (function () {
     // Cabeçalho de grupo das Configurações (divisor de seções) — recebe uma
     // entrada de CFG_GROUPS. O id vira âncora do índice fixo (scrollIntoView).
     function cfgGroup(g) {
-        return `<h2 id="${g.id}" class="scroll-mt-20 text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 flex items-center gap-2 pt-3 pb-1 border-b border-gray-200 dark:border-gray-700"><i class="fa-solid ${g.icon}"></i> ${esc(g.label)}</h2>`;
+        return `<h2 id="${g.id}" class="lg:col-span-2 scroll-mt-20 text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 flex items-center gap-2 pt-3 pb-1 border-b border-gray-200 dark:border-gray-700"><i class="fa-solid ${g.icon}"></i> ${esc(g.label)}</h2>`;
     }
 
     // Índice fixo (sticky) com os 8 grupos — fica grudado no topo enquanto o
@@ -1337,7 +1337,7 @@ window.TabConfig = (function () {
     }
     function lixeiraSectionHtml() {
         return `
-            <section class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+            <section class="lg:col-span-2 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
                 <h2 class="text-lg font-bold mb-2 flex items-center gap-2">
                     <i class="fa-solid fa-trash-can text-govbr-600 dark:text-unifesp-400"></i> Lixeira <span class="text-sm font-normal text-gray-500">(${state.trash.length})</span>
                 </h2>
@@ -1463,10 +1463,11 @@ window.TabConfig = (function () {
         }
 
         panel.innerHTML = `
-            <div class="space-y-6 max-w-2xl">
+            <div class="space-y-6">
                 ${cfgIndexHtml()}
                 ${statusChecklistHtml(dirName, storageMode)}
 
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 ${cfgGroup(CFG_GROUPS[0])}
                 <section id="dirSection" class="scroll-mt-20 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
                     <h2 class="text-lg font-bold mb-2 flex items-center gap-2"><i class="fa-solid fa-folder-open text-govbr-600 dark:text-unifesp-400"></i> Diretório de armazenamento</h2>
@@ -1509,7 +1510,7 @@ window.TabConfig = (function () {
                 ${nuvemPalavrasSectionHtml()}
 
                 ${cfgGroup(CFG_GROUPS[4])}
-                <details class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+                <details class="lg:col-span-2 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
                     <summary class="text-lg font-bold mb-2 flex items-center gap-2 cursor-pointer select-none">
                         <i aria-hidden="true" class="fa-solid fa-angle-right text-sm text-gray-400"></i>
                         <i class="fa-solid fa-list-check text-govbr-600 dark:text-unifesp-400"></i> Listas de autocomplete
@@ -1525,7 +1526,7 @@ window.TabConfig = (function () {
                         <strong>Renomear em todos os itens</strong> dentro de cada lista: o novo valor é aplicado a todos os itens que
                         usam o antigo, e os arquivos JSON no diretório são regravados.</span>
                     </p>
-                    <div class="space-y-2">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-2 items-start">
                         ${AUTOCOMPLETE_KEYS.map(k => `
                             <details class="border border-gray-200 dark:border-gray-700 rounded">
                                 <summary class="cursor-pointer select-none px-3 py-2 text-sm font-medium flex items-center gap-2">
@@ -1568,6 +1569,7 @@ window.TabConfig = (function () {
                 <section class="bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800 p-4">
                     <button id="btnClear" class="px-3 py-2 rounded bg-red-600 text-white text-sm"><i class="fa-solid fa-trash mr-1"></i> Limpar catálogo (índice local)</button>
                 </section>
+                </div>
             </div>`;
 
         wireCfgIndex();
