@@ -5,7 +5,7 @@
    das anteriores — lê estado/utilidades de window.AppCore.
    ========================================================================== */
 window.TabRsc = (function () {
-    const { state, $, esc, toast } = window.AppCore;
+    const { state, $, $$, esc, toast, itemYear } = window.AppCore;
 
     // Itens que contam para o RSC (elegíveis, marcados, com critério e não usados)
     function rscItensContados() {
@@ -27,48 +27,71 @@ window.TabRsc = (function () {
             else if (/@/.test(c.telefoneEmail)) { c.email = c.telefoneEmail.trim(); }
             else { c.telefone = c.telefoneEmail.trim(); }
         }
-        const inp = (k, lbl, ph) => `<div><label class="block text-xs font-semibold mb-1" for="rsc-${k}">${esc(lbl)}</label>
-            <input id="rsc-${k}" type="text" value="${esc(c[k] || '')}" placeholder="${esc(ph || '')}" class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900"></div>`;
+        // O ícone de ajuda também funciona por clique (não só por hover no
+        // "title") — clicar mostra um toast com o texto completo, pra
+        // funcionar em telas de toque e não depender do delay do tooltip
+        // nativo do navegador.
+        const labelHtml = (forId, lbl, help) => `<label class="block text-xs font-semibold mb-1" for="${forId}">${esc(lbl)}${help ? ` <button type="button" class="rsc-help-btn text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 cursor-help" title="${esc(help)}" data-help="${esc(help)}" aria-label="Ajuda"><i class="fa-solid fa-circle-question"></i></button>` : ''}</label>`;
+        const inp = (k, lbl, ph, validateKind, help) => `<div>${labelHtml('rsc-' + k, lbl, help)}
+            <input id="rsc-${k}" type="text" value="${esc(c[k] || '')}" placeholder="${esc(ph || '')}" ${validateKind ? `data-validate="${validateKind}"` : ''} class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900"></div>`;
         const escOpts = LzRSC.ESCOLARIDADE.map(e => `<option value="${e.key}" ${c.escolaridade === e.key ? 'selected' : ''}>${esc(e.label)} (nível ${e.maxN}, IQ ${e.iq}%)</option>`).join('');
         const nivelClassOpts = ['A', 'B', 'C', 'D', 'E'].map(n => `<option value="${n}" ${c.nivelClassificacao === n ? 'selected' : ''}>${n}</option>`).join('');
         return `<section class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 mb-4">
-            <h3 class="font-bold text-sm mb-2 flex items-center gap-2"><i class="fa-solid fa-id-card text-govbr-600 dark:text-unifesp-400"></i> Dados do servidor</h3>
+            <h3 class="font-bold text-sm mb-2 flex items-center gap-2"><i class="fa-solid fa-id-card text-govbr-600 dark:text-unifesp-400"></i> RSC: Dados pessoais</h3>
             <div class="grid grid-cols-2 gap-2">
                 ${inp('cargo', 'Cargo', 'ex.: Assistente em Administração')}
                 ${inp('siape', 'SIAPE', '(opcional)')}
                 ${inp('lotacao', 'Lotação / unidade', '')}
-                ${inp('ingresso', 'Data de ingresso no cargo', '25/12/2026')}
-                ${inp('dataInicioContagem', 'Início da contagem (RSC)', '25/12/2026')}
+                ${inp('matriculaFuncional', 'Matrícula ou Funcional', '')}
                 <div>
-                    <label class="block text-xs font-semibold mb-1" for="rsc-nivelClassificacao">Nível de Classificação</label>
+                    ${labelHtml('rsc-nivelClassificacao', 'Nível de Classificação')}
                     <select id="rsc-nivelClassificacao" class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900"><option value="">—</option>${nivelClassOpts}</select>
                 </div>
-                ${inp('funcaoEncargo', 'Função / Encargo (se houver)', '')}
-                ${inp('telefone', 'Telefone', '(11) 1234-5678')}
-                ${inp('email', 'E-mail', 'fulano@instituicao.br')}
-                ${inp('saldoAnterior', 'Saldo de pontuação de concessão anterior', '')}
-                ${inp('processoAnterior', 'Nº do processo da concessão anterior (se houver)', '')}
-                <div class="col-span-2">
-                    ${inp('dataAbrangenciaFinal', 'Data de abrangência (final)', '25/12/2026')}
-                    <p class="text-[11px] text-gray-500 mt-0.5">Data de corte do memorial/requerimento. Usada como fim do período em itens ainda <strong>em exercício</strong> (situação "Atual", sem data de fim própria) — sem ela, esses itens não têm o tempo decorrido contado.</p>
-                </div>
-                <div class="col-span-2">
-                    <label class="block text-xs font-semibold mb-1" for="rsc-escolaridade">Escolaridade (limita o nível máximo)</label>
+                <div>
+                    ${labelHtml('rsc-escolaridade', 'Escolaridade atual (limita o nível máximo)')}
                     <select id="rsc-escolaridade" class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900"><option value="">—</option>${escOpts}</select>
+                </div>
+                ${inp('ingresso', 'Data de ingresso no cargo', '25/12/2026', 'dataCompleta')}
+                ${inp('funcaoEncargo', 'Direção ou Função', '')}
+                ${inp('dataInicioContagem', 'Início da contagem (RSC)', '25/12/2026', 'dataCompleta')}
+                ${inp('dataAbrangenciaFinal', 'Final da contagem (RSC)', '25/12/2026', 'dataCompleta', 'Data de corte do memorial/requerimento. Usada como fim do período em itens ainda em exercício (situação "Atual", sem data de fim própria) — sem ela, esses itens não têm o tempo decorrido contado.')}
+                ${inp('telefone', 'Telefone', '(11) 1234-5678', 'telefoneDDD')}
+                ${inp('email', 'E-mail', 'fulano@instituicao.br', 'email')}
+                <div class="col-span-2 border-t border-gray-200 dark:border-gray-700 pt-2 mt-1 grid grid-cols-2 gap-2">
+                    ${inp('saldoAnterior', 'Saldo de pontuação de concessão anterior', '')}
+                    ${inp('processoAnterior', 'Nº do processo da concessão anterior (se houver)', '')}
                 </div>
             </div>
             <div class="flex gap-2 mt-3">
-                <button id="btnSaveRscCfg" class="px-3 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm"><i class="fa-solid fa-floppy-disk mr-1"></i> Salvar configuração</button>
+                <button id="btnSaveRscCfg" class="px-3 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm"><i class="fa-solid fa-floppy-disk mr-1"></i> Salvar</button>
             </div>
         </section>`;
     }
     function wireRscCfgSection() {
+        window.AppCore.wireValidators($('#tab-rsc'));
+        // O "title" cobre o hover; o clique garante que a ajuda também
+        // apareça em telas de toque (sem hover) e sem depender do delay do
+        // tooltip nativo do navegador.
+        $$('.rsc-help-btn', $('#tab-rsc')).forEach(btn => {
+            btn.addEventListener('click', () => toast(btn.dataset.help, 'info'));
+        });
         const btn = $('#btnSaveRscCfg'); if (!btn) return;
         btn.addEventListener('click', () => {
-            const keys = ['cargo', 'siape', 'lotacao', 'ingresso', 'dataInicioContagem', 'dataAbrangenciaFinal',
+            const keys = ['cargo', 'siape', 'matriculaFuncional', 'lotacao', 'ingresso', 'dataInicioContagem', 'dataAbrangenciaFinal',
                 'nivelClassificacao', 'funcaoEncargo', 'telefone', 'email', 'saldoAnterior', 'processoAnterior'];
             const cfg = {};
-            keys.forEach(k => { const el = $('#rsc-' + k); if (el) cfg[k] = el.value.trim(); });
+            let temErro = false;
+            keys.forEach(k => {
+                const el = $('#rsc-' + k); if (!el) return;
+                const v = el.value.trim();
+                if (el.dataset.validate) {
+                    const res = window.AppCore.validateField(el.dataset.validate, v);
+                    if (v && !res.ok) { window.AppCore.setFieldError(el, res.msg); temErro = true; return; }
+                    window.AppCore.setFieldError(el, '');
+                }
+                cfg[k] = v;
+            });
+            if (temErro) { toast('Corrija os campos destacados antes de salvar.', 'erro'); return; }
             cfg.escolaridade = $('#rsc-escolaridade').value;
             state.rscCfg = cfg;
             const s = Storage.loadSettings(); s.rsc = cfg; Storage.saveSettings(s);
@@ -87,67 +110,55 @@ window.TabRsc = (function () {
         const rscList = itens.map(i => i.rsc);
         const sim = LzRSC.simular(rscList, cfg.escolaridade);
 
-        const reqLinha = (r) => {
-            const pr = sim.porRequisito[r];
-            return `<tr class="border-b border-gray-100 dark:border-gray-700/60">
-                <td class="py-1 pr-2 text-xs">${esc(LzRSC.REQUISITOS[r])}</td>
-                <td class="py-1 px-2 text-right tabular-nums">${pr.itens}</td>
-                <td class="py-1 px-2 text-right tabular-nums">${pr.criterios.size}</td>
-                <td class="py-1 pl-2 text-right tabular-nums font-semibold">${String(pr.pontos).replace('.', ',')}</td></tr>`;
-        };
-        const niveisLinha = sim.niveis.map(n => {
-            const cls = n.atingido ? 'text-green-700 dark:text-green-400' : 'text-gray-500';
-            const ic = n.atingido ? 'fa-circle-check' : 'fa-circle';
-            const falta = [];
-            if (!n.okPontos) falta.push(`+${String(n.faltaPontos).replace('.', ',')} pts`);
-            if (!n.okCrit) falta.push(`+${n.faltaCriterios} critério(s)`);
-            if (!n.okReq) falta.push('requisito específico');
-            if (!n.okEsc) falta.push('escolaridade insuficiente');
-            return `<li class="flex items-center gap-2 text-sm ${cls}"><i class="fa-solid ${ic}"></i> ${esc(n.nome)} <span class="text-xs text-gray-400">(${n.min.pontos} pts${n.min.criterios ? ', ' + n.min.criterios + ' crit.' : ''})</span> ${falta.length ? `<span class="text-xs text-amber-600">— falta ${falta.join(', ')}</span>` : ''}</li>`;
-        }).join('');
-
-        // Lista de itens contados (conformidade RSC), agrupada por requisito
+        // Lista de itens contados (conformidade RSC), em 3 níveis: Requisito
+        // (I–VI, com Itens/Critérios/Pontos no cabeçalho — antes numa tabela
+        // "Pontos por requisito" à parte, redundante) > Critério > itens.
         const grupos = {};
         itens.forEach(i => { const c = LzRSC.criterio(i.rsc.criterio); const r = c ? c.req : 0; (grupos[r] = grupos[r] || []).push(i); });
-        const listaHtml = Object.keys(grupos).sort().map(r => `
-            <details open class="border border-gray-200 dark:border-gray-700 rounded mb-2">
-                <summary class="cursor-pointer px-3 py-1.5 bg-gray-100 dark:bg-gray-800 text-sm font-medium">${esc(LzRSC.REQUISITOS[r] || 'Sem requisito')} <span class="text-xs text-gray-500">(${grupos[r].length})</span></summary>
-                <div class="p-2 space-y-1">${grupos[r].map(i => {
-                    const pi = LzRSC.pontosItem(i.rsc), c = pi.crit;
+        const listaHtml = Object.keys(grupos).sort().map(r => {
+            const pr = sim.porRequisito[r] || { itens: grupos[r].length, criterios: new Set(), pontos: 0 };
+            const porCriterio = {};
+            grupos[r].forEach(i => { (porCriterio[i.rsc.criterio] = porCriterio[i.rsc.criterio] || []).push(i); });
+            const critKeysOrdenados = Object.keys(porCriterio).sort((a, b) => {
+                const ca = LzRSC.criterio(a), cb = LzRSC.criterio(b);
+                return (ca ? ca.item : 0) - (cb ? cb.item : 0);
+            });
+            const criteriosHtml = critKeysOrdenados.map(critKey => {
+                const c = LzRSC.criterio(critKey);
+                const itensHtml = porCriterio[critKey].map(i => {
+                    const pi = LzRSC.pontosItem(i.rsc);
+                    const ano = itemYear(i);
                     return `<div class="flex items-center justify-between gap-2 text-sm border border-gray-100 dark:border-gray-700/60 rounded px-2 py-1">
-                        <span class="min-w-0"><span class="font-medium">${esc(LattesTypes.itemTitle(i))}</span>
-                        <span class="block text-xs text-gray-500">${c ? c.item + '. ' + esc(c.desc) : ''}</span></span>
+                        <span class="min-w-0 font-medium">${ano ? esc(ano) + ' - ' : ''}${esc(LattesTypes.itemTitle(i))}</span>
                         <span class="shrink-0 font-semibold text-amber-700 dark:text-amber-400 tabular-nums">${String(pi.pontos).replace('.', ',')}</span></div>`;
-                }).join('')}</div>
-            </details>`).join('') || `<p class="text-sm text-gray-500 italic">Nenhum item marcado para o RSC ainda. Em Catalogar, marque “Contabilizar este item no RSC”.</p>`;
+                }).join('');
+                return `<div class="mb-2 last:mb-0">
+                    <p class="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">${c ? esc(c.item + '. ' + c.desc) : esc(critKey)}</p>
+                    <div class="space-y-1">${itensHtml}</div>
+                </div>`;
+            }).join('');
+            return `
+            <details class="border border-gray-200 dark:border-gray-700 rounded mb-2">
+                <summary class="cursor-pointer px-3 py-1.5 bg-gray-100 dark:bg-gray-800 text-sm font-medium">${esc(LzRSC.REQUISITOS[r] || 'Sem requisito')} <span class="text-xs text-gray-500">— ${pr.itens} ${pr.itens === 1 ? 'item' : 'itens'} · ${pr.criterios.size} ${pr.criterios.size === 1 ? 'critério' : 'critérios'} · <strong class="text-amber-700 dark:text-amber-400 tabular-nums">${String(pr.pontos).replace('.', ',')} pts</strong></span></summary>
+                <div class="p-2">${criteriosHtml}</div>
+            </details>`;
+        }).join('') || `<p class="text-sm text-gray-500 italic">Nenhum item marcado para o RSC ainda. Em Catalogar, marque “Contabilizar este item no RSC”.</p>`;
 
         panel.innerHTML = `
             ${rscCfgSectionHtml(cfg)}
 
-            <div class="grid lg:grid-cols-3 gap-4 mb-4">
-                <div class="lg:col-span-1 bg-gradient-to-br from-govbr-600 to-govbr-800 dark:from-unifesp-700 dark:to-unifesp-900 text-white rounded-lg p-4">
-                    <p class="text-sm opacity-90">Nível alcançável</p>
-                    <p class="text-3xl font-bold">${esc(sim.nivelNome)}</p>
-                    <p class="text-sm mt-1">Incentivo à Qualificação: <strong>${sim.iq}%</strong></p>
-                    <p class="text-xs opacity-80 mt-2">${sim.total.toString().replace('.', ',')} pontos · ${sim.criteriosDistintos} critérios distintos</p>
-                    ${cfg.escolaridade ? `<p class="text-xs opacity-80">Escolaridade limita a nível ${sim.capNivel}.</p>` : `<p class="text-xs opacity-90">⚠ Informe a escolaridade acima.</p>`}
-                </div>
-                <div class="lg:col-span-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-                    <h3 class="font-bold text-sm mb-2">Progresso por nível</h3>
-                    <ul class="space-y-1">${niveisLinha}</ul>
-                </div>
+            <div class="bg-gradient-to-br from-govbr-600 to-govbr-800 dark:from-unifesp-700 dark:to-unifesp-900 text-white rounded-lg p-4 mb-4">
+                <p class="text-sm opacity-90">Nível alcançável</p>
+                <p class="text-3xl font-bold">${esc(sim.nivelNome)}</p>
+                <p class="text-sm mt-1">Incentivo à Qualificação: <strong>${sim.iq}%</strong></p>
+                <p class="text-xs opacity-80 mt-2">${sim.total.toString().replace('.', ',')} pontos · ${sim.criteriosDistintos} critérios distintos</p>
+                ${cfg.escolaridade ? `<p class="text-xs opacity-80">Escolaridade limita a nível ${sim.capNivel}.</p>` : `<p class="text-xs opacity-90">⚠ Informe a escolaridade acima.</p>`}
             </div>
 
-            <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 mb-4">
-                <h3 class="font-bold text-sm mb-2">Pontos por requisito</h3>
-                <table class="w-full text-sm"><thead><tr class="text-xs text-gray-500 text-right"><th class="text-left">Requisito</th><th>Itens</th><th>Critérios</th><th>Pontos</th></tr></thead>
-                <tbody>${[1, 2, 3, 4, 5, 6].map(reqLinha).join('')}</tbody></table>
-            </div>
+            <h3 class="font-bold mb-2">Itens contabilizados</h3>
+            ${listaHtml}
 
-            <div class="flex gap-2 flex-wrap mb-4">
-                <button id="btnRscCsv" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-file-csv mr-1"></i> Exportar planilha (CSV)</button>
-                <button id="btnRscMemorial" class="px-3 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm"><i class="fa-solid fa-file-lines mr-1"></i> Gerar memorial</button>
-                <button id="btnRscForm" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-file-word mr-1"></i> Salvar formulário (.docx)</button>
+            <div class="flex gap-2 flex-wrap mb-4 mt-4">
                 <button id="btnRscPromptIA" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-wand-magic-sparkles mr-1"></i> Gerar prompt (IA)</button>
             </div>
 
@@ -161,13 +172,12 @@ window.TabRsc = (function () {
                 <p id="rscMemorialSalvo" class="text-xs text-gray-400 mt-1 h-4"></p>
             </div>
 
-            <h3 class="font-bold mb-2">Itens contabilizados</h3>
-            ${listaHtml}`;
+            <div class="flex gap-2 flex-wrap mt-4">
+                <button id="btnRscExportar" class="px-3 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm"><i class="fa-solid fa-file-export mr-1"></i> Gerar memorial, formulário e anexos</button>
+            </div>`;
 
         wireRscCfgSection();
-        $('#btnRscCsv').addEventListener('click', () => downloadText(rscCsv(itens), 'rsc-comprovacao.csv', 'text/csv'));
-        $('#btnRscMemorial').addEventListener('click', () => exportarMemorial(itens, sim, cfg));
-        $('#btnRscForm').addEventListener('click', () => salvarFormularioDocx(itens, sim, cfg));
+        $('#btnRscExportar').addEventListener('click', () => exportarRsc(itens, sim, cfg));
         $('#btnRscPromptIA').addEventListener('click', () => downloadText(rscPromptIA(itens, sim, cfg), 'prompt-trajetoria-profissional.md', 'text/markdown'));
 
         const memArea = $('#rscMemorialTexto');
@@ -190,17 +200,6 @@ window.TabRsc = (function () {
     function downloadText(txt, nome, mime) {
         const blob = new Blob([txt], { type: (mime || 'text/plain') + ';charset=utf-8' });
         const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = nome; a.click(); URL.revokeObjectURL(a.href);
-    }
-    function csvCell(s) { s = String(s == null ? '' : s); return /[",;\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }
-    function rscCsv(itens) {
-        const head = ['Requisito', 'Critério', 'Descrição do critério', 'Item (título)', 'Início', 'Fim', 'Papel', 'Qtd', 'Unitário', 'Pontos', 'Evidências'];
-        const rows = itens.map(i => {
-            const pi = LzRSC.pontosItem(i.rsc), c = pi.crit || {};
-            const nEv = Array.isArray(i.evidencias) ? i.evidencias.length : 0;
-            return [c.req || '', c.id || '', c.desc || '', LattesTypes.itemTitle(i), i.rsc.dataInicio || '', i.rsc.dataFim || '',
-                (c.pontosSub != null ? i.rsc.papel : ''), pi.quantidade, pi.unitario, pi.pontos, nEv].map(csvCell).join(';');
-        });
-        return head.map(csvCell).join(';') + '\n' + rows.join('\n');
     }
     function rscMemorial(itens, sim, cfg) {
         const L = [];
@@ -237,12 +236,6 @@ window.TabRsc = (function () {
         6: 'VI - Produção, prospecção e difusão de conhecimento',
     };
     const NUM_PT = n => String(n).replace('.', ',');
-
-    function evidenciasTexto(item) {
-        const evs = Array.isArray(item.evidencias) ? item.evidencias : [];
-        if (!evs.length) return '—';
-        return evs.map(e => e.name || e.basename || 'anexo').join('; ');
-    }
 
     // Prompt master + dados categorizados (markdown) para gerar, com uma IA
     // externa (Claude, ChatGPT etc.), o texto de "Trajetória Profissional"
@@ -327,11 +320,16 @@ window.TabRsc = (function () {
 
     // Monta o corpo (XML OOXML) do formulário padrão RSC-PCCTAE (Anexo da
     // Portaria MEC nº 608/2026), a partir dos dados de configuração, dos
-    // itens marcados e da simulação já calculada.
-    function rscFormularioBody(itens, sim, cfg) {
+    // itens marcados e da simulação já calculada. `anexos` (de
+    // listarAnexosNumerados()) alimenta a coluna "Documentos comprobatórios"
+    // com os mesmos identificadores (3 dígitos + nome) dos PDFs exportados
+    // junto, pra dar pra cruzar um documento com o outro.
+    function rscFormularioBody(itens, sim, cfg, anexos) {
         const D = window.LzDocx;
         const nomeServidor = nomeServidorAtual();
         const parts = [];
+        const nomesPorItem = {};
+        anexos.forEach(a => { (nomesPorItem[a.it.id] = nomesPorItem[a.it.id] || []).push(nomeArquivoAnexo(a)); });
 
         parts.push(D.heading('Requerimento de Reconhecimento de Saberes e Competências (RSC-PCCTAE)', 1));
         parts.push(D.para('Modelo padrão conforme Anexo da Portaria MEC nº 608, de 7 de julho de 2026.', { italic: true, size: 18 }));
@@ -393,7 +391,7 @@ window.TabRsc = (function () {
                     D.cell(c.unidade, { width: colWidths[2] }),
                     D.cell(NUM_PT(pi.unitario), { width: colWidths[3] }),
                     D.cell(NUM_PT(pi.pontos), { width: colWidths[4] }),
-                    D.cell(evidenciasTexto(i), { width: colWidths[5] }),
+                    D.cell((nomesPorItem[i.id] || []).join('; ') || '—', { width: colWidths[5] }),
                 ]);
             }) : [D.row([D.cell('—  nenhum item cadastrado neste critério  —', { width: colWidths.slice(0, 5).reduce((a, b) => a + b, 0) }), D.cell('', { width: colWidths[5] })])];
             const subtotal = D.row([D.cell('Subtotal', { bold: true, width: colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] }),
@@ -417,21 +415,11 @@ window.TabRsc = (function () {
         return parts.join('');
     }
 
-    async function salvarFormularioDocx(itens, sim, cfg) {
-        if (!Storage.hasDirectory()) { toast('Configure um diretório em Configurações para salvar o formulário.', 'aviso'); return; }
-        try {
-            const bytes = window.LzDocx.buildDocx(rscFormularioBody(itens, sim, cfg));
-            const folder = LattesTypes.rscFolder();
-            const nomeArquivo = nomeArquivoFormulario();
-            await Storage.writeFile(nomeArquivo, bytes, folder);
-            toast(`Formulário salvo em "${folder}/${nomeArquivo}".`, 'ok');
-        } catch (e) { toast('Falha ao salvar o formulário: ' + e.message, 'erro'); }
-    }
-
     // Pasta datada (uma por dia) dentro de Exportação/RSC-PCCTAE — reexportar
     // no mesmo dia sobrescreve os arquivos daquele dia (mesmo padrão de
-    // nomeArquivoFormulario()); dias diferentes não se sobrescrevem.
-    function pastaMemorialHoje() {
+    // nomeArquivoFormulario()); dias diferentes não se sobrescrevem. Memorial,
+    // formulário e anexos vão todos juntos aqui.
+    function pastaExportacaoHoje() {
         const hoje = new Date();
         const dd = String(hoje.getDate()).padStart(2, '0');
         const mm = String(hoje.getMonth() + 1).padStart(2, '0');
@@ -440,28 +428,53 @@ window.TabRsc = (function () {
     }
     function sanitizeArquivo(s) { return String(s || '').replace(/[\\/:*?"<>|]/g, '').trim(); }
 
-    // Lista, em ordem, todos os anexos-arquivo (evidências que não são links)
-    // dos itens contabilizados, com um número sequencial ÚNICO (01, 02, 03…)
-    // atribuído de uma vez só — esse é o mesmo número usado no nome do PDF
-    // exportado E na tabela de anexos do memorial, pra dar pra cruzar um com
-    // o outro sem ambiguidade.
+    // Ordena os itens contabilizados por Requisito (1-6) e, dentro dele, por
+    // critério — a MESMA ordem usada tanto no memorial quanto no formulário,
+    // pra que o primeiro documento citado em qualquer um dos dois seja
+    // sempre o 001, o segundo o 002, e assim por diante (facilita conferir a
+    // correspondência entre os PDFs, o memorial e o formulário).
+    function itensOrdenadosParaExportacao(itens) {
+        return itens.slice().sort((a, b) => {
+            const ca = LzRSC.criterio(a.rsc.criterio), cb = LzRSC.criterio(b.rsc.criterio);
+            const ra = ca ? ca.req : 99, rb = cb ? cb.req : 99;
+            if (ra !== rb) return ra - rb;
+            return String(a.rsc.criterio).localeCompare(String(b.rsc.criterio));
+        });
+    }
+
+    // Lista, na mesma ordem de leitura do memorial/formulário (ver
+    // itensOrdenadosParaExportacao), todos os anexos-arquivo (evidências que
+    // não são links) dos itens contabilizados, com um número sequencial
+    // ÚNICO (001, 002…) atribuído de uma vez só — esse é o mesmo número
+    // usado no nome do PDF exportado, no início do item correspondente no
+    // memorial, e na coluna "Documentos comprobatórios" do formulário, pra
+    // dar pra cruzar um com o outro sem ambiguidade.
     function listarAnexosNumerados(itens) {
         const lista = [];
         itens.forEach(it => {
             const evs = Array.isArray(it.evidencias) ? it.evidencias.filter(e => e.kind !== 'link' && e.basename && e.ext) : [];
-            evs.forEach(ev => {
-                const c = LzRSC.criterio(it.rsc.criterio);
-                lista.push({ it, ev, criterio: c ? `${c.item}. ${c.desc}` : '' });
-            });
+            evs.forEach(ev => lista.push({ it, ev }));
         });
         lista.forEach((a, i) => { a.num = i + 1; });
         return lista;
     }
+    const numAnexo = (n) => String(n).padStart(3, '0');
+    // Nome do arquivo do PDF exportado — 3 dígitos + espaço (sem hífen, nome
+    // mais curto, evita estourar o tamanho máximo de caminho de arquivo do
+    // SO) + título do item. O mesmo identificador aparece no formulário
+    // (coluna "Documentos comprobatórios") e no memorial (início do item).
+    function nomeArquivoAnexo(a) {
+        const titulo = sanitizeArquivo(LattesTypes.itemTitle(a.it)).slice(0, 60) || 'anexo';
+        return `${numAnexo(a.num)} ${titulo}.${a.ev.ext}`;
+    }
 
     // Corpo (OOXML) do memorial em .docx: o texto do campo (livre — IA ou
-    // manual), dividido em parágrafos, seguido de uma tabela "Documentos
-    // comprobatórios" com o mesmo número sequencial de cada PDF exportado.
-    function memorialDocxBody(texto, anexos, cfg) {
+    // manual), seguido dos itens contabilizados organizados na mesma
+    // hierarquia do requerimento oficial — Requisito (Título 2) > Critério,
+    // só os que têm item (Título 3) > itens, cada um já com o número do(s)
+    // anexo(s) correspondente(s) no início (mesmo número do PDF exportado),
+    // nome, período e carga horária, quando houver.
+    function memorialDocxBody(texto, itens, anexos, cfg) {
         const D = window.LzDocx;
         const parts = [];
         parts.push(D.heading('Memorial — RSC-PCCTAE', 1));
@@ -470,56 +483,67 @@ window.TabRsc = (function () {
         parts.push(D.para(' '));
         String(texto || '').split('\n').forEach(linha => { parts.push(D.para(linha)); });
 
-        if (anexos.length) {
-            parts.push(D.para(' '));
-            parts.push(D.heading('Documentos comprobatórios (anexos)', 2));
-            parts.push(D.para('Numeração sequencial correspondente aos arquivos exportados junto (pasta "Anexos").', { italic: true, size: 18 }));
-            const colWidths = [700, 4200, 2400, 2500];
-            const head = D.row([
-                D.cell('Nº', { bold: true, width: colWidths[0], shade: 'EEEEEE' }),
-                D.cell('Item do currículo', { bold: true, width: colWidths[1], shade: 'EEEEEE' }),
-                D.cell('Critério', { bold: true, width: colWidths[2], shade: 'EEEEEE' }),
-                D.cell('Arquivo original', { bold: true, width: colWidths[3], shade: 'EEEEEE' }),
-            ]);
-            const rows = anexos.map(a => D.row([
-                D.cell(String(a.num).padStart(2, '0'), { width: colWidths[0] }),
-                D.cell(LattesTypes.itemTitle(a.it), { width: colWidths[1] }),
-                D.cell(a.criterio, { width: colWidths[2] }),
-                D.cell(a.ev.name || `${a.ev.basename}.${a.ev.ext}`, { width: colWidths[3] }),
-            ]));
-            parts.push(D.table([head, ...rows], colWidths));
+        const numerosPorItem = {};
+        anexos.forEach(a => { (numerosPorItem[a.it.id] = numerosPorItem[a.it.id] || []).push(a.num); });
+
+        const porRequisito = {};
+        itens.forEach(it => { const c = LzRSC.criterio(it.rsc.criterio); const r = c ? c.req : 0; (porRequisito[r] = porRequisito[r] || []).push(it); });
+
+        if (itens.length) parts.push(D.para(' '));
+        for (let r = 1; r <= 6; r++) {
+            const grp = porRequisito[r] || [];
+            if (!grp.length) continue;
+            parts.push(D.heading(`REQUISITO ${REQUISITOS_FORM[r]}`, 2));
+
+            const porCriterio = {};
+            grp.forEach(it => { (porCriterio[it.rsc.criterio] = porCriterio[it.rsc.criterio] || []).push(it); });
+            Object.keys(porCriterio).forEach(critKey => {
+                const c = LzRSC.criterio(critKey);
+                parts.push(D.heading(c ? `${c.item}. ${c.desc}` : critKey, 3));
+                porCriterio[critKey].forEach(it => {
+                    const nums = (numerosPorItem[it.id] || []).map(numAnexo);
+                    const prefixo = nums.length ? `${nums.join(', ')}: ` : '';
+                    const periodo = (it.rsc.dataInicio || it.rsc.dataFim) ? ` (${it.rsc.dataInicio || '?'} a ${it.rsc.dataFim || '?'})` : '';
+                    const ch = (it.fields && it.fields.cargaHoraria) ? ` | Carga horária: ${it.fields.cargaHoraria}h` : '';
+                    parts.push(D.para(`${prefixo}${LattesTypes.itemTitle(it)}${periodo}${ch}`));
+                });
+            });
         }
         return parts.join('');
     }
 
-    // Exporta o memorial (o texto do campo, editado manualmente ou colado de
-    // uma IA externa — ou o modelo automático, se o campo estiver vazio) em
-    // .docx, e uma cópia de todos os anexos-arquivo dos itens contabilizados
-    // — cada PDF numerado sequencialmente (01, 02…), com o mesmo número
-    // listado na tabela de anexos do memorial — tudo numa pasta datada
-    // dentro de "Exportação/RSC-PCCTAE", pronto pra juntar ao requerimento.
-    async function exportarMemorial(itens, sim, cfg) {
-        if (!Storage.hasDirectory()) { toast('Configure um diretório em Configurações para exportar o memorial.', 'aviso'); return; }
+    // Ação única: gera o memorial (o texto do campo, editado manualmente ou
+    // colado de uma IA externa — ou o modelo automático, se o campo estiver
+    // vazio) e o formulário oficial, ambos em .docx, e grava uma cópia de
+    // todos os anexos-arquivo dos itens contabilizados — cada PDF numerado
+    // sequencialmente (001, 002…), com o mesmo número no início do item
+    // correspondente no memorial e na coluna "Documentos comprobatórios" do
+    // formulário — tudo numa única pasta datada dentro de "Exportação/
+    // RSC-PCCTAE", pronto pra juntar ao requerimento.
+    async function exportarRsc(itens, sim, cfg) {
+        if (!Storage.hasDirectory()) { toast('Configure um diretório em Configurações para exportar.', 'aviso'); return; }
         try {
-            const texto = (state.rscMemorialTexto && state.rscMemorialTexto.trim()) ? state.rscMemorialTexto : rscMemorial(itens, sim, cfg);
-            const folder = pastaMemorialHoje();
+            const folder = pastaExportacaoHoje();
             const nomeServidor = sanitizeArquivo(nomeServidorAtual()) || 'Servidor';
-            const anexos = listarAnexosNumerados(itens);
+            const ordenados = itensOrdenadosParaExportacao(itens);
+            const anexos = listarAnexosNumerados(ordenados);
 
-            const bytes = window.LzDocx.buildDocx(memorialDocxBody(texto, anexos, cfg));
-            await Storage.writeFile(`Memorial_${nomeServidor}.docx`, bytes, folder);
+            const textoMemorial = (state.rscMemorialTexto && state.rscMemorialTexto.trim()) ? state.rscMemorialTexto : rscMemorial(itens, sim, cfg);
+            const memorialBytes = window.LzDocx.buildDocx(memorialDocxBody(textoMemorial, ordenados, anexos, cfg));
+            await Storage.writeFile(`Memorial_${nomeServidor}.docx`, memorialBytes, folder);
+
+            const formBytes = window.LzDocx.buildDocx(rscFormularioBody(ordenados, sim, cfg, anexos));
+            await Storage.writeFile(nomeArquivoFormulario(), formBytes, folder);
 
             let nAnexos = 0;
             for (const a of anexos) {
                 const f = await Storage.readAttachmentFile(a.ev.basename, LattesTypes.categoryFolder(a.it.categoryKey), a.ev.ext);
                 if (!f) continue;
-                const titulo = sanitizeArquivo(LattesTypes.itemTitle(a.it)).slice(0, 60) || 'anexo';
-                const nomeArquivo = `${String(a.num).padStart(2, '0')} - ${titulo}.${a.ev.ext}`;
-                await Storage.writeFile(nomeArquivo, f, `${folder}/Anexos`);
+                await Storage.writeFile(nomeArquivoAnexo(a), f, `${folder}/Anexos`);
                 nAnexos++;
             }
-            toast(`Memorial exportado em "${folder}/"${nAnexos ? ` (+ ${nAnexos} anexo${nAnexos === 1 ? '' : 's'} numerado${nAnexos === 1 ? '' : 's'} em "Anexos/")` : ''}.`, 'ok');
-        } catch (e) { toast('Falha ao exportar o memorial: ' + e.message, 'erro'); }
+            toast(`Memorial e formulário exportados em "${folder}/"${nAnexos ? ` (+ ${nAnexos} anexo${nAnexos === 1 ? '' : 's'} numerado${nAnexos === 1 ? '' : 's'} em "Anexos/")` : ''}.`, 'ok');
+        } catch (e) { toast('Falha ao exportar: ' + e.message, 'erro'); }
     }
 
     return { render };

@@ -27,6 +27,20 @@ window.TabConfig = (function () {
         AUTOCOMPLETE_KEYS, VOCAB_LABELS,
     } = window.AppCore;
 
+    // Aviso persistente exibido logo após uma migração local → Google Drive
+    // (não usa toast pra isso — some rápido demais pra uma mensagem
+    // importante). Fica até o usuário clicar em "Entendi, dispensar", ou até
+    // recarregar a página.
+    let gdriveMigrationNotice = null;
+
+    // Assistente guiado de "Diretório de armazenamento", mostrado só enquanto
+    // NENHUM diretório está configurado ainda (Storage.hasDirectory() falso)
+    // — depois de configurado, a seção volta a mostrar o painel de estado
+    // atual direto (pasta ativa + botões de gerenciar), sem o assistente.
+    // 'novo' | 'existente' | null, e 'local' | 'remoto' | null.
+    let dirWizardModo = null;
+    let dirWizardTipo = null;
+
     /* =====================================================================
        IMPORTAR LATTES (XML) — seção dentro de Configurações
        ===================================================================== */
@@ -45,38 +59,59 @@ window.TabConfig = (function () {
         toast('Lembrete: edite no lattesZen (não direto na Plataforma Lattes) para manter a consistência dos dados.', 'aviso');
     }
 
-    function importLattesSectionHtml() {
+    // Import + export do XML do Lattes unificados num card só (mesmo padrão
+    // já usado em Publicações BibTeX/RIS) — antes eram duas seções soltas,
+    // uma logo após a outra, sem necessidade. A verificação de compatibilidade
+    // ISO-8859-1 também mora aqui dentro (recolhida por padrão), já que só faz
+    // sentido no contexto de "vou exportar para o Lattes".
+    function lattesXmlSectionHtml() {
         return `
             <section id="importXmlSection" class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
                 <h2 class="text-lg font-bold mb-2 flex items-center gap-2">
-                    <i aria-hidden="true" class="fa-solid fa-file-import text-govbr-600 dark:text-unifesp-400"></i> Importar Currículo Lattes (XML)
+                    <i aria-hidden="true" class="fa-solid fa-file-import text-govbr-600 dark:text-unifesp-400"></i> Currículo Lattes (XML)
                 </h2>
+                ${xmlConsistencyNoticeHtml()}
+
+                <h3 class="text-sm font-semibold mb-1">Importar</h3>
                 <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
                     Exporte seu currículo em XML na Plataforma Lattes (Menu <em>&rarr; Exportar &rarr; XML</em>) e selecione o arquivo abaixo.
                     Os itens serão listados para você escolher quais importar; cada um poderá receber um PDF depois.
                 </p>
-                ${xmlConsistencyNoticeHtml()}
                 <input type="file" id="xmlInput" accept=".xml,application/xml,text/xml"
                        class="text-sm file:mr-2 file:px-3 file:py-1.5 file:rounded file:border-0 file:bg-govbr-600 dark:file:bg-unifesp-700 file:text-white">
                 <div id="xmlResult" class="mt-3"></div>
-            </section>`;
-    }
 
-    function exportLattesSectionHtml() {
-        return `
-            <section class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-                <h2 class="text-lg font-bold mb-2 flex items-center gap-2"><i class="fa-solid fa-file-code text-govbr-600 dark:text-unifesp-400"></i> Exportar para a Plataforma Lattes (XML)</h2>
+                <h3 class="text-sm font-semibold mt-5 mb-1">Exportar</h3>
                 <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">Gera um arquivo <strong>curriculo-&lt;nome&gt;-&lt;data e hora&gt;.xml</strong> no formato oficial do CNPq (schema <em>CurriculoLattes</em>, codificação ISO-8859-1). O nome traz a data/hora da geração, então exportações anteriores não são sobrescritas. Inclui apenas os itens das categorias do Lattes — <strong>RSC, Conexões e Registros pessoais não são exportados</strong>. As evidências (PDFs) não fazem parte do XML.</p>
                 <div class="text-sm rounded-md border-l-4 border-amber-500 bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-300 px-3 py-2 mb-3 flex gap-2">
                     <i class="fa-solid fa-hourglass-half mt-0.5"></i>
                     <span><strong>Funcionalidade futura:</strong> a exportação para XML ainda está em desenvolvimento e está temporariamente desativada.</span>
                 </div>
-                ${xmlConsistencyNoticeHtml()}
                 <div class="flex gap-2 flex-wrap">
                     <button id="btnXmlDownload" disabled class="px-3 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm opacity-50 cursor-not-allowed"><i class="fa-solid fa-download mr-1"></i> Baixar XML (.xml)</button>
                     <button id="btnXmlSave" disabled class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm opacity-50 cursor-not-allowed"><i class="fa-solid fa-folder-open mr-1"></i> Salvar na pasta (${esc(LattesTypes.lattesXmlFolder())})</button>
                 </div>
                 <p id="xmlStatus" class="text-xs text-gray-500 mt-2"></p>
+
+                <details class="mt-5 pt-3 border-t border-gray-200 dark:border-gray-700">
+                    <summary class="cursor-pointer select-none text-sm font-semibold flex items-center gap-2">
+                        <i aria-hidden="true" class="fa-solid fa-angle-right text-xs text-gray-400"></i>
+                        <i aria-hidden="true" class="fa-solid fa-language text-govbr-600 dark:text-unifesp-400"></i>
+                        Verificar compatibilidade com o Lattes (ISO-8859-1)
+                    </summary>
+                    <div class="pt-3">
+                        <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                            O Currículo Lattes usa a codificação <code class="text-xs bg-gray-200 dark:bg-gray-700 px-1 rounded">ISO-8859-1</code>.
+                            A verificação abaixo aponta caracteres fora dessa tabela (ex.: aspas “curvas”, travessão —, emoji) que,
+                            na exportação, viram entidades numéricas. Você pode normalizá-los automaticamente.
+                        </p>
+                        <div class="flex flex-wrap gap-2">
+                            <button id="btnCheckEnc" class="px-3 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm"><i class="fa-solid fa-spell-check mr-1"></i> Verificar codificação</button>
+                            <button id="btnNormalize" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-wand-magic-sparkles mr-1"></i> Normalizar pontuação</button>
+                        </div>
+                        <div id="encResult" class="text-sm mt-3"></div>
+                    </div>
+                </details>
             </section>`;
     }
 
@@ -759,6 +794,7 @@ window.TabConfig = (function () {
         return `<details class="border border-gray-200 dark:border-gray-700 rounded bg-white dark:bg-gray-900">
             <summary class="cursor-pointer select-none px-3 py-2 text-sm font-medium flex items-center gap-2">
                 <i aria-hidden="true" class="fa-solid fa-angle-right text-xs text-gray-400"></i>
+                <i aria-hidden="true" class="fa-solid ${item ? 'fa-circle-check text-green-600 dark:text-green-400' : 'fa-circle text-gray-300 dark:text-gray-600'} text-xs"></i>
                 ${esc(def.label)}
                 <span class="text-xs font-normal ${item ? 'text-green-600 dark:text-green-400' : 'text-gray-400'} truncate min-w-0">· ${resumo}</span>
             </summary>
@@ -771,11 +807,24 @@ window.TabConfig = (function () {
             </form>
         </details>`;
     }
+    // Conta quantos itens de perfil de instância ÚNICA (cartões + Identidade/
+    // Passaporte) já têm algo preenchido — vira o "X/N preenchidos" no
+    // cabeçalho. Áreas de atuação e Documentos pessoais ficam de fora (são de
+    // instância múltipla, já mostram sua própria contagem no acordeão deles).
+    function perfilProgressCount() {
+        const singleTypes = LattesTypes.perfilTypes().filter(k => k !== 'AREA_ATUACAO' && k !== 'DOCUMENTO_PESSOAL');
+        const preenchidos = singleTypes.filter(tk => state.items.some(i => i.typeKey === tk)).length;
+        return { preenchidos, total: singleTypes.length };
+    }
     function perfilSectionHtml() {
-        return `<section id="perfilSection" class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-            <h2 class="text-lg font-bold mb-2 flex items-center gap-2"><i class="fa-solid fa-id-card text-govbr-600 dark:text-unifesp-400"></i> Dados gerais (perfil)</h2>
+        const { preenchidos, total } = perfilProgressCount();
+        return `<section id="perfilSection" class="lg:col-span-2 scroll-mt-20 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+            <h2 class="text-lg font-bold mb-2 flex items-center gap-2">
+                <i class="fa-solid fa-id-card text-govbr-600 dark:text-unifesp-400"></i> Dados gerais (perfil)
+                <span class="text-sm font-normal text-gray-500">(${preenchidos}/${total} preenchidos)</span>
+            </h2>
             <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">Informações autodeclaradas do Currículo Lattes (Identificação, Foto, Endereço, Texto inicial, Outras informações, Áreas de atuação, Identidade, Passaporte e Documentos pessoais). São itens <strong>do Lattes</strong> — a maioria não exige evidência, exceto Identidade, Passaporte e Documentos pessoais.</p>
-            <div class="space-y-2">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-2 items-start">
                 ${LattesTypes.perfilTypes().filter(k => k !== 'AREA_ATUACAO' && k !== 'DOCUMENTO_PESSOAL' && k !== 'DOC_IDENTIDADE' && k !== 'DOC_PASSAPORTE').map(perfilCardHtml).join('')}
                 ${areaAtuacaoSectionHtml()}
                 ${fixedDocCardHtml('DOC_IDENTIDADE')}
@@ -1175,9 +1224,100 @@ window.TabConfig = (function () {
         window.AppCore.renderItemList();
     }
 
-    // Cabeçalho de grupo das Configurações (divisor de seções)
-    function cfgGroup(icon, title) {
-        return `<h2 class="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 flex items-center gap-2 pt-3 pb-1 border-b border-gray-200 dark:border-gray-700"><i class="fa-solid ${icon}"></i> ${esc(title)}</h2>`;
+    // Grupos de Configurações — fonte única usada tanto pelos divisores
+    // (cfgGroup) quanto pelo índice fixo (cfgIndexHtml), pra manter os dois
+    // sempre em sincronia (mesma ordem, mesmo ícone, mesmo id de âncora).
+    const CFG_GROUPS = [
+        { id: 'grp-armazenamento', icon: 'fa-folder-tree', label: 'Armazenamento e backup' },
+        { id: 'grp-perfil', icon: 'fa-id-card', label: 'Meu perfil' },
+        { id: 'grp-fontes', icon: 'fa-arrow-right-arrow-left', label: 'Trazer e levar dados' },
+        { id: 'grp-opcionais', icon: 'fa-puzzle-piece', label: 'Recursos opcionais' },
+        { id: 'grp-avancado', icon: 'fa-sliders', label: 'Avançado' },
+        { id: 'grp-lixeira', icon: 'fa-trash-can', label: 'Lixeira' },
+        { id: 'grp-sobre', icon: 'fa-circle-info', label: 'Sobre e suporte' },
+        { id: 'grp-risco', icon: 'fa-triangle-exclamation', label: 'Zona de risco' },
+    ];
+    // Cabeçalho de grupo das Configurações (divisor de seções) — recebe uma
+    // entrada de CFG_GROUPS. O id vira âncora do índice fixo (scrollIntoView).
+    function cfgGroup(g) {
+        return `<h2 id="${g.id}" class="lg:col-span-2 scroll-mt-20 text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 flex items-center gap-2 pt-3 pb-1 border-b border-gray-200 dark:border-gray-700"><i class="fa-solid ${g.icon}"></i> ${esc(g.label)}</h2>`;
+    }
+
+    // Índice fixo (sticky) com os 8 grupos — fica grudado no topo enquanto o
+    // usuário rola a aba, com destaque (scrollspy) do grupo visível no
+    // momento. Clicar rola suavemente até o grupo.
+    function cfgIndexHtml() {
+        return `
+        <nav aria-label="Índice de Configurações" class="sticky top-0 z-10 bg-gray-50/95 dark:bg-gray-900/95 backdrop-blur rounded-lg border border-gray-200 dark:border-gray-700 px-2 py-2">
+            <div class="flex gap-1.5 overflow-x-auto">
+                ${CFG_GROUPS.map(g => `
+                    <a href="#${g.id}" data-cfg-index="${g.id}" class="cfg-index-link shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-medium border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:border-govbr-600 dark:hover:border-unifesp-400 hover:text-govbr-600 dark:hover:text-unifesp-400 whitespace-nowrap">
+                        <i aria-hidden="true" class="fa-solid ${g.icon}"></i> ${esc(g.label)}
+                    </a>`).join('')}
+            </div>
+        </nav>`;
+    }
+
+    // Um item do card-resumo (checklist) do topo da aba: mostra estado
+    // (ok/aviso/informativo) + detalhe, e é clicável (mesma âncora do índice).
+    function statusItemHtml(tone, icon, label, detail, anchor) {
+        const toneClasses = {
+            ok: 'border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20',
+            warn: 'border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20',
+            info: 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900',
+        };
+        const iconEl = tone === 'ok'
+            ? '<i aria-hidden="true" class="fa-solid fa-circle-check text-green-600 dark:text-green-400"></i>'
+            : `<i aria-hidden="true" class="fa-solid ${icon} ${tone === 'warn' ? 'text-amber-600 dark:text-amber-400' : 'text-govbr-600 dark:text-unifesp-400'}"></i>`;
+        return `<a href="#${anchor}" data-cfg-index="${anchor}" class="flex items-center gap-2 px-3 py-2 rounded-lg border ${toneClasses[tone]} text-sm hover:brightness-95 dark:hover:brightness-125 transition">
+            ${iconEl}
+            <span class="min-w-0"><strong class="block">${esc(label)}</strong><span class="block text-xs text-gray-500 dark:text-gray-400 truncate">${esc(detail)}</span></span>
+        </a>`;
+    }
+    // Card-resumo no topo da aba: dá uma visão de status em segundos, sem
+    // abrir nada — diretório configurado?, perfil quanto preenchido?, backup
+    // em dia? Cada item já é um atalho pra seção correspondente.
+    function statusChecklistHtml(dirName, storageMode) {
+        const { preenchidos, total } = perfilProgressCount();
+        const sinceBackup = (Storage.loadSettings() || {}).sinceBackup || 0;
+        const dirDetail = dirName ? `${storageMode === 'gdrive' ? 'Google Drive' : 'Pasta local'} — ${dirName}` : 'Não configurado ainda';
+        const backupDetail = sinceBackup ? `${sinceBackup} alteraç${sinceBackup === 1 ? 'ão' : 'ões'} desde o último backup` : 'Em dia — sem alterações desde o último backup';
+        return `
+        <section aria-label="Resumo da configuração" class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            ${statusItemHtml(dirName ? 'ok' : 'warn', 'fa-folder-open', 'Diretório', dirDetail, 'dirSection')}
+            ${statusItemHtml('info', 'fa-id-card', 'Perfil', `${preenchidos}/${total} preenchidos`, 'perfilSection')}
+            ${statusItemHtml(sinceBackup >= 10 ? 'warn' : 'ok', 'fa-clock-rotate-left', 'Backup', backupDetail, 'backupSection')}
+        </section>`;
+    }
+    // Rola suavemente até a âncora (grupo do índice ou item do checklist) e
+    // destaca o grupo correspondente no índice enquanto o usuário rola a aba.
+    let cfgIndexObserver = null;
+    function wireCfgIndex() {
+        $$('[data-cfg-index]').forEach(a => a.addEventListener('click', (e) => {
+            e.preventDefault();
+            const el = document.getElementById(a.dataset.cfgIndex);
+            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }));
+        const links = $$('.cfg-index-link');
+        if (!links.length) return;
+        const ACTIVE = ['bg-govbr-600', 'dark:bg-unifesp-700', 'text-white', 'border-govbr-600', 'dark:border-unifesp-700'];
+        const INACTIVE = ['text-gray-600', 'dark:text-gray-300', 'border-gray-300', 'dark:border-gray-600'];
+        const setActive = (id) => links.forEach(a => {
+            const on = a.dataset.cfgIndex === id;
+            ACTIVE.forEach(c => a.classList.toggle(c, on));
+            INACTIVE.forEach(c => a.classList.toggle(c, !on));
+        });
+        setActive(links[0].dataset.cfgIndex);
+        if (cfgIndexObserver) cfgIndexObserver.disconnect();
+        if (!('IntersectionObserver' in window)) return;
+        const headers = CFG_GROUPS.map(g => document.getElementById(g.id)).filter(Boolean);
+        cfgIndexObserver = new IntersectionObserver((entries) => {
+            const visible = entries.filter(e => e.isIntersecting);
+            if (!visible.length) return;
+            const topMost = visible.reduce((a, b) => (a.boundingClientRect.top < b.boundingClientRect.top ? a : b));
+            setActive(topMost.target.id);
+        }, { rootMargin: '-96px 0px -75% 0px', threshold: 0 });
+        headers.forEach(h => cfgIndexObserver.observe(h));
     }
 
     // Uma linha da lista da Lixeira: título, categoria, há quantos dias foi
@@ -1197,7 +1337,7 @@ window.TabConfig = (function () {
     }
     function lixeiraSectionHtml() {
         return `
-            <section class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+            <section class="lg:col-span-2 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
                 <h2 class="text-lg font-bold mb-2 flex items-center gap-2">
                     <i class="fa-solid fa-trash-can text-govbr-600 dark:text-unifesp-400"></i> Lixeira <span class="text-sm font-normal text-gray-500">(${state.trash.length})</span>
                 </h2>
@@ -1242,52 +1382,111 @@ window.TabConfig = (function () {
         // pra manter o status em dia sem precisar clicar em "Verificar pasta".
         if (Storage.hasDirectory()) await window.AppCore.checkDirHealth();
 
+        // Sem diretório configurado ainda: assistente guiado (passo a passo)
+        // em vez da parede de botões — pergunta primeiro configuração ou já
+        // tem um diretório, depois local ou remoto, só então mostra a ação
+        // certa. Com um diretório já ativo, pula direto pro painel de estado
+        // (pasta atual + botões de gerenciar), como sempre foi.
+        const semDiretorio = !Storage.hasDirectory();
+        const modoBtn = (val, label) => `<button type="button" data-wizard-modo="${val}" class="px-3 py-2 rounded text-sm border ${dirWizardModo === val ? 'bg-govbr-600 dark:bg-unifesp-700 text-white border-govbr-600 dark:border-unifesp-700' : 'border-gray-300 dark:border-gray-600'}">${esc(label)}</button>`;
+        const tipoBtn = (val, label) => `<button type="button" data-wizard-tipo="${val}" class="px-3 py-2 rounded text-sm border ${dirWizardTipo === val ? 'bg-govbr-600 dark:bg-unifesp-700 text-white border-govbr-600 dark:border-unifesp-700' : 'border-gray-300 dark:border-gray-600'}">${esc(label)}</button>`;
+
+        let dirSectionHtml;
+        if (semDiretorio) {
+            let html = `
+                <div class="mb-4 pb-4 border-b border-gray-200 dark:border-gray-700">
+                    <h3 class="text-sm font-bold mb-1">1. Prefixo do identificador dos arquivos</h3>
+                    <p class="text-xs text-gray-500 mb-2">Os arquivos são nomeados como <code class="bg-gray-200 dark:bg-gray-700 px-1 rounded">prefixo-XXX.pdf</code> (3 alfanuméricos). Prefixo de até 3 caracteres (letras minúsculas/números). Só precisa definir uma vez — depois de configurar o diretório, esta opção some daqui.</p>
+                    <div class="flex items-center gap-2">
+                        <input id="idPrefix" type="text" maxlength="3" value="${esc(state.idPrefix)}" class="w-20 text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 font-mono">
+                        <span class="text-xs text-gray-500">Exemplo: <code id="idPrefixEx" class="bg-gray-200 dark:bg-gray-700 px-1 rounded">${esc(state.idPrefix)}-k7p</code></span>
+                        <button id="btnSavePrefix" class="ml-auto px-3 py-1.5 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm"><i class="fa-solid fa-floppy-disk mr-1"></i> Salvar prefixo</button>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <p class="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">2. Isto é uma primeira configuração, ou você já tem um diretório (local ou no Drive) com itens?</p>
+                    <div class="flex flex-wrap gap-2">
+                        ${modoBtn('novo', 'Primeira configuração')}
+                        ${modoBtn('existente', 'Já tenho um diretório')}
+                    </div>
+                </div>`;
+            if (dirWizardModo) {
+                html += `
+                <div class="mb-3">
+                    <p class="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">3. Onde ficam os arquivos?</p>
+                    <div class="flex flex-wrap gap-2">
+                        ${tipoBtn('local', 'Pasta no computador')}
+                        ${tipoBtn('remoto', 'Google Drive')}
+                    </div>
+                </div>`;
+            }
+            if (dirWizardModo && dirWizardTipo === 'local') {
+                html += `
+                <div class="flex flex-wrap gap-2">
+                    <button id="btnChooseDir" class="px-3 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm" ${Storage.supportsFS ? '' : 'disabled'}><i class="fa-solid fa-folder mr-1"></i> Escolher pasta</button>
+                    ${dirWizardModo === 'existente' ? `<button id="btnSync" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-rotate mr-1"></i> Sincronizar do diretório</button>` : ''}
+                </div>
+                ${Storage.supportsFS ? '' : '<p class="text-xs text-red-600 font-semibold mt-1">Seu navegador não suporta esta função — use Chrome ou Edge.</p>'}`;
+            }
+            if (dirWizardModo && dirWizardTipo === 'remoto') {
+                html += `
+                <div class="flex flex-wrap gap-2 mb-2">
+                    <input id="gdrivePasta" type="text" placeholder="Pasta (ex.: lattesZen)" value="lattesZen" class="text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900">
+                </div>
+                <p class="text-xs text-gray-500 mb-2">
+                    O lattesZen só acessa os arquivos que ele mesmo cria (escopo <code class="bg-gray-200 dark:bg-gray-700 px-1 rounded">drive.file</code>) — nunca o restante do seu Drive.
+                    ${APP_CONFIG.googleDriveClientId ? '' : '<span class="text-red-600 font-semibold">Recurso ainda não configurado neste site (falta o Client ID do Google Cloud Console em config.js).</span>'}
+                </p>
+                <div class="flex flex-wrap gap-2">
+                    <button id="btnGDriveConnect" class="px-3 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm" ${APP_CONFIG.googleDriveClientId ? '' : 'disabled'}><i class="fa-brands fa-google mr-1"></i> Conectar ao Google Drive</button>
+                    ${dirWizardModo === 'existente' ? `<button id="btnGDriveMigrate" class="px-3 py-2 rounded border border-govbr-600 dark:border-unifesp-400 text-govbr-700 dark:text-unifesp-300 text-sm" ${APP_CONFIG.googleDriveClientId ? '' : 'disabled'}><i class="fa-solid fa-cloud-arrow-up mr-1"></i> Migrar meus arquivos e conectar</button>` : ''}
+                </div>
+                ${dirWizardModo === 'existente' ? `<p class="text-xs text-gray-500 mt-1">"Migrar meus arquivos e conectar" pede pra você escolher a pasta local atual e copia tudo pro Drive antes de trocar. "Conectar" sozinho começa com uma pasta vazia no Drive.</p>` : ''}
+                <div id="gdriveStatus" class="text-sm mt-2"></div>`;
+            }
+            dirSectionHtml = html;
+        } else {
+            // Com um diretório já configurado (local ou Google Drive), a seção
+            // "Armazenamento remoto (Google Drive)" não aparece mais aqui —
+            // só faz sentido no assistente, antes de configurar (ou depois de
+            // "Esquecer pasta"). "Pasta atual" já indica qual back-end está
+            // em uso; pra trocar, o caminho é "Esquecer pasta" e refazer o
+            // assistente (inclusive pra migrar arquivos locais pro Drive).
+            dirSectionHtml = `
+                <p class="text-sm mb-1">Pasta atual: <strong id="dirNameLbl">${esc(dirName)}</strong></p>
+                <p class="text-sm mb-3" id="dirHealthStatus">${window.AppCore.dirHealthStatusHtml()}</p>
+                <div class="flex flex-wrap gap-2">
+                    <button id="btnChooseDir" class="px-3 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm" ${Storage.supportsFS ? '' : 'disabled'}><i class="fa-solid fa-folder mr-1"></i> Escolher pasta</button>
+                    <button id="btnSync" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-rotate mr-1"></i> Sincronizar do diretório</button>
+                    <button id="btnCheckDir" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-stethoscope mr-1"></i> Verificar pasta</button>
+                </div>`;
+        }
+
         panel.innerHTML = `
-            <div class="space-y-6 max-w-2xl">
-                ${cfgGroup('fa-folder-tree', 'Diretório e dados')}
-                <section id="dirSection" class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-                    <h2 class="text-lg font-bold mb-2 flex items-center gap-2"><i class="fa-solid fa-folder-open text-govbr-600 dark:text-unifesp-400"></i> Diretório de arquivos</h2>
+            <div class="space-y-6">
+                ${cfgIndexHtml()}
+                ${statusChecklistHtml(dirName, storageMode)}
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                ${cfgGroup(CFG_GROUPS[0])}
+                <section id="dirSection" class="scroll-mt-20 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+                    <h2 class="text-lg font-bold mb-2 flex items-center gap-2"><i class="fa-solid fa-folder-open text-govbr-600 dark:text-unifesp-400"></i> Diretório de armazenamento</h2>
                     <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
                         Cada item catalogado é salvo aqui como <code class="text-xs bg-gray-200 dark:bg-gray-700 px-1 rounded">ID.pdf</code> +
                         <code class="text-xs bg-gray-200 dark:bg-gray-700 px-1 rounded">ID.json</code>.
                         ${Storage.supportsFS ? '' : '<span class="text-red-600 font-semibold">Seu navegador não suporta esta função — use Chrome ou Edge.</span>'}
                     </p>
-                    <p class="text-sm mb-1">Pasta atual: <strong id="dirNameLbl">${dirName ? esc(dirName) : '<em>nenhuma</em>'}</strong></p>
-                    ${dirName ? `<p class="text-sm mb-3" id="dirHealthStatus">${window.AppCore.dirHealthStatusHtml()}</p>` : ''}
-                    <div class="flex flex-wrap gap-2">
-                        <button id="btnChooseDir" class="px-3 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm" ${Storage.supportsFS ? '' : 'disabled'}><i class="fa-solid fa-folder mr-1"></i> Escolher pasta</button>
-                        <button id="btnSync" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-rotate mr-1"></i> Sincronizar do diretório</button>
-                        ${dirName ? `<button id="btnCheckDir" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-stethoscope mr-1"></i> Verificar pasta</button>` : ''}
+                    ${dirSectionHtml}
+                    ${gdriveMigrationNotice ? `<div id="gdriveMigrationNotice" class="text-sm mt-3 p-3 rounded border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-300">
+                        <i class="fa-solid fa-triangle-exclamation mr-1"></i> ${esc(gdriveMigrationNotice)}
+                        <button id="btnDismissGDriveNotice" class="block mt-1 text-xs underline">Entendi, dispensar</button>
+                    </div>` : ''}
+                    <div class="mt-4 pt-3 border-t border-gray-200 dark:border-gray-700">
                         <button id="btnForget" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-link-slash mr-1"></i> Esquecer pasta</button>
-                    </div>
-                    <div class="mt-4 pt-3 border-t border-gray-200 dark:border-gray-700">
-                        <h3 class="text-sm font-bold mb-1">Armazenamento remoto (Google Drive)</h3>
-                        <p class="text-xs text-gray-500 mb-2">
-                            Alternativa à pasta local: os arquivos ficam numa pasta dedicada no seu Google Drive, acessível de mais de um dispositivo.
-                            O lattesZen só acessa os arquivos que ele mesmo cria (escopo <code class="bg-gray-200 dark:bg-gray-700 px-1 rounded">drive.file</code>) — nunca o restante do seu Drive.
-                            ${APP_CONFIG.googleDriveClientId ? '' : '<span class="text-red-600 font-semibold">Recurso ainda não configurado neste site (falta o Client ID do Google Cloud Console em config.js).</span>'}
-                        </p>
-                        <div class="flex flex-wrap gap-2 mb-2">
-                            <input id="gdrivePasta" type="text" placeholder="Pasta (ex.: lattesZen)" value="lattesZen" ${storageMode === 'gdrive' ? 'disabled' : ''} class="text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900">
-                        </div>
-                        <div class="flex flex-wrap gap-2 items-center">
-                            <button id="btnGDriveConnect" class="px-3 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm" ${APP_CONFIG.googleDriveClientId ? '' : 'disabled'}><i class="fa-brands fa-google mr-1"></i> Conectar ao Google Drive</button>
-                            ${storageMode === 'gdrive' ? `<span class="text-xs text-green-700 dark:text-green-400"><i class="fa-solid fa-circle-check mr-1"></i> Este é o armazenamento em uso.</span>` : ''}
-                        </div>
-                        <div id="gdriveStatus" class="text-sm mt-2"></div>
-                    </div>
-                    <div class="mt-4 pt-3 border-t border-gray-200 dark:border-gray-700">
-                        <h3 class="text-sm font-bold mb-1">Prefixo do identificador dos arquivos</h3>
-                        <p class="text-xs text-gray-500 mb-2">Os arquivos são nomeados como <code class="bg-gray-200 dark:bg-gray-700 px-1 rounded">prefixo-XXX.pdf</code> (3 alfanuméricos). Prefixo de até 3 caracteres (letras minúsculas/números).</p>
-                        <div class="flex items-center gap-2">
-                            <input id="idPrefix" type="text" maxlength="3" value="${esc(state.idPrefix)}" class="w-20 text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 font-mono">
-                            <span class="text-xs text-gray-500">Exemplo: <code id="idPrefixEx" class="bg-gray-200 dark:bg-gray-700 px-1 rounded">${esc(state.idPrefix)}-k7p</code></span>
-                            <button id="btnSavePrefix" class="ml-auto px-3 py-1.5 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm"><i class="fa-solid fa-floppy-disk mr-1"></i> Salvar prefixo</button>
-                        </div>
                     </div>
                 </section>
 
-                <section class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+                <section id="backupSection" class="scroll-mt-20 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
                     <h2 class="text-lg font-bold mb-2 flex items-center gap-2"><i class="fa-solid fa-file-export text-govbr-600 dark:text-unifesp-400"></i> Backup (JSON)</h2>
                     <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">Exporte ou importe todo o catálogo (metadados) e as configurações do sistema (prefixo do identificador, listas de autocomplete, RSC-PCCTAE) num único arquivo JSON — é o que permite restaurar tudo num navegador novo. Com um diretório configurado, o backup é salvo automaticamente na subpasta <code class="text-xs bg-gray-200 dark:bg-gray-700 px-1 rounded">Cópia de segurança</code>.</p>
                     <div class="flex flex-wrap gap-2">
@@ -1298,39 +1497,24 @@ window.TabConfig = (function () {
                     </div>
                 </section>
 
-                ${cfgGroup('fa-id-card', 'Perfil')}
+                ${cfgGroup(CFG_GROUPS[1])}
                 ${perfilSectionHtml()}
 
-                ${cfgGroup('fa-arrow-right-arrow-left', 'Plataforma Lattes')}
-                ${importLattesSectionHtml()}
-                ${exportLattesSectionHtml()}
-
-                ${cfgGroup('fa-id-badge', 'Outras fontes')}
+                ${cfgGroup(CFG_GROUPS[2])}
+                ${lattesXmlSectionHtml()}
                 ${orcidImportSectionHtml()}
                 ${bibImportSectionHtml()}
-                <section class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-                    <h2 class="text-lg font-bold mb-2 flex items-center gap-2"><i class="fa-solid fa-language text-govbr-600 dark:text-unifesp-400"></i> Compatibilidade com o Lattes (ISO-8859-1)</h2>
-                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
-                        O Currículo Lattes usa a codificação <code class="text-xs bg-gray-200 dark:bg-gray-700 px-1 rounded">ISO-8859-1</code>.
-                        A verificação abaixo aponta caracteres fora dessa tabela (ex.: aspas “curvas”, travessão —, emoji) que,
-                        na exportação, viram entidades numéricas. Você pode normalizá-los automaticamente.
-                    </p>
-                    <div class="flex flex-wrap gap-2">
-                        <button id="btnCheckEnc" class="px-3 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm"><i class="fa-solid fa-spell-check mr-1"></i> Verificar codificação</button>
-                        <button id="btnNormalize" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-wand-magic-sparkles mr-1"></i> Normalizar pontuação</button>
-                    </div>
-                    <div id="encResult" class="text-sm mt-3"></div>
-                </section>
 
-                ${cfgGroup('fa-award', 'RSC-PCCTAE')}
+                ${cfgGroup(CFG_GROUPS[3])}
                 ${rscSectionHtml()}
-
-                ${cfgGroup('fa-cloud', 'Nuvem de palavras')}
                 ${nuvemPalavrasSectionHtml()}
 
-                ${cfgGroup('fa-sliders', 'Avançado')}
-                <section class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-                    <h2 class="text-lg font-bold mb-2 flex items-center gap-2"><i class="fa-solid fa-list-check text-govbr-600 dark:text-unifesp-400"></i> Listas de autocomplete</h2>
+                ${cfgGroup(CFG_GROUPS[4])}
+                <details class="lg:col-span-2 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+                    <summary class="text-lg font-bold mb-2 flex items-center gap-2 cursor-pointer select-none">
+                        <i aria-hidden="true" class="fa-solid fa-angle-right text-sm text-gray-400"></i>
+                        <i class="fa-solid fa-list-check text-govbr-600 dark:text-unifesp-400"></i> Listas de autocomplete
+                    </summary>
                     <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
                         Listas de sugestões dos campos (Instituições, Financiadores/Agências, etc.). Valores já usados no catálogo
                         aparecem automaticamente. Estas listas são <strong>apenas para visualização</strong> — a única forma de
@@ -1342,7 +1526,7 @@ window.TabConfig = (function () {
                         <strong>Renomear em todos os itens</strong> dentro de cada lista: o novo valor é aplicado a todos os itens que
                         usam o antigo, e os arquivos JSON no diretório são regravados.</span>
                     </p>
-                    <div class="space-y-2">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-2 items-start">
                         ${AUTOCOMPLETE_KEYS.map(k => `
                             <details class="border border-gray-200 dark:border-gray-700 rounded">
                                 <summary class="cursor-pointer select-none px-3 py-2 text-sm font-medium flex items-center gap-2">
@@ -1370,23 +1554,25 @@ window.TabConfig = (function () {
                                 </div>
                             </details>`).join('')}
                     </div>
-                </section>
+                </details>
 
-                ${cfgGroup('fa-trash-can', 'Lixeira')}
+                ${cfgGroup(CFG_GROUPS[5])}
                 ${lixeiraSectionHtml()}
 
-                ${cfgGroup('fa-circle-info', 'Sobre')}
+                ${cfgGroup(CFG_GROUPS[6])}
                 <section class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
                     <h2 class="text-lg font-bold mb-2 flex items-center gap-2"><i class="fa-solid fa-circle-info text-govbr-600 dark:text-unifesp-400"></i> Sobre o lattesZen</h2>
-                    <p class="text-sm text-gray-600 dark:text-gray-400">Versão <span class="font-mono">${esc(APP_CONFIG.version)}</span> — veja o que mudou em cada versão nas <a href="notas-de-versao.html" target="_blank" rel="noopener" class="text-govbr-600 dark:text-unifesp-400 underline">notas de versão</a>.</p>
+                    <p class="text-sm text-gray-600 dark:text-gray-400">Versão <span class="font-mono">${esc(APP_CONFIG.version)}</span> — veja o que mudou em cada versão nas <a href="notas-de-versao.html" target="_blank" rel="noopener" class="text-govbr-600 dark:text-unifesp-400 underline">notas de versão</a>. Precisa de ajuda? Confira a <a href="ajuda.html" target="_blank" rel="noopener" class="text-govbr-600 dark:text-unifesp-400 underline">página de Ajuda</a>.</p>
                 </section>
 
-                ${cfgGroup('fa-triangle-exclamation', 'Zona de risco')}
+                ${cfgGroup(CFG_GROUPS[7])}
                 <section class="bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800 p-4">
                     <button id="btnClear" class="px-3 py-2 rounded bg-red-600 text-white text-sm"><i class="fa-solid fa-trash mr-1"></i> Limpar catálogo (índice local)</button>
                 </section>
+                </div>
             </div>`;
 
+        wireCfgIndex();
         wirePerfilSection();
         wireRscConfig();
         wireNuvemPalavrasSection();
@@ -1396,16 +1582,19 @@ window.TabConfig = (function () {
         $('#bibInput').addEventListener('change', onBibFileSelected);
         wireBibExport();
         $('#xmlInput').addEventListener('change', onXmlSelected);
-        $('#idPrefix').addEventListener('input', (e) => {
+        const idPrefixInput = $('#idPrefix');
+        if (idPrefixInput) idPrefixInput.addEventListener('input', (e) => {
             $('#idPrefixEx').textContent = `${window.AppCore.sanitizePrefix(e.target.value)}-k7p`;
         });
-        $('#btnSavePrefix').addEventListener('click', () => {
+        const btnSavePrefix = $('#btnSavePrefix');
+        if (btnSavePrefix) btnSavePrefix.addEventListener('click', () => {
             state.idPrefix = window.AppCore.sanitizePrefix($('#idPrefix').value);
             const s = Storage.loadSettings(); s.idPrefix = state.idPrefix; Storage.saveSettings(s);
             toast(`Prefixo definido: "${state.idPrefix}". Novos arquivos: ${state.idPrefix}-XXX.`, 'ok');
             render();
         });
-        $('#btnChooseDir').addEventListener('click', async () => {
+        const btnChooseDir = $('#btnChooseDir');
+        if (btnChooseDir) btnChooseDir.addEventListener('click', async () => {
             try {
                 await Storage.chooseDirectory();
                 await Storage.ensureSubdirs(LattesTypes.allFolders()); // cria a estrutura de pastas
@@ -1427,14 +1616,28 @@ window.TabConfig = (function () {
                 render();
             } catch (e) { if (e.name !== 'AbortError') toast(e.message, 'erro'); }
         });
-        $('#btnSync').addEventListener('click', async () => {
+        const btnSync = $('#btnSync');
+        if (btnSync) btnSync.addEventListener('click', async () => {
             try {
                 const { encontrados } = await window.AppCore.syncFromDirectory();
                 toast(`${encontrados} arquivo(s) .json lido(s) do diretório.`, 'ok');
                 window.AppCore.renderItemList();
             } catch (e) { toast(e.message, 'erro'); }
         });
-        $('#btnForget').addEventListener('click', async () => { await Storage.forgetDirectory(); state.dirHealth = null; window.AppCore.renderDirBanner(); toast('Pasta esquecida.', 'ok'); render(); });
+        $('#btnForget').addEventListener('click', async () => {
+            await Storage.forgetDirectory();
+            state.dirHealth = null;
+            dirWizardModo = null; dirWizardTipo = null; // volta o assistente pro início
+            window.AppCore.renderDirBanner();
+            toast('Pasta esquecida — escolha um novo diretório ou pasta no Drive abaixo.', 'ok');
+            render();
+        });
+        $$('[data-wizard-modo]').forEach(btn => {
+            btn.addEventListener('click', () => { dirWizardModo = btn.dataset.wizardModo; dirWizardTipo = null; render(); });
+        });
+        $$('[data-wizard-tipo]').forEach(btn => {
+            btn.addEventListener('click', () => { dirWizardTipo = btn.dataset.wizardTipo; render(); });
+        });
         const btnCheckDir = $('#btnCheckDir');
         if (btnCheckDir) btnCheckDir.addEventListener('click', async () => {
             await window.AppCore.checkDirHealth({ requestIfNeeded: true });
@@ -1469,6 +1672,53 @@ window.TabConfig = (function () {
                 btnGDriveConnect.disabled = false;
             }
         });
+        const btnGDriveMigrate = $('#btnGDriveMigrate');
+        if (btnGDriveMigrate) btnGDriveMigrate.addEventListener('click', async () => {
+            const aviso = 'Isso copia TODOS os arquivos da pasta local atual para uma pasta no seu Google Drive (a pasta local não é apagada durante a cópia).\n\n' +
+                'Ao terminar, o lattesZen passa a usar o Google Drive — TODAS as atualizações futuras (novos itens, edições, anexos) vão para lá, não mais para a pasta local.\n\n' +
+                'Depois de conferir que os arquivos foram copiados corretamente, você pode excluir a pasta local com segurança.\n\n' +
+                'Deseja continuar?';
+            if (!confirm(aviso)) return;
+            const pasta = $('#gdrivePasta').value.trim() || 'lattesZen';
+            const statusEl = $('#gdriveStatus');
+            btnGDriveMigrate.disabled = true;
+            if (btnGDriveConnect) btnGDriveConnect.disabled = true;
+            try {
+                // No assistente (sem diretório ativo ainda), "Migrar meus
+                // arquivos e conectar" ainda não tem uma pasta local pra
+                // migrar — pede pra escolher agora, antes de conectar.
+                if (!Storage.hasDirectory()) {
+                    if (statusEl) statusEl.innerHTML = '<span class="text-gray-500">Escolha a pasta local com os seus arquivos…</span>';
+                    await Storage.chooseDirectory();
+                }
+                if (statusEl) statusEl.innerHTML = '<span class="text-gray-500">Conectando… (autorize na janela do Google)</span>';
+                await Storage.connectGoogleDrive({ pasta });
+                await Storage.ensureSubdirs(LattesTypes.allFolders()); // cria a estrutura de pastas
+                try { await Storage.ensureInbox(); } catch (_) {}      // cria "Caixa de Entrada" / "Processados"
+                if (statusEl) statusEl.innerHTML = '<span class="text-gray-500">Copiando arquivos da pasta local para o Google Drive…</span>';
+                const copiados = await Storage.migrateLocalToGoogleDrive((n, name) => {
+                    if (statusEl) statusEl.innerHTML = `<span class="text-gray-500">Copiando arquivos… (${n} até agora — ${esc(name)})</span>`;
+                });
+                state.dirHealth = null; // acabou de trocar de armazenamento; revalidada no próximo render
+                let msg = `Migração concluída: ${copiados} arquivo(s) copiado(s) para o Google Drive.`;
+                try {
+                    const { encontrados } = await window.AppCore.syncFromDirectory();
+                    if (encontrados) msg += ` ${encontrados} item(ns) sincronizado(s).`;
+                } catch (_) {}
+                toast(msg, 'ok');
+                gdriveMigrationNotice = 'Migração concluída. A partir de agora, todas as atualizações do lattesZen ocorrem no Google Drive — a pasta local não será mais usada pelo app. Confira na pasta do Drive se os arquivos foram copiados corretamente; depois disso, a pasta local pode ser excluída com segurança.';
+                window.AppCore.renderItemList();
+                render();
+            } catch (e) {
+                if (e.name === 'AbortError') { btnGDriveMigrate.disabled = false; if (btnGDriveConnect) btnGDriveConnect.disabled = false; return; } // cancelou o seletor de pasta
+                if (statusEl) statusEl.innerHTML = `<span class="text-red-700 dark:text-red-400"><i aria-hidden="true" class="fa-solid fa-triangle-exclamation mr-1"></i> ${esc(e.message)}</span>`;
+                toast('Falha na migração: ' + e.message, 'erro');
+                btnGDriveMigrate.disabled = false;
+                if (btnGDriveConnect) btnGDriveConnect.disabled = false;
+            }
+        });
+        const btnDismissGDriveNotice = $('#btnDismissGDriveNotice');
+        if (btnDismissGDriveNotice) btnDismissGDriveNotice.addEventListener('click', () => { gdriveMigrationNotice = null; render(); });
 
         $('#btnExport').addEventListener('click', exportCatalog);
         $('#importJson').addEventListener('change', importCatalog);

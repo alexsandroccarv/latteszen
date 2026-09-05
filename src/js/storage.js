@@ -104,6 +104,35 @@ window.Storage = (function () {
         return gdriveCfg;
     }
 
+    // Copia recursivamente TODO o conteúdo da pasta LOCAL ativa (dirHandle)
+    // para dentro da pasta já conectada no Google Drive (gdriveCfg), mantendo
+    // a mesma estrutura de subpastas. Usado na migração local → Drive:
+    // conectGoogleDrive() já deve ter rodado antes (gdriveCfg preenchido).
+    // NÃO apaga nada da pasta local — é só cópia; quem chama decide depois
+    // se orienta o usuário a excluir a pasta local manualmente. Idempotente:
+    // se falhar no meio e for chamada de novo, os arquivos já copiados só são
+    // sobrescritos (upsertFile), não duplicados.
+    async function migrateLocalToGoogleDrive(onProgress) {
+        if (!dirHandle) throw new Error('Nenhuma pasta local configurada para migrar.');
+        if (!gdriveCfg) throw new Error('Conecte ao Google Drive antes de migrar os arquivos.');
+        let copiados = 0;
+        async function copyDir(localHandle, driveParentId) {
+            for await (const [name, h] of localHandle.entries()) {
+                if (h.kind === 'file') {
+                    const file = await h.getFile();
+                    await window.GDriveClient.upsertFile(driveParentId, name, file);
+                    copiados++;
+                    if (onProgress) onProgress(copiados, name);
+                } else if (h.kind === 'directory') {
+                    const subId = await window.GDriveClient.ensureFolder(driveParentId, name);
+                    await copyDir(h, subId);
+                }
+            }
+        }
+        await copyDir(dirHandle, gdriveCfg.rootFolderId);
+        return copiados;
+    }
+
     async function verifyPermission(handle, readWrite = true) {
         const opts = { mode: readWrite ? 'readwrite' : 'read' };
         if ((await handle.queryPermission(opts)) === 'granted') return true;
@@ -694,7 +723,7 @@ window.Storage = (function () {
         chooseDirectory, restoreDirectory, ensureDirReady, hasDirectory,
         directoryName, forgetDirectory, verifyPermission, checkHealth,
         // Google Drive
-        storageMode, connectGoogleDrive,
+        storageMode, connectGoogleDrive, migrateLocalToGoogleDrive,
         // arquivos
         writeJson, writeFile, writeAttachment, deleteEntry, deleteItemFiles, moveItemFiles, removeSubdirIfEmpty, renameRootFolder, renameNestedFolder, readAttachmentUrl, readAttachmentFile, scanDirectory, ensureSubdirs,
         // bandeja de entrada (inbox)
