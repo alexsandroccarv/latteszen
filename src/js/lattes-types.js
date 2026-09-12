@@ -411,11 +411,14 @@ const TYPES = {
     // 03 Atuação
     VINCULO_PROFISSIONAL: { label: 'Atuação profissional', fields: [
         { key: 'instituicao', label: 'Nome da instituição', type: 'text', required: true },
-        { key: 'vinculo', label: 'Tipo do vínculo', type: 'text' },
-        { key: 'vinculoEmpregaticio', label: 'Possui vínculo empregatício?', type: 'select', options: ['Sim', 'Não'] },
+        { key: 'vinculo', label: 'Tipo do vínculo', type: 'select', options: ['Servidor público', 'Celetista', 'Professor visitante', 'Estudante', 'Bolsista', 'Outro'] },
+        // Derivado do Tipo do vínculo (Servidor público/Celetista → Sim; os
+        // demais → Não) — ver forceValueWhen/wireForcedValues em tab-catalogar.js.
+        { key: 'vinculoEmpregaticio', label: 'Possui vínculo empregatício?', type: 'select', options: ['Sim', 'Não'],
+            forceValueWhen: { field: 'vinculo', map: { 'Servidor público': 'Sim', 'Celetista': 'Sim', 'Professor visitante': 'Não', 'Estudante': 'Não', 'Bolsista': 'Não', 'Outro': 'Não' } } },
         { key: 'cargo', label: 'Enquadramento funcional', type: 'text' },
         { key: 'cargaHoraria', label: 'Carga horária semanal', type: 'number', na: true },
-        { key: 'dedicacaoExclusiva', label: 'Dedicação exclusiva', type: 'select', options: ['Sim', 'Não'] },
+        { key: 'dedicacaoExclusiva', label: 'Dedicação exclusiva', type: 'checkbox' },
         ...periodoComSituacao(),
         { key: 'titulo', label: 'Outras informações', type: 'textarea' }] },
     LINHA_PESQUISA: { label: 'Linhas de pesquisa', fields: [{ key: 'titulo', label: 'Linha de pesquisa', type: 'text', required: true }, F_INST, { key: 'descricao', label: 'Objetivos', type: 'textarea' }] },

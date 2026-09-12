@@ -810,6 +810,7 @@ window.TabCatalogar = (function () {
             wireDateBr($('#dynFields'));                 // máscara dd/mm/aaaa (campos datebr)
             wireConditional($('#dynFields'), def);       // campos bloqueados por condição
             wireDynamicLabels($('#dynFields'), def);     // rótulos que mudam conforme outro campo
+            wireForcedValues($('#dynFields'), def);      // valor derivado de outro campo (ex.: vínculo empregatício)
             wireRepeater($('#dynFields'), def);          // listas (Equipe, Financiadores, Produção C&T...)
             wireCrossrefButton($('#dynFields'), def);    // "Buscar metadados" no campo DOI (Crossref)
             renderVisibilidadeBlock(itemAtual);           // Publicar (Lattes/Web/usar para RSC)
@@ -1412,6 +1413,32 @@ window.TabCatalogar = (function () {
             const apply = () => {
                 const text = f.labelWhen.map[ctrl.value] || f.label;
                 label.innerHTML = esc(text) + (f.required ? ' <span class="text-red-500">*</span>' : '');
+            };
+            ctrl.addEventListener('change', apply);
+            apply();
+        });
+    }
+    // Campos com `forceValueWhen`: o valor é derivado de outro campo (via
+    // mapa fixo) e o campo fica travado (disabled) enquanto o controlador
+    // tiver um valor mapeado — ex.: "Possui vínculo empregatício?" é sempre
+    // Sim/Não conforme o Tipo do vínculo (Servidor público/Celetista → Sim;
+    // demais → Não), sem opção de o usuário sobrescrever manualmente.
+    function wireForcedValues(container, def) {
+        (def && def.fields || []).filter(f => f.forceValueWhen).forEach(f => {
+            const { field, map } = f.forceValueWhen;
+            const ctrl = container.querySelector(`[name="${field}"]`);
+            const input = container.querySelector(`[name="${f.key}"]`);
+            if (!ctrl || !input) return;
+            const apply = () => {
+                const forced = map[ctrl.value];
+                if (forced != null) {
+                    input.value = forced;
+                    input.disabled = true;
+                    input.classList.add('opacity-50');
+                } else {
+                    input.disabled = false;
+                    input.classList.remove('opacity-50');
+                }
             };
             ctrl.addEventListener('change', apply);
             apply();
