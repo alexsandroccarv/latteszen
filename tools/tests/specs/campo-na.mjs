@@ -81,6 +81,35 @@ test('N/A em Instituição promotora (Editoração) não trava o salvamento', as
     assertEqual(salvo, 'Não se aplica', 'Valor salvo de Instituição promotora com N/A marcado');
 });
 
+test('N/A em Título da dissertação/tese, Orientador e Coorientador (Formação acadêmica) não trava o salvamento', async ({ page, baseUrl }) => {
+    await page.goto(baseUrl + '/index.html');
+    await page.waitForTimeout(400);
+    await selectTipo(page, 'Formação', 'Formação acadêmica/titulação');
+    await page.selectOption('select[name="nivel"]', 'Mestrado');
+    await page.waitForTimeout(150);
+    await page.fill('[name="curso"]', 'Curso NA Teste');
+    await page.fill('[name="instituicao"]', 'Instituto Y');
+    await page.check('[data-na="titulo"]');
+    await page.check('[data-na="orientador"]');
+    await page.check('[data-na="coorientador"]');
+    await page.waitForTimeout(150);
+    for (const campo of ['titulo', 'orientador', 'coorientador']) {
+        const el = await page.$eval(`[name="${campo}"]`, (el) => ({ value: el.value, disabled: el.disabled }));
+        assertEqual(el, { value: '', disabled: true }, `Campo ${campo} logo após marcar N/A`);
+    }
+
+    await page.click('button[type="submit"]');
+    await page.waitForTimeout(350);
+    const salvo = await page.evaluate(() => {
+        const items = JSON.parse(localStorage.getItem('lz_catalog') || '[]');
+        const it = items.find((i) => i.fields && i.fields.curso === 'Curso NA Teste');
+        return it ? it.fields : null;
+    });
+    assertEqual(salvo && salvo.titulo, 'Não se aplica', 'Valor salvo de Título da dissertação/tese com N/A marcado');
+    assertEqual(salvo && salvo.orientador, 'Não se aplica', 'Valor salvo de Orientador com N/A marcado');
+    assertEqual(salvo && salvo.coorientador, 'Não se aplica', 'Valor salvo de Coorientador com N/A marcado');
+});
+
 test('Esquemas de URL além de http(s) são preservados (ftp, magnet)', async ({ page, baseUrl }) => {
     await page.goto(baseUrl + '/index.html');
     await page.waitForTimeout(400);

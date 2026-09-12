@@ -769,7 +769,17 @@ window.TabCatalogar = (function () {
             const camposPanel = $('#camposPanel');
             if (camposPanel) camposPanel.classList.toggle('hidden', !$('#selTipo').value);
             const def = LattesTypes.get($('#selTipo').value);
-            const vals = item ? (item.fields || {}) : {};
+            // Itens de entrada única (Identificação, Endereço, Foto de
+            // perfil, documentos pessoais...): só pode existir 1 no catálogo,
+            // então escolher o Tipo pela caixa de seleção (sem passar por um
+            // link "Editar" de um item já existente) deve mostrar o que já
+            // foi salvo — senão parece que o cadastro não persistiu.
+            let itemSingleton = null;
+            if (def && LattesTypes.isSingleton(def.key) && (!item || item.typeKey !== def.key)) {
+                itemSingleton = state.items.find(i => i.typeKey === def.key) || null;
+            }
+            const itemAtual = item || itemSingleton;
+            const vals = itemAtual ? (itemAtual.fields || {}) : {};
             // Idiomas: o seletor de idioma não deve oferecer um idioma já
             // cadastrado em outro item (evita duplicata pela raiz, sem
             // depender só do aviso de "item parecido" ao salvar — ver
@@ -779,7 +789,7 @@ window.TabCatalogar = (function () {
             let camposParaRenderizar = def ? def.fields : [];
             if (def && def.key === 'IDIOMAS') {
                 const usados = new Set(state.items
-                    .filter(i => i.typeKey === 'IDIOMAS' && (!item || i.id !== item.id))
+                    .filter(i => i.typeKey === 'IDIOMAS' && (!itemAtual || i.id !== itemAtual.id))
                     .map(i => (i.fields || {}).titulo).filter(Boolean));
                 camposParaRenderizar = def.fields.map(f => f.key === 'titulo'
                     ? Object.assign({}, f, { options: (f.options || []).filter(o => !usados.has(o)) })
@@ -787,8 +797,8 @@ window.TabCatalogar = (function () {
             }
             $('#dynFields').innerHTML = dynFieldsHtml(camposParaRenderizar, vals);
             associateLabels($('#dynFields'));           // a11y: label for/id + aria-required
-            renderIdiomasCadastradosBlock(def, item);
-            renderAreaAtuacaoCadastradasBlock(def, item);
+            renderIdiomasCadastradosBlock(def, itemAtual);
+            renderAreaAtuacaoCadastradasBlock(def, itemAtual);
             const obsEvidencia = $('#idiomasObsEvidencia');
             if (obsEvidencia) obsEvidencia.classList.toggle('hidden', !(def && def.key === 'IDIOMAS'));
             if (def && def.fields.some(f => f.type === 'areatree')) wireAreaTree($('#dynFields'), vals);
@@ -800,11 +810,18 @@ window.TabCatalogar = (function () {
             wireDynamicLabels($('#dynFields'), def);     // rótulos que mudam conforme outro campo
             wireRepeater($('#dynFields'), def);          // listas (Equipe, Financiadores, Produção C&T...)
             wireCrossrefButton($('#dynFields'), def);    // "Buscar metadados" no campo DOI (Crossref)
-            renderVisibilidadeBlock(item);                // Publicar (Lattes/Web/usar para RSC)
-            renderRscBlock(item);                          // campos RSC (aparecem com "usar para RSC" marcado)
+            renderVisibilidadeBlock(itemAtual);           // Publicar (Lattes/Web/usar para RSC)
+            renderRscBlock(itemAtual);                     // campos RSC (aparecem com "usar para RSC" marcado)
             const semEvidencia = !!(def && def.noEvidence);
             $('#evidenceBlock').style.display = semEvidencia ? 'none' : '';
             if (semEvidencia) { state.evEditing = []; renderEvList(); clearPdf(); }
+            else if (itemSingleton) {
+                // Idem para a evidência: carrega a já salva (ex.: Foto de
+                // perfil, Identidade, Passaporte) em vez de ficar vazia.
+                state.evEditing = window.AppCore.evListFromItem(itemSingleton);
+                renderEvList();
+                if (state.evEditing.length) showPdfForItem(itemSingleton); else clearPdf();
+            }
             const accept = (def && def.accept) || window.AppCore.EVID_ACCEPT_DEFAULT;
             const inp = $('#pdfInput'); if (inp) inp.accept = accept;
             const lbl = $('#pdfInputLabel');

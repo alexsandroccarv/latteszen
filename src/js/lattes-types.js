@@ -342,12 +342,12 @@ const TYPES = {
         { key: 'comBolsa', label: 'Com bolsa?', type: 'select', options: ['Sim', 'Não'],
           disabledWhen: { field: 'nivel', in: ['Ensino fundamental', 'Ensino médio'] } },
         { key: 'bolsa', label: 'Agência financiadora', type: 'text', disabledWhen: { field: 'comBolsa', in: ['', 'Não'] } },
-        { key: 'titulo', label: 'Título da dissertação/tese', type: 'text',
+        { key: 'titulo', label: 'Título da dissertação/tese', type: 'text', na: true,
           labelWhen: { field: 'nivel', map: { 'Graduação': 'Título monografia', 'Aperfeiçoamento': 'Título monografia', 'Especialização': 'Título monografia' } },
           disabledWhen: { field: 'nivel', in: ['Ensino fundamental', 'Ensino médio', 'Curso técnico', 'Residência médica'] } },
-        { key: 'orientador', label: 'Nome completo do orientador', type: 'text',
+        { key: 'orientador', label: 'Nome completo do orientador', type: 'text', na: true,
           disabledWhen: { field: 'nivel', in: ['Ensino fundamental', 'Ensino médio', 'Curso técnico', 'Residência médica'] } },
-        { key: 'coorientador', label: 'Nome completo do coorientador', type: 'text',
+        { key: 'coorientador', label: 'Nome completo do coorientador', type: 'text', na: true,
           disabledWhen: { field: 'nivel', in: nivelExcept('Mestrado', 'Mestrado profissional', 'Doutorado') } },
         { key: 'residenciaEm', label: 'Residência médica em', type: 'text', disabledWhen: { field: 'nivel', in: nivelExcept('Residência médica') } },
         { key: 'numeroRegistro', label: 'Número do registro', type: 'text', disabledWhen: { field: 'nivel', in: nivelExcept('Residência médica') } },
@@ -1318,11 +1318,12 @@ window.LATTES_CATEGORIES = [
       // cadastrar/editar tudo pelo mesmo fluxo do Catalogar, como qualquer
       // outro item (a pedido do usuário). Fotos/Documentos deixam de ter
       // subpasta própria (01.1/01.2) — ver migração em app.js.
-      // Documentos pessoais (Identidade/Passaporte/Documentos pessoais)
+      // Documentos pessoais (Documentos pessoais/Identidade/Passaporte)
       // continuam na mesma lista, logo após Foto de perfil — sem optgroup
       // própria, pra não separar visualmente do restante de "Dados gerais".
-      types: ['IDENTIFICACAO', 'ENDERECO', 'RESUMO_CV', 'OUTRAS_INFO', 'FOTO_PERFIL', 'DOC_IDENTIDADE', 'DOC_PASSAPORTE', 'DOCUMENTO_PESSOAL',
-          'LICENCA', 'IDIOMAS', 'PREMIO', 'CONEXAO_SOCIAL', 'CONEXAO_ACADEMICA', 'CONEXAO_PROFISSIONAL'] },
+      // Texto inicial do CV e Outras informações ficam ao final da lista.
+      types: ['IDENTIFICACAO', 'ENDERECO', 'FOTO_PERFIL', 'DOCUMENTO_PESSOAL', 'DOC_IDENTIDADE', 'DOC_PASSAPORTE',
+          'LICENCA', 'IDIOMAS', 'PREMIO', 'CONEXAO_SOCIAL', 'CONEXAO_ACADEMICA', 'CONEXAO_PROFISSIONAL', 'RESUMO_CV', 'OUTRAS_INFO'] },
     { num: '02', key: 'FORMACAO', label: 'Formação', icon: 'fa-user-graduate',
       types: ['FORMACAO_ACADEMICA', 'POS_DOUTORADO', 'FORMACAO_COMPLEMENTAR'] },
     { num: '03', key: 'ATUACAO', label: 'Atuação', icon: 'fa-briefcase',

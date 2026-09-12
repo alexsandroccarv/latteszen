@@ -87,6 +87,47 @@ test('Identificação, Endereço, Texto inicial, Outras informações, Foto de p
     assert(opcoesAtuacao.includes('AREA_ATUACAO'), `"AREA_ATUACAO" deveria aparecer no Tipo do item de "03. Atuação" — obtidas: ${JSON.stringify(opcoesAtuacao)}`);
 });
 
+test('Dados gerais: Texto inicial e Outras informações ficam ao final da lista, e RG/Passaporte logo após Documentos pessoais', async ({ page, baseUrl }) => {
+    await seedCatalog(page, baseUrl, []);
+    await page.click('[data-tab="catalogar"]');
+    await page.waitForTimeout(150);
+    await page.selectOption('#selCategoria', 'DADOS_GERAIS');
+    await page.waitForTimeout(150);
+
+    const opcoes = await page.$eval('#selTipo', (sel) => Array.from(sel.options).map((o) => o.value).filter(Boolean));
+    const idx = (tk) => opcoes.indexOf(tk);
+    assert(idx('RESUMO_CV') === opcoes.length - 2 && idx('OUTRAS_INFO') === opcoes.length - 1,
+        `"Texto inicial do Currículo Lattes" e "Outras informações" deveriam ser os 2 últimos itens da lista — obtida: ${JSON.stringify(opcoes)}`);
+    assert(idx('DOCUMENTO_PESSOAL') < idx('DOC_IDENTIDADE') && idx('DOC_IDENTIDADE') < idx('DOC_PASSAPORTE'),
+        `"Documentos pessoais" deveria vir antes de "Identidade (RG)", seguida de "Passaporte" — obtida: ${JSON.stringify(opcoes)}`);
+});
+
+test('Identificação e Endereço: escolher o Tipo pela caixa de seleção (sem clicar em "Editar") mostra os dados já salvos, não em branco', async ({ page, baseUrl }) => {
+    const items = [
+        makeItem('IDENTIFICACAO', 'DADOS_GERAIS', { titulo: 'Fulana de Tal' }),
+        makeItem('ENDERECO', 'DADOS_GERAIS', { titulo: 'Rua Teste, 123' }),
+    ];
+    await seedCatalog(page, baseUrl, items);
+    await page.click('[data-tab="catalogar"]');
+    await page.waitForTimeout(150);
+    // Abre um item novo em branco (não via link "Editar"), simulando o
+    // relato do usuário: escolher Categoria/Tipo pelas caixas de seleção.
+    await page.evaluate(() => window.AppCore.buildForm(undefined, { focus: true }));
+    await page.waitForTimeout(150);
+    await page.selectOption('#selCategoria', 'DADOS_GERAIS');
+    await page.waitForTimeout(150);
+    await page.selectOption('#selTipo', 'IDENTIFICACAO');
+    await page.waitForTimeout(150);
+
+    const nome = await page.locator('#dynFields input[name="titulo"]').inputValue();
+    assertEqual(nome, 'Fulana de Tal', 'O campo Nome completo deveria vir preenchido com o valor já salvo de Identificação, não em branco');
+
+    await page.selectOption('#selTipo', 'ENDERECO');
+    await page.waitForTimeout(150);
+    const endereco = await page.locator('#dynFields input[name="titulo"]').inputValue();
+    assertEqual(endereco, 'Rua Teste, 123', 'O campo Endereço deveria vir preenchido com o valor já salvo, não em branco');
+});
+
 test('Foto de perfil usa o bloco padrão de evidências (upload de imagem), não mais um widget próprio', async ({ page, baseUrl }) => {
     await seedCatalog(page, baseUrl, []);
     await page.click('[data-tab="catalogar"]');

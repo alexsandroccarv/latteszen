@@ -401,11 +401,11 @@ window.LattesXMLExport = (function () {
             if (!SEM_BOLSA.has(elname)) { base['FLAG-BOLSA'] = FLAG_SIM_NAO[f.comBolsa] || ''; base['NOME-AGENCIA'] = f.bolsa; }
             const anoTitulo = year(f.anoObtencaoTitulo) || year(f.anoFim);
             // Ensino fundamental/médio/Residência médica não têm NOME-CURSO.
-            if (elname === 'GRADUACAO') { base['NOME-CURSO'] = f.curso; base['TIPO-GRADUACAO'] = f.tipoGraduacao; base['TITULO-DO-TRABALHO-DE-CONCLUSAO-DE-CURSO'] = f.titulo; base['NOME-DO-ORIENTADOR'] = f.orientador; }
-            else if (elname === 'ESPECIALIZACAO' || elname === 'APERFEICOAMENTO') { base['NOME-CURSO'] = f.curso; base['CARGA-HORARIA'] = semNA(f.cargaHoraria); base['TITULO-DA-MONOGRAFIA'] = f.titulo; base['NOME-DO-ORIENTADOR'] = f.orientador; }
+            if (elname === 'GRADUACAO') { base['NOME-CURSO'] = f.curso; base['TIPO-GRADUACAO'] = f.tipoGraduacao; base['TITULO-DO-TRABALHO-DE-CONCLUSAO-DE-CURSO'] = semNA(f.titulo); base['NOME-DO-ORIENTADOR'] = semNA(f.orientador); }
+            else if (elname === 'ESPECIALIZACAO' || elname === 'APERFEICOAMENTO') { base['NOME-CURSO'] = f.curso; base['CARGA-HORARIA'] = semNA(f.cargaHoraria); base['TITULO-DA-MONOGRAFIA'] = semNA(f.titulo); base['NOME-DO-ORIENTADOR'] = semNA(f.orientador); }
             else if (elname === 'MESTRADO' || elname === 'MESTRADO-PROFISSIONALIZANTE' || elname === 'DOUTORADO') {
                 base['NOME-CURSO'] = f.curso; base['ANO-DE-OBTENCAO-DO-TITULO'] = anoTitulo;
-                base['TITULO-DA-DISSERTACAO-TESE'] = f.titulo; base['NOME-COMPLETO-DO-ORIENTADOR'] = f.orientador; base['NOME-DO-CO-ORIENTADOR'] = f.coorientador;
+                base['TITULO-DA-DISSERTACAO-TESE'] = semNA(f.titulo); base['NOME-COMPLETO-DO-ORIENTADOR'] = semNA(f.orientador); base['NOME-DO-CO-ORIENTADOR'] = semNA(f.coorientador);
                 if (elname === 'MESTRADO') base['TIPO-MESTRADO'] = f.tipoMestrado;
                 if (elname === 'DOUTORADO') base['TIPO-DOUTORADO'] = f.tipoDoutorado;
                 // Mestrado profissional (MESTRADO-PROFISSIONALIZANTE) não tem
