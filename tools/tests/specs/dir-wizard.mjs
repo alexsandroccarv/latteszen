@@ -133,6 +133,9 @@ test('Com um diretório já configurado, a seção mostra o painel de estado dir
     const dirLbl = await page.$eval('#dirNameLbl', (el) => el.textContent);
     assert(dirLbl.includes('PastaFake'), 'Deveria mostrar o nome da pasta já configurada');
     assertEqual(await page.locator('#idPrefix').count(), 0, 'Com diretório já configurado, o passo de "Prefixo do identificador" não precisa mais aparecer');
+    assertEqual(await page.locator('#btnChooseDir').count(), 0, 'Com diretório já configurado, "Escolher pasta" não deveria mais aparecer (a troca é via "Esquecer pasta")');
+    assertEqual(await page.locator('#btnSync').count(), 1, '"Sincronizar do diretório" deveria continuar aparecendo');
+    assertEqual(await page.locator('#btnCheckDir').count(), 1, '"Verificar pasta" deveria continuar aparecendo');
 });
 
 test('"Esquecer pasta" volta a mostrar o assistente do início (passo 1: primeira configuração/já tenho; sem prefixo ainda, até escolher "Primeira configuração")', async ({ page, baseUrl }) => {

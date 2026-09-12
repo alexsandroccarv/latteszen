@@ -69,18 +69,6 @@ window.TabConfig = (function () {
                        class="text-sm file:mr-2 file:px-3 file:py-1.5 file:rounded file:border-0 file:bg-govbr-600 dark:file:bg-unifesp-700 file:text-white">
                 <div id="xmlResult" class="mt-3"></div>
 
-                <h3 class="text-sm font-semibold mt-5 mb-1">Exportar</h3>
-                <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">Gera um arquivo <strong>curriculo-&lt;nome&gt;-&lt;data e hora&gt;.xml</strong> no formato oficial do CNPq (schema <em>CurriculoLattes</em>, codificação ISO-8859-1). O nome traz a data/hora da geração, então exportações anteriores não são sobrescritas. Inclui apenas os itens das categorias do Lattes — <strong>RSC, Conexões e Registros pessoais não são exportados</strong>. As evidências (PDFs) não fazem parte do XML.</p>
-                <div class="text-sm rounded-md border-l-4 border-amber-500 bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-300 px-3 py-2 mb-3 flex gap-2">
-                    <i class="fa-solid fa-hourglass-half mt-0.5"></i>
-                    <span><strong>Funcionalidade futura:</strong> a exportação para XML ainda está em desenvolvimento e está temporariamente desativada.</span>
-                </div>
-                <div class="flex gap-2 flex-wrap">
-                    <button id="btnXmlDownload" disabled class="px-3 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm opacity-50 cursor-not-allowed"><i class="fa-solid fa-download mr-1"></i> Baixar XML (.xml)</button>
-                    <button id="btnXmlSave" disabled class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm opacity-50 cursor-not-allowed"><i class="fa-solid fa-folder-open mr-1"></i> Salvar na pasta (${esc(LattesTypes.lattesXmlFolder())})</button>
-                </div>
-                <p id="xmlStatus" class="text-xs text-gray-500 mt-2"></p>
-
                 <details class="mt-5 pt-3 border-t border-gray-200 dark:border-gray-700">
                     <summary class="cursor-pointer select-none text-sm font-semibold flex items-center gap-2">
                         <i aria-hidden="true" class="fa-solid fa-angle-right text-xs text-gray-400"></i>
@@ -1183,11 +1171,14 @@ window.TabConfig = (function () {
             // "Esquecer pasta"). "Pasta atual" já indica qual back-end está
             // em uso; pra trocar, o caminho é "Esquecer pasta" e refazer o
             // assistente (inclusive pra migrar arquivos locais pro Drive).
+            // "Escolher pasta" não aparece mais aqui: com um diretório já
+            // configurado, o caminho pra trocar é "Esquecer pasta" e refazer
+            // o assistente (mostrar o botão de novo aqui era redundante e
+            // confundia com uma troca direta, que não é o que ele faz).
             dirSectionHtml = `
                 <p class="text-sm mb-1">Pasta atual: <strong id="dirNameLbl">${esc(dirName)}</strong></p>
                 <p class="text-sm mb-3" id="dirHealthStatus">${window.AppCore.dirHealthStatusHtml()}</p>
                 <div class="flex flex-wrap gap-2">
-                    <button id="btnChooseDir" class="px-3 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm" ${Storage.supportsFS ? '' : 'disabled'}><i class="fa-solid fa-folder mr-1"></i> Escolher pasta</button>
                     <button id="btnSync" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-rotate mr-1"></i> Sincronizar do diretório</button>
                     <button id="btnCheckDir" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-stethoscope mr-1"></i> Verificar pasta</button>
                 </div>`;

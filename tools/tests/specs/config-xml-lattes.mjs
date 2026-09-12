@@ -8,6 +8,10 @@
      currículo em XML na Plataforma Lattes...") foi removido — a função de
      importar em si (input de arquivo, listagem de itens etc.) continua
      visível e funcionando normalmente.
+   - A sub-seção "Exportar" (com o aviso "Funcionalidade futura" e os botões
+     desabilitados "Baixar XML"/"Salvar na pasta") foi removida por completo
+     — a exportação para XML ainda não está pronta pra uso, então não faz
+     sentido ocupar espaço na tela com ela.
    ========================================================================== */
 import { test, assert, assertEqual } from '../harness.mjs';
 
@@ -37,5 +41,13 @@ test('"Importar" perde só o texto explicativo — input de arquivo continua vis
     assert(visivel, 'O input de arquivo XML deveria continuar visível');
 
     assert(secaoTexto.includes('Importar'), 'O título "Importar" deveria continuar visível');
-    assert(secaoTexto.includes('Exportar'), 'A sub-seção "Exportar" deveria continuar visível normalmente');
+});
+
+test('Sub-seção "Exportar" (XML) foi removida — funcionalidade ainda não pronta para uso', async ({ page, baseUrl }) => {
+    await abrirConfig(page, baseUrl);
+    const secaoTexto = await page.$eval('#importXmlSection', (el) => el.textContent);
+    assert(!secaoTexto.includes('Exportar'), 'A sub-seção "Exportar" não deveria mais aparecer');
+    assert(!secaoTexto.includes('Funcionalidade futura'), 'O aviso de "Funcionalidade futura" da exportação não deveria mais aparecer');
+    assertEqual(await page.locator('#btnXmlDownload').count(), 0, 'O botão "Baixar XML" não deveria mais existir');
+    assertEqual(await page.locator('#btnXmlSave').count(), 0, 'O botão "Salvar na pasta" não deveria mais existir');
 });
