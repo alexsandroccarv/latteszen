@@ -77,8 +77,14 @@ test('Identificação, Endereço, Texto inicial, Outras informações, Foto de p
     await page.waitForTimeout(150);
 
     const opcoes = await page.$eval('#selTipo', (sel) => Array.from(sel.options).map((o) => o.value));
-    for (const tk of ['IDENTIFICACAO', 'ENDERECO', 'RESUMO_CV', 'OUTRAS_INFO', 'FOTO_PERFIL', 'DOC_IDENTIDADE', 'DOC_PASSAPORTE', 'DOCUMENTO_PESSOAL']) {
+    for (const tk of ['IDENTIFICACAO', 'ENDERECO', 'RESUMO_CV', 'OUTRAS_INFO', 'FOTO_PERFIL', 'DOCUMENTO_PESSOAL']) {
         assert(opcoes.includes(tk), `"${tk}" deveria aparecer no Tipo do item de "01. Dados gerais" — obtidas: ${JSON.stringify(opcoes)}`);
+    }
+    // Identidade (RG) e Passaporte saíram da lista principal (a pedido do
+    // usuário) — continuam definidos em TYPES pra não quebrar itens já
+    // cadastrados, só não são mais opção pra criar um item novo.
+    for (const tk of ['DOC_IDENTIDADE', 'DOC_PASSAPORTE']) {
+        assert(!opcoes.includes(tk), `"${tk}" não deveria mais aparecer no Tipo do item de "01. Dados gerais" — obtidas: ${JSON.stringify(opcoes)}`);
     }
 
     await page.selectOption('#selCategoria', 'ATUACAO');
@@ -87,7 +93,7 @@ test('Identificação, Endereço, Texto inicial, Outras informações, Foto de p
     assert(opcoesAtuacao.includes('AREA_ATUACAO'), `"AREA_ATUACAO" deveria aparecer no Tipo do item de "03. Atuação" — obtidas: ${JSON.stringify(opcoesAtuacao)}`);
 });
 
-test('Dados gerais: Texto inicial e Outras informações ficam ao final da lista, e RG/Passaporte logo após Documentos pessoais', async ({ page, baseUrl }) => {
+test('Dados gerais: Texto inicial e Outras informações ficam ao final da lista', async ({ page, baseUrl }) => {
     await seedCatalog(page, baseUrl, []);
     await page.click('[data-tab="catalogar"]');
     await page.waitForTimeout(150);
@@ -95,11 +101,8 @@ test('Dados gerais: Texto inicial e Outras informações ficam ao final da lista
     await page.waitForTimeout(150);
 
     const opcoes = await page.$eval('#selTipo', (sel) => Array.from(sel.options).map((o) => o.value).filter(Boolean));
-    const idx = (tk) => opcoes.indexOf(tk);
-    assert(idx('RESUMO_CV') === opcoes.length - 2 && idx('OUTRAS_INFO') === opcoes.length - 1,
+    assert(opcoes[opcoes.length - 2] === 'RESUMO_CV' && opcoes[opcoes.length - 1] === 'OUTRAS_INFO',
         `"Texto inicial do Currículo Lattes" e "Outras informações" deveriam ser os 2 últimos itens da lista — obtida: ${JSON.stringify(opcoes)}`);
-    assert(idx('DOCUMENTO_PESSOAL') < idx('DOC_IDENTIDADE') && idx('DOC_IDENTIDADE') < idx('DOC_PASSAPORTE'),
-        `"Documentos pessoais" deveria vir antes de "Identidade (RG)", seguida de "Passaporte" — obtida: ${JSON.stringify(opcoes)}`);
 });
 
 test('Identificação e Endereço: escolher o Tipo pela caixa de seleção (sem clicar em "Editar") mostra os dados já salvos, não em branco', async ({ page, baseUrl }) => {
