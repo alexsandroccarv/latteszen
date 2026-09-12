@@ -1318,11 +1318,11 @@ window.LATTES_CATEGORIES = [
       // cadastrar/editar tudo pelo mesmo fluxo do Catalogar, como qualquer
       // outro item (a pedido do usuário). Fotos/Documentos deixam de ter
       // subpasta própria (01.1/01.2) — ver migração em app.js.
-      groups: [
-          { label: null, types: ['IDENTIFICACAO', 'ENDERECO', 'RESUMO_CV', 'OUTRAS_INFO', 'FOTO_PERFIL'] },
-          { label: 'Documentos pessoais', types: ['DOC_IDENTIDADE', 'DOC_PASSAPORTE', 'DOCUMENTO_PESSOAL'] },
-          { label: null, types: ['LICENCA', 'IDIOMAS', 'PREMIO', 'CONEXAO_SOCIAL', 'CONEXAO_ACADEMICA', 'CONEXAO_PROFISSIONAL'] },
-      ] },
+      // Documentos pessoais (Identidade/Passaporte/Documentos pessoais)
+      // continuam na mesma lista, logo após Foto de perfil — sem optgroup
+      // própria, pra não separar visualmente do restante de "Dados gerais".
+      types: ['IDENTIFICACAO', 'ENDERECO', 'RESUMO_CV', 'OUTRAS_INFO', 'FOTO_PERFIL', 'DOC_IDENTIDADE', 'DOC_PASSAPORTE', 'DOCUMENTO_PESSOAL',
+          'LICENCA', 'IDIOMAS', 'PREMIO', 'CONEXAO_SOCIAL', 'CONEXAO_ACADEMICA', 'CONEXAO_PROFISSIONAL'] },
     { num: '02', key: 'FORMACAO', label: 'Formação', icon: 'fa-user-graduate',
       types: ['FORMACAO_ACADEMICA', 'POS_DOUTORADO', 'FORMACAO_COMPLEMENTAR'] },
     { num: '03', key: 'ATUACAO', label: 'Atuação', icon: 'fa-briefcase',
