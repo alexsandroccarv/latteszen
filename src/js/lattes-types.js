@@ -307,12 +307,18 @@ const TYPES = {
         { key: 'dataValidade', label: 'Data de validade', type: 'datebr' },
         { key: 'dataEmissao', label: 'Data de emissão', type: 'datebr' },
         { key: 'paisEmissao', label: 'País de emissão', type: 'select', options: window.PAISES_LATTES || [], default: 'Brasil' }] },
-    ENDERECO: { label: 'Endereço', singleton: true, noEvidence: true, perfil: true, fields: [{ key: 'titulo', label: 'Endereço', type: 'text', required: true }, { key: 'tipo', label: 'Tipo', type: 'select', options: ['Profissional', 'Residencial'] }, F_CIDADE, { key: 'uf', label: 'UF', type: 'text' }, { key: 'cep', label: 'CEP', type: 'text' }] },
+    // Dois registros persistentes (1 Residencial + 1 Profissional, a pedido
+    // do usuário) — não é singleton global, é "singleton por Tipo"
+    // (singletonBy), ver onSubmitForm e wireSingletonScope() em
+    // tab-catalogar.js. Evidência habilitada (comprovante de endereço).
+    ENDERECO: { label: 'Endereço', singletonBy: 'tipo', perfil: true, accept: 'application/pdf,image/jpeg,image/png', fields: [
+        { key: 'tipo', label: 'Tipo', type: 'select', required: true, options: ['Residencial', 'Profissional'] },
+        { key: 'titulo', label: 'Endereço', type: 'text', required: true }, F_CIDADE, { key: 'uf', label: 'UF', type: 'text' }, { key: 'cep', label: 'CEP', type: 'text' }] },
     LICENCA: { label: 'Licença maternidade, paternidade e adoção', noExport: true, fields: [{ key: 'titulo', label: 'Descrição', type: 'text', required: true }, { key: 'tipo', label: 'Tipo', type: 'select', options: ['Maternidade', 'Paternidade', 'Adoção'] }, { key: 'dataInicio', label: 'Data de início', type: 'datebr', row: 'periodo' }, { key: 'dataFim', label: 'Data de fim', type: 'datebr', row: 'periodo' }] },
     IDIOMAS: { label: 'Idiomas', fields: [{ key: 'titulo', label: 'Idioma', type: 'select', options: window.IDIOMAS_LATTES || [], required: true }, { key: 'habilidades', label: 'Proficiência (nível por habilidade)', type: 'skilllevels', options: ['Leitura', 'Fala', 'Escrita', 'Compreensão'], levels: ['Bom', 'Razoável', 'Pouco'] }] },
     PREMIO: { label: 'Prêmios e títulos', fields: [F_TITULO, { key: 'ano', label: 'Data da premiação', type: 'datebr', required: true }, { key: 'entidade', label: 'Entidade promotora', type: 'text', required: true }] },
     RESUMO_CV: { label: 'Texto inicial do Currículo Lattes', singleton: true, noEvidence: true, perfil: true, fields: [{ key: 'descricao', label: 'Texto', type: 'textarea', required: true }] },
-    OUTRAS_INFO: { label: 'Outras informações relevantes', singleton: true, noEvidence: true, perfil: true, fields: [{ key: 'descricao', label: 'Descrição', type: 'textarea', required: true }] },
+    OUTRAS_INFO: { label: 'Outras informações relevantes', singleton: true, noEvidence: true, perfil: true, fields: [{ key: 'descricao', label: 'Descrição', type: 'textarea' }] },
 
     // 02 Formação
     FORMACAO_ACADEMICA: { label: 'Formação acadêmica/titulação', fields: [
@@ -1509,6 +1515,10 @@ window.LattesTypes = (function () {
         // categoria que normalmente é Lattes (Dados gerais).
         isNaoLattesType(typeKey) { const t = this.getType(typeKey); return !!(t && t.naoLattes); },
         isSingleton(typeKey) { const t = this.getType(typeKey); return !!(t && t.singleton); },
+        // "Singleton por campo": no máximo 1 item por valor do campo indicado
+        // (ex.: Endereço — 1 Residencial + 1 Profissional). Salvar de novo o
+        // mesmo valor atualiza o existente em vez de duplicar; ver onSubmitForm.
+        singletonScopeField(typeKey) { const t = this.getType(typeKey); return (t && t.singletonBy) || null; },
         // Tipos de "perfil" (Dados gerais) editados em Configurações, não em Catalogar
         isPerfilType(typeKey) { const t = this.getType(typeKey); return !!(t && t.perfil); },
         perfilTypes() { return Object.keys(TYPES).filter(k => TYPES[k].perfil); },

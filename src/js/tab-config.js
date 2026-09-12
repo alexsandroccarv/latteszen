@@ -332,8 +332,11 @@ window.TabConfig = (function () {
         let n = 0, atualizados = 0, ignorados = 0;
         for (const idx of chosen) {
             const src = state.lattesParsed.items[idx];
-            // Tipos únicos (Identificação, Endereço, Resumo, Outras info): se já
+            // Tipos únicos (Identificação, Resumo, Outras info...): se já
             // existir um item desse tipo, ATUALIZA em vez de criar um novo.
+            // Endereço não é singleton global (1 Residencial + 1 Profissional,
+            // ver singletonBy) — cai na dedup por assinatura logo abaixo, que já
+            // separa os dois pelo texto do logradouro.
             if (LattesTypes.isSingleton(src.typeKey)) {
                 const ex = state.items.find(i => i.typeKey === src.typeKey);
                 if (ex) {

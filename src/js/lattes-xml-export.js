@@ -266,14 +266,16 @@ window.LattesXMLExport = (function () {
         // OUTRAS-INFORMACOES-RELEVANTES
         const outras = (byType('OUTRAS_INFO')[0] || {}).fields;
         if (outras && clean(outras.descricao)) children.push(el('OUTRAS-INFORMACOES-RELEVANTES', { 'OUTRAS-INFORMACOES-RELEVANTES': outras.descricao }));
-        // ENDERECO
-        const end = (byType('ENDERECO')[0] || {}).fields;
-        if (end && (clean(end.titulo) || clean(end.cidade))) {
-            const prof = el('ENDERECO-PROFISSIONAL', {
-                'LOGRADOURO-COMPLEMENTO': end.titulo, 'CIDADE': end.cidade, 'UF': end.uf, 'CEP': end.cep,
+        // ENDERECO — profissional e residencial (2 registros persistentes,
+        // 1 por valor de Tipo, no catálogo — ver singletonBy em lattes-types.js)
+        const endTags = byType('ENDERECO').map(it => {
+            const f = it.fields || {};
+            if (!(clean(f.titulo) || clean(f.cidade))) return null;
+            return el(f.tipo === 'Residencial' ? 'ENDERECO-RESIDENCIAL' : 'ENDERECO-PROFISSIONAL', {
+                'LOGRADOURO-COMPLEMENTO': f.titulo, 'CIDADE': f.cidade, 'UF': f.uf, 'CEP': f.cep,
             });
-            children.push(el('ENDERECO', {}, prof));
-        }
+        }).filter(Boolean);
+        if (endTags.length) children.push(el('ENDERECO', {}, endTags));
         // FORMACAO-ACADEMICA-TITULACAO
         const form = buildFormacao(byType);
         if (form) children.push(form);

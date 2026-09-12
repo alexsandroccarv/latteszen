@@ -105,10 +105,9 @@ test('Dados gerais: Texto inicial e Outras informações ficam ao final da lista
         `"Texto inicial do Currículo Lattes" e "Outras informações" deveriam ser os 2 últimos itens da lista — obtida: ${JSON.stringify(opcoes)}`);
 });
 
-test('Identificação e Endereço: escolher o Tipo pela caixa de seleção (sem clicar em "Editar") mostra os dados já salvos, não em branco', async ({ page, baseUrl }) => {
+test('Identificação: escolher o Tipo pela caixa de seleção (sem clicar em "Editar") mostra os dados já salvos, não em branco', async ({ page, baseUrl }) => {
     const items = [
         makeItem('IDENTIFICACAO', 'DADOS_GERAIS', { titulo: 'Fulana de Tal' }),
-        makeItem('ENDERECO', 'DADOS_GERAIS', { titulo: 'Rua Teste, 123' }),
     ];
     await seedCatalog(page, baseUrl, items);
     await page.click('[data-tab="catalogar"]');
@@ -124,11 +123,87 @@ test('Identificação e Endereço: escolher o Tipo pela caixa de seleção (sem 
 
     const nome = await page.locator('#dynFields input[name="titulo"]').inputValue();
     assertEqual(nome, 'Fulana de Tal', 'O campo Nome completo deveria vir preenchido com o valor já salvo de Identificação, não em branco');
+});
 
+test('Endereço: 2 registros persistentes (1 Residencial + 1 Profissional) — escolher o Tipo carrega o que já foi salvo daquele valor, ou fica em branco pro outro', async ({ page, baseUrl }) => {
+    const items = [
+        makeItem('ENDERECO', 'DADOS_GERAIS', { tipo: 'Residencial', titulo: 'Rua Teste, 123' }),
+    ];
+    await seedCatalog(page, baseUrl, items);
+    await page.click('[data-tab="catalogar"]');
+    await page.waitForTimeout(150);
+    await page.evaluate(() => window.AppCore.buildForm(undefined, { focus: true }));
+    await page.waitForTimeout(150);
+    await page.selectOption('#selCategoria', 'DADOS_GERAIS');
+    await page.waitForTimeout(150);
     await page.selectOption('#selTipo', 'ENDERECO');
     await page.waitForTimeout(150);
-    const endereco = await page.locator('#dynFields input[name="titulo"]').inputValue();
-    assertEqual(endereco, 'Rua Teste, 123', 'O campo Endereço deveria vir preenchido com o valor já salvo, não em branco');
+
+    // Sem Residencial/Profissional escolhido ainda, não dá pra saber qual
+    // dos dois carregar — o formulário fica em branco.
+    const brancoInicial = await page.locator('#dynFields input[name="titulo"]').inputValue();
+    assertEqual(brancoInicial, '', 'Sem escolher Residencial ou Profissional ainda, o campo Endereço deveria estar em branco');
+
+    await page.selectOption('#dynFields select[name="tipo"]', 'Residencial');
+    await page.waitForTimeout(150);
+    const residencial = await page.locator('#dynFields input[name="titulo"]').inputValue();
+    assertEqual(residencial, 'Rua Teste, 123', 'Escolher "Residencial" deveria carregar o endereço já salvo daquele Tipo');
+
+    await page.selectOption('#dynFields select[name="tipo"]', 'Profissional');
+    await page.waitForTimeout(150);
+    const profissional = await page.locator('#dynFields input[name="titulo"]').inputValue();
+    assertEqual(profissional, '', 'Escolher "Profissional" (sem endereço salvo ainda) deveria ficar em branco, sem herdar o do Residencial');
+});
+
+test('Endereço: salvar Residencial e depois Profissional mantém os 2 persistentes; salvar de novo o mesmo Tipo atualiza em vez de duplicar', async ({ page, baseUrl }) => {
+    await seedCatalog(page, baseUrl, []);
+    await page.click('[data-tab="catalogar"]');
+    await page.waitForTimeout(150);
+    await page.selectOption('#selCategoria', 'DADOS_GERAIS');
+    await page.waitForTimeout(150);
+    await page.selectOption('#selTipo', 'ENDERECO');
+    await page.waitForTimeout(150);
+
+    await page.selectOption('#dynFields select[name="tipo"]', 'Residencial');
+    await page.waitForTimeout(150);
+    await page.fill('#dynFields input[name="titulo"]', 'Rua A, 100');
+    await page.click('#camposPanel button[type="submit"]');
+    await page.waitForTimeout(300);
+
+    await page.evaluate(() => window.AppCore.buildForm(undefined, { focus: true }));
+    await page.waitForTimeout(150);
+    await page.selectOption('#selCategoria', 'DADOS_GERAIS');
+    await page.waitForTimeout(150);
+    await page.selectOption('#selTipo', 'ENDERECO');
+    await page.waitForTimeout(150);
+    await page.selectOption('#dynFields select[name="tipo"]', 'Profissional');
+    await page.waitForTimeout(150);
+    await page.fill('#dynFields input[name="titulo"]', 'Av. B, 200');
+    await page.click('#camposPanel button[type="submit"]');
+    await page.waitForTimeout(300);
+
+    let salvo = await page.evaluate(() => JSON.parse(localStorage.getItem('lz_catalog') || '[]').filter((i) => i.typeKey === 'ENDERECO'));
+    assertEqual(salvo.length, 2, 'Deveriam existir 2 itens de Endereço (Residencial + Profissional)');
+
+    // Reabre o Residencial e reescreve — deve ATUALIZAR o existente, não criar um 3º
+    await page.evaluate(() => window.AppCore.buildForm(undefined, { focus: true }));
+    await page.waitForTimeout(150);
+    await page.selectOption('#selCategoria', 'DADOS_GERAIS');
+    await page.waitForTimeout(150);
+    await page.selectOption('#selTipo', 'ENDERECO');
+    await page.waitForTimeout(150);
+    await page.selectOption('#dynFields select[name="tipo"]', 'Residencial');
+    await page.waitForTimeout(150);
+    await page.fill('#dynFields input[name="titulo"]', 'Rua A, 100 - Apto 2');
+    await page.click('#camposPanel button[type="submit"]');
+    await page.waitForTimeout(300);
+
+    salvo = await page.evaluate(() => JSON.parse(localStorage.getItem('lz_catalog') || '[]').filter((i) => i.typeKey === 'ENDERECO'));
+    assertEqual(salvo.length, 2, 'Continuam só 2 itens de Endereço após reescrever o Residencial (atualiza, não duplica)');
+    const resid = salvo.find((i) => i.fields.tipo === 'Residencial');
+    assertEqual(resid && resid.fields.titulo, 'Rua A, 100 - Apto 2', 'O Residencial deveria estar atualizado');
+    const prof = salvo.find((i) => i.fields.tipo === 'Profissional');
+    assertEqual(prof && prof.fields.titulo, 'Av. B, 200', 'O Profissional não deveria ter sido afetado');
 });
 
 test('Foto de perfil usa o bloco padrão de evidências (upload de imagem), não mais um widget próprio', async ({ page, baseUrl }) => {
@@ -144,4 +219,24 @@ test('Foto de perfil usa o bloco padrão de evidências (upload de imagem), não
     assert(evidenceVisivel, 'O bloco padrão de evidências deveria aparecer para Foto de perfil');
     const accept = await page.locator('#pdfInput').getAttribute('accept');
     assertEqual(accept, 'image/jpeg,image/png', 'O input de arquivo deveria continuar restrito a JPEG/PNG');
+});
+
+test('Outras informações relevantes: o campo Descrição não é obrigatório', async ({ page, baseUrl }) => {
+    await seedCatalog(page, baseUrl, []);
+    await page.click('[data-tab="catalogar"]');
+    await page.waitForTimeout(150);
+    await page.selectOption('#selCategoria', 'DADOS_GERAIS');
+    await page.waitForTimeout(150);
+    await page.selectOption('#selTipo', 'OUTRAS_INFO');
+    await page.waitForTimeout(150);
+
+    // Descrição fica em branco de propósito — se o campo ainda fosse
+    // obrigatório, validateItemFields bloquearia o salvamento (nada iria
+    // pro localStorage); confirmamos que ele passa direto.
+    await page.click('#camposPanel button[type="submit"]');
+    await page.waitForTimeout(300);
+
+    const salvo = await page.evaluate(() => JSON.parse(localStorage.getItem('lz_catalog') || '[]').find((i) => i.typeKey === 'OUTRAS_INFO'));
+    assert(!!salvo, 'O item de Outras informações deveria ter sido salvo mesmo com Descrição em branco');
+    assertEqual(salvo.fields.descricao, '', 'Descrição salva deveria ser uma string vazia');
 });

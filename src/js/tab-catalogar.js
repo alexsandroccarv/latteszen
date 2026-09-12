@@ -769,11 +769,13 @@ window.TabCatalogar = (function () {
             const camposPanel = $('#camposPanel');
             if (camposPanel) camposPanel.classList.toggle('hidden', !$('#selTipo').value);
             const def = LattesTypes.get($('#selTipo').value);
-            // Itens de entrada única (Identificação, Endereço, Foto de
-            // perfil, documentos pessoais...): só pode existir 1 no catálogo,
-            // então escolher o Tipo pela caixa de seleção (sem passar por um
-            // link "Editar" de um item já existente) deve mostrar o que já
-            // foi salvo — senão parece que o cadastro não persistiu.
+            // Itens de entrada única (Identificação, Foto de perfil,
+            // documentos pessoais...): só pode existir 1 no catálogo, então
+            // escolher o Tipo pela caixa de seleção (sem passar por um link
+            // "Editar" de um item já existente) deve mostrar o que já foi
+            // salvo — senão parece que o cadastro não persistiu. Endereço é
+            // "singleton por campo" (1 Residencial + 1 Profissional) — ver
+            // wireSingletonScope(), mais abaixo, chamado após o Tipo escolhido.
             let itemSingleton = null;
             if (def && LattesTypes.isSingleton(def.key) && (!item || item.typeKey !== def.key)) {
                 itemSingleton = state.items.find(i => i.typeKey === def.key) || null;
@@ -812,6 +814,12 @@ window.TabCatalogar = (function () {
             wireCrossrefButton($('#dynFields'), def);    // "Buscar metadados" no campo DOI (Crossref)
             renderVisibilidadeBlock(itemAtual);           // Publicar (Lattes/Web/usar para RSC)
             renderRscBlock(itemAtual);                     // campos RSC (aparecem com "usar para RSC" marcado)
+            // Endereço (e qualquer outro tipo "singleton por campo" no
+            // futuro): sem item explícito em edição, trocar o valor do
+            // campo-chave (Tipo: Residencial/Profissional) troca pro que já
+            // foi salvo daquele valor, ou limpa os demais campos/evidência
+            // se ainda não existir — os dois registros ficam persistentes.
+            if (def && LattesTypes.singletonScopeField(def.key) && !item) wireSingletonScope(def);
             const semEvidencia = !!(def && def.noEvidence);
             $('#evidenceBlock').style.display = semEvidencia ? 'none' : '';
             if (semEvidencia) { state.evEditing = []; renderEvList(); clearPdf(); }
@@ -826,7 +834,7 @@ window.TabCatalogar = (function () {
             const inp = $('#pdfInput'); if (inp) inp.accept = accept;
             const lbl = $('#pdfInputLabel');
             if (lbl) lbl.textContent = accept === 'image/jpeg,image/png' ? 'Foto (JPEG ou PNG)'
-                : (def && def.key === 'DOCUMENTO_PESSOAL' ? 'Documento (PDF ou imagem)' : 'Evidências (PDF, imagem, vídeo, link ou zip/tar.gz)');
+                : (def && (def.key === 'DOCUMENTO_PESSOAL' || def.key === 'ENDERECO') ? 'Comprovante (PDF ou imagem)' : 'Evidências (PDF, imagem, vídeo, link ou zip/tar.gz)');
             const btnDrive = $('#btnEvDrive');
             if (btnDrive) {
                 btnDrive.classList.toggle('hidden', Storage.storageMode() !== 'gdrive');
@@ -836,6 +844,30 @@ window.TabCatalogar = (function () {
                     ? 'Recurso ainda não configurado neste site (falta a Chave de API do Picker em config.js)'
                     : 'Selecionar um arquivo já existente no Google Drive';
             }
+        }
+
+        // Tipos "singleton por campo" (ex.: Endereço): reconecta o listener
+        // de mudança no campo-chave (Tipo) toda vez que os campos são
+        // re-renderizados (inclusive por esta própria função, que refaz o
+        // #dynFields inteiro a cada troca).
+        function wireSingletonScope(def) {
+            const scopeField = LattesTypes.singletonScopeField(def.key);
+            const scopeSel = scopeField && $('#dynFields').querySelector(`[name="${scopeField}"]`);
+            if (!scopeSel) return;
+            scopeSel.addEventListener('change', () => {
+                const val = scopeSel.value;
+                const match = val ? state.items.find(i => i.typeKey === def.key && (i.fields || {})[scopeField] === val) : null;
+                const novosVals = Object.assign({}, match ? match.fields : {}, { [scopeField]: val });
+                $('#dynFields').innerHTML = dynFieldsHtml(def.fields, novosVals);
+                associateLabels($('#dynFields'));
+                wireDateBr($('#dynFields'));
+                wireSingletonScope(def);
+                state.evEditing = match ? window.AppCore.evListFromItem(match) : [];
+                renderEvList();
+                if (state.evEditing.length) showPdfForItem(match); else clearPdf();
+                state.formDirty = true;
+                window.AppCore.saveDraftDebounced();
+            });
         }
 
         // Entre a seção de seleção do tipo e o formulário de cadastro do
@@ -1762,6 +1794,15 @@ window.TabCatalogar = (function () {
         if (LattesTypes.isSingleton(typeKey)) {
             const ex = state.items.find(i => i.typeKey === typeKey && (!editing || i.id !== editing.id));
             if (ex) editing = ex;
+        } else {
+            // Tipo único "por campo" (ex.: Endereço — 1 Residencial + 1
+            // Profissional): salvar de novo o mesmo valor do campo-chave
+            // atualiza o item existente daquele valor em vez de duplicar.
+            const scopeField = LattesTypes.singletonScopeField(typeKey);
+            if (scopeField && fields[scopeField]) {
+                const ex = state.items.find(i => i.typeKey === typeKey && (i.fields || {})[scopeField] === fields[scopeField] && (!editing || i.id !== editing.id));
+                if (ex) editing = ex;
+            }
         }
         // Idiomas: bloqueia de vez (sem opção de "mesmo assim") um idioma já
         // cadastrado em OUTRO item — diferente do aviso de duplicata

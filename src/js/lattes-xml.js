@@ -740,6 +740,13 @@ window.LattesXML = (function () {
                 const log = e['LOGRADOURO-COMPLEMENTO'] || e['NOME-INSTITUICAO-EMPRESA'] || '';
                 if (log) add('ENDERECO', { titulo: log, tipo: 'Profissional', cidade: e['CIDADE'] || '', uf: e['UF'] || '', cep: e['CEP'] || '' }, endProf);
             }
+            // Residencial (2º registro persistente — ver singletonBy em lattes-types.js)
+            const endResid = firstTag(dgEl, 'ENDERECO-RESIDENCIAL');
+            if (endResid) {
+                const e = attrs(endResid);
+                const log = e['LOGRADOURO-COMPLEMENTO'] || '';
+                if (log) add('ENDERECO', { titulo: log, tipo: 'Residencial', cidade: e['CIDADE'] || '', uf: e['UF'] || '', cep: e['CEP'] || '' }, endResid);
+            }
         }
         // Idiomas
         for (const el of doc.getElementsByTagName('IDIOMA')) {

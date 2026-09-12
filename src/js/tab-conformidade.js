@@ -556,7 +556,7 @@ window.TabConformidade = (function () {
                         <span class="print:hidden contents">
                             ${sep}
                             <button data-act="edit" data-id="${i.id}" title="Abrir / Editar" class="w-7 h-7 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-govbr-600 dark:text-unifesp-400"><i class="fa-solid fa-pen"></i></button>
-                            ${LattesTypes.isSingleton(i.typeKey) ? '' : `<button data-act="dup" data-id="${i.id}" title="Duplicar" class="w-7 h-7 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400"><i class="fa-solid fa-clone"></i></button>`}
+                            ${(LattesTypes.isSingleton(i.typeKey) || LattesTypes.singletonScopeField(i.typeKey)) ? '' : `<button data-act="dup" data-id="${i.id}" title="Duplicar" class="w-7 h-7 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400"><i class="fa-solid fa-clone"></i></button>`}
                             <button data-act="del" data-id="${i.id}" title="Excluir" class="w-7 h-7 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-red-600"><i class="fa-solid fa-trash"></i></button>
                         </span>
                     </div>
@@ -705,7 +705,7 @@ window.TabConformidade = (function () {
     // XML). O campo-título do tipo ganha o sufixo " (cópia)".
     async function duplicateItem(id) {
         const orig = state.items.find(i => i.id === id);
-        if (!orig || LattesTypes.isSingleton(orig.typeKey)) return;
+        if (!orig || LattesTypes.isSingleton(orig.typeKey) || LattesTypes.singletonScopeField(orig.typeKey)) return;
         const fields = Object.assign({}, orig.fields);
         const labelKey = ['titulo', 'orientando', 'candidato', 'especialidade', 'subarea', 'area', 'instituicao']
             .find(k => fields[k] && String(fields[k]).trim());
