@@ -773,12 +773,21 @@ window.TabCatalogar = (function () {
             // documentos pessoais...): só pode existir 1 no catálogo, então
             // escolher o Tipo pela caixa de seleção (sem passar por um link
             // "Editar" de um item já existente) deve mostrar o que já foi
-            // salvo — senão parece que o cadastro não persistiu. Endereço é
-            // "singleton por campo" (1 Residencial + 1 Profissional) — ver
-            // wireSingletonScope(), mais abaixo, chamado após o Tipo escolhido.
+            // salvo — senão parece que o cadastro não persistiu.
             let itemSingleton = null;
-            if (def && LattesTypes.isSingleton(def.key) && (!item || item.typeKey !== def.key)) {
-                itemSingleton = state.items.find(i => i.typeKey === def.key) || null;
+            if (def && (!item || item.typeKey !== def.key)) {
+                if (LattesTypes.isSingleton(def.key)) {
+                    itemSingleton = state.items.find(i => i.typeKey === def.key) || null;
+                } else if (LattesTypes.singletonScopeField(def.key)) {
+                    // "Singleton por campo" (Endereço: 1 Residencial + 1
+                    // Profissional) — mesmo comportamento: abrir a tela já
+                    // mostra o registro mais recentemente atualizado, em vez
+                    // de ficar em branco até o usuário reescolher o Tipo.
+                    // Trocar o Tipo (wireSingletonScope, mais abaixo) troca
+                    // pro outro registro depois.
+                    itemSingleton = state.items.filter(i => i.typeKey === def.key)
+                        .sort((a, b) => new Date(b.updatedAt || b.createdAt || 0) - new Date(a.updatedAt || a.createdAt || 0))[0] || null;
+                }
             }
             const itemAtual = item || itemSingleton;
             const vals = itemAtual ? (itemAtual.fields || {}) : {};
@@ -1163,8 +1172,11 @@ window.TabCatalogar = (function () {
             input = `<textarea name="${f.key}" ${req} rows="2" maxlength="${max}" data-maxcount="${max}" placeholder="${esc(f.placeholder || '')}" class="${base}">${esc(val)}</textarea>
                 <p class="text-[11px] text-gray-400 dark:text-gray-500 text-right mt-0.5" data-counter-for="${f.key}"></p>`;
         } else if (f.type === 'select') {
+            // `noBlankOption`: pula o "—" inicial — usado em selects de poucas
+            // opções mutuamente exclusivas com `default` (ex.: Tipo do
+            // Endereço), onde não faz sentido um 3º estado "nenhum escolhido".
             input = `<select name="${f.key}" ${req} class="${base}">
-                <option value="">—</option>
+                ${f.noBlankOption ? '' : '<option value="">—</option>'}
                 ${f.options.map(o => `<option value="${esc(o)}" ${o === val ? 'selected' : ''}>${esc(o)}</option>`).join('')}
             </select>`;
         } else if (f.type === 'datebr') {

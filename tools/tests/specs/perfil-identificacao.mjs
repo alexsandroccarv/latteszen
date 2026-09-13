@@ -125,7 +125,20 @@ test('Identificação: escolher o Tipo pela caixa de seleção (sem clicar em "E
     assertEqual(nome, 'Fulana de Tal', 'O campo Nome completo deveria vir preenchido com o valor já salvo de Identificação, não em branco');
 });
 
-test('Endereço: 2 registros persistentes (1 Residencial + 1 Profissional) — escolher o Tipo carrega o que já foi salvo daquele valor, ou fica em branco pro outro', async ({ page, baseUrl }) => {
+test('Endereço: Tipo não tem opção em branco — só Residencial e Profissional (2 opções, sem "—")', async ({ page, baseUrl }) => {
+    await seedCatalog(page, baseUrl, []);
+    await page.click('[data-tab="catalogar"]');
+    await page.waitForTimeout(150);
+    await page.selectOption('#selCategoria', 'DADOS_GERAIS');
+    await page.waitForTimeout(150);
+    await page.selectOption('#selTipo', 'ENDERECO');
+    await page.waitForTimeout(150);
+
+    const opcoes = await page.$eval('#dynFields select[name="tipo"]', (sel) => Array.from(sel.options).map((o) => o.value));
+    assertEqual(opcoes, ['Residencial', 'Profissional'], 'O Tipo do Endereço deveria ter só 2 opções, sem "—" em branco');
+});
+
+test('Endereço: 2 registros persistentes (1 Residencial + 1 Profissional) — abrir a tela já mostra o Tipo/dados salvos (mesmo comportamento de Identificação), sem ficar em branco', async ({ page, baseUrl }) => {
     const items = [
         makeItem('ENDERECO', 'DADOS_GERAIS', { tipo: 'Residencial', titulo: 'Rua Teste, 123' }),
     ];
@@ -139,20 +152,23 @@ test('Endereço: 2 registros persistentes (1 Residencial + 1 Profissional) — e
     await page.selectOption('#selTipo', 'ENDERECO');
     await page.waitForTimeout(150);
 
-    // Sem Residencial/Profissional escolhido ainda, não dá pra saber qual
-    // dos dois carregar — o formulário fica em branco.
-    const brancoInicial = await page.locator('#dynFields input[name="titulo"]').inputValue();
-    assertEqual(brancoInicial, '', 'Sem escolher Residencial ou Profissional ainda, o campo Endereço deveria estar em branco');
-
-    await page.selectOption('#dynFields select[name="tipo"]', 'Residencial');
-    await page.waitForTimeout(150);
-    const residencial = await page.locator('#dynFields input[name="titulo"]').inputValue();
-    assertEqual(residencial, 'Rua Teste, 123', 'Escolher "Residencial" deveria carregar o endereço já salvo daquele Tipo');
+    // Só existe 1 endereço salvo — abrir a tela já deveria mostrar o Tipo e
+    // os dados dele, sem precisar escolher de novo (senão parece que o
+    // cadastro não persistiu — mesmo problema já resolvido pra Identificação).
+    const tipoInicial = await page.locator('#dynFields select[name="tipo"]').inputValue();
+    assertEqual(tipoInicial, 'Residencial', 'Com só 1 endereço salvo, o Tipo já deveria vir selecionado sozinho');
+    const tituloInicial = await page.locator('#dynFields input[name="titulo"]').inputValue();
+    assertEqual(tituloInicial, 'Rua Teste, 123', 'O endereço já salvo deveria aparecer, sem precisar reescolher o Tipo');
 
     await page.selectOption('#dynFields select[name="tipo"]', 'Profissional');
     await page.waitForTimeout(150);
     const profissional = await page.locator('#dynFields input[name="titulo"]').inputValue();
     assertEqual(profissional, '', 'Escolher "Profissional" (sem endereço salvo ainda) deveria ficar em branco, sem herdar o do Residencial');
+
+    await page.selectOption('#dynFields select[name="tipo"]', 'Residencial');
+    await page.waitForTimeout(150);
+    const residencial = await page.locator('#dynFields input[name="titulo"]').inputValue();
+    assertEqual(residencial, 'Rua Teste, 123', 'Voltar pra "Residencial" deveria recarregar o endereço já salvo');
 });
 
 test('Endereço: salvar Residencial e depois Profissional mantém os 2 persistentes; salvar de novo o mesmo Tipo atualiza em vez de duplicar', async ({ page, baseUrl }) => {
@@ -219,6 +235,33 @@ test('Foto de perfil usa o bloco padrão de evidências (upload de imagem), não
     assert(evidenceVisivel, 'O bloco padrão de evidências deveria aparecer para Foto de perfil');
     const accept = await page.locator('#pdfInput').getAttribute('accept');
     assertEqual(accept, 'image/jpeg,image/png', 'O input de arquivo deveria continuar restrito a JPEG/PNG');
+});
+
+test('Foto de perfil não tem mais o campo Descrição', async ({ page, baseUrl }) => {
+    await seedCatalog(page, baseUrl, []);
+    await page.click('[data-tab="catalogar"]');
+    await page.waitForTimeout(150);
+    await page.selectOption('#selCategoria', 'DADOS_GERAIS');
+    await page.waitForTimeout(150);
+    await page.selectOption('#selTipo', 'FOTO_PERFIL');
+    await page.waitForTimeout(150);
+
+    const camposTexto = await page.$eval('#dynFields', (el) => el.textContent.trim());
+    assertEqual(camposTexto, '', 'Foto de perfil não deveria ter nenhum campo de texto (só a evidência/imagem)');
+    assertEqual(await page.locator('#dynFields [name="titulo"]').count(), 0, 'O campo Descrição (titulo) não deveria mais existir em Foto de perfil');
+});
+
+test('Documentos pessoais: "Tipo de documento" inclui a opção Passaporte', async ({ page, baseUrl }) => {
+    await seedCatalog(page, baseUrl, []);
+    await page.click('[data-tab="catalogar"]');
+    await page.waitForTimeout(150);
+    await page.selectOption('#selCategoria', 'DADOS_GERAIS');
+    await page.waitForTimeout(150);
+    await page.selectOption('#selTipo', 'DOCUMENTO_PESSOAL');
+    await page.waitForTimeout(150);
+
+    const opcoes = await page.$eval('#dynFields select[name="tipoDoc"]', (sel) => Array.from(sel.options).map((o) => o.value));
+    assert(opcoes.includes('Passaporte'), 'A lista de Tipo de documento deveria incluir "Passaporte"');
 });
 
 test('Outras informações relevantes: o campo Descrição não é obrigatório', async ({ page, baseUrl }) => {

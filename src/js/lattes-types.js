@@ -290,9 +290,11 @@ const TYPES = {
     // Antes noEvidence (widget de foto próprio em Configurações); agora usa
     // o bloco padrão de evidências do Catalogar, igual aos demais tipos —
     // accept já restringe a imagem, e singleton mantém só uma foto vigente.
-    FOTO_PERFIL: { label: 'Foto de perfil', noExport: true, singleton: true, perfil: true, accept: 'image/jpeg,image/png', fields: [{ key: 'titulo', label: 'Descrição', type: 'text', placeholder: 'ex.: Foto oficial 2025' }] },
+    // Sem campo de Descrição (a pedido do usuário) — a foto em si já é o
+    // conteúdo do item, um campo de texto era supérfluo aqui.
+    FOTO_PERFIL: { label: 'Foto de perfil', noExport: true, singleton: true, perfil: true, accept: 'image/jpeg,image/png', fields: [] },
     DOCUMENTO_PESSOAL: { label: 'Documentos pessoais', noExport: true, perfil: true, accept: 'application/pdf,image/jpeg,image/png', fields: [
-        { key: 'tipoDoc', label: 'Tipo de documento', type: 'select', required: true, options: ['Título de eleitor', 'Certidão de nascimento', 'Certidão de casamento', 'Conselho de classe', 'Diploma / Certificado', 'Carteira profissional', 'CNH', 'Comprovante de residência', 'Reservista', 'PIS/PASEP', 'Outro'] },
+        { key: 'tipoDoc', label: 'Tipo de documento', type: 'select', required: true, options: ['Título de eleitor', 'Certidão de nascimento', 'Certidão de casamento', 'Conselho de classe', 'Diploma / Certificado', 'Carteira profissional', 'CNH', 'Passaporte', 'Comprovante de residência', 'Reservista', 'PIS/PASEP', 'Outro'] },
         { key: 'titulo', label: 'Descrição / Nº do documento', type: 'text', required: true },
         { key: 'orgao', label: 'Órgão emissor', type: 'text' },
         { key: 'data', label: 'Data de emissão / validade', type: 'datebr' },
@@ -311,8 +313,12 @@ const TYPES = {
     // do usuário) — não é singleton global, é "singleton por Tipo"
     // (singletonBy), ver onSubmitForm e wireSingletonScope() em
     // tab-catalogar.js. Evidência habilitada (comprovante de endereço).
+    // Tipo não tem opção em branco (noBlankOption) — só há 2 valores
+    // possíveis, então sempre vem um dos dois pré-selecionado (default);
+    // abrir a tela já mostra o Tipo com dados salvos, se houver (ver
+    // itemSingleton em renderDynFields, tab-catalogar.js).
     ENDERECO: { label: 'Endereço', singletonBy: 'tipo', perfil: true, accept: 'application/pdf,image/jpeg,image/png', fields: [
-        { key: 'tipo', label: 'Tipo', type: 'select', required: true, options: ['Residencial', 'Profissional'] },
+        { key: 'tipo', label: 'Tipo', type: 'select', required: true, noBlankOption: true, default: 'Residencial', options: ['Residencial', 'Profissional'] },
         { key: 'titulo', label: 'Endereço', type: 'text', required: true }, F_CIDADE, { key: 'uf', label: 'UF', type: 'text' }, { key: 'cep', label: 'CEP', type: 'text' }] },
     LICENCA: { label: 'Licença maternidade, paternidade e adoção', noExport: true, fields: [{ key: 'titulo', label: 'Descrição', type: 'text', required: true }, { key: 'tipo', label: 'Tipo', type: 'select', options: ['Maternidade', 'Paternidade', 'Adoção'] }, { key: 'dataInicio', label: 'Data de início', type: 'datebr', row: 'periodo' }, { key: 'dataFim', label: 'Data de fim', type: 'datebr', row: 'periodo' }] },
     IDIOMAS: { label: 'Idiomas', fields: [{ key: 'titulo', label: 'Idioma', type: 'select', options: window.IDIOMAS_LATTES || [], required: true }, { key: 'habilidades', label: 'Proficiência (nível por habilidade)', type: 'skilllevels', options: ['Leitura', 'Fala', 'Escrita', 'Compreensão'], levels: ['Bom', 'Razoável', 'Pouco'] }] },
