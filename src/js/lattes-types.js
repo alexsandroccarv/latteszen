@@ -1212,28 +1212,47 @@ const TYPES = {
         { key: 'outrasInfo', label: 'Outras informações', type: 'textarea' },
     ] },
 
-    // 20 Registros pessoais — Desenvolvimento Pessoal e Habilidades
-    AL_CURSO_LIVRE: { label: 'Cursos livres', fields: [alNome('Nome do curso'), { key: 'entidade', label: 'Instituição', type: 'text' }, { key: 'frequencia', label: 'Carga horária', type: 'text' }, { ...F_AINI, row: 'periodo' }, F_AFIM, AL_IMP, F_URL] },
+    // 12 — Desenvolvimento Pessoal e Habilidades (lista de tipos revisada a
+    // pedido do usuário — ver types: em LATTES_CATEGORIES). AL_IDIOMAS e
+    // AL_TREINAMENTO saem da lista selecionável: mantidos só por
+    // compatibilidade com itens já catalogados (Idiomas já tem tipo próprio
+    // em "01. Dados gerais", e Treinamentos/workshops passou a caber em
+    // "Cursos livres e oficinas").
+    AL_CURSO_LIVRE: { label: 'Cursos livres e oficinas', fields: [alNome('Nome do curso'), { key: 'entidade', label: 'Instituição', type: 'text' }, { key: 'frequencia', label: 'Carga horária', type: 'text' }, { ...F_AINI, row: 'periodo' }, F_AFIM, AL_IMP, F_URL] },
     AL_IDIOMAS: { label: 'Idiomas e proficiências', fields: [{ key: 'titulo', label: 'Idioma', type: 'select', options: window.IDIOMAS_LATTES || [], required: true }, { key: 'habilidades', label: 'Proficiência (nível por habilidade)', type: 'skilllevels', options: ['Leitura', 'Fala', 'Escrita', 'Compreensão'], levels: ['Bom', 'Razoável', 'Pouco'] }, { key: 'entidade', label: 'Onde estudou', type: 'text' }, { ...F_AINI, row: 'periodo' }, F_AFIM, AL_IMP] },
     AL_TREINAMENTO: { label: 'Treinamentos e workshops', fields: [alNome('Nome'), AL_ENT, AL_PAPEL, AL_FREQ, { ...F_AINI, row: 'periodo' }, F_AFIM, AL_IMP, F_URL] },
-    AL_PROJETO_PESSOAL: { label: 'Projetos pessoais e autodidatismo', fields: [alNome('Nome do projeto'), AL_PAPEL, { ...F_AINI, row: 'periodo' }, F_AFIM, { key: 'frequencia', label: 'Frequência / Dedicação', type: 'text' }, AL_IMP, F_URL] },
+    AL_MENTORIA: { label: 'Mentorias e grupos de estudos', fields: [alNome('Nome'), AL_ENT, AL_PAPEL, AL_FREQ, { ...F_AINI, row: 'periodo' }, F_AFIM, AL_IMP, F_URL] },
+    AL_PROJETO_PESSOAL: { label: 'Projetos pessoais e autoaprendizagem', fields: [alNome('Nome do projeto'), AL_PAPEL, { ...F_AINI, row: 'periodo' }, F_AFIM, { key: 'frequencia', label: 'Frequência / Dedicação', type: 'text' }, AL_IMP, F_URL] },
 
-    // 99 — Engajamento Comunitário e Cidadania
-    AL_VOLUNTARIADO: { label: 'Voluntariado e trabalho social', fields: [alNome('Nome da atividade'), { key: 'entidade', label: 'Organização', type: 'text' }, AL_PAPEL, { ...F_AINI, row: 'periodo' }, F_AFIM, { key: 'frequencia', label: 'Carga horária / Frequência', type: 'text' }, AL_IMP] },
-    AL_LIDERANCA: { label: 'Liderança e atuação associativa', fields: [alNome('Nome / Cargo'), { key: 'entidade', label: 'Entidade / Associação', type: 'text' }, AL_PAPEL, { ...F_AINI, row: 'periodo' }, F_AFIM, AL_IMP] },
-    AL_ORG_EVENTO_COM: { label: 'Organização de eventos comunitários', fields: [alNome('Nome do evento'), { key: 'entidade', label: 'Entidade promotora', type: 'text' }, AL_PAPEL, { ...AL_ANO, row: 'periodo' }, F_AFIM, AL_LOCAL, AL_IMP] },
+    // 13 — Engajamento Comunitário e Cidadania (lista revisada)
+    AL_ATIVISMO: { label: 'Ativismo, conselhos e comitês', fields: [alNome('Nome / Cargo'), { key: 'entidade', label: 'Entidade / Conselho', type: 'text' }, AL_PAPEL, { ...F_AINI, row: 'periodo' }, F_AFIM, AL_IMP] },
+    AL_VOLUNTARIADO: { label: 'Voluntariado e ação social', fields: [alNome('Nome da atividade'), { key: 'entidade', label: 'Organização', type: 'text' }, AL_PAPEL, { ...F_AINI, row: 'periodo' }, F_AFIM, { key: 'frequencia', label: 'Carga horária / Frequência', type: 'text' }, AL_IMP] },
+    AL_LIDERANCA: { label: 'Atuação comunitária e associativa', fields: [alNome('Nome / Cargo'), { key: 'entidade', label: 'Entidade / Associação', type: 'text' }, AL_PAPEL, { ...F_AINI, row: 'periodo' }, F_AFIM, AL_IMP] },
+    AL_ORG_EVENTO_COM: { label: 'Organização de iniciativas comunitárias', fields: [alNome('Nome da iniciativa'), { key: 'entidade', label: 'Entidade promotora', type: 'text' }, AL_PAPEL, { ...AL_ANO, row: 'periodo' }, F_AFIM, AL_LOCAL, AL_IMP] },
 
-    // 99 — Saúde, Esporte e Bem-Estar
-    AL_ESPORTE: { label: 'Experiências esportivas', fields: [alNome('Modalidade / Atividade'), { key: 'entidade', label: 'Clube / Local', type: 'text' }, AL_PAPEL, { ...F_AINI, row: 'periodo' }, F_AFIM, { key: 'frequencia', label: 'Frequência', type: 'text' }, AL_IMP] },
+    // 14 — Saúde, Esporte e Bem-Estar (lista revisada — os 4 tipos antigos
+    // continuam, só com rótulos atualizados)
+    AL_ESPORTE: { label: 'Prática esportiva regular e treinos', fields: [alNome('Modalidade / Atividade'), { key: 'entidade', label: 'Clube / Local', type: 'text' }, AL_PAPEL, { ...F_AINI, row: 'periodo' }, F_AFIM, { key: 'frequencia', label: 'Frequência', type: 'text' }, AL_IMP] },
     AL_COMPETICAO: { label: 'Competições e torneios amadores', fields: [alNome('Competição'), { key: 'entidade', label: 'Organizador', type: 'text' }, { key: 'papel', label: 'Categoria / Colocação', type: 'text' }, { ...AL_ANO, row: 'periodo' }, F_AFIM, AL_LOCAL, { key: 'descricao', label: 'Resultado / Impacto', type: 'textarea' }] },
-    AL_EXPEDICAO: { label: 'Expedições, Trilhas e roteiros', fields: [alNome('Expedição / Trilha'), AL_LOCAL, { ...AL_ANO, row: 'periodo' }, F_AFIM, { key: 'frequencia', label: 'Distância / Duração', type: 'text' }, AL_PAPEL, AL_IMP] },
-    AL_BEMESTAR: { label: 'Práticas integrativas e bem-estar', fields: [alNome('Prática'), AL_ENT, { key: 'frequencia', label: 'Frequência', type: 'text' }, { ...F_AINI, row: 'periodo' }, F_AFIM, AL_IMP] },
+    AL_EXPEDICAO: { label: 'Atividades ao ar livre e ecoturismo', fields: [alNome('Atividade / Trilha'), AL_LOCAL, { ...AL_ANO, row: 'periodo' }, F_AFIM, { key: 'frequencia', label: 'Distância / Duração', type: 'text' }, AL_PAPEL, AL_IMP] },
+    AL_BEMESTAR: { label: 'Práticas corporais, integrativas e meditativas', fields: [alNome('Prática'), AL_ENT, { key: 'frequencia', label: 'Frequência', type: 'text' }, { ...F_AINI, row: 'periodo' }, F_AFIM, AL_IMP] },
 
-    // 99 — Interesses, Cultura e Lazer
-    AL_HOBBY: { label: 'Hobbies e expressão artística', fields: [alNome('Hobby / Atividade'), AL_PAPEL, { key: 'frequencia', label: 'Frequência', type: 'text' }, { ...F_AINI, row: 'periodo' }, F_AFIM, AL_IMP, F_URL] },
-    AL_COLECIONISMO: { label: 'Colecionismo', fields: [alNome('Coleção / Tema'), { key: 'descricao', label: 'Descrição / Acervo', type: 'textarea' }, F_AINI, { key: 'frequencia', label: 'Nº de itens / Frequência', type: 'text' }, F_URL] },
+    // 15 — Interesses, Cultura e Lazer (lista bem ampliada — AL_CULTURAL,
+    // genérico demais, se desdobra em vários tipos específicos abaixo;
+    // mantido só por compatibilidade com itens já catalogados).
+    AL_ESPECTADOR_ESPORTE: { label: 'Assistência a eventos esportivos e lutas (espectador)', fields: [alNome('Evento assistido'), AL_LOCAL, { ...AL_ANO, row: 'periodo' }, F_AFIM, AL_IMP] },
+    AL_CINEMA: { label: 'Cinema, mostras e festivais audiovisuais', fields: [alNome('Filme / Mostra'), AL_LOCAL, { ...AL_ANO, row: 'periodo' }, F_AFIM, AL_IMP] },
+    AL_COLECIONISMO: { label: 'Colecionismo e acervos pessoais', fields: [alNome('Coleção / Tema'), { key: 'descricao', label: 'Descrição / Acervo', type: 'textarea' }, F_AINI, { key: 'frequencia', label: 'Nº de itens / Frequência', type: 'text' }, F_URL] },
+    AL_ARTES_CENICAS: { label: 'Espetáculos cênicos (teatro, dança e circo)', fields: [alNome('Espetáculo'), AL_LOCAL, { ...AL_ANO, row: 'periodo' }, F_AFIM, AL_IMP] },
+    AL_GASTRONOMIA: { label: 'Experiências gastronômicas e degustações', fields: [alNome('Atividade / Especialidade'), AL_PAPEL, { key: 'frequencia', label: 'Frequência', type: 'text' }, AL_IMP, F_URL] },
+    AL_EXPOSICOES: { label: 'Exposições artísticas, museus e galerias', fields: [alNome('Exposição / Museu'), AL_LOCAL, { ...AL_ANO, row: 'periodo' }, F_AFIM, AL_IMP] },
+    AL_FEIRAS_CULTURAIS: { label: 'Feiras temáticas, convenções e festivais culturais', fields: [alNome('Feira / Convenção'), AL_LOCAL, { ...AL_ANO, row: 'periodo' }, F_AFIM, AL_IMP] },
+    AL_HOBBY: { label: 'Hobbies e trabalhos manuais', fields: [alNome('Hobby / Atividade'), AL_PAPEL, { key: 'frequencia', label: 'Frequência', type: 'text' }, { ...F_AINI, row: 'periodo' }, F_AFIM, AL_IMP, F_URL] },
+    AL_JOGOS: { label: 'Jogos de tabuleiro, eletrônicos e RPG', fields: [alNome('Jogo / Grupo'), AL_PAPEL, { key: 'frequencia', label: 'Frequência', type: 'text' }, { ...F_AINI, row: 'periodo' }, F_AFIM, AL_IMP] },
+    AL_LEITURA: { label: 'Leituras e clubes do livro', fields: [alNome('Livro / Clube de leitura'), AL_PAPEL, { ...F_AINI, row: 'periodo' }, F_AFIM, AL_IMP] },
+    AL_MUSICA: { label: 'Shows, concertos e festivais musicais', fields: [alNome('Show / Festival'), AL_LOCAL, { ...AL_ANO, row: 'periodo' }, F_AFIM, AL_IMP] },
     AL_CULTURAL: { label: 'Experiências culturais', fields: [alNome('Experiência'), AL_LOCAL, { ...AL_ANO, row: 'periodo' }, F_AFIM, AL_IMP] },
-    AL_GASTRONOMIA: { label: 'Gastronomia e culinária', fields: [alNome('Atividade / Especialidade'), AL_PAPEL, { key: 'frequencia', label: 'Frequência', type: 'text' }, AL_IMP, F_URL] },
+    AL_VIAGENS: { label: 'Viagens, turismo e rotas culturais', fields: [alNome('Viagem / Roteiro'), AL_LOCAL, { ...AL_ANO, row: 'periodo' }, F_AFIM, AL_IMP] },
 
     // 20 — Registros e Reconhecimentos
     // Mantido apenas para compatibilidade com itens já catalogados (chave
@@ -1375,13 +1394,14 @@ window.LATTES_CATEGORIES = [
     { num: '10', key: 'ORIENTACOES', label: 'Orientações', icon: 'fa-user-group', types: ['ORIENTACAO_CONCLUIDA', 'ORIENTACAO_ANDAMENTO'] },
     { num: '11', key: 'BANCAS', label: 'Bancas', icon: 'fa-gavel', types: ['BANCA_CONCLUSAO', 'BANCA_JULGADORA'] },
     { num: '12', key: 'AL_DESENVOLVIMENTO', label: 'Desenvolvimento Pessoal e Habilidades', icon: 'fa-seedling', naoLattes: true,
-      note: AL_NOTE, types: ['AL_CURSO_LIVRE', 'AL_IDIOMAS', 'AL_TREINAMENTO', 'AL_PROJETO_PESSOAL'] },
+      note: AL_NOTE, types: ['AL_CURSO_LIVRE', 'AL_MENTORIA', 'AL_PROJETO_PESSOAL'] },
     { num: '13', key: 'AL_ENGAJAMENTO', label: 'Engajamento Comunitário e Cidadania', icon: 'fa-people-group', naoLattes: true,
-      note: AL_NOTE, types: ['AL_VOLUNTARIADO', 'AL_LIDERANCA', 'AL_ORG_EVENTO_COM'] },
+      note: AL_NOTE, types: ['AL_ATIVISMO', 'AL_LIDERANCA', 'AL_ORG_EVENTO_COM', 'AL_VOLUNTARIADO'] },
     { num: '14', key: 'AL_SAUDE_ESPORTE', label: 'Saúde, Esporte e Bem-Estar', icon: 'fa-heart-pulse', naoLattes: true,
-      note: AL_NOTE, types: ['AL_ESPORTE', 'AL_COMPETICAO', 'AL_EXPEDICAO', 'AL_BEMESTAR'] },
+      note: AL_NOTE, types: ['AL_EXPEDICAO', 'AL_COMPETICAO', 'AL_ESPORTE', 'AL_BEMESTAR'] },
     { num: '15', key: 'AL_INTERESSES', label: 'Interesses, Cultura e Lazer', icon: 'fa-palette', naoLattes: true,
-      note: AL_NOTE, types: ['AL_HOBBY', 'AL_COLECIONISMO', 'AL_CULTURAL', 'AL_GASTRONOMIA'] },
+      note: AL_NOTE, types: ['AL_ESPECTADOR_ESPORTE', 'AL_CINEMA', 'AL_COLECIONISMO', 'AL_ARTES_CENICAS', 'AL_GASTRONOMIA',
+          'AL_EXPOSICOES', 'AL_FEIRAS_CULTURAIS', 'AL_HOBBY', 'AL_JOGOS', 'AL_LEITURA', 'AL_MUSICA', 'AL_VIAGENS'] },
     { num: '16', key: 'AL_CERTIFICACAO_CAT', label: 'Certificações', icon: 'fa-certificate', naoLattes: true,
       note: AL_NOTE, types: ['AL_CERT_PROF_GESTAO', 'AL_CERT_TI', 'AL_CERT_FINANCEIRA', 'AL_CERT_OUTRA'] },
     { num: '17', key: 'AL_FILIACAO_CAT', label: 'Filiações', icon: 'fa-id-badge', naoLattes: true,
@@ -1415,10 +1435,11 @@ const PRIMARY_CATEGORY = {
     // chaves legadas (compatibilidade com dados antigos)
     LIVRO: 'PRODUCOES', CAPITULO_LIVRO: 'PRODUCOES', SOFTWARE: 'PRODUCOES', ORIENTACAO: 'ORIENTACOES', BANCA: 'BANCAS', PROJETO: 'PROJETOS',
 };
-['AL_CURSO_LIVRE', 'AL_IDIOMAS', 'AL_TREINAMENTO', 'AL_PROJETO_PESSOAL'].forEach(k => { PRIMARY_CATEGORY[k] = 'AL_DESENVOLVIMENTO'; });
-['AL_VOLUNTARIADO', 'AL_LIDERANCA', 'AL_ORG_EVENTO_COM'].forEach(k => { PRIMARY_CATEGORY[k] = 'AL_ENGAJAMENTO'; });
+['AL_CURSO_LIVRE', 'AL_IDIOMAS', 'AL_TREINAMENTO', 'AL_MENTORIA', 'AL_PROJETO_PESSOAL'].forEach(k => { PRIMARY_CATEGORY[k] = 'AL_DESENVOLVIMENTO'; });
+['AL_ATIVISMO', 'AL_VOLUNTARIADO', 'AL_LIDERANCA', 'AL_ORG_EVENTO_COM'].forEach(k => { PRIMARY_CATEGORY[k] = 'AL_ENGAJAMENTO'; });
 ['AL_ESPORTE', 'AL_COMPETICAO', 'AL_EXPEDICAO', 'AL_BEMESTAR'].forEach(k => { PRIMARY_CATEGORY[k] = 'AL_SAUDE_ESPORTE'; });
-['AL_HOBBY', 'AL_COLECIONISMO', 'AL_CULTURAL', 'AL_GASTRONOMIA'].forEach(k => { PRIMARY_CATEGORY[k] = 'AL_INTERESSES'; });
+['AL_HOBBY', 'AL_COLECIONISMO', 'AL_CULTURAL', 'AL_GASTRONOMIA', 'AL_ESPECTADOR_ESPORTE', 'AL_CINEMA', 'AL_ARTES_CENICAS',
+    'AL_EXPOSICOES', 'AL_FEIRAS_CULTURAIS', 'AL_JOGOS', 'AL_LEITURA', 'AL_MUSICA', 'AL_VIAGENS'].forEach(k => { PRIMARY_CATEGORY[k] = 'AL_INTERESSES'; });
 PRIMARY_CATEGORY.AL_CERTIFICACAO = 'AL_CERTIFICACAO_CAT';
 ['AL_CERT_PROF_GESTAO', 'AL_CERT_TI', 'AL_CERT_FINANCEIRA', 'AL_CERT_OUTRA'].forEach(k => { PRIMARY_CATEGORY[k] = 'AL_CERTIFICACAO_CAT'; });
 PRIMARY_CATEGORY.AL_FILIACAO = 'AL_FILIACAO_CAT';
