@@ -47,6 +47,23 @@ test('"Importar XML do Lattes" troca para Configurações e rola até a seção 
     assert(existeSecao, 'A seção de importação de XML deveria existir na tela de Configurações');
 });
 
+test('Seção "Importante: suporte do navegador" aparece entre "Que dores..." e "Software livre", com o link de solicitação do Google Drive', async ({ page, baseUrl }) => {
+    await abrirInicio(page, baseUrl);
+    const titulos = await page.$$eval('#tab-inicio section h2', (els) => els.map((el) => el.textContent.trim()));
+    const idxDores = titulos.findIndex((t) => t.includes('Que dores'));
+    const idxImportante = titulos.findIndex((t) => t.includes('Importante'));
+    const idxSoftware = titulos.findIndex((t) => t.includes('Software livre'));
+    assert(idxDores >= 0 && idxImportante === idxDores + 1 && idxSoftware === idxImportante + 1,
+        `A seção "Importante" deveria ficar entre "Que dores..." e "Software livre" — ordem obtida: ${JSON.stringify(titulos)}`);
+
+    const texto = await page.$eval('#tab-inicio', (el) => el.textContent);
+    assert(texto.includes('Chromium'), 'Deveria mencionar navegadores baseados em Chromium');
+    assert(texto.includes('Google Drive'), 'Deveria mencionar a opção de conectar ao Google Drive');
+
+    const linkSolicitar = await page.$eval('#tab-inicio a[href*="github.com"][href*="issues"]', (el) => el.href);
+    assert(linkSolicitar.includes('/issues'), 'Deveria linkar para o canal de solicitação (issues do repositório)');
+});
+
 test('Seção "Como citar" mostra a referência completa e o botão de copiar funciona', async ({ page, baseUrl }) => {
     await abrirInicio(page, baseUrl);
     const citacao = await page.$eval('#tab-inicio blockquote', (el) => el.textContent.replace(/\s+/g, ' ').trim());

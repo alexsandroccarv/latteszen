@@ -54,6 +54,20 @@ window.TabInicio = (function () {
                 </section>
 
                 <section class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+                    <h2 class="text-lg font-bold mb-2 flex items-center gap-2"><i class="fa-solid fa-triangle-exclamation text-govbr-600 dark:text-unifesp-400"></i> Importante: suporte do navegador</h2>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                        Para usar 100% dos recursos do lattesZen, o seu navegador precisa ter suporte ao salvamento local de arquivos.
+                    </p>
+                    <div class="space-y-2 text-sm">
+                        <div class="flex gap-2"><i class="fa-solid fa-desktop text-govbr-600 dark:text-unifesp-400 mt-1"></i><span><strong>Melhor opção (computador):</strong> use navegadores baseados em Chromium — Chromium, Google Chrome, Microsoft Edge, Brave, Opera ou Vivaldi.</span></div>
+                        <div class="flex gap-2"><i class="fa-solid fa-mobile-screen text-govbr-600 dark:text-unifesp-400 mt-1"></i><span><strong>No celular ou em outros navegadores:</strong> você precisará conectar sua conta do Google Drive para salvar os dados. Como temos poucas vagas gratuitas nessa integração, é preciso <a href="https://github.com/alexsandroccarv/lattesZen/issues" target="_blank" rel="noopener" class="underline">solicitar o cadastro previamente</a> para liberar o uso.</span></div>
+                    </div>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 mt-3">
+                        Já estamos trabalhando em uma atualização para que o lattesZen rode perfeitamente em qualquer navegador no futuro!
+                    </p>
+                </section>
+
+                <section class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
                     <h2 class="text-lg font-bold mb-2 flex items-center gap-2"><i class="fa-solid fa-scale-balanced text-govbr-600 dark:text-unifesp-400"></i> Software livre e em desenvolvimento</h2>
                     <p class="text-sm text-gray-600 dark:text-gray-400">
                         O lattesZen é <strong>software livre</strong> (licença <a href="https://www.gnu.org/licenses/agpl-3.0.html" target="_blank" rel="noopener" class="underline">AGPLv3</a>) —
