@@ -2127,7 +2127,13 @@ window.TabCatalogar = (function () {
                 else form.requestSubmit();
                 return;
             }
-            if (e.altKey && !ctrlOrCmd && (e.key === 'ArrowDown' || e.key === 'ArrowUp') && state.editingId) {
+            // Não intercepta enquanto o foco estiver num <select>: no
+            // sistema operacional, Alt+seta pra baixo/cima é o atalho nativo
+            // pra abrir/fechar o dropdown dele — sequestrar aqui quebraria
+            // essa tecla em TODO select de TODO tipo de item (são ~150),
+            // sempre que houver um item em edição.
+            if (e.altKey && !ctrlOrCmd && (e.key === 'ArrowDown' || e.key === 'ArrowUp') && state.editingId
+                && (!e.target || e.target.tagName !== 'SELECT')) {
                 e.preventDefault();
                 const editingItem = state.items.find(i => i.id === state.editingId);
                 const catKey = editingItem ? editingItem.categoryKey : null;
