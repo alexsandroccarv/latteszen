@@ -264,6 +264,11 @@ window.TabSumula = (function () {
     }
     async function exportarSumula(cfg) {
         if (!Storage.hasDirectory()) { toast('Configure um diretório em Configurações para exportar.', 'aviso'); return; }
+        // Botão desabilitado durante a exportação — mesmo padrão do RSC
+        // (tab-rsc.js, exportarRsc), pra consistência entre os dois módulos.
+        const btn = $('#btnSumulaExportar');
+        const original = btn ? btn.innerHTML : '';
+        if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Gerando…'; }
         try {
             const folder = pastaExportacaoHoje();
             const texto = (state.sumulaTexto && state.sumulaTexto.trim()) ? state.sumulaTexto : sumulaModelo(cfg);
@@ -271,6 +276,7 @@ window.TabSumula = (function () {
             await Storage.writeFile(nomeArquivoSumula(), bytes, folder);
             toast(`Súmula Curricular exportada em "${folder}/".`, 'ok');
         } catch (e) { toast('Falha ao exportar: ' + e.message, 'erro'); }
+        finally { if (btn) { btn.disabled = false; btn.innerHTML = original; } }
     }
 
     function render() {

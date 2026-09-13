@@ -324,58 +324,77 @@ window.TabConfig = (function () {
     async function importSelected() {
         const chosen = $$('.xmlchk').filter(c => c.checked).map(c => parseInt(c.dataset.idx, 10));
         if (!chosen.length) { toast('Nenhum item selecionado.', 'aviso'); return; }
-        // Deduplicação por assinatura de conteúdo — impede duplicar itens já
-        // existentes a cada nova importação, mesmo que tenham sido editados ou
-        // criados manualmente antes de constarem no Lattes.
-        const sigMap = existingSignatureMap();
-        const registrar = (it) => itemSignatures(it).forEach(s => { if (!sigMap.has(s)) sigMap.set(s, it); });
-        let n = 0, atualizados = 0, ignorados = 0;
-        for (const idx of chosen) {
-            const src = state.lattesParsed.items[idx];
-            // Tipos únicos (Identificação, Resumo, Outras info...): se já
-            // existir um item desse tipo, ATUALIZA em vez de criar um novo.
-            // Endereço não é singleton global (1 Residencial + 1 Profissional,
-            // ver singletonBy) — cai na dedup por assinatura logo abaixo, que já
-            // separa os dois pelo texto do logradouro.
-            if (LattesTypes.isSingleton(src.typeKey)) {
-                const ex = state.items.find(i => i.typeKey === src.typeKey);
-                if (ex) {
-                    ex.fields = src.fields; ex.categoryKey = src.categoryKey || ex.categoryKey;
-                    ex.lattesRef = src.lattesRef; ex.updatedAt = window.AppCore.nowISO();
-                    await window.AppCore.persistItem(ex);
-                    atualizados++; continue;
+        // Feedback de progresso + botão desabilitado durante a importação —
+        // igual ao padrão já usado na busca do ORCID/migração pro Google
+        // Drive (sem isto, um clique duplo no meio de uma importação de
+        // muitos itens não tinha nenhum sinal visual de que já estava em
+        // andamento). Restaurado no finally — inclusive se a própria
+        // renderXmlResult() no fim já tiver substituído o botão (isConnected
+        // vira false e a restauração aqui é um no-op inofensivo).
+        const btn = $('#btnImport');
+        const original = btn ? btn.innerHTML : '';
+        if (btn) btn.disabled = true;
+        try {
+            // Deduplicação por assinatura de conteúdo — impede duplicar itens já
+            // existentes a cada nova importação, mesmo que tenham sido editados ou
+            // criados manualmente antes de constarem no Lattes.
+            const sigMap = existingSignatureMap();
+            const registrar = (it) => itemSignatures(it).forEach(s => { if (!sigMap.has(s)) sigMap.set(s, it); });
+            let n = 0, atualizados = 0, ignorados = 0, feito = 0;
+            for (const idx of chosen) {
+                const src = state.lattesParsed.items[idx];
+                // Tipos únicos (Identificação, Resumo, Outras info...): se já
+                // existir um item desse tipo, ATUALIZA em vez de criar um novo.
+                // Endereço não é singleton global (1 Residencial + 1 Profissional,
+                // ver singletonBy) — cai na dedup por assinatura logo abaixo, que já
+                // separa os dois pelo texto do logradouro.
+                if (LattesTypes.isSingleton(src.typeKey)) {
+                    const ex = state.items.find(i => i.typeKey === src.typeKey);
+                    if (ex) {
+                        ex.fields = src.fields; ex.categoryKey = src.categoryKey || ex.categoryKey;
+                        ex.lattesRef = src.lattesRef; ex.updatedAt = window.AppCore.nowISO();
+                        await window.AppCore.persistItem(ex);
+                        atualizados++; feito++;
+                        if (btn) btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-1"></i> Importando… (${feito}/${chosen.length})`;
+                        continue;
+                    }
                 }
+                const sig = itemSignature(src.typeKey, src.fields || {});
+                const match = sig ? sigMap.get(sig) : null;
+                if (match) {
+                    // Item já existe: NÃO duplica. Preserva os dados e as evidências
+                    // do usuário; apenas "adota" como item do Lattes (grava o
+                    // lattesRef original) para casar nas próximas importações.
+                    let changed = false;
+                    if (!match.lattesRef && src.lattesRef) { match.lattesRef = src.lattesRef; changed = true; }
+                    if (changed) { match.updatedAt = window.AppCore.nowISO(); await window.AppCore.persistItem(match); atualizados++; }
+                    else ignorados++;
+                    registrar(match);
+                    feito++;
+                    if (btn) btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-1"></i> Importando… (${feito}/${chosen.length})`;
+                    continue;
+                }
+                const item = {
+                    id: window.AppCore.uid(), createdAt: window.AppCore.nowISO(), updatedAt: window.AppCore.nowISO(),
+                    lattesItem: true, typeKey: src.typeKey,
+                    categoryKey: src.categoryKey || LattesTypes.primaryCategory(src.typeKey),
+                    fields: src.fields,
+                    source: 'lattes', lattesRef: src.lattesRef,
+                    hasPdf: false, pdfName: null, evidencias: [],
+                };
+                await window.AppCore.persistItem(item);
+                registrar(item);
+                n++; feito++;
+                if (btn) btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-1"></i> Importando… (${feito}/${chosen.length})`;
             }
-            const sig = itemSignature(src.typeKey, src.fields || {});
-            const match = sig ? sigMap.get(sig) : null;
-            if (match) {
-                // Item já existe: NÃO duplica. Preserva os dados e as evidências
-                // do usuário; apenas "adota" como item do Lattes (grava o
-                // lattesRef original) para casar nas próximas importações.
-                let changed = false;
-                if (!match.lattesRef && src.lattesRef) { match.lattesRef = src.lattesRef; changed = true; }
-                if (changed) { match.updatedAt = window.AppCore.nowISO(); await window.AppCore.persistItem(match); atualizados++; }
-                else ignorados++;
-                registrar(match);
-                continue;
-            }
-            const item = {
-                id: window.AppCore.uid(), createdAt: window.AppCore.nowISO(), updatedAt: window.AppCore.nowISO(),
-                lattesItem: true, typeKey: src.typeKey,
-                categoryKey: src.categoryKey || LattesTypes.primaryCategory(src.typeKey),
-                fields: src.fields,
-                source: 'lattes', lattesRef: src.lattesRef,
-                hasPdf: false, pdfName: null, evidencias: [],
-            };
-            await window.AppCore.persistItem(item);
-            registrar(item);
-            n++;
+            const extras = [atualizados ? `${atualizados} atualizado(s)` : '', ignorados ? `${ignorados} já existente(s) ignorado(s)` : ''].filter(Boolean).join(', ');
+            toast(`${n} item(ns) importado(s)${extras ? ' — ' + extras : ''}.`, 'ok');
+            xmlConsistencyToast();
+            renderXmlResult(state.lattesParsed);
+            window.AppCore.renderItemList();
+        } finally {
+            if (btn && btn.isConnected) { btn.disabled = false; btn.innerHTML = original; }
         }
-        const extras = [atualizados ? `${atualizados} atualizado(s)` : '', ignorados ? `${ignorados} já existente(s) ignorado(s)` : ''].filter(Boolean).join(', ');
-        toast(`${n} item(ns) importado(s)${extras ? ' — ' + extras : ''}.`, 'ok');
-        xmlConsistencyToast();
-        renderXmlResult(state.lattesParsed);
-        window.AppCore.renderItemList();
     }
 
     /* =====================================================================
@@ -557,25 +576,35 @@ window.TabConfig = (function () {
     async function importOrcidSelected() {
         const chosen = $$('.orcidchk').filter((c) => c.checked).map((c) => parseInt(c.dataset.idx, 10));
         if (!chosen.length) { toast('Nenhum item selecionado.', 'aviso'); return; }
-        const sigMap = existingSignatureMap();
-        let n = 0, ignorados = 0;
-        for (const idx of chosen) {
-            const src = state.orcidParsed[idx];
-            const sig = itemSignature(src.typeKey, src.fields || {});
-            if (sig && sigMap.has(sig)) { ignorados++; continue; } // já existe (mesma assinatura) — não duplica
-            const item = {
-                id: window.AppCore.uid(), createdAt: window.AppCore.nowISO(), updatedAt: window.AppCore.nowISO(),
-                lattesItem: true, typeKey: src.typeKey, categoryKey: src.categoryKey,
-                fields: src.fields, source: 'orcid', lattesRef: null,
-                hasPdf: false, pdfName: null, evidencias: [],
-            };
-            await window.AppCore.persistItem(item);
-            if (sig) sigMap.set(sig, item);
-            n++;
+        // Feedback de progresso + botão desabilitado — ver comentário em
+        // importSelected() (importação do XML), mesmo padrão.
+        const btn = $('#btnOrcidImport');
+        const original = btn ? btn.innerHTML : '';
+        if (btn) btn.disabled = true;
+        try {
+            const sigMap = existingSignatureMap();
+            let n = 0, ignorados = 0, feito = 0;
+            for (const idx of chosen) {
+                const src = state.orcidParsed[idx];
+                const sig = itemSignature(src.typeKey, src.fields || {});
+                if (sig && sigMap.has(sig)) { ignorados++; feito++; if (btn) btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-1"></i> Importando… (${feito}/${chosen.length})`; continue; } // já existe (mesma assinatura) — não duplica
+                const item = {
+                    id: window.AppCore.uid(), createdAt: window.AppCore.nowISO(), updatedAt: window.AppCore.nowISO(),
+                    lattesItem: true, typeKey: src.typeKey, categoryKey: src.categoryKey,
+                    fields: src.fields, source: 'orcid', lattesRef: null,
+                    hasPdf: false, pdfName: null, evidencias: [],
+                };
+                await window.AppCore.persistItem(item);
+                if (sig) sigMap.set(sig, item);
+                n++; feito++;
+                if (btn) btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-1"></i> Importando… (${feito}/${chosen.length})`;
+            }
+            toast(`${n} item(ns) importado(s) do ORCID${ignorados ? ` — ${ignorados} já existente(s) ignorado(s)` : ''}.`, 'ok');
+            renderOrcidResult(state.orcidParsed);
+            window.AppCore.renderItemList();
+        } finally {
+            if (btn && btn.isConnected) { btn.disabled = false; btn.innerHTML = original; }
         }
-        toast(`${n} item(ns) importado(s) do ORCID${ignorados ? ` — ${ignorados} já existente(s) ignorado(s)` : ''}.`, 'ok');
-        renderOrcidResult(state.orcidParsed);
-        window.AppCore.renderItemList();
     }
 
     function wireOrcidImport() {
@@ -778,26 +807,36 @@ window.TabConfig = (function () {
     async function importBibSelected() {
         const chosen = $$('.bibchk').filter((c) => c.checked).map((c) => parseInt(c.dataset.idx, 10));
         if (!chosen.length) { toast('Nenhum item selecionado.', 'aviso'); return; }
-        const { items, formato } = state.bibParsed;
-        const sigMap = existingSignatureMap();
-        let n = 0, ignorados = 0;
-        for (const idx of chosen) {
-            const src = items[idx];
-            const sig = itemSignature(src.typeKey, src.fields || {});
-            if (sig && sigMap.has(sig)) { ignorados++; continue; } // já existe (mesma assinatura) — não duplica
-            const item = {
-                id: window.AppCore.uid(), createdAt: window.AppCore.nowISO(), updatedAt: window.AppCore.nowISO(),
-                lattesItem: true, typeKey: src.typeKey, categoryKey: src.categoryKey,
-                fields: src.fields, source: formato === 'ris' ? 'ris' : 'bibtex', lattesRef: null,
-                hasPdf: false, pdfName: null, evidencias: [],
-            };
-            await window.AppCore.persistItem(item);
-            if (sig) sigMap.set(sig, item);
-            n++;
+        // Feedback de progresso + botão desabilitado — ver comentário em
+        // importSelected() (importação do XML), mesmo padrão.
+        const btn = $('#btnBibImport');
+        const original = btn ? btn.innerHTML : '';
+        if (btn) btn.disabled = true;
+        try {
+            const { items, formato } = state.bibParsed;
+            const sigMap = existingSignatureMap();
+            let n = 0, ignorados = 0, feito = 0;
+            for (const idx of chosen) {
+                const src = items[idx];
+                const sig = itemSignature(src.typeKey, src.fields || {});
+                if (sig && sigMap.has(sig)) { ignorados++; feito++; if (btn) btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-1"></i> Importando… (${feito}/${chosen.length})`; continue; } // já existe (mesma assinatura) — não duplica
+                const item = {
+                    id: window.AppCore.uid(), createdAt: window.AppCore.nowISO(), updatedAt: window.AppCore.nowISO(),
+                    lattesItem: true, typeKey: src.typeKey, categoryKey: src.categoryKey,
+                    fields: src.fields, source: formato === 'ris' ? 'ris' : 'bibtex', lattesRef: null,
+                    hasPdf: false, pdfName: null, evidencias: [],
+                };
+                await window.AppCore.persistItem(item);
+                if (sig) sigMap.set(sig, item);
+                n++; feito++;
+                if (btn) btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-1"></i> Importando… (${feito}/${chosen.length})`;
+            }
+            toast(`${n} item(ns) importado(s)${ignorados ? ` — ${ignorados} já existente(s) ignorado(s)` : ''}.`, 'ok');
+            renderBibResult(state.bibParsed);
+            window.AppCore.renderItemList();
+        } finally {
+            if (btn && btn.isConnected) { btn.disabled = false; btn.innerHTML = original; }
         }
-        toast(`${n} item(ns) importado(s)${ignorados ? ` — ${ignorados} já existente(s) ignorado(s)` : ''}.`, 'ok');
-        renderBibResult(state.bibParsed);
-        window.AppCore.renderItemList();
     }
 
     // Sentido inverso de BIB_RIS_TYPE_MAP — só os tipos que também são

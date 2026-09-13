@@ -150,6 +150,23 @@ test('Autores são buscados via segunda chamada (registro completo da obra)', as
         'OUTRA_BIBLIOGRAFICA (catch-all) também tem autoresLista (auditoria vs. Lattes real) — deveria vir preenchida, não mais o campo "autores" simples');
 });
 
+test('Importar do ORCID: o botão não fica travado desabilitado/com o spinner depois de terminar', async ({ page, baseUrl }) => {
+    await mockOrcid(page);
+    await abrirConfigECOrcid(page, baseUrl);
+    await page.fill('#orcidInput', ORCID_ID);
+    await page.click('#btnOrcidBuscar');
+    await page.waitForTimeout(400);
+    await page.click('#btnOrcidImport');
+    // Volta a ficar habilitado (e sem o texto de progresso "Importando…") ao
+    // final — sem isto, um erro no finally deixaria o botão travado.
+    await page.waitForFunction(() => {
+        const btn = document.querySelector('#btnOrcidImport');
+        return !btn || (!btn.disabled && !btn.textContent.includes('Importando'));
+    }, { timeout: 5000 });
+    const texto = await page.$eval('#btnOrcidImport', (el) => el.textContent.trim());
+    assert(texto.includes('Importar selecionados'), `Botão deveria voltar ao texto original, obtido "${texto}"`);
+});
+
 test('Reimportar as mesmas obras do ORCID não duplica (dedup por assinatura)', async ({ page, baseUrl }) => {
     await mockOrcid(page);
     await abrirConfigECOrcid(page, baseUrl);

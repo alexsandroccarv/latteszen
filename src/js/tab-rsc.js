@@ -522,11 +522,18 @@ window.TabRsc = (function () {
     // RSC-PCCTAE", pronto pra juntar ao requerimento.
     async function exportarRsc(itens, sim, cfg) {
         if (!Storage.hasDirectory()) { toast('Configure um diretório em Configurações para exportar.', 'aviso'); return; }
+        // Feedback de progresso + botão desabilitado durante a exportação —
+        // pode envolver dezenas de anexos (cada um lido e regravado), sem
+        // nenhum sinal antes disto de que já estava em andamento.
+        const btn = $('#btnRscExportar');
+        const original = btn ? btn.innerHTML : '';
+        if (btn) btn.disabled = true;
         try {
             const folder = pastaExportacaoHoje();
             const nomeServidor = sanitizeArquivo(nomeServidorAtual()) || 'Servidor';
             const ordenados = itensOrdenadosParaExportacao(itens);
             const anexos = listarAnexosNumerados(ordenados);
+            if (btn) btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Gerando memorial e formulário…';
 
             const textoMemorial = (state.rscMemorialTexto && state.rscMemorialTexto.trim()) ? state.rscMemorialTexto : rscMemorial(itens, sim, cfg);
             const memorialBytes = window.LzDocx.buildDocx(memorialDocxBody(textoMemorial, ordenados, anexos, cfg));
@@ -537,6 +544,7 @@ window.TabRsc = (function () {
 
             let nAnexos = 0;
             for (const a of anexos) {
+                if (btn) btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-1"></i> Copiando anexos… (${nAnexos}/${anexos.length})`;
                 const f = await Storage.readAttachmentFile(a.ev.basename, LattesTypes.categoryFolder(a.it.categoryKey), a.ev.ext);
                 if (!f) continue;
                 await Storage.writeFile(nomeArquivoAnexo(a), f, `${folder}/Anexos`);
@@ -544,6 +552,7 @@ window.TabRsc = (function () {
             }
             toast(`Memorial e formulário exportados em "${folder}/"${nAnexos ? ` (+ ${nAnexos} anexo${nAnexos === 1 ? '' : 's'} numerado${nAnexos === 1 ? '' : 's'} em "Anexos/")` : ''}.`, 'ok');
         } catch (e) { toast('Falha ao exportar: ' + e.message, 'erro'); }
+        finally { if (btn) { btn.disabled = false; btn.innerHTML = original; } }
     }
 
     return { render };
