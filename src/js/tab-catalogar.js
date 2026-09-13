@@ -1059,11 +1059,11 @@ window.TabCatalogar = (function () {
     // Campos que ganham autocomplete (combobox): escolha da lista OU digitação
     // de um valor novo. Sugestões = lista curada (editável em Configurações) +
     // valores já usados no catálogo.
-    const AUTOCOMPLETE_KEYS = ['instituicao', 'financiador', 'entidade', 'orgao', 'editora', 'periodico', 'evento', 'evidenciaTag', 'cidade', 'autor'];
+    const AUTOCOMPLETE_KEYS = ['autor', 'cidade', 'editora', 'entidade', 'evento', 'financiador', 'instituicao', 'orgao', 'periodico', 'evidenciaTag'];
     const VOCAB_LABELS = {
-        instituicao: 'Instituições', financiador: 'Financiadores / Agências', entidade: 'Entidades',
-        orgao: 'Órgãos', editora: 'Editoras', periodico: 'Periódicos / Revistas', evento: 'Eventos',
-        evidenciaTag: 'Tags de evidências', cidade: 'Cidades', autor: 'Autores',
+        autor: 'Autores', cidade: 'Cidades', editora: 'Editoras', entidade: 'Entidades', evento: 'Eventos',
+        financiador: 'Financiadores / Agências', instituicao: 'Instituições', orgao: 'Órgãos',
+        periodico: 'Periódicos / Revistas', evidenciaTag: 'Tags de evidências',
     };
     // Tags sugeridas por padrão para categorizar evidências (documentos anexados).
     // Qualquer outro valor digitado pelo usuário também é aprendido (collectSuggestions).
@@ -1137,7 +1137,16 @@ window.TabCatalogar = (function () {
         window.AppCore.saveVocab();
 
         window.AppCore.renderItemList();
-        window.AppCore.renderConfig();
+        await window.AppCore.renderConfig();
+        // Mantém a seção "Listas de autocomplete" (e a lista editada) abertas
+        // após o re-render, em vez de recolher tudo e deixar o usuário
+        // parecendo ter "saído" da seção.
+        const outer = document.getElementById('detListasAutocomplete');
+        if (outer) {
+            outer.open = true;
+            const inner = outer.querySelector(`details[data-vockey="${key}"]`);
+            if (inner) { inner.open = true; inner.scrollIntoView({ block: 'nearest' }); }
+        }
         if (falhas) toast(`Renomeado em ${alvo.length} item(ns), mas ${falhas} JSON(s) não puderam ser regravados (verifique o diretório).`, 'aviso');
         else toast(`"${f}" → "${t}" aplicado a ${alvo.length} item(ns).`, 'ok');
     }

@@ -1250,7 +1250,7 @@ window.TabConfig = (function () {
                 ${pubWebSectionHtml()}
                 ${nuvemPalavrasSectionHtml()}
 
-                <details class="lg:col-span-2 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+                <details id="detListasAutocomplete" class="lg:col-span-2 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
                     <summary class="text-lg font-bold mb-2 flex items-center gap-2 cursor-pointer select-none">
                         <i aria-hidden="true" class="fa-solid fa-angle-right text-sm text-gray-400"></i>
                         <i class="fa-solid fa-list-check text-govbr-600 dark:text-unifesp-400"></i> Listas de autocomplete
@@ -1268,7 +1268,7 @@ window.TabConfig = (function () {
                     </p>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-2 items-start">
                         ${AUTOCOMPLETE_KEYS.map(k => `
-                            <details class="border border-gray-200 dark:border-gray-700 rounded">
+                            <details data-vockey="${k}" class="border border-gray-200 dark:border-gray-700 rounded">
                                 <summary class="cursor-pointer select-none px-3 py-2 text-sm font-medium flex items-center gap-2">
                                     ${esc(VOCAB_LABELS[k] || k)}
                                     <span class="text-xs font-normal text-gray-500">(${collectSuggestions(k).length})</span>

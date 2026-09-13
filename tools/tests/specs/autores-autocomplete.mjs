@@ -71,4 +71,23 @@ test('Autores: "Renomear em todos os itens" atualiza o nome no repeater (autores
     assertEqual(artigo.fields.autoresLista[0].nomeCompleto, 'Ana Costa Silva', 'O nome no repeater (autoresLista) deveria ter sido renomeado');
     const livro = catalogo.find((i) => i.typeKey === 'LIVRO_CAPITULO');
     assertEqual(livro.fields.autores, 'Ana Costa Silva; Outro Nome', 'O nome no campo legado "autores" deveria ter sido renomeado, mantendo o outro nome intacto');
+
+    // Após aplicar, a seção "Listas de autocomplete" (e a lista editada)
+    // devem continuar abertas — não deve "sair" da seção.
+    const secaoAberta = await page.$eval('#detListasAutocomplete', (el) => el.open);
+    assert(secaoAberta, 'A seção "Listas de autocomplete" deveria continuar aberta após aplicar o renomeio');
+    const listaAberta = await page.$eval('details[data-vockey="autor"]', (el) => el.open);
+    assert(listaAberta, 'A lista "Autores" deveria continuar aberta após aplicar o renomeio');
+});
+
+test('Listas de autocomplete: categorias aparecem em ordem alfabética', async ({ page, baseUrl }) => {
+    await seedCatalog(page, baseUrl, []);
+    await page.click('[data-tab="config"]');
+    await page.waitForTimeout(200);
+    await page.evaluate(() => document.querySelectorAll('details').forEach((d) => { d.open = true; }));
+
+    const rotulos = await page.$$eval('#detListasAutocomplete details[data-vockey] > summary', (els) =>
+        els.map((el) => el.textContent.trim().replace(/\s*\(\d+\)\s*$/, '')));
+    const esperado = [...rotulos].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+    assertEqual(rotulos, esperado, 'As categorias de "Listas de autocomplete" deveriam estar em ordem alfabética');
 });
