@@ -69,6 +69,7 @@ import './specs/redes-academicas-plataforma.mjs';
 import './specs/atuacao-profissional.mjs';
 import './specs/imprensa-campos.mjs';
 import './specs/concursos-campos.mjs';
+import './specs/autores-autocomplete.mjs';
 
 console.log('Rodando suíte de testes de regressão (Playwright)...\n');
 await runAll();

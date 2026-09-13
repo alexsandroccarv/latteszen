@@ -670,7 +670,7 @@ window.TabCatalogar = (function () {
                 </p>
 
                 <div class="space-y-1">
-                    <label class="block text-xs font-semibold" for="notasGerais">Anotações gerais</label>
+                    <label class="block text-xs font-semibold" for="notasGerais">Anotações livres</label>
                     <textarea id="notasGerais" name="notasGerais" rows="3" maxlength="4000" placeholder="Escreva aqui suas conquistas, aprendizados ou impacto da atividade. Este é um campo livre e não será exportado para o Lattes ou publicado." class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900">${esc(item && item.notasGerais || '')}</textarea>
                 </div>
 
@@ -1059,11 +1059,11 @@ window.TabCatalogar = (function () {
     // Campos que ganham autocomplete (combobox): escolha da lista OU digitação
     // de um valor novo. Sugestões = lista curada (editável em Configurações) +
     // valores já usados no catálogo.
-    const AUTOCOMPLETE_KEYS = ['instituicao', 'financiador', 'entidade', 'orgao', 'editora', 'periodico', 'evento', 'evidenciaTag', 'cidade'];
+    const AUTOCOMPLETE_KEYS = ['instituicao', 'financiador', 'entidade', 'orgao', 'editora', 'periodico', 'evento', 'evidenciaTag', 'cidade', 'autor'];
     const VOCAB_LABELS = {
         instituicao: 'Instituições', financiador: 'Financiadores / Agências', entidade: 'Entidades',
         orgao: 'Órgãos', editora: 'Editoras', periodico: 'Periódicos / Revistas', evento: 'Eventos',
-        evidenciaTag: 'Tags de evidências', cidade: 'Cidades',
+        evidenciaTag: 'Tags de evidências', cidade: 'Cidades', autor: 'Autores',
     };
     // Tags sugeridas por padrão para categorizar evidências (documentos anexados).
     // Qualquer outro valor digitado pelo usuário também é aprendido (collectSuggestions).
@@ -1072,10 +1072,19 @@ window.TabCatalogar = (function () {
         'Recibo', 'Relatório', 'Vídeo', 'Outros'];
     // evidenciaTag não é um campo de item.fields — vive em cada evidência
     // (item.evidencias[].tag) — por isso tem coleta/busca/renomeio à parte.
+    // "autor" também não é um campo plano — nomes vivem dentro do repeater
+    // autoresLista (fields[].nomeCompleto) e, em tipos mais antigos, no
+    // campo de texto livre "autores" (nomes separados por ponto e vírgula).
     function collectSuggestions(key) {
         const set = new Set(state.vocab[key] || []);
         if (key === 'evidenciaTag') {
             state.items.forEach(i => (i.evidencias || []).forEach(e => { if (e.tag && String(e.tag).trim()) set.add(String(e.tag).trim()); }));
+        } else if (key === 'autor') {
+            state.items.forEach(i => {
+                const f = i.fields || {};
+                if (Array.isArray(f.autoresLista)) f.autoresLista.forEach(a => { const n = a && String(a.nomeCompleto || '').trim(); if (n) set.add(n); });
+                if (f.autores) String(f.autores).split(';').forEach(n => { const t = n.trim(); if (t) set.add(t); });
+            });
         } else {
             state.items.forEach(i => { const v = i.fields && i.fields[key]; if (v && String(v).trim()) set.add(String(v).trim()); });
         }
@@ -1102,6 +1111,12 @@ window.TabCatalogar = (function () {
 
         if (key === 'evidenciaTag') {
             alvo.forEach(it => (it.evidencias || []).forEach(e => { if (String(e.tag == null ? '' : e.tag).trim() === f) e.tag = t; }));
+        } else if (key === 'autor') {
+            alvo.forEach(it => {
+                const fl = it.fields || {};
+                if (Array.isArray(fl.autoresLista)) fl.autoresLista.forEach(a => { if (a && String(a.nomeCompleto || '').trim() === f) a.nomeCompleto = t; });
+                if (fl.autores) fl.autores = String(fl.autores).split(';').map(n => (n.trim() === f ? t : n.trim())).filter(Boolean).join('; ');
+            });
         } else {
             alvo.forEach(it => { it.fields[key] = t; });
         }
@@ -1153,7 +1168,8 @@ window.TabCatalogar = (function () {
         if (c.type === 'select') return `<select ${tag} class="${base}"><option value="">${esc(c.label)}</option>${(c.options || []).map(o => `<option value="${esc(o)}">${esc(o)}</option>`).join('')}</select>`;
         if (c.type === 'datebr') return `<input type="text" ${tag} inputmode="numeric" maxlength="10" placeholder="${esc(c.label)}" data-datebr class="${base}" style="width:7rem">`;
         const t = c.type === 'number' ? 'number' : 'text';
-        return `<input type="${t}" ${tag} placeholder="${esc(c.label)}" class="${base}" style="min-width:9rem">`;
+        const listAttr = c.datalist ? `list="${c.datalist}"` : '';
+        return `<input type="${t}" ${tag} ${listAttr} placeholder="${esc(c.label)}" class="${base}" style="min-width:9rem">`;
     }
 
     function fieldHtml(f, val, compact) {
@@ -1887,7 +1903,7 @@ window.TabCatalogar = (function () {
         item.categoryKey = categoryKey;
         item.fields = fields;
         item.updatedAt = window.AppCore.nowISO();
-        // Anotações gerais: campo livre, fora de `fields` — não entra na
+        // Anotações livres: campo livre, fora de `fields` — não entra na
         // exportação Lattes (XML) nem na página pública (Publicar na Web).
         item.notasGerais = (form.elements['notasGerais'] ? form.elements['notasGerais'].value.trim() : '');
 

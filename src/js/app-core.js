@@ -127,6 +127,11 @@ window.AppCore = (function () {
         const v = String(value == null ? '' : value).trim();
         if (!v) return [];
         if (key === 'evidenciaTag') return state.items.filter(i => (i.evidencias || []).some(e => String(e.tag == null ? '' : e.tag).trim() === v));
+        if (key === 'autor') return state.items.filter(i => {
+            const f = i.fields || {};
+            if (Array.isArray(f.autoresLista) && f.autoresLista.some(a => String((a && a.nomeCompleto) || '').trim() === v)) return true;
+            return !!(f.autores && String(f.autores).split(';').some(n => n.trim() === v));
+        });
         return state.items.filter(i => i.fields && String(i.fields[key] == null ? '' : i.fields[key]).trim() === v);
     }
 

@@ -53,6 +53,15 @@ window.TabConformidade = (function () {
         const def = LattesTypes.get(item.typeKey);
         return !(def && def.noEvidence);
     }
+    // Estado de evidência de um item — mesmo critério dos ícones do cartão
+    // (evidenceIconsHtml): verde com pelo menos uma evidência pública, âmbar
+    // com evidência mas nenhuma pública, vermelho sem nenhuma evidência.
+    // Usado na barra "Conformidade documental (evidência)".
+    function evidenceState(item) {
+        const evid = Array.isArray(item.evidencias) ? item.evidencias : [];
+        if (!evid.length) return 'red';
+        return evid.some(e => e.publica) ? 'green' : 'amber';
+    }
     const VIEW_PREDICATE = {
         todos:          () => true,
         comprovados:    i => i.lattesItem && needsEvidence(i) && i.hasPdf,
@@ -119,10 +128,17 @@ window.TabConformidade = (function () {
         const panel = $('#tab-conformidade');
         recalcularDuplicatas(); // os cartões/chips do topo usam count() logo abaixo — precisa estar pronto antes
         const count = k => state.items.filter(VIEW_PREDICATE[k]).length;
-        const comprovados = count('comprovados');
-        // Denominador da conformidade documental: só itens que EXIGEM evidência
-        const total = state.items.filter(i => i.lattesItem && needsEvidence(i)).length;
-        const pct = total ? Math.round(comprovados / total * 100) : 0;
+        // Denominador da conformidade documental: só itens que EXIGEM evidência.
+        // 3 estados (mesmo critério de evidenceIconsHtml): verde (evidência
+        // pública) / amarelo (evidência, mas nenhuma pública) / vermelho (sem
+        // evidência) — mesmo padrão visual da barra de Descrição, abaixo.
+        const itensComEvidencia = state.items.filter(i => i.lattesItem && needsEvidence(i));
+        const total = itensComEvidencia.length;
+        const evG = itensComEvidencia.filter(i => evidenceState(i) === 'green').length;
+        const evA = itensComEvidencia.filter(i => evidenceState(i) === 'amber').length;
+        const evR = itensComEvidencia.filter(i => evidenceState(i) === 'red').length;
+        const wEv = n => total ? Math.round(n / total * 100) : 0;
+        const pct = wEv(evG);
         // Descrição: verde (completo) / amarelo (falta opcional) / vermelho (falta obrigatório)
         const totalDesc = state.items.length;
         const descG = state.items.filter(i => descState(i) === 'green').length;
@@ -151,10 +167,13 @@ window.TabConformidade = (function () {
                 <h3 class="font-bold text-sm flex items-center gap-2 mb-3"><i aria-hidden="true" class="fa-solid fa-chart-simple text-gray-500"></i> Conformidade</h3>
                 <div class="grid sm:grid-cols-2 gap-x-6 gap-y-3">
                     <div>
-                        <div class="flex justify-between text-sm mb-1"><span class="font-semibold"><i class="fa-solid fa-file-pdf text-gray-400 mr-1"></i>Conformidade documental (evidência)</span><span>${pct}% (${comprovados}/${total})</span></div>
-                        <div class="w-full h-3 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                            <div class="h-full ${pct === 100 ? 'bg-green-500' : 'bg-red-500'}" style="width:${pct}%"></div>
+                        <div class="flex justify-between text-sm mb-1"><span class="font-semibold"><i class="fa-solid fa-file-pdf text-gray-400 mr-1"></i>Conformidade documental (evidência)</span><span>${pct}% (${evG}/${total})</span></div>
+                        <div class="w-full h-3 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden flex" title="Verde: com evidência · Amarelo: evidência não pública · Vermelho: sem evidência">
+                            <div class="h-full bg-green-500" style="width:${wEv(evG)}%"></div>
+                            <div class="h-full bg-amber-500" style="width:${wEv(evA)}%"></div>
+                            <div class="h-full bg-red-500" style="width:${wEv(evR)}%"></div>
                         </div>
+                        <p class="text-xs text-gray-500 mt-0.5">${evG} com evidência · ${evA} evidência não pública · ${evR} sem evidência</p>
                     </div>
                     <div>
                         <div class="flex justify-between text-sm mb-1"><span class="font-semibold"><i class="fa-solid fa-align-left text-gray-400 mr-1"></i>Descrição completa (campos)</span><span>${pctDesc}% (${descG}/${totalDesc})</span></div>

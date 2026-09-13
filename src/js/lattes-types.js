@@ -224,7 +224,7 @@ const alConcursoFields = () => [
 // Autores como lista (Nome completo/Nome como citado) — mesmo padrão dos
 // demais tipos de Produção bibliográfica (issue de auditoria vs. Lattes real).
 const PROD_AUTORES_LISTA = { key: 'autoresLista', label: 'Autores', type: 'repeater', addLabel: 'Adicionar autor', columns: [
-    { key: 'nomeCompleto', label: 'Nome completo', type: 'text', required: true },
+    { key: 'nomeCompleto', label: 'Nome completo', type: 'text', required: true, datalist: 'dl-autor' },
     { key: 'nomeCitacao', label: 'Nome como citado', type: 'text' },
 ] };
 // Palavras-chave/Área/Setores/Outras informações — mesmo bloco final usado
@@ -530,10 +530,7 @@ const TYPES = {
         { key: 'url', label: 'Home page do trabalho (URL)', type: 'url' },
         { key: 'relevante', label: 'É um dos 10 trabalhos mais relevantes de sua produção?', type: 'checkbox' },
         { key: 'divulgacaoCT', label: 'É uma produção para educação e popularização de C&T?', type: 'checkbox' },
-        { key: 'autoresLista', label: 'Autores', type: 'repeater', addLabel: 'Adicionar autor', columns: [
-            { key: 'nomeCompleto', label: 'Nome completo', type: 'text', required: true },
-            { key: 'nomeCitacao', label: 'Nome como citado', type: 'text' },
-        ] },
+        PROD_AUTORES_LISTA,
         { key: 'periodico', label: 'Periódico / Revista', type: 'text', required: true }, { key: 'issn', label: 'ISSN', type: 'text' },
         { key: 'volume', label: 'Volume', type: 'text' }, { key: 'fasciculo', label: 'Fascículo / Número', type: 'text' },
         { key: 'serie', label: 'Série', type: 'text' },
@@ -551,10 +548,7 @@ const TYPES = {
         { key: 'divulgacaoCT', label: 'É uma produção para educação e popularização de C&T?', type: 'checkbox' },
         { key: 'periodico', label: 'Título do periódico/revista em que o artigo será publicado', type: 'text', required: true },
         { key: 'issn', label: 'ISSN', type: 'text' },
-        { key: 'autoresLista', label: 'Autores', type: 'repeater', addLabel: 'Adicionar autor', columns: [
-            { key: 'nomeCompleto', label: 'Nome completo', type: 'text', required: true },
-            { key: 'nomeCitacao', label: 'Nome como citado', type: 'text' },
-        ] },
+        PROD_AUTORES_LISTA,
         { key: 'palavrasChave', label: 'Palavras-chave', type: 'textarea', placeholder: 'Separe por ponto e vírgula (;)', help: 'Até 6 palavras-chave (limite da Plataforma Lattes).' },
         { key: 'areaConhecimento', label: 'Área do conhecimento (CNPq/CAPES)', type: 'areatree', help: 'Selecione do mais geral ao mais específico: Grande área > Área > Subárea > Especialidade.' },
         { key: 'setores', label: 'Setores de atividade', type: 'cnaeSetores', help: 'Até 3 setores (lista CNAE).' },
@@ -588,10 +582,7 @@ const TYPES = {
         { key: 'serie', label: 'Série', type: 'text' },
         { key: 'cidade', label: 'Cidade da editora', type: 'text' },
         { key: 'editora', label: 'Nome da editora', type: 'text' },
-        { key: 'autoresLista', label: 'Autores', type: 'repeater', addLabel: 'Adicionar autor', columns: [
-            { key: 'nomeCompleto', label: 'Nome completo', type: 'text', required: true },
-            { key: 'nomeCitacao', label: 'Nome como citado', type: 'text' },
-        ] },
+        PROD_AUTORES_LISTA,
         { key: 'palavrasChave', label: 'Palavras-chave', type: 'textarea', placeholder: 'Separe por ponto e vírgula (;)', help: 'Até 6 palavras-chave (limite da Plataforma Lattes).' },
         { key: 'areaConhecimento', label: 'Área do conhecimento (CNPq/CAPES)', type: 'areatree', help: 'Selecione do mais geral ao mais específico: Grande área > Área > Subárea > Especialidade.' },
         { key: 'setores', label: 'Setores de atividade', type: 'cnaeSetores', help: 'Até 3 setores (lista CNAE).' },
@@ -615,10 +606,7 @@ const TYPES = {
         { key: 'isbn', label: 'ISBN', type: 'text' },
         { key: 'cidade', label: 'Cidade da editora', type: 'text' },
         { key: 'editora', label: 'Nome da editora', type: 'text' },
-        { key: 'autoresLista', label: 'Autores', type: 'repeater', addLabel: 'Adicionar autor', columns: [
-            { key: 'nomeCompleto', label: 'Nome completo', type: 'text', required: true },
-            { key: 'nomeCitacao', label: 'Nome como citado', type: 'text' },
-        ] },
+        PROD_AUTORES_LISTA,
         { key: 'palavrasChave', label: 'Palavras-chave', type: 'textarea', placeholder: 'Separe por ponto e vírgula (;)', help: 'Até 6 palavras-chave (limite da Plataforma Lattes).' },
         { key: 'areaConhecimento', label: 'Área do conhecimento (CNPq/CAPES)', type: 'areatree', help: 'Selecione do mais geral ao mais específico: Grande área > Área > Subárea > Especialidade.' },
         { key: 'setores', label: 'Setores de atividade', type: 'cnaeSetores', help: 'Até 3 setores (lista CNAE).' },
@@ -639,10 +627,7 @@ const TYPES = {
         { key: 'paginaInicial', label: 'Página inicial', type: 'text' },
         { key: 'paginaFinal', label: 'Página final', type: 'text' },
         { key: 'cidade', label: 'Local de publicação', type: 'text' },
-        { key: 'autoresLista', label: 'Autores', type: 'repeater', addLabel: 'Adicionar autor', columns: [
-            { key: 'nomeCompleto', label: 'Nome completo', type: 'text', required: true },
-            { key: 'nomeCitacao', label: 'Nome como citado', type: 'text' },
-        ] },
+        PROD_AUTORES_LISTA,
         { key: 'palavrasChave', label: 'Palavras-chave', type: 'textarea', placeholder: 'Separe por ponto e vírgula (;)', help: 'Até 6 palavras-chave (limite da Plataforma Lattes).' },
         { key: 'areaConhecimento', label: 'Área do conhecimento (CNPq/CAPES)', type: 'areatree', help: 'Selecione do mais geral ao mais específico: Grande área > Área > Subárea > Especialidade.' },
         { key: 'setores', label: 'Setores de atividade', type: 'cnaeSetores', help: 'Até 3 setores (lista CNAE).' },
@@ -669,10 +654,7 @@ const TYPES = {
         { key: 'paginaFinal', label: 'Página final', type: 'text' },
         { key: 'isbn', label: 'ISBN/ISSN', type: 'text', validate: 'isbnIssn', placeholder: 'ISBN-10, ISBN-13 ou ISSN' },
         { key: 'editora', label: 'Nome da editora', type: 'text' },
-        { key: 'autoresLista', label: 'Autores', type: 'repeater', addLabel: 'Adicionar autor', columns: [
-            { key: 'nomeCompleto', label: 'Nome completo', type: 'text', required: true },
-            { key: 'nomeCitacao', label: 'Nome como citado', type: 'text' },
-        ] },
+        PROD_AUTORES_LISTA,
         { key: 'palavrasChave', label: 'Palavras-chave', type: 'textarea', placeholder: 'Separe por ponto e vírgula (;)', help: 'Até 6 palavras-chave (limite da Plataforma Lattes).' },
         { key: 'areaConhecimento', label: 'Área do conhecimento (CNPq/CAPES)', type: 'areatree', help: 'Selecione do mais geral ao mais específico: Grande área > Área > Subárea > Especialidade.' },
         { key: 'setores', label: 'Setores de atividade', type: 'cnaeSetores', help: 'Até 3 setores (lista CNAE).' },
@@ -695,10 +677,7 @@ const TYPES = {
         { key: 'instituicao', label: 'Instituição promotora', type: 'text' },
         { key: 'local', label: 'Local', type: 'text' },
         F_CIDADE,
-        { key: 'autoresLista', label: 'Autores', type: 'repeater', addLabel: 'Adicionar autor', columns: [
-            { key: 'nomeCompleto', label: 'Nome completo', type: 'text', required: true },
-            { key: 'nomeCitacao', label: 'Nome como citado', type: 'text' },
-        ] },
+        PROD_AUTORES_LISTA,
         { key: 'palavrasChave', label: 'Palavras-chave', type: 'textarea', placeholder: 'Separe por ponto e vírgula (;)', help: 'Até 6 palavras-chave (limite da Plataforma Lattes).' },
         { key: 'areaConhecimento', label: 'Área do conhecimento (CNPq/CAPES)', type: 'areatree', help: 'Selecione do mais geral ao mais específico: Grande área > Área > Subárea > Especialidade.' },
         { key: 'setores', label: 'Setores de atividade', type: 'cnaeSetores', help: 'Até 3 setores (lista CNAE).' },

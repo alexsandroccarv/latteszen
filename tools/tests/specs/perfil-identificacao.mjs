@@ -286,3 +286,16 @@ test('Outras informações relevantes: o campo Descrição não é obrigatório'
     assert(!!salvo, 'O item de Outras informações deveria ter sido salvo mesmo com Descrição em branco');
     assertEqual(salvo.fields.descricao, '', 'Descrição salva deveria ser uma string vazia');
 });
+
+test('Catalogar: campo "Anotações gerais" foi renomeado para "Anotações livres"', async ({ page, baseUrl }) => {
+    await seedCatalog(page, baseUrl, []);
+    await page.click('[data-tab="catalogar"]');
+    await page.waitForTimeout(150);
+    await page.selectOption('#selCategoria', 'DADOS_GERAIS');
+    await page.waitForTimeout(150);
+    await page.selectOption('#selTipo', 'IDENTIFICACAO');
+    await page.waitForTimeout(150);
+
+    const rotulo = await page.$eval('label[for="notasGerais"]', (el) => el.textContent.trim());
+    assertEqual(rotulo, 'Anotações livres', 'O rótulo deveria ser "Anotações livres", não mais "Anotações gerais"');
+});
