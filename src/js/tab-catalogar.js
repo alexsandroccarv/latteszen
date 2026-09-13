@@ -1312,7 +1312,13 @@ window.TabCatalogar = (function () {
                 input = `<input type="${t}" name="${f.key}" value="${esc(val)}" ${req} ${listAttr} ${vAttr} ${extra} placeholder="${esc(ph)}" class="${base}">`;
             }
         }
-        return `<div data-field="${f.key}" class="${compact ? 'w-24 shrink-0' : ''}">
+        // Campos agrupados na mesma linha (`row`) usam largura compacta fixa
+        // (w-24) — boa pra Ano/CEP/UF, mas corta o texto de selects com
+        // opções longas (ex.: "Processo Seletivo Simplificado (PSS)"). Um
+        // select em linha divide o espaço da linha (flex-1) em vez de ficar
+        // travado em 96px.
+        const compactWidth = compact ? (f.type === 'select' ? 'flex-1 min-w-[11rem]' : 'w-24 shrink-0') : '';
+        return `<div data-field="${f.key}" class="${compactWidth}">
             <label class="block text-xs font-semibold mb-1">${esc(f.label)}${reqMark}</label>
             ${input}
             ${f.help ? `<p class="text-xs text-gray-500 mt-0.5">${esc(f.help)}</p>` : ''}
