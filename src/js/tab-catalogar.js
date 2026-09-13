@@ -587,6 +587,27 @@ window.TabCatalogar = (function () {
         };
     }
 
+    // Handlers nomeados e estáveis para os listeners presos no próprio
+    // <form> (#itemForm persiste entre chamadas de buildForm() — só o
+    // conteúdo interno é recriado a cada abertura de item; ver "const form =
+    // $('#itemForm')" logo abaixo). addEventListener já ignora um 2º
+    // addEventListener com a MESMA referência de função — é assim que o
+    // listener de "submit" nunca duplicou. Uma função inline (fresh closure
+    // a cada chamada de buildForm()) não tem essa proteção e ACUMULAVA aqui:
+    // depois de N edições numa mesma sessão, um único Ctrl+V ou uma única
+    // tecla digitada disparava o handler N vezes (evidência colada N vezes
+    // repetida). `drop` é buscado a cada evento (não capturado no closure),
+    // já que o elemento #evidenceBlock em si é recriado a cada buildForm().
+    function onFormPaste(e) {
+        const drop = $('#evidenceBlock');
+        if (!drop || drop.style.display === 'none') return;
+        const items = e.clipboardData && e.clipboardData.items; if (!items) return;
+        const files = [];
+        for (const it of items) { if (it.kind === 'file') { const f = it.getAsFile(); if (f) files.push(f); } }
+        if (files.length) { e.preventDefault(); addEvidenceFiles(files); }
+    }
+    function onFormInputDirty() { state.formDirty = true; window.AppCore.saveDraftDebounced(); }
+
     function buildForm(item, opts) {
         opts = opts || {};
         const form = $('#itemForm');
@@ -1001,13 +1022,7 @@ window.TabCatalogar = (function () {
         ['dragleave', 'drop'].forEach(ev => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.remove('ring-2', 'ring-govbr-400'); }));
         drop.addEventListener('drop', (e) => { if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length) addEvidenceFiles(e.dataTransfer.files); });
         // Anexo por colar (Ctrl+V) uma imagem/arquivo
-        form.addEventListener('paste', (e) => {
-            if (drop.style.display === 'none') return;
-            const items = e.clipboardData && e.clipboardData.items; if (!items) return;
-            const files = [];
-            for (const it of items) { if (it.kind === 'file') { const f = it.getAsFile(); if (f) files.push(f); } }
-            if (files.length) { e.preventDefault(); addEvidenceFiles(files); }
-        });
+        form.addEventListener('paste', onFormPaste);
 
         // Bandeja de entrada (Caixa de Entrada) — botão com badge: clique anexa o próximo
         $('#btnEvInbox').addEventListener('click', useNextInbox);
@@ -1027,7 +1042,7 @@ window.TabCatalogar = (function () {
         $('#evUrlInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); addUrlEvidence(); } });
 
         // Marca "não salvo" a cada digitação e atualiza o rascunho automático
-        form.addEventListener('input', () => { state.formDirty = true; window.AppCore.saveDraftDebounced(); });
+        form.addEventListener('input', onFormInputDirty);
 
         // Submit / Salvar e novo / Cancelar
         form.addEventListener('submit', onSubmitForm);

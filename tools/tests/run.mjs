@@ -77,6 +77,7 @@ import './specs/endereco-residencial-profissional.mjs';
 import './specs/autocomplete-off-campos.mjs';
 import './specs/areatree-cnae-acessibilidade.mjs';
 import './specs/salvar-reentrancia.mjs';
+import './specs/colar-evidencia-sem-duplicar.mjs';
 
 console.log('Rodando suíte de testes de regressão (Playwright)...\n');
 await runAll();
