@@ -169,6 +169,18 @@ export async function runAll() {
         // teste (TEST_TIMEOUT_MS) logo abaixo.
         page.setDefaultTimeout(60000);
         page.setDefaultNavigationTimeout(60000);
+        // Campos de texto do Catalogar ficam `readonly` até o 1º foco real
+        // (contorna o autofill de "Nome"/"Endereço" do Chrome/afins, que
+        // ignora autocomplete="off" por design — ver tab-catalogar.js,
+        // wireReadonlyUntilFocus). page.fill() exige o elemento "editable" e
+        // recusa agir enquanto `readonly` não caiu; um clique de verdade
+        // primeiro dispara o foco que remove o atributo — sem precisar tocar
+        // em cada chamada de fill() da suíte.
+        const originalFill = page.fill.bind(page);
+        page.fill = async (selector, value, opts) => {
+            try { await page.click(selector, { timeout: 5000 }); } catch (_) { /* elemento sem esse comportamento, ou já focável */ }
+            return originalFill(selector, value, opts);
+        };
         const pageErrors = [];
         page.on('pageerror', (e) => pageErrors.push(e.message));
         page.on('dialog', (d) => d.accept());
