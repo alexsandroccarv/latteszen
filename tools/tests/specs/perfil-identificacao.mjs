@@ -262,6 +262,8 @@ test('Documentos pessoais: "Tipo de documento" inclui a opção Passaporte', asy
 
     const opcoes = await page.$eval('#dynFields select[name="tipoDoc"]', (sel) => Array.from(sel.options).map((o) => o.value));
     assert(opcoes.includes('Passaporte'), 'A lista de Tipo de documento deveria incluir "Passaporte"');
+    assert(opcoes.includes('Carteira de Identidade Nacional (CIN)'), 'A lista de Tipo de documento deveria incluir "Carteira de Identidade Nacional (CIN)"');
+    assert(opcoes.includes('Documento de Identidade (RG)'), 'A lista de Tipo de documento deveria incluir "Documento de Identidade (RG)"');
 });
 
 test('Outras informações relevantes: o campo Descrição não é obrigatório', async ({ page, baseUrl }) => {
