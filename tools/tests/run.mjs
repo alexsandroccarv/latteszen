@@ -71,6 +71,7 @@ import './specs/imprensa-campos.mjs';
 import './specs/concursos-campos.mjs';
 import './specs/autores-autocomplete.mjs';
 import './specs/categorias-12-15-alem-lattes.mjs';
+import './specs/config-auto-save.mjs';
 
 console.log('Rodando suíte de testes de regressão (Playwright)...\n');
 await runAll();

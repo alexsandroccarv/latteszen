@@ -626,7 +626,7 @@ window.TabConfig = (function () {
     }
     function jsonExportItemHtml() {
         return dadosItemHtml('fa-solid fa-file-code', 'lattesZen (JSON)',
-            'Exporte todo o catálogo (metadados) e as configurações do sistema (prefixo do identificador, listas de autocomplete, RSC-PCCTAE) num único arquivo JSON — é o que permite restaurar tudo num navegador novo. Com um diretório configurado, o backup é salvo automaticamente na subpasta "Cópia de segurança".', `
+            'Exporte todo o catálogo (metadados) e as configurações do sistema (prefixo do identificador, listas de autocomplete, RSC-PCCTAE) num único arquivo JSON — útil pra levar tudo de uma vez a outro computador, ou pra quem ainda não configurou um diretório. Com um diretório configurado, itens e configurações já se auto-salvam lá a cada mudança (basta reescanear o diretório pra recuperar tudo), então este export é um extra, não uma necessidade. Com diretório, o arquivo também é salvo automaticamente na subpasta "Cópia de segurança".', `
                 <button id="btnExport" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-download mr-1"></i> Exportar catálogo</button>`);
     }
 
@@ -1014,11 +1014,17 @@ window.TabConfig = (function () {
     function statusChecklistHtml(dirName, storageMode) {
         const sinceBackup = (Storage.loadSettings() || {}).sinceBackup || 0;
         const dirDetail = dirName ? `${storageMode === 'gdrive' ? 'Google Drive' : 'Pasta local'} — ${dirName}` : 'Não configurado ainda';
-        const backupDetail = sinceBackup ? `${sinceBackup} alteraç${sinceBackup === 1 ? 'ão' : 'ões'} desde o último backup` : 'Em dia — sem alterações desde o último backup';
+        // Com diretório configurado, itens e configurações já se auto-salvam
+        // lá (um JSON por item + configuracoes.json) — o contador de
+        // "alterações desde o último backup" só é relevante pra quem ainda
+        // não tem diretório (só localStorage, sem esse mecanismo).
+        const backupDetail = dirName
+            ? 'Em dia — itens e configurações sincronizam automaticamente com o diretório'
+            : (sinceBackup ? `${sinceBackup} alteraç${sinceBackup === 1 ? 'ão' : 'ões'} desde o último backup` : 'Em dia — sem alterações desde o último backup');
         return `
         <section aria-label="Resumo da configuração" class="grid grid-cols-1 sm:grid-cols-2 gap-2">
             ${statusItemHtml(dirName ? 'ok' : 'warn', 'fa-folder-open', 'Diretório', dirDetail, 'dirSection')}
-            ${statusItemHtml(sinceBackup >= 10 ? 'warn' : 'ok', 'fa-clock-rotate-left', 'Backup', backupDetail, 'backupSection')}
+            ${statusItemHtml((!dirName && sinceBackup >= 10) ? 'warn' : 'ok', 'fa-clock-rotate-left', 'Backup', backupDetail, 'backupSection')}
         </section>`;
     }
     // Rola suavemente até a âncora (grupo do índice ou item do checklist) e
@@ -1341,10 +1347,11 @@ window.TabConfig = (function () {
                 // "Sincronizar do diretório" pra aparecer.
                 let msg = 'Diretório configurado (estrutura de pastas criada).';
                 try {
-                    const { encontrados } = await window.AppCore.syncFromDirectory();
+                    const { encontrados, configRestaurada } = await window.AppCore.syncFromDirectory();
                     msg += encontrados
                         ? ` ${encontrados} item(ns) já cadastrado(s) na pasta foram sincronizados automaticamente.`
                         : ' Pasta vazia — pronta para uso.';
+                    if (configRestaurada) msg += ' Configurações do sistema também restauradas.';
                 } catch (_) {}
                 toast(msg, 'ok');
                 window.AppCore.renderItemList();
@@ -1354,9 +1361,10 @@ window.TabConfig = (function () {
         const btnSync = $('#btnSync');
         if (btnSync) btnSync.addEventListener('click', async () => {
             try {
-                const { encontrados } = await window.AppCore.syncFromDirectory();
-                toast(`${encontrados} arquivo(s) .json lido(s) do diretório.`, 'ok');
+                const { encontrados, configRestaurada } = await window.AppCore.syncFromDirectory();
+                toast(`${encontrados} arquivo(s) .json lido(s) do diretório.${configRestaurada ? ' Configurações do sistema atualizadas.' : ''}`, 'ok');
                 window.AppCore.renderItemList();
+                render();
             } catch (e) { toast(e.message, 'erro'); }
         });
         $('#btnForget').addEventListener('click', async () => {
@@ -1397,10 +1405,11 @@ window.TabConfig = (function () {
                 state.dirHealth = null; // acabou de conectar; revalidada no próximo render
                 let msg = existente ? `Conectado à pasta "${resultado.pasta}" no Google Drive.` : 'Conectado ao Google Drive (estrutura de pastas criada).';
                 try {
-                    const { encontrados } = await window.AppCore.syncFromDirectory();
+                    const { encontrados, configRestaurada } = await window.AppCore.syncFromDirectory();
                     msg += encontrados
                         ? ` ${encontrados} item(ns) já cadastrado(s) na pasta foram sincronizados automaticamente.`
                         : ' Pasta vazia — pronta para uso.';
+                    if (configRestaurada) msg += ' Configurações do sistema também restauradas.';
                 } catch (_) {}
                 toast(msg, 'ok');
                 window.AppCore.renderItemList();

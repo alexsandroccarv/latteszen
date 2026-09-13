@@ -196,13 +196,53 @@
         found.forEach(f => byId.set(f.id, f));
         state.items = Array.from(byId.values());
         saveCatalog();
-        return { encontrados: found.length };
+
+        // Restaura as configurações do sistema (prefixo do identificador,
+        // listas de autocomplete, RSC/Súmula etc.) a partir de
+        // configuracoes.json, se o diretório tiver uma — mesmo mecanismo já
+        // usado pra restaurar um backup completo importado, só que automático
+        // a cada sincronização. É o que permite recuperar tudo (itens +
+        // configurações) num navegador/perfil novo só reescaneando o
+        // diretório, sem depender de lembrar de exportar/importar um backup.
+        let configRestaurada = false;
+        try {
+            const dirSettings = await Storage.readSettingsFromDirectory();
+            if (dirSettings && typeof dirSettings === 'object') {
+                const merged = Object.assign(Storage.loadSettings(), dirSettings);
+                Storage.saveSettings(merged);
+                state.vocab = merged.vocab || {};
+                state.idPrefix = sanitizePrefix(merged.idPrefix || 'lz');
+                state.lastCat = merged.lastCat || '';
+                state.lastType = merged.lastType || '';
+                state.rscEnabled = !!merged.rscEnabled;
+                state.rscCfg = merged.rsc || {};
+                state.rscMemorialTexto = merged.rscMemorialTexto || '';
+                applyRscVisibility();
+                state.sumulaEnabled = !!merged.sumulaEnabled;
+                state.sumulaCfg = merged.sumula || {};
+                state.sumulaTexto = merged.sumulaTexto || '';
+                applySumulaVisibility();
+                state.pubWebEnabled = merged.pubWebEnabled !== false;
+                applyPublicarVisibility();
+                state.nuvemExclusao = Array.isArray(merged.nuvemExclusao) ? merged.nuvemExclusao : [];
+                state.nuvemCompostas = Array.isArray(merged.nuvemCompostas) ? merged.nuvemCompostas : [];
+                configRestaurada = true;
+            }
+        } catch (_) {}
+
+        return { encontrados: found.length, configRestaurada };
     }
     // Publicado em AppCore para tab-config.js — mesmo motivo de uid/nowISO.
     window.AppCore.syncFromDirectory = syncFromDirectory;
 
     // Lembrete de backup: conta gravações desde o último export e avisa a cada 20.
     function bumpBackupReminder() {
+        // Com um diretório configurado, cada item já grava seu próprio JSON e
+        // as configurações do sistema também se auto-salvam (configuracoes.json
+        // — ver Storage.saveSettings/scheduleSettingsWrite): reescanear o
+        // diretório já traz tudo de volta, então o lembrete de backup manual
+        // só faz sentido pra quem ainda não tem diretório (só localStorage).
+        if (Storage.hasDirectory()) return;
         const s = Storage.loadSettings();
         s.sinceBackup = (s.sinceBackup || 0) + 1;
         Storage.saveSettings(s);

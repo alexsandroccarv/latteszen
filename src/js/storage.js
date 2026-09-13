@@ -11,6 +11,14 @@ window.Storage = (function () {
     const IDB_NAME = 'lattesZen';
     const IDB_STORE = 'handles';
     const IDB_KEY = 'dirHandle';
+    // Nome (base, sem extensão) do arquivo na raiz do diretório onde as
+    // configurações do sistema (prefixo do identificador, listas de
+    // autocomplete, RSC/Súmula, etc.) são salvas automaticamente — mesmo
+    // princípio já usado pra cada item do catálogo (um JSON por item):
+    // escanear o diretório basta pra ter tudo de volta, sem depender de
+    // lembrar de fazer um backup manual.
+    const SETTINGS_FILE_BASE = 'configuracoes';
+    const SETTINGS_FILE = `${SETTINGS_FILE_BASE}.json`;
 
     /* ---------------- IndexedDB (guarda o handle do diretório) ------------- */
     function idb() {
@@ -759,7 +767,7 @@ window.Storage = (function () {
                     if (child.isDir) {
                         if (child.name === INBOX_FOLDER) continue; // não indexa a bandeja de entrada
                         await scanOne(child.id);
-                    } else if (child.name.toLowerCase().endsWith('.json') && child.name !== 'catalogo.json' && child.name.indexOf('latteszen-') !== 0) {
+                    } else if (child.name.toLowerCase().endsWith('.json') && child.name !== 'catalogo.json' && child.name !== SETTINGS_FILE && child.name.indexOf('latteszen-') !== 0) {
                         try {
                             const blob = await window.GDriveClient.getFileContent(child.id);
                             if (!blob) continue;
@@ -776,7 +784,7 @@ window.Storage = (function () {
         const items = [];
         async function scanOne(handle) {
             for await (const [name, h] of handle.entries()) {
-                if (h.kind === 'file' && name.toLowerCase().endsWith('.json') && name !== 'catalogo.json' && name.indexOf('latteszen-') !== 0) {
+                if (h.kind === 'file' && name.toLowerCase().endsWith('.json') && name !== 'catalogo.json' && name !== SETTINGS_FILE && name.indexOf('latteszen-') !== 0) {
                     try {
                         const file = await h.getFile();
                         const obj = JSON.parse(await file.text());
@@ -815,8 +823,43 @@ window.Storage = (function () {
         try { return JSON.parse(localStorage.getItem(K.settings)) || {}; }
         catch (_) { return {}; }
     }
+    // Agenda a gravação de configuracoes.json na raiz do diretório (debounced,
+    // pra não regravar a cada tecla digitada num campo de texto — mesmo
+    // padrão de debounce já usado ao salvar campos de texto longos). Falha
+    // silenciosamente (ex.: sem diretório ainda, ou permissão perdida): a
+    // saúde do diretório já é sinalizada em outro lugar da UI.
+    let settingsWriteTimer = null;
+    function scheduleSettingsWrite() {
+        if (!hasDirectory()) return;
+        clearTimeout(settingsWriteTimer);
+        settingsWriteTimer = setTimeout(() => {
+            writeJson(SETTINGS_FILE_BASE, loadSettings()).catch(() => {});
+        }, 800);
+    }
     function saveSettings(s) {
         localStorage.setItem(K.settings, JSON.stringify(s));
+        scheduleSettingsWrite();
+    }
+    // Lê configuracoes.json da raiz do diretório, se existir (usado ao
+    // sincronizar/escanear: um navegador novo, ou índice local limpo, recupera
+    // as configurações do sistema do mesmo jeito que já recupera os itens).
+    async function readSettingsFromDirectory() {
+        if (mode === 'gdrive') {
+            if (!gdriveCfg) return null;
+            try {
+                const fileId = await window.GDriveClient.findFile(gdriveCfg.rootFolderId, SETTINGS_FILE);
+                if (!fileId) return null;
+                const blob = await window.GDriveClient.getFileContent(fileId);
+                if (!blob) return null;
+                return JSON.parse(await blob.text());
+            } catch (_) { return null; }
+        }
+        try {
+            const dir = await ensureDirReady();
+            const fh = await dir.getFileHandle(SETTINGS_FILE);
+            const file = await fh.getFile();
+            return JSON.parse(await file.text());
+        } catch (_) { return null; }
     }
 
     /* ------------- Tokens de publicação direta (GitHub/Netlify) ---------- */
@@ -846,7 +889,7 @@ window.Storage = (function () {
         // bandeja de entrada (inbox)
         ensureInbox, listInbox, readInboxFile, moveInboxToProcessed,
         // catálogo + lixeira + settings
-        loadCatalog, saveCatalog, loadTrash, saveTrash, loadSettings, saveSettings,
+        loadCatalog, saveCatalog, loadTrash, saveTrash, loadSettings, saveSettings, readSettingsFromDirectory,
         loadDeployToken, saveDeployToken,
     };
 })();
