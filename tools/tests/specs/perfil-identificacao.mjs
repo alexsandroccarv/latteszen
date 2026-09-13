@@ -251,7 +251,7 @@ test('Foto de perfil não tem mais o campo Descrição', async ({ page, baseUrl 
     assertEqual(await page.locator('#dynFields [name="titulo"]').count(), 0, 'O campo Descrição (titulo) não deveria mais existir em Foto de perfil');
 });
 
-test('Documentos pessoais: "Tipo de documento" inclui a opção Passaporte', async ({ page, baseUrl }) => {
+test('Documentos pessoais: "Tipo de documento" tem a lista pedida (CIN/RG/Identidade Funcional inclusos, Diploma/Comprovante de residência excluídos, ordem alfabética + Outro no fim)', async ({ page, baseUrl }) => {
     await seedCatalog(page, baseUrl, []);
     await page.click('[data-tab="catalogar"]');
     await page.waitForTimeout(150);
@@ -260,10 +260,11 @@ test('Documentos pessoais: "Tipo de documento" inclui a opção Passaporte', asy
     await page.selectOption('#selTipo', 'DOCUMENTO_PESSOAL');
     await page.waitForTimeout(150);
 
-    const opcoes = await page.$eval('#dynFields select[name="tipoDoc"]', (sel) => Array.from(sel.options).map((o) => o.value));
-    assert(opcoes.includes('Passaporte'), 'A lista de Tipo de documento deveria incluir "Passaporte"');
-    assert(opcoes.includes('Carteira de Identidade Nacional (CIN)'), 'A lista de Tipo de documento deveria incluir "Carteira de Identidade Nacional (CIN)"');
-    assert(opcoes.includes('Documento de Identidade (RG)'), 'A lista de Tipo de documento deveria incluir "Documento de Identidade (RG)"');
+    const opcoes = await page.$eval('#dynFields select[name="tipoDoc"]', (sel) => Array.from(sel.options).map((o) => o.value).filter(Boolean));
+    assertEqual(opcoes, [
+        'Carteira de Identidade Nacional (CIN)', 'Carteira profissional', 'Certidão de casamento', 'Certidão de nascimento', 'Certificado de reservista',
+        'CNH', 'Conselho de classe', 'Documento de Identidade (RG)', 'Identidade Funcional', 'Passaporte', 'PIS/PASEP', 'Título de eleitor', 'Outro',
+    ], 'A lista de Tipo de documento deveria ter exatamente essas opções, em ordem alfabética (com "Outro" no fim)');
 });
 
 test('Outras informações relevantes: o campo Descrição não é obrigatório', async ({ page, baseUrl }) => {

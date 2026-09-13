@@ -315,7 +315,9 @@ const TYPES = {
     // conteúdo do item, um campo de texto era supérfluo aqui.
     FOTO_PERFIL: { label: 'Foto de perfil', noExport: true, singleton: true, perfil: true, accept: 'image/jpeg,image/png', fields: [] },
     DOCUMENTO_PESSOAL: { label: 'Documentos pessoais', noExport: true, perfil: true, accept: 'application/pdf,image/jpeg,image/png', fields: [
-        { key: 'tipoDoc', label: 'Tipo de documento', type: 'select', required: true, options: ['Carteira de Identidade Nacional (CIN)', 'Documento de Identidade (RG)', 'Título de eleitor', 'Certidão de nascimento', 'Certidão de casamento', 'Conselho de classe', 'Diploma / Certificado', 'Carteira profissional', 'CNH', 'Passaporte', 'Comprovante de residência', 'Reservista', 'PIS/PASEP', 'Outro'] },
+        { key: 'tipoDoc', label: 'Tipo de documento', type: 'select', required: true, options: [
+            'Carteira de Identidade Nacional (CIN)', 'Carteira profissional', 'Certidão de casamento', 'Certidão de nascimento', 'Certificado de reservista',
+            'CNH', 'Conselho de classe', 'Documento de Identidade (RG)', 'Identidade Funcional', 'Passaporte', 'PIS/PASEP', 'Título de eleitor', 'Outro'] },
         { key: 'titulo', label: 'Descrição / Nº do documento', type: 'text', required: true },
         { key: 'orgao', label: 'Órgão emissor', type: 'text' },
         { key: 'data', label: 'Data de emissão / validade', type: 'datebr' },

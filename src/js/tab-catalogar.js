@@ -37,7 +37,7 @@ window.TabCatalogar = (function () {
         const panel = $('#tab-catalogar');
         panel.innerHTML = `
             <div class="grid lg:grid-cols-5 gap-6 items-start">
-                <form id="itemForm" novalidate class="contents"></form>
+                <form id="itemForm" novalidate autocomplete="off" class="contents"></form>
                 <section id="pdfSection" class="hidden lg:col-span-3 lg:sticky lg:top-4">
                     <div class="flex items-center justify-between mb-3">
                         <h2 class="text-lg font-bold flex items-center gap-2">
