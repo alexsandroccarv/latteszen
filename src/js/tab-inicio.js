@@ -32,7 +32,7 @@ window.TabInicio = (function () {
                     ${ensoSvg('w-32 h-32 md:w-44 md:h-44 shrink-0 text-govbr-600 dark:text-unifesp-400')}
                     <div class="text-center md:text-left">
                         <h2 class="text-2xl font-bold mb-1">lattesZen</h2>
-                        <p class="text-govbr-700 dark:text-unifesp-400 font-semibold mb-3">descomplicando a vida acadêmica.</p>
+                        <p class="text-govbr-700 dark:text-unifesp-400 font-semibold mb-3">descomplicando o currículo acadêmico.</p>
                         <p class="text-sm text-gray-600 dark:text-gray-400">
                             O lattesZen organiza seu currículo acadêmico — formação, produções, atuação, projetos, eventos e muito mais —
                             num só lugar, no seu computador, com as evidências (PDFs) já guardadas junto de cada item. A partir dessa base
