@@ -837,8 +837,17 @@ window.Storage = (function () {
         }, 800);
     }
     function saveSettings(s) {
-        localStorage.setItem(K.settings, JSON.stringify(s));
+        try { localStorage.setItem(K.settings, JSON.stringify(s)); }
+        catch (e) {
+            // Mesma proteção que AppCore.saveCatalog()/saveTrash() já têm
+            // contra estouro de cota do localStorage — sem isto, uma falha
+            // aqui (ex.: RSC/Súmula com texto grande) era engolida em
+            // silêncio, sem nenhum aviso ao usuário.
+            if (window.AppCore) window.AppCore.toast('Não foi possível salvar as configurações (armazenamento cheio).', 'erro');
+            return false;
+        }
         scheduleSettingsWrite();
+        return true;
     }
     // Lê configuracoes.json da raiz do diretório, se existir (usado ao
     // sincronizar/escanear: um navegador novo, ou índice local limpo, recupera
