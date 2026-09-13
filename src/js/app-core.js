@@ -236,6 +236,10 @@ window.AppCore = (function () {
     }
     // Feedback visual (borda vermelha + mensagem + aria-invalid)
     function setFieldError(el, msg) {
+        // Se o campo mora dentro de um <details> recolhido (ex.: Área do
+        // conhecimento/Setores de atividade), abre pra mostrar o erro — senão
+        // fica invisível até o usuário clicar por conta própria.
+        if (msg) { const det = el.closest('details'); if (det) det.open = true; }
         el.classList.toggle('border-red-500', !!msg);
         el.classList.toggle('ring-1', !!msg);
         el.classList.toggle('ring-red-500', !!msg);

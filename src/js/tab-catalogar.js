@@ -1248,24 +1248,37 @@ window.TabCatalogar = (function () {
                 </div>`).join('')}
             </div>`;
         } else if (f.type === 'areatree') {
-            // Cascata CNPq/CAPES: 4 selects dependentes (preenchidos por wireAreaTree)
+            // Cascata CNPq/CAPES: 4 selects dependentes (preenchidos por wireAreaTree).
+            // Recolhida por padrão num <details> (ocupa bastante espaço vertical
+            // e a maioria dos itens não precisa mexer nela) — o resumo já
+            // selecionado (ou um convite a clicar) aparece no <summary>, então
+            // dá pra ver o que já foi escolhido sem precisar expandir.
             const sel = (lvl, lbl) => `<select data-areatree="${lvl}" class="${base}"><option value="">${lbl}</option></select>`;
-            input = `<div data-areatree-group class="space-y-1.5">
-                ${sel('g', '— Grande área —')}
-                ${sel('a', '— Área —')}
-                ${sel('s', '— Subárea —')}
-                ${sel('e', '— Especialidade —')}
-            </div>`;
+            const resumo = val ? esc(val) : 'Nenhuma selecionada — clique para escolher';
+            input = `<details class="w-full">
+                <summary class="cursor-pointer select-none text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 truncate">${resumo}</summary>
+                <div data-areatree-group class="space-y-1.5 mt-1.5">
+                    ${sel('g', '— Grande área —')}
+                    ${sel('a', '— Área —')}
+                    ${sel('s', '— Subárea —')}
+                    ${sel('e', '— Especialidade —')}
+                </div>
+            </details>`;
         } else if (f.type === 'cnaeSetores') {
             // Até 3 setores (lista CNAE fixa) — schema Lattes tem 3 atributos
             // nomeados (SETOR-DE-ATIVIDADE-1..3), por isso 3 selects fixos.
+            // Mesmo tratamento de <details> recolhido do campo acima.
             const chosen = String(val || '').split(';').map(s => s.trim()).filter(Boolean);
             const opts = window.CNAE_SETORES || [];
             const sel = (i) => `<select data-setor="${i}" class="${base}">
                 <option value="">— Setor ${i} —</option>
                 ${opts.map(o => `<option value="${esc(o)}" ${chosen[i - 1] === o ? 'selected' : ''}>${esc(o)}</option>`).join('')}
             </select>`;
-            input = `<div class="space-y-1.5">${[1, 2, 3].map(sel).join('')}</div>`;
+            const resumo = chosen.length ? esc(chosen.join('; ')) : 'Nenhum selecionado — clique para escolher';
+            input = `<details class="w-full">
+                <summary class="cursor-pointer select-none text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 truncate">${resumo}</summary>
+                <div class="space-y-1.5 mt-1.5">${[1, 2, 3].map(sel).join('')}</div>
+            </details>`;
         } else if (f.type === 'repeater') {
             // Migra valor antigo em texto livre (ex.: campo que era textarea e
             // virou repeater) para o novo formato de lista, sem perder os
@@ -1342,7 +1355,8 @@ window.TabCatalogar = (function () {
         // opções longas (ex.: "Processo Seletivo Simplificado (PSS)"). Um
         // select em linha divide o espaço da linha (flex-1) em vez de ficar
         // travado em 96px.
-        const compactWidth = compact ? (f.type === 'select' ? 'flex-1 min-w-[11rem]' : 'w-24 shrink-0') : '';
+        const flexTypes = f.type === 'select' || f.type === 'areatree' || f.type === 'cnaeSetores';
+        const compactWidth = compact ? (flexTypes ? 'flex-1 min-w-[11rem]' : 'w-24 shrink-0') : '';
         return `<div data-field="${f.key}" class="${compactWidth}">
             <label class="block text-xs font-semibold mb-1">${esc(f.label)}${reqMark}</label>
             ${input}
@@ -1355,15 +1369,24 @@ window.TabCatalogar = (function () {
     // (`fieldHtml(f, val, true)`), lado a lado num flex-wrap. `def.fields`
     // continua uma lista plana — collectFields/validateItemFields/
     // wireConditional não precisam saber desse agrupamento visual.
+    // "Área do conhecimento" + "Setores de atividade" (areatree + cnaeSetores)
+    // são agrupados automaticamente pelo TIPO, sem precisar de `row` em cada
+    // uma das ~15 definições que os têm (o par sempre aparece consecutivo,
+    // nessa ordem, em todos os tipos) — os dois já são compactos (recolhidos
+    // num <details>), então dividir a linha some com bastante espaço vertical.
     function dynFieldsHtml(fields, vals) {
         const list = fields || [];
         let html = '', i = 0;
         while (i < list.length) {
             const f = list[i];
+            const areaSetoresPar = !f.row && f.type === 'areatree' && list[i + 1] && !list[i + 1].row && list[i + 1].type === 'cnaeSetores';
             if (f.row) {
                 const group = [f]; i++;
                 while (i < list.length && list[i].row === f.row) { group.push(list[i]); i++; }
                 html += `<div class="flex flex-wrap items-end gap-3">${group.map(sf => fieldHtml(sf, vals[sf.key], true)).join('')}</div>`;
+            } else if (areaSetoresPar) {
+                const group = [f, list[i + 1]]; i += 2;
+                html += `<div class="flex flex-wrap items-start gap-3">${group.map(sf => fieldHtml(sf, vals[sf.key], true)).join('')}</div>`;
             } else {
                 html += fieldHtml(f, vals[f.key]);
                 i++;
