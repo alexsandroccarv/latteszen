@@ -825,11 +825,14 @@ window.TabCatalogar = (function () {
             renderVisibilidadeBlock(itemAtual);           // Publicar (Lattes/Web/usar para RSC)
             renderRscBlock(itemAtual);                     // campos RSC (aparecem com "usar para RSC" marcado)
             // Endereço (e qualquer outro tipo "singleton por campo" no
-            // futuro): sem item explícito em edição, trocar o valor do
-            // campo-chave (Tipo: Residencial/Profissional) troca pro que já
-            // foi salvo daquele valor, ou limpa os demais campos/evidência
-            // se ainda não existir — os dois registros ficam persistentes.
-            if (def && LattesTypes.singletonScopeField(def.key) && !item) wireSingletonScope(def);
+            // futuro): trocar o valor do campo-chave (Tipo: Residencial/
+            // Profissional) troca pro que já foi salvo daquele valor, ou
+            // limpa os demais campos/evidência se ainda não existir — os dois
+            // registros ficam persistentes. Ligado mesmo com um item explícito
+            // em edição (`item` truthy) — é exatamente o caso mais comum:
+            // acabou de salvar o Residencial (a tela reabre nele) e quer
+            // trocar pra Profissional em seguida, sem sair da tela.
+            if (def && LattesTypes.singletonScopeField(def.key)) wireSingletonScope(def);
             const semEvidencia = !!(def && def.noEvidence);
             $('#evidenceBlock').style.display = semEvidencia ? 'none' : '';
             if (semEvidencia) { state.evEditing = []; renderEvList(); clearPdf(); }
@@ -872,6 +875,15 @@ window.TabCatalogar = (function () {
                 associateLabels($('#dynFields'));
                 wireDateBr($('#dynFields'));
                 wireSingletonScope(def);
+                // Retarget: passa a editar o registro que já existe pra esse
+                // valor (ou vira um item novo, se ainda não existir) — sem
+                // isto, `state.editingId` continuava apontando pro registro
+                // anterior (ex.: acabou de salvar o Residencial, a tela reabre
+                // nele) e salvar depois de trocar o Tipo corrompia esse
+                // registro em vez de criar/editar o outro.
+                state.editingId = match ? match.id : null;
+                const idInfo = $('#idInfo');
+                if (idInfo) idInfo.textContent = match ? `ID: ${match.id}` : `O ID será gerado ao salvar (prefixo “${state.idPrefix}”).`;
                 state.evEditing = match ? window.AppCore.evListFromItem(match) : [];
                 renderEvList();
                 if (state.evEditing.length) showPdfForItem(match); else clearPdf();

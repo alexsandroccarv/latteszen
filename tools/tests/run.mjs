@@ -73,6 +73,7 @@ import './specs/autores-autocomplete.mjs';
 import './specs/categorias-12-15-alem-lattes.mjs';
 import './specs/config-auto-save.mjs';
 import './specs/area-setores-recolhidos.mjs';
+import './specs/endereco-residencial-profissional.mjs';
 
 console.log('Rodando suíte de testes de regressão (Playwright)...\n');
 await runAll();
