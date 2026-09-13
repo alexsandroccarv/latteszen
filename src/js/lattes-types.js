@@ -1308,7 +1308,7 @@ const TYPES = {
     // Conexões (dentro de Dados gerais; somente link; sem comprovação; não-Lattes)
     CONEXAO_SOCIAL: { label: 'Redes sociais', noExport: true, noEvidence: true, naoLattes: true, fields: [
         { key: 'titulo', label: 'Rede / Plataforma', type: 'text', required: true, placeholder: 'ex.: Instagram, Facebook, X, YouTube, TikTok' },
-        { key: 'url', label: 'Link (URL)', type: 'text', required: true, placeholder: 'https://...' },
+        { key: 'url', label: 'Link (URL)', type: 'url', required: true, placeholder: 'https://...' },
         { key: 'usuario', label: 'Usuário / @', type: 'text' }] },
     // Sem "Identificador / ID": o identificador do usuário na plataforma já
     // faz parte do próprio Link (URL) — campo à parte seria redundante.
@@ -1319,10 +1319,10 @@ const TYPES = {
         // de campos desabilitados antes da validação) — deixando "Outra"
         // sem nome preenchido cai no rótulo genérico "Outra" (ver itemTitle).
         { key: 'outraNome', label: 'Nome da rede', type: 'text', placeholder: 'ex.: ResearchGate, Academia.edu, ORCID', disabledWhen: { field: 'titulo', notEquals: 'Outra' } },
-        { key: 'url', label: 'Link (URL)', type: 'text', required: true, placeholder: 'https://...' }] },
+        { key: 'url', label: 'Link (URL)', type: 'url', required: true, placeholder: 'https://...' }] },
     CONEXAO_PROFISSIONAL: { label: 'Redes profissionais', noExport: true, noEvidence: true, naoLattes: true, fields: [
         { key: 'titulo', label: 'Plataforma / Tipo', type: 'text', required: true, placeholder: 'ex.: LinkedIn, E-mail profissional, Site pessoal' },
-        { key: 'url', label: 'Link / URL (ou e-mail)', type: 'text', required: true, placeholder: 'https://...  ou  nome@dominio' },
+        { key: 'url', label: 'Link / URL (ou e-mail)', type: 'url', required: true, placeholder: 'https://...  ou  nome@dominio' },
         { key: 'usuario', label: 'Usuário / contato', type: 'text' }] },
 
     /* --- Grupos de Pesquisa (não-Lattes; só com o módulo RSC) --- */

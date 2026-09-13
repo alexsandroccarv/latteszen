@@ -438,7 +438,14 @@ window.TabConfig = (function () {
         const titulo = (summary.title && summary.title.title && summary.title.title.value) || '';
         const ano = (summary['publication-date'] && summary['publication-date'].year && summary['publication-date'].year.value) || '';
         const doi = orcidExternalId(summary, 'doi');
-        const url = (summary.url && summary.url.value) || orcidExternalId(summary, 'uri') || '';
+        // Sanitiza a URL vinda da API do ORCID (fonte externa, fora do nosso
+        // controle) antes de guardar — sem isso ela nunca passa por
+        // validateURL (a importação em lote salva os itens direto, sem abrir
+        // o formulário), então um esquema perigoso (ex.: javascript:) num
+        // registro comprometido iria parar intacto na página pública.
+        const urlBruta = (summary.url && summary.url.value) || orcidExternalId(summary, 'uri') || '';
+        const urlValidada = window.AppCore.validateURL(urlBruta);
+        const url = urlValidada.ok ? urlValidada.value : '';
         const journal = (summary['journal-title'] && summary['journal-title'].value) || '';
         const def = LattesTypes.getType(typeKey);
         const temCampo = (k) => def && def.fields.some((f) => f.key === k);

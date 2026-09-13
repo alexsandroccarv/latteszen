@@ -190,11 +190,18 @@ window.AppCore = (function () {
     // "esquema" de 1-2 letras (ex.: "C:\...") quase sempre é um caminho de
     // arquivo do Windows colado por engano, não uma URL de verdade — nesse
     // caso também assume https://, pra não aceitar isso como se fosse válido.
+    // Esquemas que nunca devem ser aceitos aqui: executam código ou embutem
+    // conteúdo arbitrário se caírem num href renderizado (página pública,
+    // exportações) — não têm nenhum uso legítimo como "link" do usuário.
+    const ESQUEMAS_PERIGOSOS = ['javascript:', 'data:', 'vbscript:'];
     function validateURL(v) {
         const s = String(v || '').trim();
         if (!s) return { ok: true, value: '' };
         const temEsquema = /^[a-z][a-z0-9+.-]{2,}:/i.test(s);
         const u = temEsquema ? s : 'https://' + s;
+        if (ESQUEMAS_PERIGOSOS.some(esq => u.toLowerCase().startsWith(esq))) {
+            return { ok: false, msg: 'URL inválida — esse tipo de link não é permitido.' };
+        }
         try { new URL(u); return { ok: true, value: u }; }
         catch (_) { return { ok: false, msg: 'URL inválida.' }; }
     }
