@@ -1953,6 +1953,24 @@ window.TabCatalogar = (function () {
 
     async function onSubmitForm(e) {
         e.preventDefault();
+        // Trava de reentrância: um duplo-clique ou duplo Enter no botão
+        // Salvar reentra aqui enquanto a 1ª chamada ainda está no meio de um
+        // await (ex.: gravando evidência) — sem isto, a 2ª chamada roda com
+        // state.evEditing já esvaziado pela 1ª, podia criar 2 itens ou
+        // perder evidência. Desabilita os botões de salvar durante o await
+        // como feedback visual — se o save recarregar o formulário (sucesso),
+        // isto vira um no-op inofensivo sobre os botões antigos, já fora do DOM.
+        if (onSubmitForm._busy) return;
+        onSubmitForm._busy = true;
+        const botoesSalvar = $$('button[type="submit"], #btnSalvarNovo, #btnSalvarProximo', e.target);
+        botoesSalvar.forEach(b => { b.disabled = true; });
+        try { await onSubmitFormCore(e); }
+        finally {
+            onSubmitForm._busy = false;
+            botoesSalvar.forEach(b => { b.disabled = false; });
+        }
+    }
+    async function onSubmitFormCore(e) {
         const form = e.target;
         // Lê e já reseta os flags dos botões alternativos ("Salvar e novo" /
         // "Salvar e próximo") aqui em cima — assim, se a validação abaixo

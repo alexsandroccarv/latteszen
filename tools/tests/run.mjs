@@ -76,6 +76,7 @@ import './specs/area-setores-recolhidos.mjs';
 import './specs/endereco-residencial-profissional.mjs';
 import './specs/autocomplete-off-campos.mjs';
 import './specs/areatree-cnae-acessibilidade.mjs';
+import './specs/salvar-reentrancia.mjs';
 
 console.log('Rodando suíte de testes de regressão (Playwright)...\n');
 await runAll();
