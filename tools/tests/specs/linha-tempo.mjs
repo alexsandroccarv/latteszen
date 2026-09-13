@@ -24,6 +24,12 @@
    ========================================================================== */
 import { test, assert, assertEqual, makeItem, seedCatalog } from '../harness.mjs';
 
+test('Régua de navegação mostra "Gráficos" (não mais "Linha do tempo") para a aba linhatempo', async ({ page, baseUrl }) => {
+    await seedCatalog(page, baseUrl, []);
+    const rotulo = await page.$eval('[data-tab="linhatempo"]', (el) => el.textContent.trim());
+    assertEqual(rotulo, 'Gráficos', 'O botão de navegação deveria mostrar "Gráficos"');
+});
+
 test('Catálogo vazio mostra aviso em vez da grade', async ({ page, baseUrl }) => {
     await seedCatalog(page, baseUrl, []);
     await page.click('[data-tab="linhatempo"]');

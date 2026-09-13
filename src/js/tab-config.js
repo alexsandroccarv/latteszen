@@ -929,7 +929,7 @@ window.TabConfig = (function () {
         return `
         <section class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
             <h2 class="text-lg font-bold mb-2 flex items-center gap-2"><i class="fa-solid fa-cloud text-govbr-600 dark:text-unifesp-400"></i> Nuvem de palavras</h2>
-            <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">Personalize a nuvem de palavras da aba <strong>Linha do tempo</strong>, montada a partir dos títulos, palavras-chave e área de conhecimento dos seus itens.</p>
+            <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">Personalize a nuvem de palavras da aba <strong>Gráficos</strong>, montada a partir dos títulos, palavras-chave e área de conhecimento dos seus itens.</p>
             <div class="mb-3">
                 <label class="block text-xs font-semibold mb-1" for="nuvemExclusaoInput">Palavras excluídas</label>
                 <textarea id="nuvemExclusaoInput" rows="2" placeholder="Separe por ponto e vírgula (;), vírgula (,) ou uma por linha" class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900">${esc((state.nuvemExclusao || []).join('; '))}</textarea>
