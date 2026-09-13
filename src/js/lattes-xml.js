@@ -740,11 +740,13 @@ window.LattesXML = (function () {
                 const log = e['LOGRADOURO-COMPLEMENTO'] || e['NOME-INSTITUICAO-EMPRESA'] || '';
                 if (log) add('ENDERECO', { titulo: log, tipo: 'Profissional', cidade: e['CIDADE'] || '', uf: e['UF'] || '', cep: e['CEP'] || '' }, endProf);
             }
-            // Residencial (2º registro persistente — ver singletonBy em lattes-types.js)
+            // Residencial (2º registro persistente — ver singletonBy em
+            // lattes-types.js). Atributo do logradouro sem "-COMPLEMENTO"
+            // aqui — diferente de ENDERECO-PROFISSIONAL (ver XSD).
             const endResid = firstTag(dgEl, 'ENDERECO-RESIDENCIAL');
             if (endResid) {
                 const e = attrs(endResid);
-                const log = e['LOGRADOURO-COMPLEMENTO'] || '';
+                const log = e['LOGRADOURO'] || '';
                 if (log) add('ENDERECO', { titulo: log, tipo: 'Residencial', cidade: e['CIDADE'] || '', uf: e['UF'] || '', cep: e['CEP'] || '' }, endResid);
             }
         }

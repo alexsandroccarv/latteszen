@@ -267,12 +267,16 @@ window.LattesXMLExport = (function () {
         const outras = (byType('OUTRAS_INFO')[0] || {}).fields;
         if (outras && clean(outras.descricao)) children.push(el('OUTRAS-INFORMACOES-RELEVANTES', { 'OUTRAS-INFORMACOES-RELEVANTES': outras.descricao }));
         // ENDERECO — profissional e residencial (2 registros persistentes,
-        // 1 por valor de Tipo, no catálogo — ver singletonBy em lattes-types.js)
+        // 1 por valor de Tipo, no catálogo — ver singletonBy em lattes-types.js).
+        // O atributo do logradouro tem nome diferente em cada sub-elemento do
+        // schema: ENDERECO-PROFISSIONAL usa LOGRADOURO-COMPLEMENTO,
+        // ENDERECO-RESIDENCIAL usa só LOGRADOURO (sem "-COMPLEMENTO").
         const endTags = byType('ENDERECO').map(it => {
             const f = it.fields || {};
             if (!(clean(f.titulo) || clean(f.cidade))) return null;
-            return el(f.tipo === 'Residencial' ? 'ENDERECO-RESIDENCIAL' : 'ENDERECO-PROFISSIONAL', {
-                'LOGRADOURO-COMPLEMENTO': f.titulo, 'CIDADE': f.cidade, 'UF': f.uf, 'CEP': f.cep,
+            const residencial = f.tipo === 'Residencial';
+            return el(residencial ? 'ENDERECO-RESIDENCIAL' : 'ENDERECO-PROFISSIONAL', {
+                [residencial ? 'LOGRADOURO' : 'LOGRADOURO-COMPLEMENTO']: f.titulo, 'CIDADE': f.cidade, 'UF': f.uf, 'CEP': f.cep,
             });
         }).filter(Boolean);
         if (endTags.length) children.push(el('ENDERECO', {}, endTags));
