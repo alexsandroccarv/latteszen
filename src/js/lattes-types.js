@@ -193,9 +193,16 @@ const alFiliacaoFields = () => [
     { ...F_AINI, row: 'periodo' }, F_AFIM,
 ];
 // Campos padrão de uma menção na imprensa (título, veículo, data) — usados
-// pelos 3 tipos de Imprensa abaixo.
-const alImprensaFields = () => [
+// pelos 3 tipos de Imprensa abaixo. "Tipo de participação" tem opções
+// diferentes por tipo (por isso `opcoesParticipacao` é parâmetro — cada um
+// dos 3 tipos já É o "Tipo de item" que restringe as opções relevantes,
+// sem precisar de lógica condicional em tempo de execução). "Formato da
+// aparição" é a mesma lista pros 3.
+const FORMATO_APARICAO_OPCOES = ['Texto (Aspas/Declaração)', 'Vídeo ao vivo', 'Vídeo gravado', 'Áudio (Podcast/Rádio)', 'Foto', 'Nota Oficial'];
+const alImprensaFields = (opcoesParticipacao) => [
     alNome('Título da matéria'),
+    { key: 'tipoParticipacao', label: 'Tipo de participação', type: 'select', options: opcoesParticipacao, row: 'impParticipacaoFormato' },
+    { key: 'formatoAparicao', label: 'Formato da aparição', type: 'select', options: FORMATO_APARICAO_OPCOES, row: 'impParticipacaoFormato' },
     { key: 'entidade', label: 'Nome do veículo', type: 'text', required: true, row: 'impVeicData' },
     { key: 'ano', label: 'Data de veiculação', type: 'datebr', required: true, row: 'impVeicData' },
 ];
@@ -1240,11 +1247,18 @@ const TYPES = {
         alNome('Título da matéria'),
         { key: 'entidade', label: 'Nome do veículo', type: 'text', required: true },
         { key: 'ano', label: 'Data de veiculação', type: 'datebr', required: true }] },
-    AL_IMPRENSA_CITACAO: { label: 'Citação na Imprensa', fields: alImprensaFields() },
-    AL_IMPRENSA_ENTREVISTADO: { label: 'Entrevistado', fields: alImprensaFields() },
-    AL_IMPRENSA_OUTRA: { label: 'Outras', fields: alImprensaFields() },
+    // Rótulos alinhados ao "Tipo de item" pedido pelo usuário — cada um já
+    // restringe sozinho as opções de "Tipo de participação" relevantes.
+    AL_IMPRENSA_CITACAO: { label: 'Presença indireta/menção', fields: alImprensaFields(
+        ['Citado nominalmente', 'Citado via documento/estudo', 'Fotografado/Imagem', 'Objeto da pauta', 'Alvo de crítica/Contraditório']) },
+    AL_IMPRENSA_ENTREVISTADO: { label: 'Participação direta', fields: alImprensaFields(
+        ['Entrevistado principal', 'Comentarista/Especialista', 'Articulista', 'Debatedor/Painelista', 'Porta-voz em coletiva']) },
+    AL_IMPRENSA_OUTRA: { label: 'Bastidores e assessoria de RP', fields: alImprensaFields(
+        ['Fonte em off/Background', 'Nota oficial', 'Sugestão de pauta/Pitching', 'Demanda não atendida']) },
     AL_CONCURSO: { label: 'Concursos e processos seletivos', fields: [
         alNome('Nome do concurso / processo seletivo'),
+        { key: 'tipoItem', label: 'Tipo de item', type: 'select', options: ['Concurso Público', 'Processo Seletivo Simplificado (PSS)', 'Processo Seletivo Acadêmico',
+            'Concurso cultural, artístico ou literário', 'Chamada Pública e Edital de Projetos', 'Prêmios, Concurso de Ideias e Hackathon', 'Seleção Interna'] },
         { key: 'local', label: 'Local', type: 'text' },
         { key: 'banca', label: 'Banca', type: 'text' },
         { key: 'cargo', label: 'Cargo', type: 'text' },
