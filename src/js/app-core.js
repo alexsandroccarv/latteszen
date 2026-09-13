@@ -253,10 +253,23 @@ window.AppCore = (function () {
         el.setAttribute('aria-invalid', msg ? 'true' : 'false');
         let p = el.parentElement.querySelector('.validate-msg');
         if (msg) {
-            if (!p) { p = document.createElement('p'); p.className = 'validate-msg text-xs text-red-600 dark:text-red-400 mt-0.5'; el.parentElement.appendChild(p); }
+            if (!p) {
+                p = document.createElement('p');
+                p.className = 'validate-msg text-xs text-red-600 dark:text-red-400 mt-0.5';
+                el.parentElement.appendChild(p);
+            }
+            if (!p.id) p.id = `err-${++setFieldError._n}`;
             p.textContent = msg;
-        } else if (p) p.remove();
+            // Sem isto, leitores de tela anunciam "inválido" sem dizer por
+            // quê — o <p> com a mensagem já existe visualmente, só faltava
+            // associá-lo ao campo.
+            el.setAttribute('aria-describedby', p.id);
+        } else if (p) {
+            el.removeAttribute('aria-describedby');
+            p.remove();
+        }
     }
+    setFieldError._n = 0;
     // Associa <label> aos controles (for/id) e marca aria-required — a11y.
     // Campos agrupados na mesma linha (dynFieldsHtml/`f.row`) ficam num
     // wrapper flex sem <label> próprio — desce um nível para achar cada
