@@ -1187,10 +1187,10 @@ window.TabCatalogar = (function () {
         const tag = `data-repeater-input="${fkey}:${c.key}"`;
         if (c.type === 'checkbox') return `<label class="flex items-center gap-1 text-xs whitespace-nowrap"><input type="checkbox" ${tag}> ${esc(c.label)}</label>`;
         if (c.type === 'select') return `<select ${tag} class="${base}"><option value="">${esc(c.label)}</option>${(c.options || []).map(o => `<option value="${esc(o)}">${esc(o)}</option>`).join('')}</select>`;
-        if (c.type === 'datebr') return `<input type="text" ${tag} inputmode="numeric" maxlength="10" placeholder="${esc(c.label)}" data-datebr class="${base}" style="width:7rem">`;
+        if (c.type === 'datebr') return `<input type="text" ${tag} autocomplete="off" inputmode="numeric" maxlength="10" placeholder="${esc(c.label)}" data-datebr class="${base}" style="width:7rem">`;
         const t = c.type === 'number' ? 'number' : 'text';
         const listAttr = c.datalist ? `list="${c.datalist}"` : '';
-        return `<input type="${t}" ${tag} ${listAttr} placeholder="${esc(c.label)}" class="${base}" style="min-width:9rem">`;
+        return `<input type="${t}" ${tag} autocomplete="off" ${listAttr} placeholder="${esc(c.label)}" class="${base}" style="min-width:9rem">`;
     }
 
     function fieldHtml(f, val, compact) {
@@ -1206,7 +1206,7 @@ window.TabCatalogar = (function () {
         let input;
         if (f.type === 'textarea') {
             const max = f.maxlength || 4000;
-            input = `<textarea name="${f.key}" ${req} rows="2" maxlength="${max}" data-maxcount="${max}" placeholder="${esc(f.placeholder || '')}" class="${base}">${esc(val)}</textarea>
+            input = `<textarea name="${f.key}" ${req} autocomplete="off" rows="2" maxlength="${max}" data-maxcount="${max}" placeholder="${esc(f.placeholder || '')}" class="${base}">${esc(val)}</textarea>
                 <p class="text-[11px] text-gray-400 dark:text-gray-500 text-right mt-0.5" data-counter-for="${f.key}"></p>`;
         } else if (f.type === 'select') {
             // `noBlankOption`: pula o "—" inicial — usado em selects de poucas
@@ -1228,7 +1228,7 @@ window.TabCatalogar = (function () {
             // Largura fixa (não w-full): o valor nunca passa de 10 caracteres
             // (dd/mm/aaaa), então o campo não deve esticar para preencher a linha.
             const dateBase = base.replace('w-full', 'w-32');
-            input = `<input type="text" name="${f.key}" value="${esc(dv)}" ${req} inputmode="numeric" maxlength="10" placeholder="${dph}" data-datebr class="${dateBase}">`;
+            input = `<input type="text" name="${f.key}" value="${esc(dv)}" ${req} autocomplete="off" inputmode="numeric" maxlength="10" placeholder="${dph}" data-datebr class="${dateBase}">`;
         } else if (f.type === 'checkboxes') {
             const selected = String(val || '').split(/[;,]/).map(s => s.trim()).filter(Boolean);
             input = `<div class="flex flex-wrap gap-x-4 gap-y-1 pt-1">
@@ -1321,7 +1321,7 @@ window.TabCatalogar = (function () {
             // URL + "N/A" (Não se aplica): conta como preenchido; vai em branco no XML
             const na = String(val) === NA_VALUE;
             input = `<div class="flex items-center gap-2">
-                <input type="url" name="${f.key}" value="${na ? '' : esc(val)}" ${req} data-validate="url" maxlength="300" placeholder="https://…" class="${base} flex-1 ${na ? 'opacity-50' : ''}" ${na ? 'disabled' : ''}>
+                <input type="url" name="${f.key}" value="${na ? '' : esc(val)}" ${req} autocomplete="off" data-validate="url" maxlength="300" placeholder="https://…" class="${base} flex-1 ${na ? 'opacity-50' : ''}" ${na ? 'disabled' : ''}>
                 <label class="flex items-center gap-1 text-xs shrink-0 whitespace-nowrap" title="Marque quando não há URL. Conta como preenchido; na exportação XML vai em branco.">
                     <input type="checkbox" data-na="${f.key}" ${na ? 'checked' : ''}> N/A
                 </label>
@@ -1331,7 +1331,7 @@ window.TabCatalogar = (function () {
             // autopreenche título/ano/periódico/autores etc. do tipo atual
             // (issue #5). Feedback de carregamento/erro fica no <p> abaixo.
             input = `<div class="flex items-center gap-2">
-                <input type="text" name="doi" value="${esc(val)}" data-validate="doi" maxlength="500" placeholder="${esc(f.placeholder || '10.xxxx/xxxxx')}" class="${base} flex-1">
+                <input type="text" name="doi" value="${esc(val)}" autocomplete="off" data-validate="doi" maxlength="500" placeholder="${esc(f.placeholder || '10.xxxx/xxxxx')}" class="${base} flex-1">
                 <button type="button" data-crossref-btn class="px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 text-xs whitespace-nowrap shrink-0"><i aria-hidden="true" class="fa-solid fa-magnifying-glass mr-1"></i>Buscar metadados</button>
             </div>
             <p class="text-xs text-gray-500 mt-0.5" data-crossref-status></p>`;
@@ -1353,13 +1353,13 @@ window.TabCatalogar = (function () {
                 // conta como preenchido; vai em branco numa futura exportação.
                 const na = String(val) === NA_VALUE;
                 input = `<div class="flex items-center gap-2">
-                    <input type="${t}" name="${f.key}" value="${na ? '' : esc(val)}" ${req} ${listAttr} ${vAttr} ${extra} placeholder="${esc(ph)}" class="${base} flex-1 ${na ? 'opacity-50' : ''}" ${na ? 'disabled' : ''}>
+                    <input type="${t}" name="${f.key}" value="${na ? '' : esc(val)}" ${req} autocomplete="off" ${listAttr} ${vAttr} ${extra} placeholder="${esc(ph)}" class="${base} flex-1 ${na ? 'opacity-50' : ''}" ${na ? 'disabled' : ''}>
                     <label class="flex items-center gap-1 text-xs shrink-0 whitespace-nowrap" title="Marque quando não se aplica. Conta como preenchido.">
                         <input type="checkbox" data-na="${f.key}" ${na ? 'checked' : ''}> N/A
                     </label>
                 </div>`;
             } else {
-                input = `<input type="${t}" name="${f.key}" value="${esc(val)}" ${req} ${listAttr} ${vAttr} ${extra} placeholder="${esc(ph)}" class="${base}">`;
+                input = `<input type="${t}" name="${f.key}" value="${esc(val)}" ${req} autocomplete="off" ${listAttr} ${vAttr} ${extra} placeholder="${esc(ph)}" class="${base}">`;
             }
         }
         // Campos agrupados na mesma linha (`row`) usam largura compacta fixa
