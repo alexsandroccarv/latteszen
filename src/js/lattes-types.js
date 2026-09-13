@@ -207,6 +207,20 @@ const alImprensaFields = (opcoesParticipacao) => [
     { key: 'ano', label: 'Data de veiculação', type: 'datebr', required: true, row: 'impVeicData' },
 ];
 
+// Campos padrão de um concurso/processo seletivo — usados pelos 7 tipos
+// de "18. Concursos e processos seletivos" (um por "Tipo de item"; a
+// classificação já está no próprio Tipo do item, sem campo duplicado
+// dentro do formulário).
+const alConcursoFields = () => [
+    alNome('Nome do concurso / processo seletivo'),
+    { key: 'local', label: 'Local', type: 'text' },
+    { key: 'banca', label: 'Banca', type: 'text' },
+    { key: 'cargo', label: 'Cargo', type: 'text' },
+    { ...F_AINI, row: 'periodo' }, F_AFIM,
+    { key: 'colocacao', label: 'Colocação', type: 'text' },
+    { key: 'situacao', label: 'Situação final', type: 'select', options: ['Em andamento', 'Aprovado', 'Reprovado'] },
+];
+
 // Autores como lista (Nome completo/Nome como citado) — mesmo padrão dos
 // demais tipos de Produção bibliográfica (issue de auditoria vs. Lattes real).
 const PROD_AUTORES_LISTA = { key: 'autoresLista', label: 'Autores', type: 'repeater', addLabel: 'Adicionar autor', columns: [
@@ -1255,16 +1269,18 @@ const TYPES = {
         ['Entrevistado principal', 'Comentarista/Especialista', 'Articulista', 'Debatedor/Painelista', 'Porta-voz em coletiva']) },
     AL_IMPRENSA_OUTRA: { label: 'Bastidores e assessoria de RP', fields: alImprensaFields(
         ['Fonte em off/Background', 'Nota oficial', 'Sugestão de pauta/Pitching', 'Demanda não atendida']) },
-    AL_CONCURSO: { label: 'Concursos e processos seletivos', fields: [
-        alNome('Nome do concurso / processo seletivo'),
-        { key: 'tipoItem', label: 'Tipo de item', type: 'select', options: ['Concurso Público', 'Processo Seletivo Simplificado (PSS)', 'Processo Seletivo Acadêmico',
-            'Concurso cultural, artístico ou literário', 'Chamada Pública e Edital de Projetos', 'Prêmios, Concurso de Ideias e Hackathon', 'Seleção Interna'] },
-        { key: 'local', label: 'Local', type: 'text' },
-        { key: 'banca', label: 'Banca', type: 'text' },
-        { key: 'cargo', label: 'Cargo', type: 'text' },
-        { ...F_AINI, row: 'periodo' }, F_AFIM,
-        { key: 'colocacao', label: 'Colocação', type: 'text' },
-        { key: 'situacao', label: 'Situação final', type: 'select', options: ['Em andamento', 'Aprovado', 'Reprovado'] }] },
+    // Mantido apenas para compatibilidade com itens já catalogados (chave
+    // legada); novos itens usam os 7 tipos específicos abaixo — um por
+    // "Tipo de item" pedido pelo usuário (sem campo de classificação
+    // duplicado dentro do formulário).
+    AL_CONCURSO: { label: 'Concursos e processos seletivos', fields: alConcursoFields() },
+    AL_CONCURSO_PUBLICO: { label: 'Concurso Público', fields: alConcursoFields() },
+    AL_CONCURSO_PSS: { label: 'Processo Seletivo Simplificado (PSS)', fields: alConcursoFields() },
+    AL_CONCURSO_ACADEMICO: { label: 'Processo Seletivo Acadêmico', fields: alConcursoFields() },
+    AL_CONCURSO_CULTURAL: { label: 'Concurso cultural, artístico ou literário', fields: alConcursoFields() },
+    AL_CONCURSO_CHAMADA_PUBLICA: { label: 'Chamada Pública e Edital de Projetos', fields: alConcursoFields() },
+    AL_CONCURSO_HACKATHON: { label: 'Prêmios, Concurso de Ideias e Hackathon', fields: alConcursoFields() },
+    AL_CONCURSO_INTERNA: { label: 'Seleção Interna', fields: alConcursoFields() },
     // Mantido apenas para compatibilidade com itens já catalogados (chave
     // legada); novos itens usam os 5 tipos específicos abaixo.
     AL_FILIACAO: { label: 'Filiações', fields: [
@@ -1390,7 +1406,7 @@ window.LATTES_CATEGORIES = [
     { num: '17', key: 'AL_FILIACAO_CAT', label: 'Filiações', icon: 'fa-id-badge', naoLattes: true,
       note: AL_NOTE, types: ['AL_FILIACAO_CONSELHO', 'AL_FILIACAO_CIENTIFICA', 'AL_FILIACAO_ASSOC_PROF', 'AL_FILIACAO_SINDICATO', 'AL_FILIACAO_OUTRA'] },
     { num: '18', key: 'AL_CONCURSO_CAT', label: 'Concursos e Processos seletivos', icon: 'fa-list-check', naoLattes: true,
-      note: AL_NOTE, types: ['AL_CONCURSO'] },
+      note: AL_NOTE, types: ['AL_CONCURSO_PUBLICO', 'AL_CONCURSO_PSS', 'AL_CONCURSO_ACADEMICO', 'AL_CONCURSO_CULTURAL', 'AL_CONCURSO_CHAMADA_PUBLICA', 'AL_CONCURSO_HACKATHON', 'AL_CONCURSO_INTERNA'] },
     { num: '19', key: 'AL_IMPRENSA_CAT', label: 'Imprensa', icon: 'fa-newspaper', naoLattes: true,
       note: AL_NOTE, types: ['AL_IMPRENSA_CITACAO', 'AL_IMPRENSA_ENTREVISTADO', 'AL_IMPRENSA_OUTRA'] },
     { num: '20', key: 'RSC_GRUPO', label: 'Grupos de Pesquisa', icon: 'fa-microscope', naoLattes: true, rscOnly: true,
@@ -1426,7 +1442,7 @@ PRIMARY_CATEGORY.AL_CERTIFICACAO = 'AL_CERTIFICACAO_CAT';
 ['AL_CERT_PROF_GESTAO', 'AL_CERT_TI', 'AL_CERT_FINANCEIRA', 'AL_CERT_OUTRA'].forEach(k => { PRIMARY_CATEGORY[k] = 'AL_CERTIFICACAO_CAT'; });
 PRIMARY_CATEGORY.AL_FILIACAO = 'AL_FILIACAO_CAT';
 ['AL_FILIACAO_CONSELHO', 'AL_FILIACAO_CIENTIFICA', 'AL_FILIACAO_ASSOC_PROF', 'AL_FILIACAO_SINDICATO', 'AL_FILIACAO_OUTRA'].forEach(k => { PRIMARY_CATEGORY[k] = 'AL_FILIACAO_CAT'; });
-PRIMARY_CATEGORY.AL_CONCURSO = 'AL_CONCURSO_CAT';
+['AL_CONCURSO', 'AL_CONCURSO_PUBLICO', 'AL_CONCURSO_PSS', 'AL_CONCURSO_ACADEMICO', 'AL_CONCURSO_CULTURAL', 'AL_CONCURSO_CHAMADA_PUBLICA', 'AL_CONCURSO_HACKATHON', 'AL_CONCURSO_INTERNA'].forEach(k => { PRIMARY_CATEGORY[k] = 'AL_CONCURSO_CAT'; });
 PRIMARY_CATEGORY.AL_IMPRENSA = 'AL_IMPRENSA_CAT';
 ['AL_IMPRENSA_CITACAO', 'AL_IMPRENSA_ENTREVISTADO', 'AL_IMPRENSA_OUTRA'].forEach(k => { PRIMARY_CATEGORY[k] = 'AL_IMPRENSA_CAT'; });
 ['CONEXAO_SOCIAL', 'CONEXAO_ACADEMICA', 'CONEXAO_PROFISSIONAL'].forEach(k => { PRIMARY_CATEGORY[k] = 'DADOS_GERAIS'; });
@@ -1587,7 +1603,9 @@ window.LattesTypes = (function () {
             // Concursos e processos seletivos: "Cargo (Colocação)" (o ano já
             // aparece à parte no card; o campo "titulo" é o nome do concurso,
             // que se repete pouco mas não diz qual foi o cargo/resultado).
-            if (item.typeKey === 'AL_CONCURSO') {
+            // Cobre a chave legada (AL_CONCURSO) e os 7 tipos específicos
+            // (AL_CONCURSO_*) que a substituem.
+            if (item.typeKey.indexOf('AL_CONCURSO') === 0) {
                 const cargo = String(f.cargo || '').trim(), coloc = String(f.colocacao || '').trim();
                 const t = coloc ? `${cargo || f.titulo || ''} (${coloc})`.trim() : cargo;
                 if (t) return t;

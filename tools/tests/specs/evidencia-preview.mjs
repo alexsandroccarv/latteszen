@@ -22,7 +22,7 @@ async function selectTipo(page, catText, tipoText) {
 test('Anexar .zip como evidência não navega o iframe pra blob URL (mostra aviso de "sem pré-visualização")', async ({ page, baseUrl }) => {
     await page.goto(baseUrl + '/index.html');
     await page.waitForTimeout(400);
-    await selectTipo(page, 'Concursos e Processos seletivos', 'Concursos e processos seletivos');
+    await selectTipo(page, 'Concursos e Processos seletivos', 'Concurso Público');
     await page.fill('[name="titulo"]', 'Concurso Teste Zip');
 
     await page.setInputFiles('#pdfInput', {
@@ -45,7 +45,7 @@ test('Anexar .zip como evidência não navega o iframe pra blob URL (mostra avis
 test('Anexar um PDF continua pré-visualizando normalmente no iframe', async ({ page, baseUrl }) => {
     await page.goto(baseUrl + '/index.html');
     await page.waitForTimeout(400);
-    await selectTipo(page, 'Concursos e Processos seletivos', 'Concursos e processos seletivos');
+    await selectTipo(page, 'Concursos e Processos seletivos', 'Concurso Público');
     await page.fill('[name="titulo"]', 'Concurso Teste PDF');
 
     await page.setInputFiles('#pdfInput', {
