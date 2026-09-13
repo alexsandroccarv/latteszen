@@ -52,32 +52,45 @@ window.TabConfig = (function () {
         toast('Lembrete: edite no lattesZen (não direto na Plataforma Lattes) para manter a consistência dos dados.', 'aviso');
     }
 
-    // Import + export do XML do Lattes unificados num card só (mesmo padrão
-    // já usado em Publicações BibTeX/RIS) — antes eram duas seções soltas,
-    // uma logo após a outra, sem necessidade. A verificação de compatibilidade
-    // ISO-8859-1 também mora aqui dentro (recolhida por padrão), já que só faz
-    // sentido no contexto de "vou exportar para o Lattes".
-    function lattesXmlSectionHtml() {
+    // Ícone de ajuda "(?)" — mostra a explicação num tooltip nativo ao passar
+    // o mouse (atributo title), em vez de texto solto ocupando espaço na
+    // tela (a pedido do usuário, pra seção "Trazer e levar dados").
+    function helpIcon(texto) {
+        return `<i aria-hidden="true" class="fa-regular fa-circle-question text-gray-400 dark:text-gray-500 text-xs cursor-help" title="${esc(texto)}"></i>`;
+    }
+    // Um item das colunas Importar/Exportar de "Trazer e levar dados":
+    // ícone + rótulo + ajuda (?) no cabeçalho, corpo (inputs/botões) embaixo.
+    // `icon` inclui o prefixo do estilo (ex.: "fa-solid fa-file-import" ou
+    // "fa-brands fa-orcid" — ORCID usa o conjunto "brands", não "solid").
+    function dadosItemHtml(icon, label, ajuda, bodyHtml) {
         return `
-            <section id="importXmlSection" class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-                <h2 class="text-lg font-bold mb-2 flex items-center gap-2">
-                    <i aria-hidden="true" class="fa-solid fa-file-import text-govbr-600 dark:text-unifesp-400"></i> Currículo Lattes (XML)
-                </h2>
+            <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-3 bg-white dark:bg-gray-900">
+                <h3 class="text-sm font-semibold mb-2 flex items-center gap-1.5">
+                    <i aria-hidden="true" class="${icon} text-govbr-600 dark:text-unifesp-400"></i> ${esc(label)} ${helpIcon(ajuda)}
+                </h3>
+                ${bodyHtml}
+            </div>`;
+    }
 
-                <h3 class="text-sm font-semibold mb-1">Importar</h3>
+    // Import do XML do Lattes — item da coluna "Importar" de "Trazer e levar
+    // dados". A verificação de compatibilidade ISO-8859-1 mora aqui dentro
+    // (recolhida por padrão), já que só faz sentido no contexto do Lattes.
+    function xmlImportItemHtml() {
+        return dadosItemHtml('fa-solid fa-file-import', 'Lattes (XML)',
+            'Importa o currículo em XML exportado da Plataforma Lattes (CNPq). Os itens são listados para você escolher quais importar.', `
                 <input type="file" id="xmlInput" accept=".xml,application/xml,text/xml"
                        class="text-sm file:mr-2 file:px-3 file:py-1.5 file:rounded file:border-0 file:bg-govbr-600 dark:file:bg-unifesp-700 file:text-white">
                 <div id="xmlResult" class="mt-3"></div>
 
-                <details class="mt-5 pt-3 border-t border-gray-200 dark:border-gray-700">
-                    <summary class="cursor-pointer select-none text-sm font-semibold flex items-center gap-2">
+                <details class="mt-3 pt-2 border-t border-gray-200 dark:border-gray-700">
+                    <summary class="cursor-pointer select-none text-xs font-semibold flex items-center gap-2">
                         <i aria-hidden="true" class="fa-solid fa-angle-right text-xs text-gray-400"></i>
                         <i aria-hidden="true" class="fa-solid fa-language text-govbr-600 dark:text-unifesp-400"></i>
                         Verificar compatibilidade com o Lattes (ISO-8859-1)
                     </summary>
                     <div class="pt-3">
-                        <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
-                            O Currículo Lattes usa a codificação <code class="text-xs bg-gray-200 dark:bg-gray-700 px-1 rounded">ISO-8859-1</code>.
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                            O Currículo Lattes usa a codificação <code class="bg-gray-200 dark:bg-gray-700 px-1 rounded">ISO-8859-1</code>.
                             A verificação abaixo aponta caracteres fora dessa tabela (ex.: aspas “curvas”, travessão —, emoji) que,
                             na exportação, viram entidades numéricas. Você pode normalizá-los automaticamente.
                         </p>
@@ -87,8 +100,7 @@ window.TabConfig = (function () {
                         </div>
                         <div id="encResult" class="text-sm mt-3"></div>
                     </div>
-                </details>
-            </section>`;
+                </details>`);
     }
 
     /* =====================================================================
@@ -394,20 +406,10 @@ window.TabConfig = (function () {
     };
     const ORCID_FALLBACK_TYPE = 'OUTRA_BIBLIOGRAFICA';
 
-    function orcidImportSectionHtml() {
+    function orcidImportItemHtml() {
         const perfil = (state.items.find(i => i.typeKey === 'IDENTIFICACAO') || {}).fields || {};
-        return `
-            <section id="importOrcidSection" class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-                <h2 class="text-lg font-bold mb-2 flex items-center gap-2">
-                    <i aria-hidden="true" class="fa-brands fa-orcid text-green-600"></i> Importar publicações do ORCID
-                </h2>
-                <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
-                    Busca as obras públicas registradas no seu <strong>ORCID iD</strong> (API pública do ORCID — nenhuma senha é necessária) e lista para você escolher quais importar, do mesmo jeito que a importação do XML do Lattes.
-                </p>
-                <div class="text-sm rounded-md border-l-4 border-amber-500 bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-300 px-3 py-2 mb-3 flex gap-2">
-                    <i class="fa-solid fa-triangle-exclamation mt-0.5"></i>
-                    <span>Os <strong>autores</strong> são buscados automaticamente, mas só saem se o próprio autor tiver um nome público registrado no ORCID daquela obra — quando faltar, complete depois de importar. O <strong>tipo</strong> de cada obra é inferido automaticamente e pode precisar de ajuste.</span>
-                </div>
+        return dadosItemHtml('fa-brands fa-orcid', 'ORCID (online)',
+            'Busca as obras públicas registradas no seu ORCID iD (API pública — nenhuma senha é necessária) e lista para você escolher quais importar, do mesmo jeito que a importação do XML do Lattes. Os autores só saem se o próprio autor tiver um nome público registrado no ORCID daquela obra — quando faltar, complete depois de importar. O tipo de cada obra é inferido automaticamente e pode precisar de ajuste.', `
                 <div class="flex flex-wrap items-end gap-2">
                     <div>
                         <label class="block text-xs font-semibold mb-1" for="orcidInput">ORCID iD</label>
@@ -418,8 +420,7 @@ window.TabConfig = (function () {
                         <i class="fa-solid fa-magnifying-glass mr-1"></i> Buscar publicações
                     </button>
                 </div>
-                <div id="orcidResult" class="mt-3"></div>
-            </section>`;
+                <div id="orcidResult" class="mt-3"></div>`);
     }
 
     // Extrai um external-id específico (ex.: 'doi', 'uri') do work-summary do ORCID.
@@ -597,29 +598,60 @@ window.TabConfig = (function () {
        a mesma tela de revisão/seleção e a mesma deduplicação por assinatura
        de conteúdo já usadas no import de XML/ORCID.
        ===================================================================== */
-    function bibImportSectionHtml() {
-        return `
-            <section id="importBibSection" class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-                <h2 class="text-lg font-bold mb-2 flex items-center gap-2">
-                    <i aria-hidden="true" class="fa-solid fa-file-lines text-govbr-600 dark:text-unifesp-400"></i> Publicações (BibTeX/RIS)
-                </h2>
-                <h3 class="text-sm font-semibold mb-1">Importar</h3>
-                <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
-                    Traga referências exportadas de outra ferramenta (Zotero, Mendeley, EndNote, Google Scholar) — selecione um arquivo <code>.bib</code> (BibTeX) ou <code>.ris</code> (RIS).
-                </p>
+    function bibImportItemHtml() {
+        return dadosItemHtml('fa-solid fa-file-lines', 'BibTeX/RIS (.bib)',
+            'Traga referências exportadas de outra ferramenta (Zotero, Mendeley, EndNote, Google Scholar) — selecione um arquivo .bib (BibTeX) ou .ris (RIS).', `
                 <input type="file" id="bibInput" accept=".bib,.ris,text/plain,application/x-bibtex"
                        class="text-sm file:mr-2 file:px-3 file:py-1.5 file:rounded file:border-0 file:bg-govbr-600 dark:file:bg-unifesp-700 file:text-white">
-                <div id="bibResult" class="mt-3"></div>
-
-                <h3 class="text-sm font-semibold mt-5 mb-1">Exportar</h3>
-                <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
-                    Gera um arquivo com as publicações já catalogadas (artigos, livros, capítulos, trabalhos em anais de evento e relatórios de pesquisa) — para usar em outra ferramenta de referências.
-                </p>
+                <div id="bibResult" class="mt-3"></div>`);
+    }
+    function bibExportItemHtml() {
+        return dadosItemHtml('fa-solid fa-file-lines', 'BibTeX/RIS',
+            'Gera um arquivo com as publicações já catalogadas (artigos, livros, capítulos, trabalhos em anais de evento e relatórios de pesquisa) — para usar em outra ferramenta de referências.', `
                 <div class="flex flex-wrap gap-2">
                     <button id="btnBibExportBib" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-download mr-1"></i> Baixar .bib (BibTeX)</button>
                     <button id="btnBibExportRis" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-download mr-1"></i> Baixar .ris (RIS)</button>
                 </div>
-                <p id="bibExportStatus" class="text-xs text-gray-500 mt-2"></p>
+                <p id="bibExportStatus" class="text-xs text-gray-500 mt-2"></p>`);
+    }
+
+    // Backup completo (catálogo + configurações) em JSON — itens "lattesZen
+    // (JSON)" das colunas Importar/Exportar de "Trazer e levar dados".
+    function jsonImportItemHtml() {
+        return dadosItemHtml('fa-solid fa-file-code', 'lattesZen (JSON)',
+            'Importa um arquivo JSON gerado pelo "Exportar catálogo" — restaura todo o catálogo (metadados) e as configurações do sistema (prefixo do identificador, listas de autocomplete, RSC-PCCTAE) num navegador novo.', `
+                <label class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm cursor-pointer inline-flex items-center gap-1.5"><i class="fa-solid fa-upload"></i> Importar catálogo
+                    <input type="file" id="importJson" accept="application/json" class="hidden">
+                </label>`);
+    }
+    function jsonExportItemHtml() {
+        return dadosItemHtml('fa-solid fa-file-code', 'lattesZen (JSON)',
+            'Exporte todo o catálogo (metadados) e as configurações do sistema (prefixo do identificador, listas de autocomplete, RSC-PCCTAE) num único arquivo JSON — é o que permite restaurar tudo num navegador novo. Com um diretório configurado, o backup é salvo automaticamente na subpasta "Cópia de segurança".', `
+                <button id="btnExport" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-download mr-1"></i> Exportar catálogo</button>`);
+    }
+
+    // "Trazer e levar dados": 2 colunas (Importar / Exportar) reunindo Lattes
+    // (XML), ORCID, BibTeX/RIS e lattesZen (JSON) — cada um num card próprio,
+    // com as explicações que antes ficavam em parágrafos soltos agora num
+    // ícone de ajuda "(?)" (title, aparece ao passar o mouse). `id="backupSection"`
+    // fica na coluna Exportar pra manter o atalho do card de status "Backup".
+    function dadosImportExportHtml() {
+        return `
+            <section id="importXmlSection" class="scroll-mt-20 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+                <h2 class="text-lg font-bold mb-3 flex items-center gap-2"><i aria-hidden="true" class="fa-solid fa-file-import text-govbr-600 dark:text-unifesp-400"></i> Importar</h2>
+                <div class="space-y-3">
+                    ${xmlImportItemHtml()}
+                    ${orcidImportItemHtml()}
+                    ${bibImportItemHtml()}
+                    ${jsonImportItemHtml()}
+                </div>
+            </section>
+            <section id="backupSection" class="scroll-mt-20 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+                <h2 class="text-lg font-bold mb-3 flex items-center gap-2"><i aria-hidden="true" class="fa-solid fa-file-export text-govbr-600 dark:text-unifesp-400"></i> Exportar</h2>
+                <div class="space-y-3">
+                    ${bibExportItemHtml()}
+                    ${jsonExportItemHtml()}
+                </div>
             </section>`;
     }
 
@@ -1181,6 +1213,7 @@ window.TabConfig = (function () {
                 <div class="flex flex-wrap gap-2">
                     <button id="btnSync" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-rotate mr-1"></i> Sincronizar do diretório</button>
                     <button id="btnCheckDir" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-stethoscope mr-1"></i> Verificar pasta</button>
+                    <button id="btnForget" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-link-slash mr-1"></i> Esquecer pasta</button>
                 </div>`;
         }
 
@@ -1203,26 +1236,13 @@ window.TabConfig = (function () {
                         <i class="fa-solid fa-triangle-exclamation mr-1"></i> ${esc(gdriveMigrationNotice)}
                         <button id="btnDismissGDriveNotice" class="block mt-1 text-xs underline">Entendi, dispensar</button>
                     </div>` : ''}
-                    <div class="mt-4 pt-3 border-t border-gray-200 dark:border-gray-700">
+                    ${semDiretorio ? `<div class="mt-4 pt-3 border-t border-gray-200 dark:border-gray-700">
                         <button id="btnForget" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-link-slash mr-1"></i> Esquecer pasta</button>
-                    </div>
-                </section>
-
-                <section id="backupSection" class="scroll-mt-20 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-                    <h2 class="text-lg font-bold mb-2 flex items-center gap-2"><i class="fa-solid fa-file-export text-govbr-600 dark:text-unifesp-400"></i> Backup (JSON)</h2>
-                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">Exporte ou importe todo o catálogo (metadados) e as configurações do sistema (prefixo do identificador, listas de autocomplete, RSC-PCCTAE) num único arquivo JSON — é o que permite restaurar tudo num navegador novo. Com um diretório configurado, o backup é salvo automaticamente na subpasta <code class="text-xs bg-gray-200 dark:bg-gray-700 px-1 rounded">Cópia de segurança</code>.</p>
-                    <div class="flex flex-wrap gap-2">
-                        <button id="btnExport" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-download mr-1"></i> Exportar catálogo</button>
-                        <label class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm cursor-pointer"><i class="fa-solid fa-upload mr-1"></i> Importar catálogo
-                            <input type="file" id="importJson" accept="application/json" class="hidden">
-                        </label>
-                    </div>
+                    </div>` : ''}
                 </section>
 
                 ${cfgGroup(CFG_GROUPS[1])}
-                ${lattesXmlSectionHtml()}
-                ${orcidImportSectionHtml()}
-                ${bibImportSectionHtml()}
+                ${dadosImportExportHtml()}
 
                 ${cfgGroup(CFG_GROUPS[2])}
                 ${rscSectionHtml()}
