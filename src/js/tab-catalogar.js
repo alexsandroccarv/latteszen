@@ -1273,21 +1273,28 @@ window.TabCatalogar = (function () {
             </div>`).join('')}
         </div>`;
     }
-    function fieldAreaTree(f, val, base) {
+    function fieldAreaTree(f, val, base, req) {
         // Cascata CNPq/CAPES: 4 selects dependentes (preenchidos por wireAreaTree).
         // Recolhida por padrão num <details> (ocupa bastante espaço vertical
         // e a maioria dos itens não precisa mexer nela) — o resumo já
         // selecionado (ou um convite a clicar) aparece no <summary>, então
         // dá pra ver o que já foi escolhido sem precisar expandir.
-        const sel = (lvl, lbl) => `<select data-areatree="${lvl}" class="${base}"><option value="">${lbl}</option></select>`;
+        // Cada select ganha aria-label próprio — sem isto, um leitor de tela
+        // só reconhecia o 1º (o único ligado à <label> do campo via
+        // associateLabels); os outros 3 ficavam sem nome acessível. O 1º
+        // também recebe `required` quando o campo é obrigatório (o <form>
+        // usa novalidate, então isto não bloqueia o envio — só expõe o
+        // estado pra tecnologia assistiva, que mapeia `required` como
+        // aria-required automaticamente).
+        const sel = (lvl, lbl, nivel, extra) => `<select data-areatree="${lvl}" aria-label="${esc(nivel)}" ${extra || ''} class="${base}"><option value="">${lbl}</option></select>`;
         const resumo = val ? esc(val) : 'Nenhuma selecionada — clique para escolher';
         return `<details class="w-full">
             <summary class="cursor-pointer select-none text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 truncate">${resumo}</summary>
             <div data-areatree-group class="space-y-1.5 mt-1.5">
-                ${sel('g', '— Grande área —')}
-                ${sel('a', '— Área —')}
-                ${sel('s', '— Subárea —')}
-                ${sel('e', '— Especialidade —')}
+                ${sel('g', '— Grande área —', 'Grande área', req)}
+                ${sel('a', '— Área —', 'Área')}
+                ${sel('s', '— Subárea —', 'Subárea')}
+                ${sel('e', '— Especialidade —', 'Especialidade')}
             </div>
         </details>`;
     }
@@ -1297,7 +1304,9 @@ window.TabCatalogar = (function () {
         // Mesmo tratamento de <details> recolhido do campo acima.
         const chosen = String(val || '').split(';').map(s => s.trim()).filter(Boolean);
         const opts = window.CNAE_SETORES || [];
-        const sel = (i) => `<select data-setor="${i}" class="${base}">
+        // aria-label próprio por select — mesmo motivo do areatree acima:
+        // sem isto, só o 1º select tinha nome acessível.
+        const sel = (i) => `<select data-setor="${i}" aria-label="Setor ${i}" class="${base}">
             <option value="">— Setor ${i} —</option>
             ${opts.map(o => `<option value="${esc(o)}" ${chosen[i - 1] === o ? 'selected' : ''}>${esc(o)}</option>`).join('')}
         </select>`;
@@ -1400,7 +1409,7 @@ window.TabCatalogar = (function () {
         else if (f.type === 'datebr') input = fieldDateBr(f, val, req, base, compact);
         else if (f.type === 'checkboxes') input = fieldCheckboxes(f, val);
         else if (f.type === 'skilllevels') input = fieldSkillLevels(f, val, base);
-        else if (f.type === 'areatree') input = fieldAreaTree(f, val, base);
+        else if (f.type === 'areatree') input = fieldAreaTree(f, val, base, req);
         else if (f.type === 'cnaeSetores') input = fieldCnaeSetores(f, val, base);
         else if (f.type === 'repeater') input = fieldRepeater(f, val);
         else if (f.type === 'checkbox') return fieldCheckboxSingle(f, val, reqMark, compact);
