@@ -23,11 +23,14 @@ jobs:
     # Rede de segurança: sem isto, um hang de verdade na suíte de testes (já
     # aconteceu — runner preso por mais de 1h sem nenhum log de erro) deixa o
     # job rodando por até 6h (limite padrão do GitHub Actions), consumindo
-    # minutos de CI à toa. 20min é folgado (pipeline historicamente em
-    # ~3-8min) — issue #119 (causa raiz: o selo de DOI do Zenodo no rodapé,
-    # carregado incondicionalmente, travando a CDN de estilo bloqueada) já
-    # está corrigida e confirmada por CI verde.
-    timeout-minutes: 20
+    # minutos de CI à toa. Pipeline historicamente em ~3-8min (issue #119,
+    # causa raiz do selo de DOI do Zenodo travando a CDN bloqueada, já
+    # corrigida). Ampliado de 20 pra 35min: com a suíte crescendo (300+
+    # testes) o passo de testes vinha batendo exatamente nos 20min e sendo
+    # cancelado por 2 execuções seguidas — sempre passando de primeira ao
+    # reexecutar, sinal de rede/runner mais lento naquele momento, não de
+    # regressão no código — então a folga evita precisar reexecutar manualmente.
+    timeout-minutes: 35
     steps:
       - name: Baixar o código
         uses: actions/checkout@v4
