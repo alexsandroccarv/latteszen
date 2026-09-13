@@ -1195,6 +1195,195 @@ window.TabCatalogar = (function () {
         return `<input type="${t}" ${tag} autocomplete="off" readonly data-ro-focus ${listAttr} placeholder="${esc(c.label)}" class="${base}" style="min-width:9rem">`;
     }
 
+    // autocomplete="off" sozinho não impede o autofill de "Nome"/"Endereço"
+    // do Chrome (e afins): por design, esses navegadores ignoram esse
+    // atributo pra campos que reconhecem heuristicamente como tal — daí o
+    // valor digitado num campo (ex.: "Nome completo") vazar pra outros
+    // campos de tipos diferentes que reaproveitam o mesmo `name` nesta
+    // SPA (ex.: "titulo"), sem precisar de nenhum clique em sugestão —
+    // confirmado: aparece sozinho ao focar. `readonly` até o primeiro
+    // foco é o contorno que de fato funciona: o navegador não tenta
+    // preencher um campo somente-leitura na varredura inicial, e
+    // wireReadonlyUntilFocus (mais abaixo) remove o atributo assim que o
+    // usuário for de fato interagir — sem impedir um valor já salvo de
+    // aparecer (isso é HTML inicial, não uma edição do usuário) nem a
+    // sugestão da datalist da própria app.
+    const RO = 'readonly data-ro-focus';
+
+    // fieldHtml() despachado por f.type — cada função abaixo cuida de um
+    // tipo de campo e devolve só o HTML do controle (o wrapper com
+    // label/help é montado uma única vez, no fim de fieldHtml).
+    function fieldTextarea(f, val, req, base) {
+        const max = f.maxlength || 4000;
+        return `<textarea name="${f.key}" ${req} autocomplete="off" ${RO} rows="2" maxlength="${max}" data-maxcount="${max}" placeholder="${esc(f.placeholder || '')}" class="${base}">${esc(val)}</textarea>
+            <p class="text-[11px] text-gray-400 dark:text-gray-500 text-right mt-0.5" data-counter-for="${f.key}"></p>`;
+    }
+    function fieldSelect(f, val, req, base) {
+        // `noBlankOption`: pula o "—" inicial — usado em selects de poucas
+        // opções mutuamente exclusivas com `default` (ex.: Tipo do
+        // Endereço), onde não faz sentido um 3º estado "nenhum escolhido".
+        return `<select name="${f.key}" ${req} class="${base}">
+            ${f.noBlankOption ? '' : '<option value="">—</option>'}
+            ${f.options.map(o => `<option value="${esc(o)}" ${o === val ? 'selected' : ''}>${esc(o)}</option>`).join('')}
+        </select>`;
+    }
+    function fieldDateBr(f, val, req, base, compact) {
+        // Data aaaa, mm/aaaa OU dd/mm/aaaa (texto com máscara). Guardada por
+        // extenso para controle interno; na exportação XML Lattes só o ano
+        // é mantido (o schema só aceita ANO). Valor ISO (aaaa-mm-dd), herdado
+        // de importação/legado, vira dd/mm/aaaa.
+        let dv = val == null ? '' : String(val);
+        const iso = dv.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+        if (iso) dv = `${iso[3]}/${iso[2]}/${iso[1]}`;
+        const dph = compact ? 'aaaa' : 'aaaa, mm/aaaa ou dd/mm/aaaa';
+        // Largura fixa (não w-full): o valor nunca passa de 10 caracteres
+        // (dd/mm/aaaa), então o campo não deve esticar para preencher a linha.
+        const dateBase = base.replace('w-full', 'w-32');
+        return `<input type="text" name="${f.key}" value="${esc(dv)}" ${req} autocomplete="off" ${RO} inputmode="numeric" maxlength="10" placeholder="${dph}" data-datebr class="${dateBase}">`;
+    }
+    function fieldCheckboxes(f, val) {
+        const selected = String(val || '').split(/[;,]/).map(s => s.trim()).filter(Boolean);
+        return `<div class="flex flex-wrap gap-x-4 gap-y-1 pt-1">
+            ${f.options.map(o => {
+                const desc = f.descriptions && f.descriptions[o];
+                const cb = `<input type="checkbox" data-cbgroup="${f.key}" value="${esc(o)}" ${selected.includes(o) ? 'checked' : ''} class="mt-0.5">`;
+                if (!desc) return `<label class="flex items-center gap-1.5 text-sm">${cb} ${esc(o)}</label>`;
+                return `<label class="flex items-start gap-1.5 text-sm w-full">${cb}
+                    <span>${esc(o)}
+                        <details class="mt-0.5"><summary class="text-xs text-govbr-700 dark:text-unifesp-400 cursor-pointer select-none">Ver definição legal</summary>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 max-w-2xl">${esc(desc)}</p></details>
+                    </span></label>`;
+            }).join('')}
+        </div>`;
+    }
+    function fieldSkillLevels(f, val, base) {
+        const levels = f.levels || ['Bom', 'Razoável', 'Pouco'];
+        const map = {};
+        String(val || '').split(';').forEach(pair => {
+            const idx = pair.indexOf(':');
+            if (idx > -1) { const s = pair.slice(0, idx).trim(), l = pair.slice(idx + 1).trim(); if (s && l) map[s] = l; }
+        });
+        return `<div class="space-y-1 pt-1">
+            ${f.options.map(sk => `<div class="flex items-center gap-2 text-sm">
+                <span class="w-32 shrink-0">${esc(sk)}</span>
+                <select data-slgroup="${f.key}" data-skill="${esc(sk)}" class="${base}">
+                    <option value="">—</option>
+                    ${levels.map(l => `<option value="${esc(l)}" ${map[sk] === l ? 'selected' : ''}>${esc(l)}</option>`).join('')}
+                </select>
+            </div>`).join('')}
+        </div>`;
+    }
+    function fieldAreaTree(f, val, base) {
+        // Cascata CNPq/CAPES: 4 selects dependentes (preenchidos por wireAreaTree).
+        // Recolhida por padrão num <details> (ocupa bastante espaço vertical
+        // e a maioria dos itens não precisa mexer nela) — o resumo já
+        // selecionado (ou um convite a clicar) aparece no <summary>, então
+        // dá pra ver o que já foi escolhido sem precisar expandir.
+        const sel = (lvl, lbl) => `<select data-areatree="${lvl}" class="${base}"><option value="">${lbl}</option></select>`;
+        const resumo = val ? esc(val) : 'Nenhuma selecionada — clique para escolher';
+        return `<details class="w-full">
+            <summary class="cursor-pointer select-none text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 truncate">${resumo}</summary>
+            <div data-areatree-group class="space-y-1.5 mt-1.5">
+                ${sel('g', '— Grande área —')}
+                ${sel('a', '— Área —')}
+                ${sel('s', '— Subárea —')}
+                ${sel('e', '— Especialidade —')}
+            </div>
+        </details>`;
+    }
+    function fieldCnaeSetores(f, val, base) {
+        // Até 3 setores (lista CNAE fixa) — schema Lattes tem 3 atributos
+        // nomeados (SETOR-DE-ATIVIDADE-1..3), por isso 3 selects fixos.
+        // Mesmo tratamento de <details> recolhido do campo acima.
+        const chosen = String(val || '').split(';').map(s => s.trim()).filter(Boolean);
+        const opts = window.CNAE_SETORES || [];
+        const sel = (i) => `<select data-setor="${i}" class="${base}">
+            <option value="">— Setor ${i} —</option>
+            ${opts.map(o => `<option value="${esc(o)}" ${chosen[i - 1] === o ? 'selected' : ''}>${esc(o)}</option>`).join('')}
+        </select>`;
+        const resumo = chosen.length ? esc(chosen.join('; ')) : 'Nenhum selecionado — clique para escolher';
+        return `<details class="w-full">
+            <summary class="cursor-pointer select-none text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 truncate">${resumo}</summary>
+            <div class="space-y-1.5 mt-1.5">${[1, 2, 3].map(sel).join('')}</div>
+        </details>`;
+    }
+    function fieldRepeater(f, val) {
+        // Migra valor antigo em texto livre (ex.: campo que era textarea e
+        // virou repeater) para o novo formato de lista, sem perder os
+        // dados já salvos — um valor por linha vira uma linha da lista.
+        let rows = Array.isArray(val) ? val : [];
+        if (!rows.length && typeof val === 'string' && val.trim() && f.columns && f.columns.length === 1) {
+            const col = f.columns[0].key;
+            rows = val.split('\n').map(s => s.trim()).filter(Boolean).map(nome => ({ [col]: nome }));
+        }
+        return `<div data-repeater-wrap="${f.key}">
+            <input type="hidden" name="${f.key}" data-repeater="${f.key}" value='${esc(JSON.stringify(rows))}'>
+            <ul data-repeater-list="${f.key}" class="space-y-1 mb-1.5">${repeaterListHtml(f, rows)}</ul>
+            <div class="flex flex-wrap items-center gap-1.5">
+                ${f.columns.map(c => repeaterColInput(f.key, c)).join('')}
+                <button type="button" data-repeater-add="${f.key}" class="px-2 py-1.5 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-xs whitespace-nowrap"><i aria-hidden="true" class="fa-solid fa-plus"></i> ${esc(f.addLabel || 'Adicionar')}</button>
+            </div>
+        </div>`;
+    }
+    function fieldCheckboxSingle(f, val, reqMark, compact) {
+        // Pergunta Sim/Não como caixa de seleção única (marcado = Sim,
+        // desmarcado = Não — nunca fica em branco, como o padrão do Lattes).
+        // Pergunta e caixa ficam na mesma linha (foge do wrapper padrão
+        // label-em-cima/campo-embaixo usado pelos demais tipos de campo) —
+        // por isso este é o único ramo que retorna o wrapper direto, sem
+        // passar pelo rodapé comum de fieldHtml.
+        return `<div data-field="${f.key}" class="${compact ? 'w-24 shrink-0' : ''}">
+            <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="${f.key}" ${val === 'Sim' ? 'checked' : ''}> ${esc(f.label)}${reqMark}</label>
+            ${f.help ? `<p class="text-xs text-gray-500 mt-0.5">${esc(f.help)}</p>` : ''}
+        </div>`;
+    }
+    function fieldUrl(f, val, req, base) {
+        // URL + "N/A" (Não se aplica): conta como preenchido; vai em branco no XML
+        const na = String(val) === NA_VALUE;
+        return `<div class="flex items-center gap-2">
+            <input type="url" name="${f.key}" value="${na ? '' : esc(val)}" ${req} autocomplete="off" ${RO} data-validate="url" maxlength="300" placeholder="https://…" class="${base} flex-1 ${na ? 'opacity-50' : ''}" ${na ? 'disabled' : ''}>
+            <label class="flex items-center gap-1 text-xs shrink-0 whitespace-nowrap" title="Marque quando não há URL. Conta como preenchido; na exportação XML vai em branco.">
+                <input type="checkbox" data-na="${f.key}" ${na ? 'checked' : ''}> N/A
+            </label>
+        </div>`;
+    }
+    function fieldDoi(f, val, base) {
+        // Campo DOI com botão "Buscar metadados" (Crossref) ao lado —
+        // autopreenche título/ano/periódico/autores etc. do tipo atual
+        // (issue #5). Feedback de carregamento/erro fica no <p> abaixo.
+        return `<div class="flex items-center gap-2">
+            <input type="text" name="doi" value="${esc(val)}" autocomplete="off" ${RO} data-validate="doi" maxlength="500" placeholder="${esc(f.placeholder || '10.xxxx/xxxxx')}" class="${base} flex-1">
+            <button type="button" data-crossref-btn class="px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 text-xs whitespace-nowrap shrink-0"><i aria-hidden="true" class="fa-solid fa-magnifying-glass mr-1"></i>Buscar metadados</button>
+        </div>
+        <p class="text-xs text-gray-500 mt-0.5" data-crossref-status></p>`;
+    }
+    function fieldGeneric(f, val, req, base) {
+        const t = (f.type === 'url' ? 'url' : (f.type === 'number' ? 'number' : (f.type === 'date' ? 'date' : 'text')));
+        const listAttr = (t === 'text' && AUTOCOMPLETE_KEYS.includes(f.key)) ? `list="dl-${f.key}"` : '';
+        let vkind = '';
+        if (f.validate) vkind = f.validate;
+        else if (f.key === 'issn' || f.key === 'isbn' || f.key === 'doi') vkind = f.key;
+        else if (t === 'url') vkind = 'url';
+        const vAttr = vkind ? `data-validate="${vkind}"` : '';
+        const ph = f.placeholder || (f.key === 'issn' ? '0000-0000'
+            : f.key === 'isbn' ? 'ISBN-10 ou ISBN-13'
+            : t === 'url' ? 'https://…' : '');
+        const extra = t === 'number' ? 'min="0" step="any"'
+            : `maxlength="${f.maxlength || (t === 'url' ? 300 : 500)}"`;
+        if (f.na) {
+            // Campo + "N/A" (Não se aplica), mesmo padrão do campo URL:
+            // conta como preenchido; vai em branco numa futura exportação.
+            const na = String(val) === NA_VALUE;
+            return `<div class="flex items-center gap-2">
+                <input type="${t}" name="${f.key}" value="${na ? '' : esc(val)}" ${req} autocomplete="off" ${RO} ${listAttr} ${vAttr} ${extra} placeholder="${esc(ph)}" class="${base} flex-1 ${na ? 'opacity-50' : ''}" ${na ? 'disabled' : ''}>
+                <label class="flex items-center gap-1 text-xs shrink-0 whitespace-nowrap" title="Marque quando não se aplica. Conta como preenchido.">
+                    <input type="checkbox" data-na="${f.key}" ${na ? 'checked' : ''}> N/A
+                </label>
+            </div>`;
+        }
+        return `<input type="${t}" name="${f.key}" value="${esc(val)}" ${req} autocomplete="off" ${RO} ${listAttr} ${vAttr} ${extra} placeholder="${esc(ph)}" class="${base}">`;
+    }
+
     function fieldHtml(f, val, compact) {
         // `undefined` = campo nunca definido (item novo, ou tipo ganhou o campo
         // depois de itens antigos existirem) → usa o padrão, se houver. Já um
@@ -1205,179 +1394,19 @@ window.TabCatalogar = (function () {
         const req = f.required ? 'required' : '';
         const reqMark = f.required ? ' <span class="text-red-500">*</span>' : '';
         const base = 'w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900';
-        // autocomplete="off" sozinho não impede o autofill de "Nome"/"Endereço"
-        // do Chrome (e afins): por design, esses navegadores ignoram esse
-        // atributo pra campos que reconhecem heuristicamente como tal — daí o
-        // valor digitado num campo (ex.: "Nome completo") vazar pra outros
-        // campos de tipos diferentes que reaproveitam o mesmo `name` nesta
-        // SPA (ex.: "titulo"), sem precisar de nenhum clique em sugestão —
-        // confirmado: aparece sozinho ao focar. `readonly` até o primeiro
-        // foco é o contorno que de fato funciona: o navegador não tenta
-        // preencher um campo somente-leitura na varredura inicial, e
-        // wireReadonlyUntilFocus (mais abaixo) remove o atributo assim que o
-        // usuário for de fato interagir — sem impedir um valor já salvo de
-        // aparecer (isso é HTML inicial, não uma edição do usuário) nem a
-        // sugestão da datalist da própria app.
-        const RO = 'readonly data-ro-focus';
         let input;
-        if (f.type === 'textarea') {
-            const max = f.maxlength || 4000;
-            input = `<textarea name="${f.key}" ${req} autocomplete="off" ${RO} rows="2" maxlength="${max}" data-maxcount="${max}" placeholder="${esc(f.placeholder || '')}" class="${base}">${esc(val)}</textarea>
-                <p class="text-[11px] text-gray-400 dark:text-gray-500 text-right mt-0.5" data-counter-for="${f.key}"></p>`;
-        } else if (f.type === 'select') {
-            // `noBlankOption`: pula o "—" inicial — usado em selects de poucas
-            // opções mutuamente exclusivas com `default` (ex.: Tipo do
-            // Endereço), onde não faz sentido um 3º estado "nenhum escolhido".
-            input = `<select name="${f.key}" ${req} class="${base}">
-                ${f.noBlankOption ? '' : '<option value="">—</option>'}
-                ${f.options.map(o => `<option value="${esc(o)}" ${o === val ? 'selected' : ''}>${esc(o)}</option>`).join('')}
-            </select>`;
-        } else if (f.type === 'datebr') {
-            // Data aaaa, mm/aaaa OU dd/mm/aaaa (texto com máscara). Guardada por
-            // extenso para controle interno; na exportação XML Lattes só o ano
-            // é mantido (o schema só aceita ANO). Valor ISO (aaaa-mm-dd), herdado
-            // de importação/legado, vira dd/mm/aaaa.
-            let dv = val == null ? '' : String(val);
-            const iso = dv.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-            if (iso) dv = `${iso[3]}/${iso[2]}/${iso[1]}`;
-            const dph = compact ? 'aaaa' : 'aaaa, mm/aaaa ou dd/mm/aaaa';
-            // Largura fixa (não w-full): o valor nunca passa de 10 caracteres
-            // (dd/mm/aaaa), então o campo não deve esticar para preencher a linha.
-            const dateBase = base.replace('w-full', 'w-32');
-            input = `<input type="text" name="${f.key}" value="${esc(dv)}" ${req} autocomplete="off" ${RO} inputmode="numeric" maxlength="10" placeholder="${dph}" data-datebr class="${dateBase}">`;
-        } else if (f.type === 'checkboxes') {
-            const selected = String(val || '').split(/[;,]/).map(s => s.trim()).filter(Boolean);
-            input = `<div class="flex flex-wrap gap-x-4 gap-y-1 pt-1">
-                ${f.options.map(o => {
-                    const desc = f.descriptions && f.descriptions[o];
-                    const cb = `<input type="checkbox" data-cbgroup="${f.key}" value="${esc(o)}" ${selected.includes(o) ? 'checked' : ''} class="mt-0.5">`;
-                    if (!desc) return `<label class="flex items-center gap-1.5 text-sm">${cb} ${esc(o)}</label>`;
-                    return `<label class="flex items-start gap-1.5 text-sm w-full">${cb}
-                        <span>${esc(o)}
-                            <details class="mt-0.5"><summary class="text-xs text-govbr-700 dark:text-unifesp-400 cursor-pointer select-none">Ver definição legal</summary>
-                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 max-w-2xl">${esc(desc)}</p></details>
-                        </span></label>`;
-                }).join('')}
-            </div>`;
-        } else if (f.type === 'skilllevels') {
-            const levels = f.levels || ['Bom', 'Razoável', 'Pouco'];
-            const map = {};
-            String(val || '').split(';').forEach(pair => {
-                const idx = pair.indexOf(':');
-                if (idx > -1) { const s = pair.slice(0, idx).trim(), l = pair.slice(idx + 1).trim(); if (s && l) map[s] = l; }
-            });
-            input = `<div class="space-y-1 pt-1">
-                ${f.options.map(sk => `<div class="flex items-center gap-2 text-sm">
-                    <span class="w-32 shrink-0">${esc(sk)}</span>
-                    <select data-slgroup="${f.key}" data-skill="${esc(sk)}" class="${base}">
-                        <option value="">—</option>
-                        ${levels.map(l => `<option value="${esc(l)}" ${map[sk] === l ? 'selected' : ''}>${esc(l)}</option>`).join('')}
-                    </select>
-                </div>`).join('')}
-            </div>`;
-        } else if (f.type === 'areatree') {
-            // Cascata CNPq/CAPES: 4 selects dependentes (preenchidos por wireAreaTree).
-            // Recolhida por padrão num <details> (ocupa bastante espaço vertical
-            // e a maioria dos itens não precisa mexer nela) — o resumo já
-            // selecionado (ou um convite a clicar) aparece no <summary>, então
-            // dá pra ver o que já foi escolhido sem precisar expandir.
-            const sel = (lvl, lbl) => `<select data-areatree="${lvl}" class="${base}"><option value="">${lbl}</option></select>`;
-            const resumo = val ? esc(val) : 'Nenhuma selecionada — clique para escolher';
-            input = `<details class="w-full">
-                <summary class="cursor-pointer select-none text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 truncate">${resumo}</summary>
-                <div data-areatree-group class="space-y-1.5 mt-1.5">
-                    ${sel('g', '— Grande área —')}
-                    ${sel('a', '— Área —')}
-                    ${sel('s', '— Subárea —')}
-                    ${sel('e', '— Especialidade —')}
-                </div>
-            </details>`;
-        } else if (f.type === 'cnaeSetores') {
-            // Até 3 setores (lista CNAE fixa) — schema Lattes tem 3 atributos
-            // nomeados (SETOR-DE-ATIVIDADE-1..3), por isso 3 selects fixos.
-            // Mesmo tratamento de <details> recolhido do campo acima.
-            const chosen = String(val || '').split(';').map(s => s.trim()).filter(Boolean);
-            const opts = window.CNAE_SETORES || [];
-            const sel = (i) => `<select data-setor="${i}" class="${base}">
-                <option value="">— Setor ${i} —</option>
-                ${opts.map(o => `<option value="${esc(o)}" ${chosen[i - 1] === o ? 'selected' : ''}>${esc(o)}</option>`).join('')}
-            </select>`;
-            const resumo = chosen.length ? esc(chosen.join('; ')) : 'Nenhum selecionado — clique para escolher';
-            input = `<details class="w-full">
-                <summary class="cursor-pointer select-none text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 truncate">${resumo}</summary>
-                <div class="space-y-1.5 mt-1.5">${[1, 2, 3].map(sel).join('')}</div>
-            </details>`;
-        } else if (f.type === 'repeater') {
-            // Migra valor antigo em texto livre (ex.: campo que era textarea e
-            // virou repeater) para o novo formato de lista, sem perder os
-            // dados já salvos — um valor por linha vira uma linha da lista.
-            let rows = Array.isArray(val) ? val : [];
-            if (!rows.length && typeof val === 'string' && val.trim() && f.columns && f.columns.length === 1) {
-                const col = f.columns[0].key;
-                rows = val.split('\n').map(s => s.trim()).filter(Boolean).map(nome => ({ [col]: nome }));
-            }
-            input = `<div data-repeater-wrap="${f.key}">
-                <input type="hidden" name="${f.key}" data-repeater="${f.key}" value='${esc(JSON.stringify(rows))}'>
-                <ul data-repeater-list="${f.key}" class="space-y-1 mb-1.5">${repeaterListHtml(f, rows)}</ul>
-                <div class="flex flex-wrap items-center gap-1.5">
-                    ${f.columns.map(c => repeaterColInput(f.key, c)).join('')}
-                    <button type="button" data-repeater-add="${f.key}" class="px-2 py-1.5 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-xs whitespace-nowrap"><i aria-hidden="true" class="fa-solid fa-plus"></i> ${esc(f.addLabel || 'Adicionar')}</button>
-                </div>
-            </div>`;
-        } else if (f.type === 'checkbox') {
-            // Pergunta Sim/Não como caixa de seleção única (marcado = Sim,
-            // desmarcado = Não — nunca fica em branco, como o padrão do Lattes).
-            // Pergunta e caixa ficam na mesma linha (foge do wrapper padrão
-            // label-em-cima/campo-embaixo usado pelos demais tipos de campo).
-            return `<div data-field="${f.key}" class="${compact ? 'w-24 shrink-0' : ''}">
-                <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="${f.key}" ${val === 'Sim' ? 'checked' : ''}> ${esc(f.label)}${reqMark}</label>
-                ${f.help ? `<p class="text-xs text-gray-500 mt-0.5">${esc(f.help)}</p>` : ''}
-            </div>`;
-        } else if (f.type === 'url') {
-            // URL + "N/A" (Não se aplica): conta como preenchido; vai em branco no XML
-            const na = String(val) === NA_VALUE;
-            input = `<div class="flex items-center gap-2">
-                <input type="url" name="${f.key}" value="${na ? '' : esc(val)}" ${req} autocomplete="off" ${RO} data-validate="url" maxlength="300" placeholder="https://…" class="${base} flex-1 ${na ? 'opacity-50' : ''}" ${na ? 'disabled' : ''}>
-                <label class="flex items-center gap-1 text-xs shrink-0 whitespace-nowrap" title="Marque quando não há URL. Conta como preenchido; na exportação XML vai em branco.">
-                    <input type="checkbox" data-na="${f.key}" ${na ? 'checked' : ''}> N/A
-                </label>
-            </div>`;
-        } else if (f.key === 'doi') {
-            // Campo DOI com botão "Buscar metadados" (Crossref) ao lado —
-            // autopreenche título/ano/periódico/autores etc. do tipo atual
-            // (issue #5). Feedback de carregamento/erro fica no <p> abaixo.
-            input = `<div class="flex items-center gap-2">
-                <input type="text" name="doi" value="${esc(val)}" autocomplete="off" ${RO} data-validate="doi" maxlength="500" placeholder="${esc(f.placeholder || '10.xxxx/xxxxx')}" class="${base} flex-1">
-                <button type="button" data-crossref-btn class="px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 text-xs whitespace-nowrap shrink-0"><i aria-hidden="true" class="fa-solid fa-magnifying-glass mr-1"></i>Buscar metadados</button>
-            </div>
-            <p class="text-xs text-gray-500 mt-0.5" data-crossref-status></p>`;
-        } else {
-            const t = (f.type === 'url' ? 'url' : (f.type === 'number' ? 'number' : (f.type === 'date' ? 'date' : 'text')));
-            const listAttr = (t === 'text' && AUTOCOMPLETE_KEYS.includes(f.key)) ? `list="dl-${f.key}"` : '';
-            let vkind = '';
-            if (f.validate) vkind = f.validate;
-            else if (f.key === 'issn' || f.key === 'isbn' || f.key === 'doi') vkind = f.key;
-            else if (t === 'url') vkind = 'url';
-            const vAttr = vkind ? `data-validate="${vkind}"` : '';
-            const ph = f.placeholder || (f.key === 'issn' ? '0000-0000'
-                : f.key === 'isbn' ? 'ISBN-10 ou ISBN-13'
-                : t === 'url' ? 'https://…' : '');
-            const extra = t === 'number' ? 'min="0" step="any"'
-                : `maxlength="${f.maxlength || (t === 'url' ? 300 : 500)}"`;
-            if (f.na) {
-                // Campo + "N/A" (Não se aplica), mesmo padrão do campo URL:
-                // conta como preenchido; vai em branco numa futura exportação.
-                const na = String(val) === NA_VALUE;
-                input = `<div class="flex items-center gap-2">
-                    <input type="${t}" name="${f.key}" value="${na ? '' : esc(val)}" ${req} autocomplete="off" ${RO} ${listAttr} ${vAttr} ${extra} placeholder="${esc(ph)}" class="${base} flex-1 ${na ? 'opacity-50' : ''}" ${na ? 'disabled' : ''}>
-                    <label class="flex items-center gap-1 text-xs shrink-0 whitespace-nowrap" title="Marque quando não se aplica. Conta como preenchido.">
-                        <input type="checkbox" data-na="${f.key}" ${na ? 'checked' : ''}> N/A
-                    </label>
-                </div>`;
-            } else {
-                input = `<input type="${t}" name="${f.key}" value="${esc(val)}" ${req} autocomplete="off" ${RO} ${listAttr} ${vAttr} ${extra} placeholder="${esc(ph)}" class="${base}">`;
-            }
-        }
+        if (f.type === 'textarea') input = fieldTextarea(f, val, req, base);
+        else if (f.type === 'select') input = fieldSelect(f, val, req, base);
+        else if (f.type === 'datebr') input = fieldDateBr(f, val, req, base, compact);
+        else if (f.type === 'checkboxes') input = fieldCheckboxes(f, val);
+        else if (f.type === 'skilllevels') input = fieldSkillLevels(f, val, base);
+        else if (f.type === 'areatree') input = fieldAreaTree(f, val, base);
+        else if (f.type === 'cnaeSetores') input = fieldCnaeSetores(f, val, base);
+        else if (f.type === 'repeater') input = fieldRepeater(f, val);
+        else if (f.type === 'checkbox') return fieldCheckboxSingle(f, val, reqMark, compact);
+        else if (f.type === 'url') input = fieldUrl(f, val, req, base);
+        else if (f.key === 'doi') input = fieldDoi(f, val, base);
+        else input = fieldGeneric(f, val, req, base);
         // Campos agrupados na mesma linha (`row`) usam largura compacta fixa
         // (w-24) — boa pra Ano/CEP/UF, mas corta o texto de selects com
         // opções longas (ex.: "Processo Seletivo Simplificado (PSS)"). Um
@@ -1847,37 +1876,33 @@ window.TabCatalogar = (function () {
         if (f.type === 'skilllevels') return form.querySelector(`[data-slgroup="${f.key}"]`);
         return (form.elements && form.elements[f.key]) || form.querySelector(`[name="${f.key}"]`);
     }
-    // Valida obrigatórios + coerência de anos + ISSN/ISBN. Marca erros inline
-    // (única via de validação — o form usa novalidate, sem "balão" nativo).
-    function validateItemFields(def, fields, form) {
-        // limpa erros anteriores dos campos deste tipo
-        def.fields.forEach(f => { const el = fieldControl(form, f); if (el) setFieldError(el, ''); });
-
-        // 1) Obrigatórios — destaca todos e foca o primeiro
+    // Fase 1 de validateItemFields: obrigatórios — destaca todos e foca o primeiro
+    function validateRequiredFields(def, fields, form) {
         const faltando = def.fields.filter(f => f.required && !fields[f.key]);
-        if (faltando.length) {
-            let first = null;
-            faltando.forEach(f => { const el = fieldControl(form, f); if (el) { setFieldError(el, 'Campo obrigatório.'); if (!first) first = el; } });
-            if (first) { first.focus(); first.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
-            toast('Preencha os campos obrigatórios destacados: ' + faltando.map(f => f.label).join(', '), 'aviso');
-            return false;
-        }
-
-        // 2) Coerência de anos: fim não pode ser anterior ao início. Extrai o
-        //    ANO de qualquer formato (aaaa, aaaa-mm-dd ou dd/mm/aaaa — datebr).
-        //    O campo de início chama 'anoInicio' nos tipos com período completo
-        //    (Atuação, Projetos…) e só 'ano' nos demais (Ano de início/fim).
+        if (!faltando.length) return true;
+        let first = null;
+        faltando.forEach(f => { const el = fieldControl(form, f); if (el) { setFieldError(el, 'Campo obrigatório.'); if (!first) first = el; } });
+        if (first) { first.focus(); first.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+        toast('Preencha os campos obrigatórios destacados: ' + faltando.map(f => f.label).join(', '), 'aviso');
+        return false;
+    }
+    // Fase 2 de validateItemFields: coerência de anos — fim não pode ser
+    // anterior ao início. Extrai o ANO de qualquer formato (aaaa, aaaa-mm-dd
+    // ou dd/mm/aaaa — datebr). O campo de início chama 'anoInicio' nos tipos
+    // com período completo (Atuação, Projetos…) e só 'ano' nos demais (Ano
+    // de início/fim).
+    function validateYearCoherence(def, fields, form) {
         const _yr = s => { const y = anoDe(s); return y ? +y : null; };
         const inicioKey = def.fields.some(f => f.key === 'anoInicio') ? 'anoInicio' : 'ano';
         const ini = _yr(fields[inicioKey]), fim = _yr(fields.anoFim);
-        if (ini && fim && fim < ini) {
-            const el = fieldControl(form, { key: 'anoFim' });
-            if (el) { setFieldError(el, 'O ano de fim não pode ser anterior ao de início.'); el.focus(); el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
-            toast('O ano de fim não pode ser anterior ao de início.', 'aviso');
-            return false;
-        }
-
-        // 3) Formatos específicos (ISSN/ISBN/DOI/URL) e números ≥ 0
+        if (!(ini && fim && fim < ini)) return true;
+        const el = fieldControl(form, { key: 'anoFim' });
+        if (el) { setFieldError(el, 'O ano de fim não pode ser anterior ao de início.'); el.focus(); el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+        toast('O ano de fim não pode ser anterior ao de início.', 'aviso');
+        return false;
+    }
+    // Fase 3 de validateItemFields: formatos específicos (ISSN/ISBN/DOI/URL) e números ≥ 0
+    function validateFieldFormats(def, fields, form) {
         for (const f of def.fields) {
             const raw = fields[f.key];
             // Marcado "Não se aplica" — não valida formato/número. Campos URL
@@ -1904,6 +1929,16 @@ window.TabCatalogar = (function () {
                 }
             }
         }
+        return true;
+    }
+    // Valida obrigatórios + coerência de anos + ISSN/ISBN. Marca erros inline
+    // (única via de validação — o form usa novalidate, sem "balão" nativo).
+    function validateItemFields(def, fields, form) {
+        // limpa erros anteriores dos campos deste tipo
+        def.fields.forEach(f => { const el = fieldControl(form, f); if (el) setFieldError(el, ''); });
+        if (!validateRequiredFields(def, fields, form)) return false;
+        if (!validateYearCoherence(def, fields, form)) return false;
+        if (!validateFieldFormats(def, fields, form)) return false;
         return true;
     }
 
