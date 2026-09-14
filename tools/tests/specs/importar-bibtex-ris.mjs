@@ -47,6 +47,10 @@ async function abrirConfig(page, baseUrl) {
     await page.waitForTimeout(400);
     await page.click('[data-tab="config"]');
     await page.waitForTimeout(200);
+    // Importar/exportar BibTeX/RIS mora na página "Trazer e levar dados" do
+    // menu lateral — não é a página ativa por padrão (Armazenamento é).
+    await page.click('[data-cfg-page-link="grp-fontes"]');
+    await page.waitForTimeout(150);
 }
 
 async function enviarArquivo(page, nome, conteudo) {

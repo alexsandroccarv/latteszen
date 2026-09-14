@@ -13,30 +13,36 @@
    estáveis (onFormPaste/onFormInputDirty), então só há 1 listener de cada
    no <form>, não importa quantas vezes buildForm() rode.
    ========================================================================== */
-import { test, assertEqual, seedCatalog } from '../harness.mjs';
+import { test, assertEqual, seedCatalog, makeItem } from '../harness.mjs';
 
 test('Colar (Ctrl+V) uma única vez não duplica a evidência mesmo após várias edições na mesma sessão', async ({ page, baseUrl }) => {
-    await seedCatalog(page, baseUrl, []);
+    // "Cancelar" só aparece em modo de EDIÇÃO de um item já existente
+    // (state.editingId) — por isso semeia um item real e abre-o via
+    // buildForm(item) direto (mesma chamada que o botão "Editar" da
+    // Conformidade faz), em vez de tentar reproduzir isso pela tela.
+    const item = makeItem('FORMACAO_COMPLEMENTAR', 'FORMACAO', { titulo: 'Curso Teste', instituicao: 'X', anoFim: '2024' });
+    await seedCatalog(page, baseUrl, [item]);
     await page.click('[data-tab="catalogar"]');
     await page.waitForTimeout(150);
 
-    async function abrirEndereco() {
-        await page.selectOption('#selCategoria', 'DADOS_GERAIS');
-        await page.waitForTimeout(100);
-        await page.selectOption('#selTipo', 'ENDERECO');
+    async function abrirEdicao() {
+        await page.evaluate((id) => {
+            const it = window.AppCore.state.items.find((i) => i.id === id);
+            window.AppCore.buildForm(it);
+        }, item.id);
         await page.waitForTimeout(100);
     }
 
     // Simula "N edições numa mesma sessão": cada "Cancelar" chama
     // buildForm() de novo sobre o MESMO <form> persistente (uma 1ª abertura
     // sozinha, sem nenhum Cancelar antes, não reproduzia o bug).
-    await abrirEndereco();
+    await abrirEdicao();
     await page.click('#btnCancelar');
     await page.waitForTimeout(100);
-    await abrirEndereco();
+    await abrirEdicao();
     await page.click('#btnCancelar');
     await page.waitForTimeout(100);
-    await abrirEndereco();
+    await abrirEdicao();
 
     await page.evaluate(() => {
         const form = document.querySelector('#itemForm');

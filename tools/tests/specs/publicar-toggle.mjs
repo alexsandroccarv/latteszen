@@ -11,13 +11,22 @@
    ========================================================================== */
 import { test, assert, assertEqual, seedCatalog, makeItem } from '../harness.mjs';
 
+// O checkbox "Habilitar aba Publicar na Web" mora na página "Outros
+// recursos" do menu lateral de Configurações — não é a página ativa por
+// padrão (Armazenamento é).
+async function abrirOutrosRecursos(page) {
+    await page.click('[data-tab="config"]');
+    await page.waitForTimeout(200);
+    await page.click('[data-cfg-page-link="grp-opcionais"]');
+    await page.waitForTimeout(150);
+}
+
 test('Catálogo vazio (primeira utilização): "Publicar na Web" começa desmarcada/oculta', async ({ page, baseUrl }) => {
     await seedCatalog(page, baseUrl, []);
     const visivel = await page.evaluate(() => !document.querySelector('.tab-btn[data-tab="publicar"]').classList.contains('hidden'));
     assert(!visivel, 'Numa primeira utilização (sem itens, nada salvo ainda), a aba Publicar deveria começar oculta');
 
-    await page.click('[data-tab="config"]');
-    await page.waitForTimeout(200);
+    await abrirOutrosRecursos(page);
     assertEqual(await page.locator('#pubWebEnable').count(), 1, 'O checkbox deveria existir em Configurações');
     const marcado = await page.isChecked('#pubWebEnable');
     assert(!marcado, 'O checkbox deveria vir desmarcado por padrão, como RSC e Súmula FAPESP');
@@ -28,16 +37,14 @@ test('Catálogo com itens já cadastrados (instalação anterior a este padrão)
     const visivel = await page.evaluate(() => !document.querySelector('.tab-btn[data-tab="publicar"]').classList.contains('hidden'));
     assert(visivel, 'Com itens já cadastrados e pubWebEnabled nunca salvo, a aba Publicar deveria continuar habilitada (não quebra quem já usava)');
 
-    await page.click('[data-tab="config"]');
-    await page.waitForTimeout(200);
+    await abrirOutrosRecursos(page);
     const marcado = await page.isChecked('#pubWebEnable');
     assert(marcado, 'O checkbox deveria vir marcado para quem já tinha itens antes desse padrão mudar');
 });
 
 test('Marcar o checkbox habilita a aba "Publicar na Web" na hora; desmarcar de novo a esconde', async ({ page, baseUrl }) => {
     await seedCatalog(page, baseUrl, []);
-    await page.click('[data-tab="config"]');
-    await page.waitForTimeout(200);
+    await abrirOutrosRecursos(page);
 
     await page.click('#pubWebEnable'); // marca
     await page.waitForTimeout(150);
@@ -56,8 +63,7 @@ test('Marcar o checkbox habilita a aba "Publicar na Web" na hora; desmarcar de n
 
 test('Habilitar e recarregar a página: a aba continua visível (fica acionada até ser desmarcada, mesmo padrão de RSC/Súmula)', async ({ page, baseUrl }) => {
     await seedCatalog(page, baseUrl, []);
-    await page.click('[data-tab="config"]');
-    await page.waitForTimeout(200);
+    await abrirOutrosRecursos(page);
     await page.click('#pubWebEnable');
     await page.waitForTimeout(150);
 
@@ -65,8 +71,7 @@ test('Habilitar e recarregar a página: a aba continua visível (fica acionada a
     await page.waitForTimeout(500);
     const visivel = await page.evaluate(() => !document.querySelector('.tab-btn[data-tab="publicar"]').classList.contains('hidden'));
     assert(visivel, 'Depois de recarregar, a aba Publicar deveria continuar visível (preferência persistida)');
-    await page.click('[data-tab="config"]');
-    await page.waitForTimeout(200);
+    await abrirOutrosRecursos(page);
     const marcado = await page.isChecked('#pubWebEnable');
     assert(marcado, 'O checkbox também deveria continuar marcado depois de recarregar');
 });

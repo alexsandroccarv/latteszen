@@ -101,6 +101,10 @@ footer { background: #071D41; color: #dbeafe; }
 footer a, footer button { color: #dbeafe; background: none; border: 0; }
 main { padding: 16px; }
 .tab-btn { padding: 10px 14px; }
+/* .hidden não é só cosmético (esconde a aba RSC/Súmula/Publicar desabilitada,
+   as 3 páginas inativas do menu lateral de Configurações etc.) — sem CDN,
+   ficaria sem efeito algum (é 100% gerada pelo Tailwind, sem isto aqui). */
+.hidden { display: none !important; }
 
 /* ==========================================================================
    Tema: paletas prontas (trazidas do templateZen, "conforme está lá") —

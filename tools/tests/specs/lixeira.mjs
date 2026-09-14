@@ -37,6 +37,10 @@ test('Excluir move para a lixeira; restaurar devolve ao catálogo', async ({ pag
 
     await page.click('[data-tab="config"]');
     await page.waitForTimeout(300);
+    // A Lixeira mora na página "Zona de risco" do menu lateral — não é a
+    // página ativa por padrão (Armazenamento é).
+    await page.click('[data-cfg-page-link="grp-risco"]');
+    await page.waitForTimeout(150);
     await page.click('[data-restaurar]');
     await page.waitForTimeout(300);
     assertEqual((await catalogIds(page)).length, 2, 'Catálogo deveria voltar a ter 2 itens após restaurar');
@@ -56,6 +60,8 @@ test('Excluir definitivamente e "Esvaziar lixeira" removem de vez', async ({ pag
 
     await page.click('[data-tab="config"]');
     await page.waitForTimeout(300);
+    await page.click('[data-cfg-page-link="grp-risco"]');
+    await page.waitForTimeout(150);
     assertEqual((await trashIds(page)).length, 2, 'Lixeira deveria ter 2 itens');
 
     await page.click('[data-purgar]');
