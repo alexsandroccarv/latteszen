@@ -476,20 +476,22 @@ window.TabConfig = (function () {
             // Com um diretório já configurado (local ou Google Drive), a seção
             // "Armazenamento remoto (Google Drive)" não aparece mais aqui —
             // só faz sentido no assistente, antes de configurar (ou depois de
-            // "Esquecer pasta"). "Pasta atual" já indica qual back-end está
-            // em uso; pra trocar, o caminho é "Esquecer pasta" e refazer o
-            // assistente (inclusive pra migrar arquivos locais pro Drive).
+            // "Esquecer diretório de armazenamento"). "Pasta atual" já indica
+            // qual back-end está em uso; pra trocar, o caminho é "Esquecer
+            // diretório de armazenamento" e refazer o assistente (inclusive
+            // pra migrar arquivos locais pro Drive).
             // "Escolher pasta" não aparece mais aqui: com um diretório já
-            // configurado, o caminho pra trocar é "Esquecer pasta" e refazer
-            // o assistente (mostrar o botão de novo aqui era redundante e
-            // confundia com uma troca direta, que não é o que ele faz).
+            // configurado, o caminho pra trocar é "Esquecer diretório de
+            // armazenamento" e refazer o assistente (mostrar o botão de novo
+            // aqui era redundante e confundia com uma troca direta, que não
+            // é o que ele faz).
             dirSectionHtml = `
                 <p class="text-sm mb-1">Pasta atual: <strong id="dirNameLbl">${esc(dirName)}</strong></p>
                 <p class="text-sm mb-3" id="dirHealthStatus">${window.AppCore.dirHealthStatusHtml()}</p>
                 <div class="flex flex-wrap gap-2">
                     <button id="btnSync" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-rotate mr-1"></i> Sincronizar do diretório</button>
                     <button id="btnCheckDir" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-stethoscope mr-1"></i> Verificar pasta</button>
-                    <button id="btnForget" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-link-slash mr-1"></i> Esquecer pasta</button>
+                    <button id="btnForget" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-link-slash mr-1"></i> Esquecer diretório de armazenamento</button>
                 </div>`;
         }
 
@@ -516,9 +518,6 @@ window.TabConfig = (function () {
                     ${gdriveMigrationNotice ? `<div id="gdriveMigrationNotice" class="text-sm mt-3 p-3 rounded border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-300">
                         <i class="fa-solid fa-triangle-exclamation mr-1"></i> ${esc(gdriveMigrationNotice)}
                         <button id="btnDismissGDriveNotice" class="block mt-1 text-xs underline">Entendi, dispensar</button>
-                    </div>` : ''}
-                    ${semDiretorio ? `<div class="mt-4 pt-3 border-t border-gray-200 dark:border-gray-700">
-                        <button id="btnForget" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-link-slash mr-1"></i> Esquecer pasta</button>
                     </div>` : ''}
                 </section>
                 </div>
@@ -649,12 +648,16 @@ window.TabConfig = (function () {
                 render();
             } catch (e) { toast(e.message, 'erro'); }
         });
-        $('#btnForget').addEventListener('click', async () => {
+        // "Esquecer diretório de armazenamento" só existe com um diretório já
+        // configurado (dirSectionHtml do ramo `else` acima) — sem diretório
+        // ainda, não há o que esquecer.
+        const btnForget = $('#btnForget');
+        if (btnForget) btnForget.addEventListener('click', async () => {
             await Storage.forgetDirectory();
             state.dirHealth = null;
             dirWizardModo = null; dirWizardTipo = null; // volta o assistente pro início
             window.AppCore.renderDirBanner();
-            toast('Pasta esquecida — escolha um novo diretório ou pasta no Drive abaixo.', 'ok');
+            toast('Diretório esquecido — escolha um novo diretório ou pasta no Drive abaixo.', 'ok');
             render();
         });
         $$('[data-wizard-modo]').forEach(btn => {

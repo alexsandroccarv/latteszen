@@ -452,8 +452,9 @@
     // Acinzenta/desabilita os botões das abas travadas (com dica explicando
     // o motivo) enquanto Storage.hasDirectory() for falso. Chamada no boot
     // (init, após Storage.restoreDirectory) e sempre que TabConfig re-
-    // renderiza (escolher pasta, "Esquecer pasta", conectar/migrar Google
-    // Drive — todas essas ações já chamam render() em seguida).
+    // renderiza (escolher pasta, "Esquecer diretório de armazenamento",
+    // conectar/migrar Google Drive — todas essas ações já chamam render()
+    // em seguida).
     function applyDirGate() {
         const travado = !dirGateBypass() && !Storage.hasDirectory();
         $$('.tab-btn').forEach(b => {

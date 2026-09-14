@@ -256,7 +256,7 @@ html.lz-theme.dark .dark\:bg-gray-900:not(body, header, header *) { background-c
 /* Bordas neutras: color-mix() em vez de --lz-border puro — em alguns temas
    (ex.: Drácula) --lz-border e --lz-surface são o MESMO tom, então um botão
    com essa borda sobre um card dessa cor ficava com a borda invisível
-   ("Sincronizar do diretório", "Esquecer pasta" etc.). Misturar um pouco da
+   ("Sincronizar do diretório", "Esquecer diretório de armazenamento" etc.). Misturar um pouco da
    cor do texto garante contraste visível contra --lz-surface em qualquer
    tema, sem precisar de um valor extra por paleta. */
 html.lz-theme .border-gray-200,

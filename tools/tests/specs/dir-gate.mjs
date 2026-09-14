@@ -100,7 +100,7 @@ test('Com diretório já configurado, as abas nascem habilitadas e trocar de aba
     assertEqual(ativa, 'catalogar', 'Com diretório configurado, deveria ser possível ir para Catalogar normalmente');
 });
 
-test('"Esquecer pasta" volta a travar as abas na hora (applyDirGate roda a cada render() de Configurações)', async ({ page, baseUrl }) => {
+test('"Esquecer diretório de armazenamento" volta a travar as abas na hora (applyDirGate roda a cada render() de Configurações)', async ({ page, baseUrl }) => {
     await ligarTravaDeVerdade(page);
     await simularDiretorioConfigurado(page, { esqueciveis: true });
     await seedCatalog(page, baseUrl, []);
@@ -113,5 +113,5 @@ test('"Esquecer pasta" volta a travar as abas na hora (applyDirGate roda a cada 
     await page.waitForTimeout(200);
 
     const travada = await page.evaluate(() => document.querySelector('[data-tab="catalogar"]').disabled);
-    assert(travada, 'Depois de "Esquecer pasta", a aba "Catalogar" deveria voltar a ficar desabilitada');
+    assert(travada, 'Depois de "Esquecer diretório de armazenamento", a aba "Catalogar" deveria voltar a ficar desabilitada');
 });
