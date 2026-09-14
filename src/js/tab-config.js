@@ -131,10 +131,19 @@ window.TabConfig = (function () {
                     <input type="file" id="importJson" accept="application/json" class="hidden">
                 </label>`);
     }
-    function jsonExportItemHtml() {
+    function jsonExportItemHtml(dirName) {
+        const sinceBackup = (Storage.loadSettings() || {}).sinceBackup || 0;
+        // Com diretório configurado, itens e configurações já se auto-salvam
+        // lá (um JSON por item + configuracoes.json) — o contador de
+        // "alterações desde o último backup" só é relevante pra quem ainda
+        // não tem diretório (só localStorage, sem esse mecanismo).
+        const backupDetail = dirName
+            ? 'Em dia — itens e configurações sincronizam automaticamente com o diretório'
+            : (sinceBackup ? `${sinceBackup} alteraç${sinceBackup === 1 ? 'ão' : 'ões'} desde o último backup` : 'Em dia — sem alterações desde o último backup');
         return dadosItemHtml('fa-solid fa-file-code', 'lattesZen (JSON)',
             'Exporte todo o catálogo (metadados) e as configurações do sistema (prefixo do identificador, listas de autocomplete, RSC-PCCTAE) num único arquivo JSON — útil pra levar tudo de uma vez a outro computador, ou pra quem ainda não configurou um diretório. Com um diretório configurado, itens e configurações já se auto-salvam lá a cada mudança (basta reescanear o diretório pra recuperar tudo), então este export é um extra, não uma necessidade. Com diretório, o arquivo também é salvo automaticamente na subpasta "Cópia de segurança".', `
-                <button id="btnExport" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-download mr-1"></i> Exportar catálogo</button>`);
+                <button id="btnExport" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-download mr-1"></i> Exportar catálogo</button>
+                <p id="backupStatusHint" class="text-xs text-gray-500 dark:text-gray-400 mt-1.5">${esc(backupDetail)}</p>`);
     }
 
     // "Trazer e levar dados": 2 colunas (Importar / Exportar) reunindo Lattes
@@ -142,9 +151,9 @@ window.TabConfig = (function () {
     // com as explicações que antes ficavam em parágrafos soltos agora num
     // ícone de ajuda "(?)" (title, aparece ao passar o mouse). `id="backupSection"`
     // fica na coluna Exportar pra manter o atalho do card de status "Backup".
-    function dadosImportExportHtml() {
+    function dadosImportExportHtml(dirName) {
         return `
-            <section id="importXmlSection" class="scroll-mt-20 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+            <section id="importXmlSection" class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
                 <h2 class="text-lg font-bold mb-3 flex items-center gap-2"><i aria-hidden="true" class="fa-solid fa-file-import text-govbr-600 dark:text-unifesp-400"></i> Importar</h2>
                 <div class="space-y-3">
                     ${xmlImportItemHtml()}
@@ -153,11 +162,11 @@ window.TabConfig = (function () {
                     ${jsonImportItemHtml()}
                 </div>
             </section>
-            <section id="backupSection" class="scroll-mt-20 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+            <section id="backupSection" class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
                 <h2 class="text-lg font-bold mb-3 flex items-center gap-2"><i aria-hidden="true" class="fa-solid fa-file-export text-govbr-600 dark:text-unifesp-400"></i> Exportar</h2>
                 <div class="space-y-3">
                     ${bibExportItemHtml()}
-                    ${jsonExportItemHtml()}
+                    ${jsonExportItemHtml(dirName)}
                 </div>
             </section>`;
     }
@@ -277,100 +286,42 @@ window.TabConfig = (function () {
         });
     }
 
-    // Grupos de Configurações — fonte única usada tanto pelos divisores
-    // (cfgGroup) quanto pelo índice fixo (cfgIndexHtml), pra manter os dois
-    // sempre em sincronia (mesma ordem, mesmo ícone, mesmo id de âncora).
+    // Grupos de Configurações — fonte única usada tanto pelos títulos de
+    // página (cfgGroup) quanto pelo menu lateral (cfgSidebarHtml), pra manter
+    // os dois sempre em sincronia (mesma ordem, mesmo ícone, mesmo id).
     const CFG_GROUPS = [
-        { id: 'grp-armazenamento', icon: 'fa-folder-tree', label: 'Armazenamento e backup' },
+        { id: 'grp-armazenamento', icon: 'fa-folder-tree', label: 'Armazenamento' },
         { id: 'grp-fontes', icon: 'fa-arrow-right-arrow-left', label: 'Trazer e levar dados' },
-        { id: 'grp-opcionais', icon: 'fa-puzzle-piece', label: 'Recursos opcionais' },
+        { id: 'grp-opcionais', icon: 'fa-puzzle-piece', label: 'Outros recursos' },
         { id: 'grp-risco', icon: 'fa-triangle-exclamation', label: 'Zona de risco' },
     ];
-    // Cabeçalho de grupo das Configurações (divisor de seções) — recebe uma
-    // entrada de CFG_GROUPS. O id vira âncora do índice fixo (scrollIntoView).
+    // Cabeçalho de grupo das Configurações (título dentro da própria página) —
+    // recebe uma entrada de CFG_GROUPS.
     function cfgGroup(g) {
-        return `<h2 id="${g.id}" class="lg:col-span-2 scroll-mt-20 text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 flex items-center gap-2 pt-3 pb-1 border-b border-gray-200 dark:border-gray-700"><i class="fa-solid ${g.icon}"></i> ${esc(g.label)}</h2>`;
+        return `<h2 id="${g.id}" class="lg:col-span-2 text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 flex items-center gap-2 pt-1 pb-1 border-b border-gray-200 dark:border-gray-700"><i class="fa-solid ${g.icon}"></i> ${esc(g.label)}</h2>`;
     }
 
-    // Índice fixo (sticky) com os 8 grupos — fica grudado no topo enquanto o
-    // usuário rola a aba, com destaque (scrollspy) do grupo visível no
-    // momento. Clicar rola suavemente até o grupo.
-    function cfgIndexHtml() {
+    // Menu lateral de Configurações: as 4 seções viram páginas independentes
+    // (só uma visível por vez, ver render()) — clicar troca qual está ativa
+    // (state.cfgActiveGroup) e re-renderiza. No celular vira uma barra
+    // horizontal rolável (ver .cfg-sidebar no CSS/classes abaixo).
+    function cfgSidebarHtml(activeId) {
         return `
-        <nav aria-label="Índice de Configurações" class="sticky top-0 z-10 bg-gray-50/95 dark:bg-gray-900/95 backdrop-blur rounded-lg border border-gray-200 dark:border-gray-700 px-2 py-2">
-            <div class="flex gap-1.5 overflow-x-auto">
-                ${CFG_GROUPS.map(g => `
-                    <a href="#${g.id}" data-cfg-index="${g.id}" class="cfg-index-link shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-medium border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:border-govbr-600 dark:hover:border-unifesp-400 hover:text-govbr-600 dark:hover:text-unifesp-400 whitespace-nowrap">
-                        <i aria-hidden="true" class="fa-solid ${g.icon}"></i> ${esc(g.label)}
-                    </a>`).join('')}
-            </div>
+        <nav aria-label="Seções de Configurações" class="flex lg:flex-col gap-1.5 overflow-x-auto lg:overflow-visible lg:w-48 lg:shrink-0">
+            ${CFG_GROUPS.map(g => `
+                <button type="button" data-cfg-page-link="${g.id}" aria-current="${g.id === activeId ? 'page' : 'false'}" class="shrink-0 flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-left whitespace-nowrap ${g.id === activeId ? 'bg-govbr-600 dark:bg-unifesp-700 text-white' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'}">
+                    <i aria-hidden="true" class="fa-solid ${g.icon}"></i> ${esc(g.label)}
+                </button>`).join('')}
         </nav>`;
     }
-
-    // Um item do card-resumo (checklist) do topo da aba: mostra estado
-    // (ok/aviso/informativo) + detalhe, e é clicável (mesma âncora do índice).
-    function statusItemHtml(tone, icon, label, detail, anchor) {
-        const toneClasses = {
-            ok: 'border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20',
-            warn: 'border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20',
-            info: 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900',
-        };
-        const iconEl = tone === 'ok'
-            ? '<i aria-hidden="true" class="fa-solid fa-circle-check text-green-600 dark:text-green-400"></i>'
-            : `<i aria-hidden="true" class="fa-solid ${icon} ${tone === 'warn' ? 'text-amber-600 dark:text-amber-400' : 'text-govbr-600 dark:text-unifesp-400'}"></i>`;
-        return `<a href="#${anchor}" data-cfg-index="${anchor}" class="flex items-center gap-2 px-3 py-2 rounded-lg border ${toneClasses[tone]} text-sm hover:brightness-95 dark:hover:brightness-125 transition">
-            ${iconEl}
-            <span class="min-w-0"><strong class="block">${esc(label)}</strong><span class="block text-xs text-gray-500 dark:text-gray-400 truncate">${esc(detail)}</span></span>
-        </a>`;
-    }
-    // Card-resumo no topo da aba: dá uma visão de status em segundos, sem
-    // abrir nada — diretório configurado?, backup em dia? Cada item já é um
-    // atalho pra seção correspondente.
-    function statusChecklistHtml(dirName, storageMode) {
-        const sinceBackup = (Storage.loadSettings() || {}).sinceBackup || 0;
-        const dirDetail = dirName ? `${storageMode === 'gdrive' ? 'Google Drive' : 'Pasta local'} — ${dirName}` : 'Não configurado ainda';
-        // Com diretório configurado, itens e configurações já se auto-salvam
-        // lá (um JSON por item + configuracoes.json) — o contador de
-        // "alterações desde o último backup" só é relevante pra quem ainda
-        // não tem diretório (só localStorage, sem esse mecanismo).
-        const backupDetail = dirName
-            ? 'Em dia — itens e configurações sincronizam automaticamente com o diretório'
-            : (sinceBackup ? `${sinceBackup} alteraç${sinceBackup === 1 ? 'ão' : 'ões'} desde o último backup` : 'Em dia — sem alterações desde o último backup');
-        return `
-        <section aria-label="Resumo da configuração" class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            ${statusItemHtml(dirName ? 'ok' : 'warn', 'fa-folder-open', 'Diretório', dirDetail, 'dirSection')}
-            ${statusItemHtml((!dirName && sinceBackup >= 10) ? 'warn' : 'ok', 'fa-clock-rotate-left', 'Backup', backupDetail, 'backupSection')}
-        </section>`;
-    }
-    // Rola suavemente até a âncora (grupo do índice ou item do checklist) e
-    // destaca o grupo correspondente no índice enquanto o usuário rola a aba.
-    let cfgIndexObserver = null;
-    function wireCfgIndex() {
-        $$('[data-cfg-index]').forEach(a => a.addEventListener('click', (e) => {
-            e.preventDefault();
-            const el = document.getElementById(a.dataset.cfgIndex);
-            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    // Troca a seção ativa do menu lateral — reusa render() inteiro (mesmo
+    // padrão já usado por outras ações de Configurações), então toda a
+    // wiring das seções continua funcionando sem duplicar lógica aqui.
+    function wireCfgSidebar() {
+        $$('[data-cfg-page-link]').forEach(b => b.addEventListener('click', () => {
+            state.cfgActiveGroup = b.dataset.cfgPageLink;
+            render();
         }));
-        const links = $$('.cfg-index-link');
-        if (!links.length) return;
-        const ACTIVE = ['bg-govbr-600', 'dark:bg-unifesp-700', 'text-white', 'border-govbr-600', 'dark:border-unifesp-700'];
-        const INACTIVE = ['text-gray-600', 'dark:text-gray-300', 'border-gray-300', 'dark:border-gray-600'];
-        const setActive = (id) => links.forEach(a => {
-            const on = a.dataset.cfgIndex === id;
-            ACTIVE.forEach(c => a.classList.toggle(c, on));
-            INACTIVE.forEach(c => a.classList.toggle(c, !on));
-        });
-        setActive(links[0].dataset.cfgIndex);
-        if (cfgIndexObserver) cfgIndexObserver.disconnect();
-        if (!('IntersectionObserver' in window)) return;
-        const headers = CFG_GROUPS.map(g => document.getElementById(g.id)).filter(Boolean);
-        cfgIndexObserver = new IntersectionObserver((entries) => {
-            const visible = entries.filter(e => e.isIntersecting);
-            if (!visible.length) return;
-            const topMost = visible.reduce((a, b) => (a.boundingClientRect.top < b.boundingClientRect.top ? a : b));
-            setActive(topMost.target.id);
-        }, { rootMargin: '-96px 0px -75% 0px', threshold: 0 });
-        headers.forEach(h => cfgIndexObserver.observe(h));
     }
 
     // Uma linha da lista da Lixeira: título, categoria, há quantos dias foi
@@ -454,6 +405,9 @@ window.TabConfig = (function () {
             let passo = 1;
             const temGDrivePickerKey = !!APP_CONFIG.googlePickerApiKey;
             let html = `
+                <p class="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-full px-2.5 py-1 mb-3">
+                    <i aria-hidden="true" class="fa-solid fa-triangle-exclamation"></i> Diretório: Não configurado ainda
+                </p>
                 <div class="mb-3">
                     <p class="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">${passo++}. Isto é uma primeira configuração, ou você já tem um diretório (local ou no Drive) com itens?</p>
                     <div class="flex flex-wrap gap-2">
@@ -538,14 +492,19 @@ window.TabConfig = (function () {
                 </div>`;
         }
 
+        // Cada seção vira uma "página" independente — só a ativa
+        // (state.cfgActiveGroup, lembrada durante a sessão) fica visível;
+        // as outras 3 continuam no DOM só com `hidden`, então toda a wiring
+        // abaixo (wireThemeSection, wireRscConfig...) continua funcionando
+        // igual, sem precisar saber qual página está aberta.
+        const cfgAtiva = state.cfgActiveGroup || CFG_GROUPS[0].id;
         panel.innerHTML = `
-            <div class="space-y-6">
-                ${cfgIndexHtml()}
-                ${statusChecklistHtml(dirName, storageMode)}
-
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="flex flex-col lg:flex-row gap-6">
+                ${cfgSidebarHtml(cfgAtiva)}
+                <div class="flex-1 min-w-0 space-y-6">
+                <div data-cfg-page="${CFG_GROUPS[0].id}" class="grid grid-cols-1 gap-6 ${cfgAtiva === CFG_GROUPS[0].id ? '' : 'hidden'}">
                 ${cfgGroup(CFG_GROUPS[0])}
-                <section id="dirSection" class="scroll-mt-20 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+                <section id="dirSection" class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
                     <h2 class="text-lg font-bold mb-2 flex items-center gap-2"><i class="fa-solid fa-folder-open text-govbr-600 dark:text-unifesp-400"></i> Diretório de armazenamento</h2>
                     <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
                         Cada item catalogado é salvo aqui como <code class="text-xs bg-gray-200 dark:bg-gray-700 px-1 rounded">ID.pdf</code> +
@@ -561,10 +520,14 @@ window.TabConfig = (function () {
                         <button id="btnForget" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-link-slash mr-1"></i> Esquecer pasta</button>
                     </div>` : ''}
                 </section>
+                </div>
 
+                <div data-cfg-page="${CFG_GROUPS[1].id}" class="grid grid-cols-1 lg:grid-cols-2 gap-6 ${cfgAtiva === CFG_GROUPS[1].id ? '' : 'hidden'}">
                 ${cfgGroup(CFG_GROUPS[1])}
-                ${dadosImportExportHtml()}
+                ${dadosImportExportHtml(dirName)}
+                </div>
 
+                <div data-cfg-page="${CFG_GROUPS[2].id}" class="grid grid-cols-1 lg:grid-cols-2 gap-6 ${cfgAtiva === CFG_GROUPS[2].id ? '' : 'hidden'}">
                 ${cfgGroup(CFG_GROUPS[2])}
                 ${rscSectionHtml()}
                 ${sumulaSectionHtml()}
@@ -617,16 +580,19 @@ window.TabConfig = (function () {
                     </div>
                 </details>
                 ${themeSectionHtml()}
+                </div>
 
+                <div data-cfg-page="${CFG_GROUPS[3].id}" class="grid grid-cols-1 lg:grid-cols-2 gap-6 ${cfgAtiva === CFG_GROUPS[3].id ? '' : 'hidden'}">
                 ${cfgGroup(CFG_GROUPS[3])}
                 ${lixeiraSectionHtml()}
                 <section class="bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800 p-4">
                     <button id="btnClear" class="px-3 py-2 rounded bg-red-600 text-white text-sm"><i class="fa-solid fa-trash mr-1"></i> Limpar catálogo (índice local)</button>
                 </section>
                 </div>
+                </div>
             </div>`;
 
-        wireCfgIndex();
+        wireCfgSidebar();
         wireThemeSection();
         wireRscConfig();
         wireSumulaConfig();

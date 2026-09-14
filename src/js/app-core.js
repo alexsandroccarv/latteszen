@@ -43,6 +43,7 @@ window.AppCore = (function () {
         nuvemCompostas: [], // Linha do tempo: termos de mais de uma palavra tratados como um só (ex.: "tech talks")
         dirHealth: null,    // último resultado de Storage.checkHealth() (null = sem pasta/não verificado)
         itensAberto: false, // seção "Itens" da Conformidade começa recolhida; abre sozinha ao filtrar por um chip/ícone
+        cfgActiveGroup: null, // Configurações: id do grupo (CFG_GROUPS) atualmente visível — null = ainda não visitada nesta sessão, usa o 1º grupo
     };
 
     /* --------------------------- Utilidades ----------------------------- */

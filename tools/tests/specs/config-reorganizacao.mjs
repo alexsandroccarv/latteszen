@@ -2,7 +2,8 @@
    Regressão: reorganização dos grupos de Configurações
    --------------------------------------------------------------------------
    - "Listas de autocomplete" e "Tema" saíram do grupo "Avançado" (removido,
-     ficaria vazio) e passaram a morar dentro de "Recursos opcionais".
+     ficaria vazio) e passaram a morar dentro de "Outros recursos" (ex-
+     "Recursos opcionais").
    - "Lixeira" deixou de ser um grupo próprio e passou para dentro de "Zona
      de risco", lado a lado com "Limpar catálogo" (mesma linha da grade).
    - A seção inteira "Sobre e suporte" foi excluída da página.
@@ -17,17 +18,17 @@ async function abrirConfig(page, baseUrl) {
 
 test('"Avançado" e "Sobre e suporte" não existem mais como grupos de Configurações', async ({ page, baseUrl }) => {
     await abrirConfig(page, baseUrl);
-    const grupos = await page.$$eval('[data-cfg-index]', (els) => els.map((el) => el.textContent.trim()));
-    assert(!grupos.some((g) => /avançado/i.test(g)), 'O grupo "Avançado" não deveria mais existir no índice');
-    assert(!grupos.some((g) => /sobre e suporte/i.test(g)), 'O grupo "Sobre e suporte" não deveria mais existir no índice');
-    assert(grupos.some((g) => /recursos opcionais/i.test(g)), 'O grupo "Recursos opcionais" deveria continuar existindo');
+    const grupos = await page.$$eval('[data-cfg-page-link]', (els) => els.map((el) => el.textContent.trim()));
+    assert(!grupos.some((g) => /avançado/i.test(g)), 'O grupo "Avançado" não deveria mais existir no menu lateral');
+    assert(!grupos.some((g) => /sobre e suporte/i.test(g)), 'O grupo "Sobre e suporte" não deveria mais existir no menu lateral');
+    assert(grupos.some((g) => /outros recursos/i.test(g)), 'O grupo "Outros recursos" deveria continuar existindo');
     assert(grupos.some((g) => /zona de risco/i.test(g)), 'O grupo "Zona de risco" deveria continuar existindo');
 
     const texto = await page.$eval('#tab-config', (el) => el.textContent);
     assert(!texto.includes('Sobre o lattesZen'), 'A seção "Sobre o lattesZen" não deveria mais aparecer em Configurações');
 });
 
-test('"Listas de autocomplete" e "Tema" aparecem dentro do grupo "Recursos opcionais"', async ({ page, baseUrl }) => {
+test('"Listas de autocomplete" e "Tema" aparecem dentro do grupo "Outros recursos"', async ({ page, baseUrl }) => {
     await abrirConfig(page, baseUrl);
     const ordem = await page.evaluate(() => {
         const panel = document.querySelector('#tab-config');
@@ -39,9 +40,9 @@ test('"Listas de autocomplete" e "Tema" aparecem dentro do grupo "Recursos opcio
         return { idxOpcionais, idxRisco, idxAutocomplete, idxTema };
     });
     assert(ordem.idxAutocomplete > ordem.idxOpcionais && ordem.idxAutocomplete < ordem.idxRisco,
-        '"Listas de autocomplete" deveria estar entre o início de "Recursos opcionais" e "Zona de risco"');
+        '"Listas de autocomplete" deveria estar entre o início de "Outros recursos" e "Zona de risco"');
     assert(ordem.idxTema > ordem.idxOpcionais && ordem.idxTema < ordem.idxRisco,
-        'A seção de Tema deveria estar entre o início de "Recursos opcionais" e "Zona de risco"');
+        'A seção de Tema deveria estar entre o início de "Outros recursos" e "Zona de risco"');
 });
 
 test('"Lixeira" e "Limpar catálogo" ficam lado a lado dentro de "Zona de risco" (sem col-span-2 na Lixeira)', async ({ page, baseUrl }) => {
