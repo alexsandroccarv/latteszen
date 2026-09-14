@@ -27,7 +27,12 @@ test('Sincronização manual mescla por id (mantém locais, atualiza/soma da pas
     await page.reload();
     await page.waitForTimeout(500);
 
+    // "Sincronizar do diretório" só aparece com um diretório já configurado
+    // (ver dir-wizard.mjs) — simula isso junto com a pasta simulada.
     await page.evaluate((idA) => {
+        window.Storage.hasDirectory = () => true;
+        window.Storage.directoryName = async () => 'PastaFake';
+        window.Storage.checkHealth = async () => ({ ok: true, hasDir: true });
         window.Storage.scanDirectory = async () => ([
             Object.assign({}, JSON.parse(JSON.stringify({
                 id: idA, createdAt: '2020-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z', source: 'local', lattesItem: false,
@@ -42,12 +47,8 @@ test('Sincronização manual mescla por id (mantém locais, atualiza/soma da pas
 
     await page.click('[data-tab="config"]');
     await page.waitForTimeout(300);
-    // Sem diretório configurado, a seção mostra o assistente guiado — navega
-    // até "Já tenho um diretório" > "Local" pra revelar o botão de sincronizar.
-    await page.click('[data-wizard-modo="existente"]');
-    await page.waitForTimeout(50);
-    await page.click('[data-wizard-tipo="local"]');
-    await page.waitForTimeout(50);
+    // Com o diretório simulado acima, a seção já mostra o painel "Pasta
+    // atual" (não o assistente) — "Sincronizar do diretório" aparece direto.
     await page.click('#btnSync');
     await page.waitForTimeout(400);
 

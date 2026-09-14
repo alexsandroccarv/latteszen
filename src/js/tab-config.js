@@ -1,3 +1,20 @@
+// lattesZen — Copyright (C) 2026 Alexsandro Cardoso Carvalho
+//
+// This file is part of lattesZen.
+//
+// lattesZen is free software: you can redistribute it and/or modify it
+// under the terms of the GNU Affero General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or (at
+// your option) any later version.
+//
+// lattesZen is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
+// License for more details.
+//
+// You should have received a copy of the GNU Affero General Public License
+// along with lattesZen. If not, see <https://www.gnu.org/licenses/>.
+
 /* ==========================================================================
    lattesZen — Aba Configurações (última aba extraída de app.js)
    --------------------------------------------------------------------------
@@ -324,7 +341,16 @@ window.TabConfig = (function () {
     // wiring das seções continua funcionando sem duplicar lógica aqui.
     function wireCfgSidebar() {
         $$('[data-cfg-page-link]').forEach(b => b.addEventListener('click', () => {
-            state.cfgActiveGroup = b.dataset.cfgPageLink;
+            const groupId = b.dataset.cfgPageLink;
+            // Trava real (não só visual): mesmo que o botão desabilitado
+            // seja clicado por algum outro caminho, sem diretório
+            // configurado a troca de página não acontece (mesmo padrão do
+            // guard de switchTab() em app.js).
+            if (window.AppCore.cfgGroupGated(groupId)) {
+                toast('Configure um diretório de armazenamento em Configurações › Armazenamento antes de usar esta seção.', 'aviso');
+                return;
+            }
+            state.cfgActiveGroup = groupId;
             render();
         }));
     }
@@ -452,7 +478,6 @@ window.TabConfig = (function () {
                 html += `
                 <div class="flex flex-wrap gap-2">
                     <button id="btnChooseDir" class="px-3 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm" ${Storage.supportsFS ? '' : 'disabled'}><i class="fa-solid fa-folder mr-1"></i> Escolher pasta</button>
-                    ${dirWizardModo === 'existente' ? `<button id="btnSync" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-rotate mr-1"></i> Sincronizar do diretório</button>` : ''}
                 </div>
                 ${Storage.supportsFS ? '' : '<p class="text-xs text-red-600 font-semibold mt-1">Pasta local não funciona neste navegador (em celular, nenhum navegador suporta — nem trocando de app; no computador, funciona só em Chrome ou Edge). Volte e escolha "Google Drive" em vez disso.</p>'}
                 ${dirWizardModo === 'existente' ? '<p class="text-xs text-gray-500 mt-1">"Escolher pasta" abre o seletor do sistema — selecione a pasta que você já usa; o nome dela é usado automaticamente, não precisa digitar nada.</p>' : ''}`;
@@ -505,7 +530,15 @@ window.TabConfig = (function () {
         // as outras 3 continuam no DOM só com `hidden`, então toda a wiring
         // abaixo (wireThemeSection, wireRscConfig...) continua funcionando
         // igual, sem precisar saber qual página está aberta.
-        const cfgAtiva = state.cfgActiveGroup || CFG_GROUPS[0].id;
+        let cfgAtiva = state.cfgActiveGroup || CFG_GROUPS[0].id;
+        // Defensivo: se a página ativa ficou travada (ex.: "Esquecer
+        // diretório de armazenamento" enquanto "Outros recursos" estava
+        // aberta), volta pra "Armazenamento" em vez de renderizar uma
+        // página que deveria estar bloqueada.
+        if (window.AppCore.cfgGroupGated(cfgAtiva)) {
+            cfgAtiva = CFG_GROUPS[0].id;
+            state.cfgActiveGroup = cfgAtiva;
+        }
         panel.innerHTML = `
             <div class="flex flex-col lg:flex-row gap-6">
                 ${cfgSidebarHtml(cfgAtiva)}
@@ -597,6 +630,11 @@ window.TabConfig = (function () {
                 </div>
             </div>`;
 
+        // Reaplica a trava aqui (não só no topo desta função): o menu
+        // lateral acabou de ser recriado por innerHTML acima, então os
+        // botões travados no topo (antes desta re-renderização) já não
+        // existem mais — precisa rodar de novo sobre os novos.
+        window.AppCore.applyDirGate();
         wireCfgSidebar();
         wireThemeSection();
         wireRscConfig();
