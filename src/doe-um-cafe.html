@@ -21,8 +21,8 @@
             if (localStorage.getItem('altoContraste') === '1') htmlEl.classList.add('high-contrast');
             // Tema (paletas prontas, escolhidas em Configurações): aplicar cedo
             // para evitar "flash" — mesma lógica de dark/altoContraste acima.
-            const temaPreset = localStorage.getItem('lz_tema_preset');
-            if (temaPreset && temaPreset !== 'padrao') {
+            const temaPreset = localStorage.getItem('lz_tema_preset') || 'govbr';
+            if (temaPreset !== 'padrao') {
                 htmlEl.classList.add('lz-theme');
                 htmlEl.setAttribute('data-lz-theme', temaPreset);
             }
@@ -57,12 +57,12 @@
             loadCss('https://cdngovbr-ds.estaleiro.serpro.gov.br/design-system/fonts/rawline/css/rawline.css');
 
             // Tema: fontes do Google por paleta (carregadas sob demanda —
-            // "Padrão" e "gov.br" usam fonte já carregada acima, sem CDN extra).
+            // "lattesZen noite" e "lattesZen dia" usam fonte já carregada acima, sem CDN extra).
             var THEME_FONTS = {
                 'catppuccin-latte': 'https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap',
                 'catppuccin-mocha': 'https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap',
                 dracula: 'https://fonts.googleapis.com/css2?family=Fira+Sans:wght@400;600;700&display=swap',
-                // gov.br usa a Rawline já carregada acima (sem CDN extra); GitHub
+                // lattesZen dia (govbr) usa a Rawline já carregada acima (sem CDN extra); GitHub
                 // Light/Dark usam a fonte do sistema — por isso não têm entrada aqui.
                 'rose-pine-dawn': 'https://fonts.googleapis.com/css2?family=Quicksand:wght@400;600;700&display=swap',
                 'solarized-light': 'https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&display=swap',
@@ -84,8 +84,8 @@
                 var c = getComputedStyle(document.documentElement).getPropertyValue('--lz-header').trim();
                 m.setAttribute('content', c || '#1351B4');
             };
-            var temaAtivo = localStorage.getItem('lz_tema_preset');
-            if (temaAtivo && temaAtivo !== 'padrao') window.__loadThemeFont(temaAtivo);
+            var temaAtivo = localStorage.getItem('lz_tema_preset') || 'govbr';
+            if (temaAtivo !== 'padrao') window.__loadThemeFont(temaAtivo);
             window.__setThemeColor();
         })();
     </script>
@@ -324,7 +324,7 @@
             // Links/códigos de afiliados: preencha "codigo" e/ou "url" de cada parceria
             // já confirmada. Enquanto ficarem vazios, o cartão mostra "Em breve".
             var AFFILIATES = [
-                { nome: 'Preply', icon: 'fa-solid fa-chalkboard-user', desc: 'Desconto de 70% para aulas — qualquer matéria, qualquer professor.', codigo: 'MjM0NzYzMTU=', url: 'https://preply.com/pt/?pref=MjM0NzYzMTU=&id=1787109331.653596&ep=a1' },
+                { nome: 'Preply', icon: 'fa-solid fa-chalkboard-user', desc: 'Desconto de 70% para aulas — qualquer matéria, qualquer docente.', codigo: 'MjM0NzYzMTU=', url: 'https://preply.com/pt/?pref=MjM0NzYzMTU=&id=1787109331.653596&ep=a1' },
                 { nome: 'Parafuzo', icon: 'fa-solid fa-broom', desc: 'Diarista/faxina online: agende pelo site ou app e pague por hora contratada.', codigo: 'HGJED8A45DD61D56', url: 'https://parafuzo.com/limpeza/contratar/padrao/?utm_medium=mgm&utm_source=tela-saldo&utm_campaign=Q3VzdG9tZXJVc2VyOjY4NDUwMTUwNDIxYWE5MDAwZjgyYjUzMA==&cupom=HGJED8A45DD61D56' },
                 { nome: 'Airbnb', icon: 'fa-brands fa-airbnb', desc: 'Desconto na primeira hospedagem usando este link.', codigo: 'iZfy7IrKgxEW7aJA', url: 'https://www.airbnb.com/c/iZfy7IrKgxEW7aJA' },
                 { nome: 'Genera', icon: 'fa-solid fa-dna', desc: 'Desconto nos testes de DNA — cupom válido só no pacote Premium.', codigo: 'GEN-L40EZ', url: 'http://bit.ly/3h2s3R7' },

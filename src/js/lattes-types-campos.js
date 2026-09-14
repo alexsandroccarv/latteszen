@@ -66,9 +66,9 @@ const QTD_FUNDAMENTAL = { key: 'qtdEnsinoFundamental', label: 'Ensino Fundamenta
 const QTD_MEDIO = { key: 'qtdEnsinoMedio', label: 'Ensino Médio (2º grau)', type: 'number', row: 'qtdAlunos' };
 
 const projetoEquipeField = (label, addLabel) => ({ key: 'equipe', label: label || 'Equipe', type: 'repeater',
-    addLabel: addLabel || 'Adicionar pesquisador', columns: [
+    addLabel: addLabel || 'Adicionar integrante da equipe', columns: [
         { key: 'nome', label: 'Nome', type: 'text', required: true },
-        { key: 'coordenador', label: 'Coordenador(a)', type: 'checkbox' }] });
+        { key: 'coordenador', label: 'Coordenação', type: 'checkbox' }] });
 // "Informe os dados da instituição": Nome, Sigla, País, UF — UF só habilita
 // quando País = Brasil (comparação sem acento/maiúscula, via enabledWhenCol).
 // Reutilizado em toda coluna/campo "instituição" da categoria Projetos.
@@ -127,7 +127,7 @@ const projetoFieldsPadrao = (extraQtdAntes, tituloLabel, natSitRow) => [
     { key: 'potencialInovacaoDescricao', label: 'Qual o potencial de inovação do projeto?', type: 'textarea', disabledWhen: { field: 'potencialInovacao', in: ['', 'Não'] } },
     ...projetoInstituicaoExecucaoFields(),
     { key: 'orgaoUnidade', label: 'Órgão/Unidade', type: 'text' },
-    projetoEquipeField('Equipe', 'Adicionar pesquisador'),
+    projetoEquipeField('Equipe', 'Adicionar integrante da equipe'),
     projetoInstituicoesEnvolvidasField(),
     ...(extraQtdAntes || []), ...QTD_ALUNOS_BASE,
     projetoFinanciadoresField(), projetoProducoesField(), projetoOrientacoesField(),

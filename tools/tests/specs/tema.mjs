@@ -1,12 +1,17 @@
 /* ==========================================================================
    Regressão: seletor de Tema (Configurações), trazido do templateZen
    --------------------------------------------------------------------------
-   - "Padrão" (default) não aplica nenhuma classe/atributo de tema.
+   - "lattesZen dia" (govbr) é o tema padrão — aplicado mesmo sem nada
+     escolhido ainda (data-lz-theme="govbr" + classe lz-theme).
+   - "lattesZen noite" (padrao) é a única opção que não aplica nenhuma
+     classe/atributo de tema (só o CSS-base) — "gov.br" e "Padrão (gov.br)"
+     eram dois nomes conflitantes pro mesmo visual gov.br, agora viraram
+     esse par "dia"/"noite".
    - Escolher um tema aplica a classe .lz-theme + data-lz-theme no <html> e
      persiste no localStorage (lz_tema_preset).
    - O tema persiste entre reloads e entre páginas diferentes (a lógica de
      aplicação cedo roda em qualquer página, não só index.html).
-   - Voltar para "Padrão" remove a classe/atributo.
+   - Voltar para "lattesZen noite" (padrao) remove a classe/atributo.
    ========================================================================== */
 import { test, assert, assertEqual } from '../harness.mjs';
 
@@ -17,24 +22,30 @@ async function abrirConfig(page, baseUrl) {
     await page.waitForTimeout(200);
 }
 
-test('Seletor de tema existe em Configurações, com "Padrão" pré-selecionado', async ({ page, baseUrl }) => {
+test('Seletor de tema existe em Configurações, com "lattesZen dia" (govbr) pré-selecionado por padrão', async ({ page, baseUrl }) => {
     await abrirConfig(page, baseUrl);
     const sel = await page.$('#themeSelect');
     assert(sel, 'O seletor de tema deveria existir em Configurações');
     const valor = await page.$eval('#themeSelect', (el) => el.value);
-    assertEqual(valor, 'padrao', 'Sem nada escolhido, o tema deveria estar em "Padrão"');
+    assertEqual(valor, 'govbr', 'Sem nada escolhido, o tema padrão deveria ser "lattesZen dia" (govbr)');
     const htmlClasses = await page.$eval('html', (el) => el.className);
-    assert(!htmlClasses.includes('lz-theme'), 'Sem tema escolhido, a classe lz-theme não deveria estar presente');
+    assert(htmlClasses.includes('lz-theme'), 'Com "lattesZen dia" como padrão, a classe lz-theme já deveria estar presente sem nada escolhido');
+    const temaAttr = await page.$eval('html', (el) => el.getAttribute('data-lz-theme'));
+    assertEqual(temaAttr, 'govbr', 'data-lz-theme deveria ser "govbr" por padrão, sem nada escolhido ainda');
 });
 
-test('Lista de temas corresponde exatamente à do templateZen (+ "Padrão")', async ({ page, baseUrl }) => {
+test('Lista de temas corresponde exatamente à do templateZen (+ "lattesZen dia"/"lattesZen noite")', async ({ page, baseUrl }) => {
     await abrirConfig(page, baseUrl);
     const valores = await page.$$eval('#themeSelect option', (opts) => opts.map((o) => o.value));
     assertEqual(valores, [
-        'padrao', 'catppuccin-latte', 'catppuccin-mocha', 'dracula',
-        'github-light', 'github-dark', 'govbr', 'rose-pine-dawn',
+        'govbr', 'padrao', 'catppuccin-latte', 'catppuccin-mocha', 'dracula',
+        'github-light', 'github-dark', 'rose-pine-dawn',
         'solarized-light', 'solarized-dark',
     ], `Lista de temas incorreta — obtida: ${JSON.stringify(valores)}`);
+
+    const rotulos = await page.$$eval('#themeSelect option', (opts) => Object.fromEntries(opts.map((o) => [o.value, o.textContent.trim()])));
+    assertEqual(rotulos.govbr, 'lattesZen dia', 'O tema "govbr" deveria se chamar "lattesZen dia" (não mais "gov.br")');
+    assertEqual(rotulos.padrao, 'lattesZen noite', 'O tema "padrao" deveria se chamar "lattesZen noite" (não mais "Padrão (gov.br)")');
 });
 
 test('Escolher um tema aplica data-lz-theme + classe lz-theme e persiste', async ({ page, baseUrl }) => {
@@ -65,7 +76,7 @@ test('Tema persiste em outras páginas (ex.: ajuda.html), não só no index.html
     assertEqual(temaAttr, 'rose-pine-dawn', 'O tema escolhido deveria se aplicar em qualquer página, não só index.html');
 });
 
-test('Voltar para "Padrão" remove a classe/atributo de tema', async ({ page, baseUrl }) => {
+test('Voltar para "lattesZen noite" (padrao) remove a classe/atributo de tema', async ({ page, baseUrl }) => {
     await abrirConfig(page, baseUrl);
     await page.selectOption('#themeSelect', 'catppuccin-mocha');
     await page.waitForTimeout(150);
@@ -73,9 +84,9 @@ test('Voltar para "Padrão" remove a classe/atributo de tema', async ({ page, ba
     await page.waitForTimeout(150);
 
     const temAtributo = await page.$eval('html', (el) => el.hasAttribute('data-lz-theme'));
-    assert(!temAtributo, 'data-lz-theme não deveria mais existir ao voltar para Padrão');
+    assert(!temAtributo, 'data-lz-theme não deveria mais existir ao voltar para "lattesZen noite"');
     const temClasse = await page.$eval('html', (el) => el.classList.contains('lz-theme'));
-    assert(!temClasse, 'A classe lz-theme não deveria mais existir ao voltar para Padrão');
+    assert(!temClasse, 'A classe lz-theme não deveria mais existir ao voltar para "lattesZen noite"');
     const salvo = await page.evaluate(() => localStorage.getItem('lz_tema_preset'));
     assertEqual(salvo, 'padrao', 'O valor salvo deveria refletir "padrao"');
 });

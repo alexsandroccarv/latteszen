@@ -21,8 +21,8 @@
             if (localStorage.getItem('altoContraste') === '1') htmlEl.classList.add('high-contrast');
             // Tema (paletas prontas, escolhidas em Configurações): aplicar cedo
             // para evitar "flash" — mesma lógica de dark/altoContraste acima.
-            const temaPreset = localStorage.getItem('lz_tema_preset');
-            if (temaPreset && temaPreset !== 'padrao') {
+            const temaPreset = localStorage.getItem('lz_tema_preset') || 'govbr';
+            if (temaPreset !== 'padrao') {
                 htmlEl.classList.add('lz-theme');
                 htmlEl.setAttribute('data-lz-theme', temaPreset);
             }
@@ -57,12 +57,12 @@
             loadCss('https://cdngovbr-ds.estaleiro.serpro.gov.br/design-system/fonts/rawline/css/rawline.css');
 
             // Tema: fontes do Google por paleta (carregadas sob demanda —
-            // "Padrão" e "gov.br" usam fonte já carregada acima, sem CDN extra).
+            // "lattesZen noite" e "lattesZen dia" usam fonte já carregada acima, sem CDN extra).
             var THEME_FONTS = {
                 'catppuccin-latte': 'https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap',
                 'catppuccin-mocha': 'https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap',
                 dracula: 'https://fonts.googleapis.com/css2?family=Fira+Sans:wght@400;600;700&display=swap',
-                // gov.br usa a Rawline já carregada acima (sem CDN extra); GitHub
+                // lattesZen dia (govbr) usa a Rawline já carregada acima (sem CDN extra); GitHub
                 // Light/Dark usam a fonte do sistema — por isso não têm entrada aqui.
                 'rose-pine-dawn': 'https://fonts.googleapis.com/css2?family=Quicksand:wght@400;600;700&display=swap',
                 'solarized-light': 'https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&display=swap',
@@ -84,8 +84,8 @@
                 var c = getComputedStyle(document.documentElement).getPropertyValue('--lz-header').trim();
                 m.setAttribute('content', c || '#1351B4');
             };
-            var temaAtivo = localStorage.getItem('lz_tema_preset');
-            if (temaAtivo && temaAtivo !== 'padrao') window.__loadThemeFont(temaAtivo);
+            var temaAtivo = localStorage.getItem('lz_tema_preset') || 'govbr';
+            if (temaAtivo !== 'padrao') window.__loadThemeFont(temaAtivo);
             window.__setThemeColor();
         })();
     </script>
@@ -227,7 +227,7 @@
 
         <section class="card" id="responsabilidade">
           <h2><i class="fa-solid fa-triangle-exclamation text-govbr-600 dark:text-unifesp-400"></i> 4. Sua responsabilidade</h2>
-          <p>Como todo o processamento ocorre localmente no seu navegador e computador (veja a <a href="privacidade.html">Política de Privacidade</a>), <strong>você é o único responsável pela guarda e integridade dos seus dados</strong>. O autor e mantenedor do lattesZen não se responsabiliza por:</p>
+          <p>Como todo o processamento ocorre localmente no seu navegador e computador (veja a <a href="privacidade.html">Política de Privacidade</a>), <strong>você é o único responsável pela guarda e integridade dos seus dados</strong>. A pessoa autora e mantenedora do lattesZen não se responsabiliza por:</p>
           <ul>
             <li>Perda de dados, arquivos ou evidências cadastradas — <strong>faça backups com frequência</strong> (Configurações › Backup).</li>
             <li>Erros, omissões ou inconsistências na página pública gerada, ou em qualquer documento produzido pela ferramenta — <strong>confira sempre</strong> antes de enviar/publicar.</li>
@@ -252,7 +252,7 @@
 
         <section class="card" id="propriedade">
           <h2><i class="fa-solid fa-code text-govbr-600 dark:text-unifesp-400"></i> 8. Propriedade intelectual</h2>
-          <p>O código-fonte do lattesZen é aberto e está disponível no <a href="https://github.com/alexsandroccarv/lattesZen" target="_blank" rel="noopener">repositório do projeto</a>, sob a licença <a href="https://www.gnu.org/licenses/agpl-3.0.html" target="_blank" rel="noopener">AGPLv3</a>: qualquer pessoa pode ler, usar, modificar e redistribuir o código, respeitando os termos dessa licença. Os dados do seu currículo cadastrados na ferramenta continuam sendo seus, sem qualquer cessão de direitos ao mantenedor do projeto.</p>
+          <p>O código-fonte do lattesZen é aberto e está disponível no <a href="https://github.com/alexsandroccarv/lattesZen" target="_blank" rel="noopener">repositório do projeto</a>, sob a licença <a href="https://www.gnu.org/licenses/agpl-3.0.html" target="_blank" rel="noopener">AGPLv3</a>: qualquer pessoa pode ler, usar, modificar e redistribuir o código, respeitando os termos dessa licença. Os dados do seu currículo cadastrados na ferramenta continuam sendo seus, sem qualquer cessão de direitos à pessoa mantenedora do projeto.</p>
         </section>
 
         <section class="card" id="alteracoes">
