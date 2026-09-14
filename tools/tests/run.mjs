@@ -39,6 +39,7 @@ import './specs/pwa-atualizacao.mjs';
 import './specs/ajuda-rodape.mjs';
 import './specs/rsc-prompt-ia.mjs';
 import './specs/linha-tempo.mjs';
+import './specs/rede-colaboracao.mjs';
 import './specs/perfil-identificacao.mjs';
 import './specs/formacao-complementar.mjs';
 import './specs/area-atuacao-ordem.mjs';
