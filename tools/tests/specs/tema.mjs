@@ -80,6 +80,33 @@ test('Tema persiste em outras páginas (ex.: ajuda.html), não só no index.html
     assertEqual(temaAttr, 'rose-pine-dawn', 'O tema escolhido deveria se aplicar em qualquer página, não só index.html');
 });
 
+// Regressão: nas páginas de apoio (.help-doc/.cafe-doc), o conteúdo (cards,
+// links, notas) tinha sua própria paleta claro/escuro fixa (--hdoc-*/--cafe-*)
+// que ignorava o tema escolhido — só o cabeçalho/rodapé reagiam. Confere que
+// as variáveis de conteúdo agora herdam do tema ativo (--lz-*).
+const PAGINAS_COM_CONTEUDO_TEMATIZADO = [
+    ['privacidade.html', 'hdoc'], ['termodeuso.html', 'hdoc'], ['ajuda.html', 'hdoc'],
+    ['sobre.html', 'hdoc'], ['notas-de-versao.html', 'hdoc'], ['doe-um-cafe.html', 'cafe'],
+];
+for (const [pagina, prefixo] of PAGINAS_COM_CONTEUDO_TEMATIZADO) {
+    test(`${pagina}: escolher um tema também muda a cor do conteúdo (--${prefixo}-accent), não só cabeçalho/rodapé`, async ({ page, baseUrl }) => {
+        await page.goto(baseUrl + '/index.html');
+        await page.evaluate(() => localStorage.setItem('lz_tema_preset', 'dracula'));
+        await page.goto(baseUrl + '/' + pagina);
+        await page.waitForTimeout(300);
+
+        const vars = await page.evaluate((p) => {
+            const cs = getComputedStyle(document.documentElement);
+            return {
+                contentAccent: cs.getPropertyValue(`--${p}-accent`).trim(),
+                lzAccent: cs.getPropertyValue('--lz-accent').trim(),
+            };
+        }, prefixo);
+        assert(vars.lzAccent, `${pagina}: --lz-accent deveria estar definido com o tema Drácula ativo`);
+        assertEqual(vars.contentAccent, vars.lzAccent, `${pagina}: --${prefixo}-accent deveria seguir --lz-accent do tema escolhido (Drácula), não o azul padrão fixo`);
+    });
+}
+
 test('Voltar para "lattesZen noite" (padrao) remove a classe/atributo de tema', async ({ page, baseUrl }) => {
     await abrirConfig(page, baseUrl);
     await page.selectOption('#themeSelect', 'catppuccin-mocha');

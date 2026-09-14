@@ -1,3 +1,20 @@
+// lattesZen — Copyright (C) 2026 Alexsandro Cardoso Carvalho
+//
+// This file is part of lattesZen.
+//
+// lattesZen is free software: you can redistribute it and/or modify it
+// under the terms of the GNU Affero General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or (at
+// your option) any later version.
+//
+// lattesZen is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
+// License for more details.
+//
+// You should have received a copy of the GNU Affero General Public License
+// along with lattesZen. If not, see <https://www.gnu.org/licenses/>.
+
 /* ==========================================================================
    lattesZen — Orquestrador principal (SPA)
    ========================================================================== */
@@ -441,6 +458,11 @@
     // sempre livres: é lá que mora o assistente de escolha do diretório (e
     // Início já linka pra lá em "Primeiros passos").
     const DIR_GATED_TABS = ['catalogar', 'conformidade', 'linhatempo', 'publicar', 'rsc', 'sumula'];
+    // Mesma trava, agora também para 3 das 4 páginas do menu lateral de
+    // Configurações — só "Armazenamento" (onde mora o assistente de escolha
+    // do diretório) fica sempre livre; "Trazer e levar dados", "Outros
+    // recursos" e "Zona de risco" dependem de já haver um diretório.
+    const DIR_GATED_CFG_GROUPS = ['grp-fontes', 'grp-opcionais', 'grp-risco'];
     // Trava real desligável só em teste (window.__LZ_TEST_SKIP_DIR_GATE) —
     // mesmo padrão de window.__LZ_TEST_ANALYTICS_ID em config.js: sem isto,
     // toda a suíte de regressão (que semeia o catálogo direto no
@@ -449,16 +471,32 @@
     // padrão em todo teste; tools/tests/specs/dir-gate.mjs desliga pra
     // testar a trava de verdade.
     function dirGateBypass() { return typeof window !== 'undefined' && !!window.__LZ_TEST_SKIP_DIR_GATE; }
+    // Usado tanto pelo menu lateral (wireCfgSidebar) quanto pelo cálculo
+    // defensivo de cfgAtiva em tab-config.js's render() — mesma trava real
+    // (não só visual) que switchTab() já aplica às abas de nível superior.
+    function cfgGroupGated(groupId) {
+        return DIR_GATED_CFG_GROUPS.includes(groupId) && !dirGateBypass() && !Storage.hasDirectory();
+    }
+    window.AppCore.cfgGroupGated = cfgGroupGated;
     // Acinzenta/desabilita os botões das abas travadas (com dica explicando
     // o motivo) enquanto Storage.hasDirectory() for falso. Chamada no boot
     // (init, após Storage.restoreDirectory) e sempre que TabConfig re-
     // renderiza (escolher pasta, "Esquecer diretório de armazenamento",
     // conectar/migrar Google Drive — todas essas ações já chamam render()
-    // em seguida).
+    // em seguida). Também trava os mesmos 3 links do menu lateral de
+    // Configurações (ver DIR_GATED_CFG_GROUPS acima).
     function applyDirGate() {
         const travado = !dirGateBypass() && !Storage.hasDirectory();
         $$('.tab-btn').forEach(b => {
             if (!DIR_GATED_TABS.includes(b.dataset.tab)) return;
+            b.disabled = travado;
+            b.classList.toggle('opacity-40', travado);
+            b.classList.toggle('cursor-not-allowed', travado);
+            b.classList.toggle('pointer-events-none', travado);
+            b.title = travado ? 'Configure um diretório de armazenamento em Configurações › Armazenamento antes de usar esta seção' : '';
+        });
+        $$('[data-cfg-page-link]').forEach(b => {
+            if (!DIR_GATED_CFG_GROUPS.includes(b.dataset.cfgPageLink)) return;
             b.disabled = travado;
             b.classList.toggle('opacity-40', travado);
             b.classList.toggle('cursor-not-allowed', travado);

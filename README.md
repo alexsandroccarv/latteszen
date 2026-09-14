@@ -114,8 +114,21 @@ do projeto.
 
 ## Licença
 
-Distribuído sob a **GNU Affero General Public License v3.0 (AGPLv3)**.
-Consulte <https://www.gnu.org/licenses/agpl-3.0.html>.
+Distribuído sob a **GNU Affero General Public License v3.0 (AGPLv3)**, ou,
+a critério de quem redistribui, qualquer versão posterior. Consulte
+<https://www.gnu.org/licenses/agpl-3.0.html>.
+
+Documentação em conformidade com as recomendações da FSF em
+["Como usar as licenças GNU para o seu próprio software"](https://www.gnu.org/licenses/gpl-howto.html):
+
+- O texto completo da licença está no arquivo [`LICENSE`](LICENSE) (mesmo
+  conteúdo que o arquivo `COPYING` das recomendações da FSF, sob o nome
+  reconhecido pelo GitHub).
+- Cada arquivo-fonte (`src/js/*.js`, `src/css/styles.css`, `src/*.html`) traz
+  a nota de copyright e a declaração de licença no topo.
+- Como aplicação web (interage com pessoas usuárias pela rede), o rodapé de
+  cada página traz um link **"Código-fonte"** para o repositório, conforme o
+  art. 13 da AGPLv3.
 
 ## Autoria
 

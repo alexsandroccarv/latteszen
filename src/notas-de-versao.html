@@ -1,4 +1,22 @@
 <!DOCTYPE html>
+<!--
+    lattesZen — Copyright (C) 2026 Alexsandro Cardoso Carvalho
+
+    This file is part of lattesZen.
+
+    lattesZen is free software: you can redistribute it and/or modify it
+    under the terms of the GNU Affero General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or (at
+    your option) any later version.
+
+    lattesZen is distributed in the hope that it will be useful, but WITHOUT
+    ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+    FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
+    License for more details.
+
+    You should have received a copy of the GNU Affero General Public License
+    along with lattesZen. If not, see <https://www.gnu.org/licenses/>.
+-->
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
@@ -104,6 +122,18 @@
         --hdoc-note-bg:#0f2033; --hdoc-note-line:#3b82f6; --hdoc-warn-bg:#2a1a0f; --hdoc-warn-line:#f59e0b;
         --hdoc-ok-bg:#0e2a1e; --hdoc-ok-line:#34d399;
       }
+
+      /* Tema escolhido (Configurações → Outros recursos) tem prioridade
+         sobre os padrões claro/escuro acima — mesmo princípio já usado no
+         cabeçalho/rodapé/abas do app (ver "html.lz-theme" em styles.css):
+         sem isto, escolher um tema (Drácula, Catppuccin etc.) não tinha
+         nenhum efeito no conteúdo desta página, só no cabeçalho/rodapé. */
+      html.lz-theme{
+        --hdoc-surface:var(--lz-surface); --hdoc-text:var(--lz-text); --hdoc-muted:var(--lz-muted); --hdoc-line:var(--lz-border);
+        --hdoc-accent:var(--lz-accent); --hdoc-code:var(--lz-surface); --hdoc-chip:var(--lz-surface); --hdoc-chipink:var(--lz-accent);
+        --hdoc-note-bg:var(--lz-surface); --hdoc-note-line:var(--lz-accent); --hdoc-warn-bg:var(--lz-surface); --hdoc-warn-line:var(--lz-accent);
+        --hdoc-ok-bg:var(--lz-surface); --hdoc-ok-line:var(--lz-accent-2, var(--lz-accent));
+      }
       .help-doc{color:var(--hdoc-text);line-height:1.6;max-width:900px;margin:0 auto;padding:8px 4px 40px}
       .help-doc h1{font-size:1.7rem;margin:.2em 0 .1em}
       .help-doc .lead{color:var(--hdoc-muted);margin:0 0 1.5em}
@@ -157,21 +187,14 @@
             </div>
         </div>
 
-        <!-- Abas de navegação (links de volta ao app) -->
-        <nav class="bg-white dark:bg-gray-800 border-t border-govbr-700/20 dark:border-gray-700 px-2" aria-label="Seções">
-            <div class="max-w-5xl mx-auto flex gap-1 overflow-x-auto">
+        <!-- 2ª linha do cabeçalho: só "Início" (volta pro app) — sem
+             fingir uma régua de abas com Catalogar/Conformidade/Publicar
+             (todas levavam pra index.html de qualquer forma). -->
+        <nav class="bg-white dark:bg-gray-800 border-t border-govbr-700/20 dark:border-gray-700 px-2" aria-label="Voltar">
+            <div class="max-w-5xl mx-auto flex gap-1">
                 <a href="index.html" class="tab-btn px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-gray-600 dark:text-gray-300 hover:text-govbr-600 dark:hover:text-unifesp-400 whitespace-nowrap">
-                    <i aria-hidden="true" class="fa-solid fa-file-circle-plus mr-1"></i> Catalogar
+                    <i aria-hidden="true" class="fa-solid fa-house mr-1"></i> Início
                 </a>
-                <a href="index.html" class="tab-btn px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-gray-600 dark:text-gray-300 hover:text-govbr-600 dark:hover:text-unifesp-400 whitespace-nowrap">
-                    <i aria-hidden="true" class="fa-solid fa-clipboard-check mr-1"></i> Conformidade
-                </a>
-                <a href="index.html" class="tab-btn px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-gray-600 dark:text-gray-300 hover:text-govbr-600 dark:hover:text-unifesp-400 whitespace-nowrap">
-                    <i aria-hidden="true" class="fa-solid fa-globe mr-1"></i> Publicar na Web
-                </a>
-                <span class="tab-btn px-4 py-2.5 text-sm font-medium border-b-2 border-govbr-600 dark:border-unifesp-400 text-govbr-700 dark:text-unifesp-400 font-bold whitespace-nowrap" aria-current="page">
-                    <i aria-hidden="true" class="fa-solid fa-clock-rotate-left mr-1"></i> Notas de versão
-                </span>
             </div>
         </nav>
     </header>
@@ -188,6 +211,13 @@
             <a href="https://github.com/alexsandroccarv/latteszen" target="_blank" rel="noopener">repositório</a>
             desde o marco atual.
         </p>
+
+        <section class="card" id="v0-8-01">
+          <h2><span class="pill">v0.8.01</span> <span class="data">14/09/2026</span></h2>
+          <ul>
+            <li><strong>Licença AGPLv3 documentada conforme as recomendações da FSF</strong>: nota de copyright e declaração de licença no topo de cada arquivo-fonte (<code>src/js/*.js</code>, <code>src/css/styles.css</code>, <code>src/*.html</code>); novo link "Código-fonte" no rodapé de todas as páginas, apontando para o repositório (art. 13 da AGPLv3, sobre oferecer o código-fonte a quem interage com o programa pela rede); <code>package.json</code> e <code>README.md</code> atualizados com a licença — <a href="https://github.com/alexsandroccarv/latteszen/issues/136" target="_blank" rel="noopener">issue #136</a>.</li>
+          </ul>
+        </section>
 
         <section class="card" id="v0-7-38">
           <h2><span class="pill">v0.7.38</span> <span class="data">12/09/2026</span></h2>
@@ -1003,6 +1033,10 @@
             <span class="text-white/40 dark:text-gray-600">|</span>
             <a href="https://www.gnu.org/licenses/agpl-3.0.html" target="_blank" rel="noopener" class="hover:text-white transition-colors flex items-center gap-1" title="Licença AGPLv3 (Free Software Foundation)">
                 <i aria-hidden="true" class="fa-solid fa-scale-balanced text-white/90 dark:text-unifesp-400"></i> AGPLv3
+            </a>
+            <span class="text-white/40 dark:text-gray-600">|</span>
+            <a href="https://github.com/alexsandroccarv/latteszen" target="_blank" rel="noopener" class="hover:text-white transition-colors flex items-center gap-1" title="Código-fonte (repositório no GitHub)">
+                <i aria-hidden="true" class="fa-solid fa-code text-white/90 dark:text-unifesp-400"></i> Código-fonte
             </a>
             <span class="text-white/40 dark:text-gray-600">|</span>
             <span class="flex items-center gap-1"><i aria-hidden="true" class="fa-solid fa-tag" title="Versão"></i> <a href="notas-de-versao.html" class="font-mono hover:text-white hover:underline transition-colors" title="Notas de versão"><span id="appVersion"></span></a></span>

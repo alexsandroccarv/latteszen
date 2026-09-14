@@ -7,18 +7,34 @@
    ========================================================================== */
 import { test, assert, assertEqual, seedCatalog } from '../harness.mjs';
 
-async function abrirSyncViaAssistente(page, baseUrl) {
+// "Sincronizar do diretório" só aparece com um diretório já configurado
+// (Storage.hasDirectory()) — simula isso pra chegar direto no painel de
+// estado "Pasta atual", em vez de passar pelo assistente (que não oferece
+// mais esse botão antes de um diretório de verdade existir).
+async function simularDiretorioConfigurado(page) {
+    await page.addInitScript(() => {
+        Object.defineProperty(window, 'Storage', {
+            configurable: true,
+            set(real) {
+                real.hasDirectory = () => true;
+                real.directoryName = async () => 'PastaFake';
+                real.checkHealth = async () => ({ ok: true, hasDir: true });
+                Object.defineProperty(window, 'Storage', { value: real, writable: true, configurable: true });
+            },
+            get() { return undefined; },
+        });
+    });
+}
+
+async function abrirConfigComDiretorio(page, baseUrl) {
+    await simularDiretorioConfigurado(page);
     await seedCatalog(page, baseUrl, []);
     await page.click('[data-tab="config"]');
     await page.waitForTimeout(300);
-    await page.click('[data-wizard-modo="existente"]');
-    await page.waitForTimeout(50);
-    await page.click('[data-wizard-tipo="local"]');
-    await page.waitForTimeout(50);
 }
 
 test('Sincronizar do diretório também restaura as configurações do sistema (configuracoes.json)', async ({ page, baseUrl }) => {
-    await abrirSyncViaAssistente(page, baseUrl);
+    await abrirConfigComDiretorio(page, baseUrl);
 
     await page.evaluate(() => {
         window.Storage.scanDirectory = async () => [];
@@ -45,6 +61,7 @@ test('Sincronizar do diretório também restaura as configurações do sistema (
 });
 
 test('Sem configuracoes.json no diretório, sincronizar não altera as configurações locais', async ({ page, baseUrl }) => {
+    await simularDiretorioConfigurado(page);
     await seedCatalog(page, baseUrl, []);
     await page.evaluate(() => {
         const s = JSON.parse(localStorage.getItem('lz_settings') || '{}');
@@ -53,10 +70,6 @@ test('Sem configuracoes.json no diretório, sincronizar não altera as configura
     });
     await page.click('[data-tab="config"]');
     await page.waitForTimeout(300);
-    await page.click('[data-wizard-modo="existente"]');
-    await page.waitForTimeout(50);
-    await page.click('[data-wizard-tipo="local"]');
-    await page.waitForTimeout(50);
 
     await page.evaluate(() => {
         window.Storage.scanDirectory = async () => [];

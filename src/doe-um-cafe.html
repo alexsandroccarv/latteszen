@@ -1,4 +1,22 @@
 <!DOCTYPE html>
+<!--
+    lattesZen — Copyright (C) 2026 Alexsandro Cardoso Carvalho
+
+    This file is part of lattesZen.
+
+    lattesZen is free software: you can redistribute it and/or modify it
+    under the terms of the GNU Affero General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or (at
+    your option) any later version.
+
+    lattesZen is distributed in the hope that it will be useful, but WITHOUT
+    ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+    FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
+    License for more details.
+
+    You should have received a copy of the GNU Affero General Public License
+    along with lattesZen. If not, see <https://www.gnu.org/licenses/>.
+-->
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
@@ -100,6 +118,13 @@
         --cafe-surface:#1f2937; --cafe-text:#e5e7eb; --cafe-muted:#9ca3af; --cafe-line:#374151;
         --cafe-accent:#93c5fd; --cafe-code:#0f172a; --cafe-note-bg:#2a1a0f; --cafe-note-line:#f59e0b;
       }
+
+      /* Tema escolhido tem prioridade sobre os padrões claro/escuro acima —
+         ver o mesmo comentário em privacidade.html/.help-doc. */
+      html.lz-theme{
+        --cafe-surface:var(--lz-surface); --cafe-text:var(--lz-text); --cafe-muted:var(--lz-muted); --cafe-line:var(--lz-border);
+        --cafe-accent:var(--lz-accent); --cafe-code:var(--lz-surface); --cafe-note-bg:var(--lz-surface); --cafe-note-line:var(--lz-accent);
+      }
       .cafe-doc{color:var(--cafe-text);line-height:1.6;max-width:900px;margin:0 auto;padding:8px 4px 40px}
       .cafe-doc h1{font-size:1.7rem;margin:.2em 0 .1em}
       .cafe-doc .lead{color:var(--cafe-muted);margin:0 0 1.5em}
@@ -147,21 +172,14 @@
             </div>
         </div>
 
-        <!-- Abas de navegação (links de volta ao app) -->
-        <nav class="bg-white dark:bg-gray-800 border-t border-govbr-700/20 dark:border-gray-700 px-2" aria-label="Seções">
-            <div class="max-w-5xl mx-auto flex gap-1 overflow-x-auto">
+        <!-- 2ª linha do cabeçalho: só "Início" (volta pro app) — sem
+             fingir uma régua de abas com Catalogar/Conformidade/Publicar
+             (todas levavam pra index.html de qualquer forma). -->
+        <nav class="bg-white dark:bg-gray-800 border-t border-govbr-700/20 dark:border-gray-700 px-2" aria-label="Voltar">
+            <div class="max-w-5xl mx-auto flex gap-1">
                 <a href="index.html" class="tab-btn px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-gray-600 dark:text-gray-300 hover:text-govbr-600 dark:hover:text-unifesp-400 whitespace-nowrap">
-                    <i aria-hidden="true" class="fa-solid fa-file-circle-plus mr-1"></i> Catalogar
+                    <i aria-hidden="true" class="fa-solid fa-house mr-1"></i> Início
                 </a>
-                <a href="index.html" class="tab-btn px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-gray-600 dark:text-gray-300 hover:text-govbr-600 dark:hover:text-unifesp-400 whitespace-nowrap">
-                    <i aria-hidden="true" class="fa-solid fa-clipboard-check mr-1"></i> Conformidade
-                </a>
-                <a href="index.html" class="tab-btn px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-gray-600 dark:text-gray-300 hover:text-govbr-600 dark:hover:text-unifesp-400 whitespace-nowrap">
-                    <i aria-hidden="true" class="fa-solid fa-globe mr-1"></i> Publicar na Web
-                </a>
-                <span class="tab-btn px-4 py-2.5 text-sm font-medium border-b-2 border-govbr-600 dark:border-unifesp-400 text-govbr-700 dark:text-unifesp-400 font-bold whitespace-nowrap" aria-current="page">
-                    <i aria-hidden="true" class="fa-solid fa-mug-hot mr-1"></i> Doe um café
-                </span>
             </div>
         </nav>
     </header>
@@ -263,6 +281,10 @@
             <span class="text-white/40 dark:text-gray-600">|</span>
             <a href="https://www.gnu.org/licenses/agpl-3.0.html" target="_blank" rel="noopener" class="hover:text-white transition-colors flex items-center gap-1" title="Licença AGPLv3 (Free Software Foundation)">
                 <i aria-hidden="true" class="fa-solid fa-scale-balanced text-white/90 dark:text-unifesp-400"></i> AGPLv3
+            </a>
+            <span class="text-white/40 dark:text-gray-600">|</span>
+            <a href="https://github.com/alexsandroccarv/latteszen" target="_blank" rel="noopener" class="hover:text-white transition-colors flex items-center gap-1" title="Código-fonte (repositório no GitHub)">
+                <i aria-hidden="true" class="fa-solid fa-code text-white/90 dark:text-unifesp-400"></i> Código-fonte
             </a>
             <span class="text-white/40 dark:text-gray-600">|</span>
             <span class="flex items-center gap-1"><i aria-hidden="true" class="fa-solid fa-tag" title="Versão"></i> <a href="notas-de-versao.html" class="font-mono hover:text-white hover:underline transition-colors" title="Notas de versão"><span id="appVersion"></span></a></span>

@@ -66,7 +66,7 @@ test('Assistente: "Primeira configuração" > "Pasta no computador" mostra só "
     assertEqual(await page.locator('#btnSync').count(), 0, 'Numa primeira configuração, não deveria oferecer "Sincronizar" (não há nada pra sincronizar ainda)');
 });
 
-test('Assistente: "Já tenho um diretório" > "Pasta no computador" mostra "Escolher pasta" e "Sincronizar" juntos, sem pedir nome', async ({ page, baseUrl }) => {
+test('Assistente: "Já tenho um diretório" > "Pasta no computador" mostra só "Escolher pasta" (sem "Sincronizar" — ainda não há diretório configurado de fato)', async ({ page, baseUrl }) => {
     await abrirConfig(page, baseUrl);
     await page.click('[data-wizard-modo="existente"]');
     await page.waitForTimeout(100);
@@ -74,7 +74,10 @@ test('Assistente: "Já tenho um diretório" > "Pasta no computador" mostra "Esco
     await page.waitForTimeout(100);
 
     assertEqual(await page.locator('#btnChooseDir').count(), 1, '"Escolher pasta" deveria aparecer');
-    assertEqual(await page.locator('#btnSync').count(), 1, 'Já tendo um diretório existente, "Sincronizar do diretório" deveria aparecer junto');
+    // "Sincronizar do diretório" só faz sentido com um diretório já
+    // configurado (Storage.hasDirectory()) — neste passo do assistente
+    // ainda não há nenhum, só a intenção de escolher um.
+    assertEqual(await page.locator('#btnSync').count(), 0, 'Antes de escolher a pasta de verdade, "Sincronizar do diretório" não deveria aparecer ainda');
     const texto = await page.$eval('#dirSection', (el) => el.textContent);
     assert(/nome dela é usado automaticamente/i.test(texto), 'Deveria deixar claro que o nome vem da pasta escolhida, sem precisar digitar nada');
 });
