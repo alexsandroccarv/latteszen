@@ -186,7 +186,7 @@ window.TabConfig = (function () {
     function rscSectionHtml() {
         return `<section id="rscSection" class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
             <h2 class="text-lg font-bold mb-2 flex items-center gap-2"><i class="fa-solid fa-award text-govbr-600 dark:text-unifesp-400"></i> RSC-PCCTAE (opcional)</h2>
-            <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">Reconhecimento de Saberes e Competências (Decreto nº 13.048/2026). Quando habilitado, cada item elegível ganha uma camada com os dados do RSC, e surge a aba <strong>RSC</strong> (simulador) — os dados do servidor (cargo, SIAPE, contatos etc.) são preenchidos lá. Uso individual.</p>
+            <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">Reconhecimento de Saberes e Competências (Decreto nº 13.048/2026). Quando habilitado, cada item elegível ganha uma camada com os dados do RSC, e surge a aba <strong>RSC</strong> (simulador) — os dados da pessoa servidora (cargo, SIAPE, contatos etc.) são preenchidos lá. Uso individual.</p>
             <label class="flex items-center gap-2 text-sm">
                 <input type="checkbox" id="rscEnable" ${state.rscEnabled ? 'checked' : ''}>
                 <span>Habilitar módulo <strong>RSC-PCCTAE</strong></span>
