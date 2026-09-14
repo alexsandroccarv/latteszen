@@ -1,3 +1,20 @@
+// lattesZen — Copyright (C) 2026 Alexsandro Cardoso Carvalho
+//
+// This file is part of lattesZen.
+//
+// lattesZen is free software: you can redistribute it and/or modify it
+// under the terms of the GNU Affero General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or (at
+// your option) any later version.
+//
+// lattesZen is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
+// License for more details.
+//
+// You should have received a copy of the GNU Affero General Public License
+// along with lattesZen. If not, see <https://www.gnu.org/licenses/>.
+
 /* ==========================================================================
    lattesZen — Configuração global da aplicação
    ========================================================================== */
@@ -7,7 +24,7 @@ window.APP_CONFIG = {
     // Os dois primeiros números são atualizados manualmente; o terceiro (2
     // dígitos) é incrementado a cada issue fechada no GitHub — ver política
     // completa em CLAUDE.md e o histórico em notas-de-versao.html.
-    version: 'v0.8.00',
+    version: 'v0.8.01',
     lastModified: '14/09/2026',
     author: {
         nome: 'Alexsandro Cardoso Carvalho',

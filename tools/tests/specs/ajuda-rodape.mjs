@@ -76,14 +76,14 @@ for (const pagina of PAGINAS) {
     });
 }
 
-test('Rodapé (index.html): ordem dos itens segue Termo/Privacidade/Ajuda/Sobre/AltoContraste/Fonte, depois Autor/Café/Licença/Versão', async ({ page, baseUrl }) => {
+test('Rodapé (index.html): ordem dos itens segue Termo/Privacidade/Ajuda/Sobre/AltoContraste/Fonte, depois Autor/Café/Licença/Código-fonte/Versão', async ({ page, baseUrl }) => {
     await page.goto(baseUrl + '/index.html');
     await page.waitForTimeout(300);
     const hrefs = await page.evaluate(() => Array.from(document.querySelectorAll('footer a[href]')).map((a) => a.getAttribute('href')));
     assertEqual(hrefs, [
         'termodeuso.html', 'privacidade.html', './ajuda.html', 'sobre.html',
         'https://github.com/alexsandroccarv', 'doe-um-cafe.html',
-        'https://www.gnu.org/licenses/agpl-3.0.html', 'notas-de-versao.html',
+        'https://www.gnu.org/licenses/agpl-3.0.html', 'https://github.com/alexsandroccarv/latteszen', 'notas-de-versao.html',
     ], `Ordem dos links do rodapé não confere — obtido: ${hrefs.join(', ')}`);
 });
 
