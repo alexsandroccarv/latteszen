@@ -19,7 +19,7 @@
    (ver js/pwa.js). Sem isso, uma aba já aberta pode continuar servindo JS
    antigo por tempo indefinido mesmo depois de um conserto já publicado.
    ========================================================================== */
-const CACHE_VERSION = 'v18';
+const CACHE_VERSION = 'v19';
 const PRECACHE = `lattesZen-precache-${CACHE_VERSION}`;
 const RUNTIME = `lattesZen-runtime-${CACHE_VERSION}`;
 
@@ -76,6 +76,7 @@ const PRECACHE_URLS = [
     './js/tab-conformidade.js',
     './js/tab-linha-tempo.js',
     './js/tab-catalogar-rsc.js',
+    './js/tab-catalogar-evidencias.js',
     './js/tab-catalogar.js',
     './js/tab-config.js',
     './js/app.js',
