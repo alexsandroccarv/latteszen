@@ -122,6 +122,18 @@
         --hdoc-note-bg:#0f2033; --hdoc-note-line:#3b82f6; --hdoc-warn-bg:#2a1a0f; --hdoc-warn-line:#f59e0b;
         --hdoc-ok-bg:#0e2a1e; --hdoc-ok-line:#34d399;
       }
+
+      /* Tema escolhido (Configurações → Outros recursos) tem prioridade
+         sobre os padrões claro/escuro acima — mesmo princípio já usado no
+         cabeçalho/rodapé/abas do app (ver "html.lz-theme" em styles.css):
+         sem isto, escolher um tema (Drácula, Catppuccin etc.) não tinha
+         nenhum efeito no conteúdo desta página, só no cabeçalho/rodapé. */
+      html.lz-theme{
+        --hdoc-surface:var(--lz-surface); --hdoc-text:var(--lz-text); --hdoc-muted:var(--lz-muted); --hdoc-line:var(--lz-border);
+        --hdoc-accent:var(--lz-accent); --hdoc-code:var(--lz-surface); --hdoc-chip:var(--lz-surface); --hdoc-chipink:var(--lz-accent);
+        --hdoc-note-bg:var(--lz-surface); --hdoc-note-line:var(--lz-accent); --hdoc-warn-bg:var(--lz-surface); --hdoc-warn-line:var(--lz-accent);
+        --hdoc-ok-bg:var(--lz-surface); --hdoc-ok-line:var(--lz-accent-2, var(--lz-accent));
+      }
       .help-doc{color:var(--hdoc-text);line-height:1.6;max-width:900px;margin:0 auto;padding:8px 4px 40px}
       .help-doc h1{font-size:1.7rem;margin:.2em 0 .1em}
       .help-doc .lead{color:var(--hdoc-muted);margin:0 0 1.5em}
@@ -176,24 +188,14 @@
             </div>
         </div>
 
-        <!-- Abas de navegação (links de volta ao app) -->
-        <nav class="bg-white dark:bg-gray-800 border-t border-govbr-700/20 dark:border-gray-700 px-2" aria-label="Seções">
-            <div class="max-w-5xl flex gap-1 overflow-x-auto">
+        <!-- 2ª linha do cabeçalho: só "Início" (volta pro app) — sem
+             fingir uma régua de abas com Catalogar/Conformidade/Publicar
+             (todas levavam pra index.html de qualquer forma). -->
+        <nav class="bg-white dark:bg-gray-800 border-t border-govbr-700/20 dark:border-gray-700 px-2" aria-label="Voltar">
+            <div class="max-w-5xl mx-auto flex gap-1">
                 <a href="index.html" class="tab-btn px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-gray-600 dark:text-gray-300 hover:text-govbr-600 dark:hover:text-unifesp-400 whitespace-nowrap">
                     <i aria-hidden="true" class="fa-solid fa-house mr-1"></i> Início
                 </a>
-                <a href="index.html" class="tab-btn px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-gray-600 dark:text-gray-300 hover:text-govbr-600 dark:hover:text-unifesp-400 whitespace-nowrap">
-                    <i aria-hidden="true" class="fa-solid fa-file-circle-plus mr-1"></i> Catalogar
-                </a>
-                <a href="index.html" class="tab-btn px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-gray-600 dark:text-gray-300 hover:text-govbr-600 dark:hover:text-unifesp-400 whitespace-nowrap">
-                    <i aria-hidden="true" class="fa-solid fa-clipboard-check mr-1"></i> Conformidade
-                </a>
-                <a href="index.html" class="tab-btn px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-gray-600 dark:text-gray-300 hover:text-govbr-600 dark:hover:text-unifesp-400 whitespace-nowrap">
-                    <i aria-hidden="true" class="fa-solid fa-globe mr-1"></i> Publicar na Web
-                </a>
-                <span class="tab-btn px-4 py-2.5 text-sm font-medium border-b-2 border-govbr-600 dark:border-unifesp-400 text-govbr-700 dark:text-unifesp-400 font-bold whitespace-nowrap" aria-current="page">
-                    <i aria-hidden="true" class="fa-solid fa-user-shield mr-1"></i> Privacidade
-                </span>
             </div>
         </nav>
     </header>
