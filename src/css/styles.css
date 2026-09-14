@@ -94,6 +94,21 @@ html.high-contrast button {
 .dark .viz-heat-3 { background-color: #15803d; }
 .dark .viz-heat-4 { background-color: #4ade80; }
 
+/* ---- Rede de colaboração (aba Gráficos, issue #135) — mesmo motivo dos
+   blocos acima: aqui a cor/identidade do nó também é dado (Ego × Alter),
+   não decoração. Reaproveita as cores já validadas de .viz-cat-6 (Ego) e
+   .viz-cat-7 (Alter) — arestas ganham 2 classes novas (Ego–Alter mais forte,
+   Alter–Alter mais discreta, mostrando "clusters" de colaboradores que
+   também colaboraram entre si). */
+.viz-net-ego { fill: #008300; }
+.viz-net-alter { fill: #4a3aa7; }
+.viz-net-edge { stroke: #4a3aa7; }
+.viz-net-edge-alt { stroke: #8a8a86; }
+.dark .viz-net-ego { fill: #008300; }
+.dark .viz-net-alter { fill: #9085e9; }
+.dark .viz-net-edge { stroke: #9085e9; }
+.dark .viz-net-edge-alt { stroke: #9a9a95; }
+
 /* ---- Rolagem suave em listas longas ---- */
 .scroll-area { scrollbar-width: thin; scrollbar-color: #d1d5db transparent; }
 .scroll-area::-webkit-scrollbar { height: 6px; width: 6px; }
