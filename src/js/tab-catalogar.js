@@ -22,6 +22,8 @@
    fragmentar a extração; pode ser relocado quando Configurações virar seu
    próprio módulo.
    ========================================================================== */
+import { renderRscBlock, collectRsc } from './tab-catalogar-rsc.js';
+
 window.TabCatalogar = (function () {
     const {
         state, $, $$, esc, toast, anoDe, sortByYear,
@@ -349,152 +351,9 @@ window.TabCatalogar = (function () {
         renderEvList();
     }
 
-    // Camada RSC no formulário (abaixo dos campos do item), quando habilitado.
-    // Listener global de "clique fora" do buscador de critério — fechado/
-    // recriado a cada renderRscBlock (roda de novo a cada item aberto); sem
-    // isso, cada render empilharia mais um listener em document, nunca
-    // removido (memory leak).
-    let critOutsideClickHandler = null;
-    function renderRscBlock(item) {
-        const box = $('#rscBlock'); if (!box) return;
-        if (critOutsideClickHandler) { document.removeEventListener('click', critOutsideClickHandler); critOutsideClickHandler = null; }
-        const typeKey = $('#selTipo') ? $('#selTipo').value : '';
-        const eligivel = state.rscEnabled && typeKey && !LattesTypes.isPerfilType(typeKey) && !LattesTypes.isNaoLattesType(typeKey);
-        if (!eligivel) { box.innerHTML = ''; return; }
-        const rsc = (item && item.rsc) || {};
-        // Lista única com TODOS os critérios do decreto (~50 itens), agrupados
-        // por Requisito — extensa demais pra rolar procurando um item específico
-        // (issue #24). Achatada uma vez aqui; critListaHtml() a filtra em tempo
-        // real conforme o usuário digita, exibida como lista clicável (issue
-        // #25) em vez de um <select> que só mostra o resultado depois de aberto.
-        const todosCriterios = Object.keys(LzRSC.REQUISITOS).flatMap(r =>
-            LzRSC.criteriosDoRequisito(r).map(c => ({ ...c, reqLabel: LzRSC.REQUISITOS[r] })));
-        function criteriosFiltrados(filtro) {
-            const q = normNome(filtro || '');
-            if (!q) return todosCriterios;
-            return todosCriterios.filter(c => normNome(`${c.item} ${c.desc} ${c.unidade}`).includes(q));
-        }
-        function labelDoCriterio(id) {
-            const c = todosCriterios.find(x => x.id === id);
-            return c ? `${c.item}. ${c.desc} — ${c.unidade} · ${String(c.pontos).replace('.', ',')} pts` : '';
-        }
-        function critListaHtml(filtro) {
-            const encontrados = criteriosFiltrados(filtro);
-            if (!encontrados.length) return `<p class="px-2 py-2 text-sm text-gray-500 italic">Nenhum critério encontrado.</p>`;
-            const porReq = {};
-            encontrados.forEach(c => (porReq[c.reqLabel] = porReq[c.reqLabel] || []).push(c));
-            return Object.keys(porReq).map(label => {
-                const itens = porReq[label].map(c =>
-                    `<button type="button" data-crit="${c.id}" class="block w-full text-left px-2 py-1.5 text-sm hover:bg-amber-100 dark:hover:bg-gray-700">${c.item}. ${esc(c.desc)} — ${esc(c.unidade)} · ${String(c.pontos).replace('.', ',')} pts</button>`).join('');
-                return `<div><p class="sticky top-0 px-2 py-1 text-[11px] font-semibold text-gray-500 bg-gray-50 dark:bg-gray-800">Requisito ${esc(label)}</p>${itens}</div>`;
-            }).join('');
-        }
-        box.innerHTML = `
-        <div id="rscFields" class="${rsc.conta ? '' : 'hidden'} bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800 rounded px-3 py-2 space-y-2">
-            <div class="relative"><label class="block text-xs font-semibold mb-1" for="rscCritFiltro">Critério específico (Anexos I–VI do Decreto)</label>
-                <input type="text" id="rscCritFiltro" autocomplete="off" placeholder="Digite pra buscar (ex.: prêmio, capacitação, comissão...)"
-                       value="${esc(labelDoCriterio(rsc.criterio))}"
-                       class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900">
-                <input type="hidden" id="rscCrit" value="${esc(rsc.criterio || '')}">
-                <div id="rscCritLista" class="hidden absolute z-10 mt-1 w-full max-h-64 overflow-y-auto rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 shadow-lg"></div>
-                <p class="text-[11px] text-gray-500 mt-0.5">Todos os critérios do decreto estão listados, agrupados por Requisito (I a VI). Digite acima para filtrar.</p></div>
-            <p class="text-[11px] text-gray-500"><i aria-hidden="true" class="fa-solid fa-calendar-days mr-1"></i>Para critérios por tempo (ano/mês), o período é calculado a partir dos campos de <strong>data</strong> do item acima (início/fim).</p>
-            <div class="grid sm:grid-cols-2 gap-2">
-                <div id="rscPapelWrap" class="hidden"><label class="block text-xs font-semibold mb-1" for="rscPapel">Papel</label>
-                    <select id="rscPapel" class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900">
-                        <option value="titular" ${rsc.papel !== 'substituto' ? 'selected' : ''}>Titular</option>
-                        <option value="substituto" ${rsc.papel === 'substituto' ? 'selected' : ''}>Substituto</option></select></div>
-                <div id="rscQtdWrap" class="hidden"><label class="block text-xs font-semibold mb-1" for="rscQtd">Quantidade</label>
-                    <input id="rscQtd" type="number" min="0" step="1" value="${esc(rsc.quantidade != null ? rsc.quantidade : 1)}" class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900"></div>
-            </div>
-            <div><label class="block text-xs font-semibold mb-1" for="rscJust">Justificativa (para o memorial)</label>
-                <textarea id="rscJust" rows="2" class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900">${esc(rsc.justificativa || '')}</textarea></div>
-            <label class="flex items-center gap-2 text-sm"><input type="checkbox" id="rscUsado" ${rsc.jaUsado ? 'checked' : ''}> Já utilizado em concessão anterior (não conta no saldo)</label>
-            <p id="rscPontos" class="text-sm font-semibold text-amber-700 dark:text-amber-400"></p>
-        </div>`;
-
-        // O checkbox "usar para RSC" mora no bloco de Visibilidade (renderizado
-        // ANTES deste, ver renderDynFields) — junto com "Lattes"/"Web" na
-        // linha "Publicar". Aqui só lemos o elemento pelo id (documento
-        // inteiro, não precisa estar dentro de #rscBlock).
-        const conta = $('#rscConta'), fields = $('#rscFields'), critHidden = $('#rscCrit');
-        if (!conta) return; // não deveria acontecer (mesma condição de elegibilidade em renderVisibilidadeBlock)
-        function recompute() {
-            const crit = LzRSC.criterio(critHidden.value);
-            $('#rscPapelWrap').classList.toggle('hidden', !(crit && crit.pontosSub != null));
-            $('#rscQtdWrap').classList.toggle('hidden', !(crit && crit.calc === 'unidade'));
-            const data = collectRsc($('#itemForm'));
-            const pi = LzRSC.pontosItem(data);
-            const el = $('#rscPontos');
-            if (!crit) { el.textContent = 'Selecione o critério para calcular os pontos.'; return; }
-            el.textContent = `Pontos: ${String(pi.pontos).replace('.', ',')}  (${pi.quantidade} × ${String(pi.unitario).replace('.', ',')} · ${crit.unidade})`;
-        }
-        conta.addEventListener('change', () => { fields.classList.toggle('hidden', !conta.checked); state.formDirty = true; recompute(); });
-
-        // Buscador de critério (issues #24/#25): lista de resultados clicável
-        // logo abaixo do campo, refeita a cada tecla — em vez de um <select>
-        // que só mostrava o filtro depois de clicar pra abrir.
-        const critFiltro = $('#rscCritFiltro'), critLista = $('#rscCritLista');
-        // Última seleção CONFIRMADA (clicada de fato) — separada de
-        // critHidden.value, que fica vazio enquanto o usuário digita (só volta
-        // a valer algo quando ele clica num resultado). É o que "restaurar o
-        // campo" (clique fora / Esc sem escolher) usa como valor de retorno.
-        let criterioConfirmado = rsc.criterio || '';
-        const abrirLista = (filtro) => { critLista.innerHTML = critListaHtml(filtro); critLista.classList.remove('hidden'); };
-        const fecharLista = () => critLista.classList.add('hidden');
-        const restaurarConfirmado = () => {
-            critHidden.value = criterioConfirmado;
-            critFiltro.value = labelDoCriterio(criterioConfirmado);
-            recompute();
-        };
-        function selecionarCriterio(id) {
-            criterioConfirmado = id;
-            critHidden.value = id;
-            critFiltro.value = labelDoCriterio(id);
-            fecharLista();
-            state.formDirty = true;
-            recompute();
-        }
-        critFiltro.addEventListener('focus', () => abrirLista(critFiltro.value));
-        critFiltro.addEventListener('input', (e) => {
-            // Não deixa o evento borbulhar até o listener de #itemForm (que
-            // marca state.formDirty a qualquer "input" no formulário) — só
-            // vira dado do item quando um resultado é de fato clicado.
-            e.stopPropagation();
-            critHidden.value = ''; // texto mudou: a seleção anterior não vale mais até escolher de novo (ou restaurar)
-            abrirLista(critFiltro.value);
-            recompute();
-        });
-        critFiltro.addEventListener('keydown', (e) => {
-            if (e.key !== 'Escape') return;
-            fecharLista();
-            restaurarConfirmado();
-            critFiltro.blur();
-        });
-        critLista.addEventListener('click', (e) => {
-            const btn = e.target.closest('[data-crit]');
-            if (btn) selecionarCriterio(btn.dataset.crit);
-        });
-        // Clique fora do campo/lista: fecha e, se o texto digitado não virou
-        // uma seleção de verdade, volta a mostrar o critério anterior (não
-        // deixa texto solto sem critério real por trás).
-        critOutsideClickHandler = (e) => {
-            if (critLista.classList.contains('hidden')) return;
-            if (e.target === critFiltro || critLista.contains(e.target)) return;
-            fecharLista();
-            restaurarConfirmado();
-        };
-        document.addEventListener('click', critOutsideClickHandler);
-
-        ['change', 'input'].forEach(ev => $('#rscFields').addEventListener(ev, () => { state.formDirty = true; recompute(); }));
-        // O período do RSC vem dos campos de data do item: recalcula ao editá-los.
-        const itemForm = $('#itemForm');
-        ['anoInicio', 'anoFim', 'ano'].forEach(name => {
-            const el = itemForm && itemForm.elements ? itemForm.elements[name] : null;
-            if (el && el.addEventListener) el.addEventListener('input', recompute);
-        });
-        recompute();
-    }
+    // Bloco RSC-PCCTAE do formulário — extraído para tab-catalogar-rsc.js
+    // (issue de refatoração), autocontido (só usa state/$/esc/normNome e
+    // LzRSC/LattesTypes, globais). Nenhuma mudança de comportamento.
 
     // Camada de Visibilidade no formulário (antes do bloco RSC, ver
     // renderDynFields): três eixos independentes — Exportar para Lattes
@@ -546,46 +405,9 @@ window.TabCatalogar = (function () {
             publicarWeb: pubChk.checked,
         };
     }
-    // Normaliza ano/data-completa para dd/mm/aaaa (usado no período do RSC).
-    // 'aaaa' vira 01/01/aaaa (início) ou 31/12/aaaa (fim). ISO aaaa-mm-dd também.
-    function _rscToBR(v, endOfYear) {
-        const s = String(v == null ? '' : v).trim();
-        if (!s) return '';
-        if (/^\d{2}\/\d{2}\/\d{4}$/.test(s)) return s;
-        let m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/); if (m) return `${m[3]}/${m[2]}/${m[1]}`;
-        m = s.match(/^(\d{2})\/(\d{4})$/); // mm/aaaa
-        if (m) {
-            if (!endOfYear) return `01/${m[1]}/${m[2]}`;
-            const ultimoDia = new Date(Number(m[2]), Number(m[1]), 0).getDate();
-            return `${String(ultimoDia).padStart(2, '0')}/${m[1]}/${m[2]}`;
-        }
-        m = s.match(/^(\d{4})$/); if (m) return endOfYear ? `31/12/${s}` : `01/01/${s}`;
-        return '';
-    }
-    // Lê a camada RSC do formulário → objeto rsc (ou {conta:false}). O período
-    // (início/fim) é derivado dos campos de data do próprio item, não mais de
-    // campos de data no bloco RSC (evita redundância). Itens ainda em
-    // exercício (situação "Atual (não finalizado)") não têm data de fim
-    // própria — nesse caso, o fim do período usado no cálculo é a "Data de
-    // abrangência (final)" configurada em Configurações › RSC (issue #27):
-    // sem isso, esses itens nunca teriam o tempo decorrido contado.
-    function collectRsc(form) {
-        const conta = form.querySelector('#rscConta');
-        if (!conta) return null;
-        const val = id => { const el = form.querySelector('#' + id); return el ? el.value.trim() : ''; };
-        const chk = id => { const el = form.querySelector('#' + id); return !!(el && el.checked); };
-        const fld = name => { const el = form.elements ? form.elements[name] : null; return (el && typeof el.value === 'string') ? el.value.trim() : ''; };
-        const dataAbrangencia = (state.rscCfg && state.rscCfg.dataAbrangenciaFinal) || '';
-        return {
-            conta: conta.checked,
-            criterio: val('rscCrit'),
-            dataInicio: _rscToBR(fld('anoInicio'), false),
-            dataFim: _rscToBR(fld('anoFim') || fld('ano'), true) || _rscToBR(dataAbrangencia, true),
-            papel: val('rscPapel') || 'titular',
-            quantidade: val('rscQtd') || '',
-            justificativa: val('rscJust'), jaUsado: chk('rscUsado'),
-        };
-    }
+    // _rscToBR/collectRsc (lê a camada RSC do formulário) — extraídos
+    // para tab-catalogar-rsc.js junto com renderRscBlock (issue de
+    // refatoração). Nenhuma mudança de comportamento.
 
     // Handlers nomeados e estáveis para os listeners presos no próprio
     // <form> (#itemForm persiste entre chamadas de buildForm() — só o
