@@ -379,6 +379,7 @@ window.TabConfig = (function () {
 
     async function render() {
         window.AppCore.updateHeaderIdentity(); // reflete edições no nome (Identificação, import, limpar catálogo…)
+        window.AppCore.applyDirGate(); // reflete escolher/esquecer pasta, conectar/migrar Google Drive etc. nas abas travadas
         const panel = $('#tab-config');
         const dirName = Storage.hasDirectory() ? await Storage.directoryName() : null;
         const storageMode = Storage.storageMode();

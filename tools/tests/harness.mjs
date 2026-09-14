@@ -150,6 +150,13 @@ export async function runAll() {
                 localStorage.setItem('lz_settings', JSON.stringify(s));
             } catch (_) {}
         });
+        // Trava de abas sem diretório configurado (Catalogar, Conformidade
+        // etc.) — desligada por padrão pra toda a suíte, já que quase todo
+        // spec semeia o catálogo direto via localStorage (seedCatalog),
+        // sem configurar um diretório. tools/tests/specs/dir-gate.mjs
+        // religa (via addInitScript de página, que roda depois deste e
+        // sobrescreve) pra testar a trava de verdade.
+        await context.addInitScript(() => { window.__LZ_TEST_SKIP_DIR_GATE = true; });
         // Simula, por padrão, uma instalação SEM Google Analytics configurado
         // — o valor real de APP_CONFIG.analyticsId (config.js) é o da
         // instância oficial, e o aviso de cookies agora BLOQUEIA o app até
