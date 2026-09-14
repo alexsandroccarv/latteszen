@@ -58,15 +58,19 @@ window.TabConfig = (function () {
        data-lz-theme no <html>; as cores em si vivem em styles.css (paletas
        por data-lz-theme, valendo pro app inteiro — não só cabeçalho/rodapé).
        ===================================================================== */
-    const THEME_DEFAULT = 'padrao'; // lattesZen mantém o visual gov.br por padrão
+    // "govbr" (paleta explícita, data-lz-theme="govbr") e "padrao" (nenhuma
+    // paleta aplicada — só o CSS-base, que também é um visual gov.br) eram
+    // dois temas de nome conflitante ("gov.br" e "Padrão (gov.br)"). Viraram
+    // "lattesZen dia" (govbr, o padrão) e "lattesZen noite" (padrao).
+    const THEME_DEFAULT = 'govbr';
     const THEME_PRESETS = [
-        { value: 'padrao', label: 'Padrão (gov.br)', font: "system-ui,sans-serif" },
+        { value: 'govbr', label: 'lattesZen dia', font: "'Rawline',system-ui,sans-serif" },
+        { value: 'padrao', label: 'lattesZen noite', font: "system-ui,sans-serif" },
         { value: 'catppuccin-latte', label: 'Catppuccin Latte', font: "'Nunito',system-ui,sans-serif" },
         { value: 'catppuccin-mocha', label: 'Catppuccin Mocha', font: "'Nunito',system-ui,sans-serif" },
         { value: 'dracula', label: 'Drácula', font: "'Fira Sans',system-ui,sans-serif" },
         { value: 'github-light', label: 'GitHub Light', font: "system-ui,sans-serif" },
         { value: 'github-dark', label: 'GitHub Dark', font: "system-ui,sans-serif" },
-        { value: 'govbr', label: 'gov.br', font: "'Rawline',system-ui,sans-serif" },
         { value: 'rose-pine-dawn', label: 'Rosé Pine Dawn', font: "'Quicksand',system-ui,sans-serif" },
         { value: 'solarized-light', label: 'Solarized Light', font: "'Source Sans 3',system-ui,sans-serif" },
         { value: 'solarized-dark', label: 'Solarized Dark', font: "'Source Sans 3',system-ui,sans-serif" },
@@ -82,7 +86,7 @@ window.TabConfig = (function () {
                     <select id="themeSelect" class="w-full px-3 py-2 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-govbr-400">
                         ${THEME_PRESETS.map(p => `<option value="${esc(p.value)}" style="font-family:${p.font}">${esc(p.label)}</option>`).join('')}
                     </select>
-                    <p class="text-xs text-gray-500 dark:text-gray-400">O tema é aplicado ao app inteiro (cabeçalho, abas, botões, rodapé) e fica salvo neste navegador. "Padrão" mantém o visual gov.br de sempre.</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">O tema é aplicado ao app inteiro (cabeçalho, abas, botões, rodapé) e fica salvo neste navegador. "lattesZen dia" é o padrão.</p>
                 </div>
             </section>`;
     }
@@ -223,9 +227,10 @@ window.TabConfig = (function () {
         });
     }
 
-    // Mesmo mecanismo do RSC acima (checkbox mostra/oculta a aba), só que a
-    // aba Publicar na Web já existia antes deste toggle — por isso o padrão
-    // é habilitada, não escondida (ver comentário em app-core.js/state.pubWebEnabled).
+    // Mesmo mecanismo do RSC acima (checkbox mostra/oculta a aba): padrão
+    // desmarcada na primeira utilização, e — como RSC/Súmula — fica como a
+    // pessoa deixou até ser trocada de novo (ver comentário em
+    // app-core.js/state.pubWebEnabled).
     function pubWebSectionHtml() {
         return `<section id="pubWebSection" class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
             <h2 class="text-lg font-bold mb-2 flex items-center gap-2"><i class="fa-solid fa-globe text-govbr-600 dark:text-unifesp-400"></i> Publicar na Web (opcional)</h2>
@@ -935,7 +940,7 @@ window.TabConfig = (function () {
                 state.sumulaCfg = merged.sumula || {};
                 state.sumulaTexto = merged.sumulaTexto || '';
                 window.AppCore.applySumulaVisibility();
-                state.pubWebEnabled = merged.pubWebEnabled !== false;
+                state.pubWebEnabled = merged.pubWebEnabled !== undefined ? !!merged.pubWebEnabled : state.items.length > 0;
                 window.AppCore.applyPublicarVisibility();
                 restaurouConfig = true;
             }

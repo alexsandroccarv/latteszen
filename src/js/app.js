@@ -222,7 +222,7 @@
                 state.sumulaCfg = merged.sumula || {};
                 state.sumulaTexto = merged.sumulaTexto || '';
                 applySumulaVisibility();
-                state.pubWebEnabled = merged.pubWebEnabled !== false;
+                state.pubWebEnabled = merged.pubWebEnabled !== undefined ? !!merged.pubWebEnabled : state.items.length > 0;
                 applyPublicarVisibility();
                 state.nuvemExclusao = Array.isArray(merged.nuvemExclusao) ? merged.nuvemExclusao : [];
                 state.nuvemCompostas = Array.isArray(merged.nuvemCompostas) ? merged.nuvemCompostas : [];
@@ -689,10 +689,14 @@
         state.sumulaTexto = cfg.sumulaTexto || '';
         state.nuvemExclusao = Array.isArray(cfg.nuvemExclusao) ? cfg.nuvemExclusao : [];
         state.nuvemCompostas = Array.isArray(cfg.nuvemCompostas) ? cfg.nuvemCompostas : [];
-        // Diferente do RSC (opt-in, default false): a aba Publicar na Web já
-        // existia e ficava sempre visível, então a ausência da chave (quem
-        // nunca mexeu no toggle) conta como habilitada, não desabilitada.
-        state.pubWebEnabled = cfg.pubWebEnabled !== false;
+        // Mesmo padrão do RSC/Súmula agora (opt-in, começa desabilitada) —
+        // exceto pra quem já tinha itens cadastrados ANTES dessa mudança:
+        // a chave nunca foi salva (toggle não existia ainda), mas já
+        // publicava de fato, então tratamos como habilitada pra não sumir
+        // com a aba de quem já usa. Só se aplica enquanto a chave nunca foi
+        // salva — uma vez que a pessoa mexe no checkbox (ligado OU
+        // desligado), o valor explícito sempre prevalece.
+        state.pubWebEnabled = cfg.pubWebEnabled !== undefined ? !!cfg.pubWebEnabled : state.items.length > 0;
         const { conexoesMigradas, pastasParaMover } = migrarItens();
         updateHeaderIdentity();
         applyRscVisibility();

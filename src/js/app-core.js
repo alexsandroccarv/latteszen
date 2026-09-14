@@ -29,11 +29,14 @@ window.AppCore = (function () {
         idPrefix: 'lz',     // prefixo do ID dos arquivos (configurável, até 3 chars)
         rscEnabled: false,  // módulo RSC-PCCTAE habilitado?
         // Aba "Publicar na Web" — mesmo mecanismo do RSC (checkbox em
-        // Configurações mostra/oculta a aba), mas por padrão HABILITADA: a
-        // aba já existia e ficava sempre visível antes deste toggle, então o
-        // padrão preserva o comportamento atual em vez de escondê-la de
-        // quem já usa (RSC, ao contrário, sempre foi opt-in desde que existe).
-        pubWebEnabled: true,
+        // Configurações mostra/oculta a aba): padrão desabilitada na
+        // primeira utilização (opt-in, como RSC/Súmula), e como os outros
+        // dois módulos, fica como a pessoa deixou até ser trocada de novo.
+        // Instalações que já tinham itens cadastrados ANTES desse padrão
+        // mudar (pubWebEnabled nunca salvo, mas state.items não-vazio) são
+        // tratadas como já habilitadas, pra não sumir com a aba de quem já
+        // publicava — ver o cálculo em app.js/init() e syncFromDirectory().
+        pubWebEnabled: false,
         rscCfg: {},         // dados funcionais do servidor (cargo, escolaridade, etc.)
         rscMemorialTexto: '', // texto final do memorial (gerado por IA ou editado manualmente)
         sumulaEnabled: false, // módulo Súmula Curricular FAPESP habilitado? (mesmo padrão do RSC acima)

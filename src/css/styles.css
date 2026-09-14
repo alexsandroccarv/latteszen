@@ -137,8 +137,8 @@ html[data-lz-theme="solarized-light"]{--lz-accent-2:#6c7a00}
 html[data-lz-theme="solarized-dark"]{--lz-accent-2:#859900}
 
 /* Fonte por tema (Google Fonts, carregadas sob demanda pelo script inline
-   de cada página — GitHub Light/Dark e gov.br usam fonte do sistema/já
-   carregada, sem CDN extra). */
+   de cada página — GitHub Light/Dark e lattesZen dia (govbr) usam fonte do
+   sistema/já carregada, sem CDN extra). */
 html[data-lz-theme="catppuccin-latte"]{--lz-font:'Nunito',system-ui,sans-serif}
 html[data-lz-theme="catppuccin-mocha"]{--lz-font:'Nunito',system-ui,sans-serif}
 html[data-lz-theme="dracula"]{--lz-font:'Fira Sans',system-ui,sans-serif}
