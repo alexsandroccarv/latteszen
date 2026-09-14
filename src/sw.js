@@ -19,7 +19,7 @@
    (ver js/pwa.js). Sem isso, uma aba já aberta pode continuar servindo JS
    antigo por tempo indefinido mesmo depois de um conserto já publicado.
    ========================================================================== */
-const CACHE_VERSION = 'v16';
+const CACHE_VERSION = 'v17';
 const PRECACHE = `lattesZen-precache-${CACHE_VERSION}`;
 const RUNTIME = `lattesZen-runtime-${CACHE_VERSION}`;
 
@@ -45,6 +45,20 @@ const PRECACHE_URLS = [
     './js/paises.js',
     './js/idiomas.js',
     './js/lattes-types.js',
+    './js/lattes-types-campos.js',
+    './js/lattes-types-01-dados-gerais.js',
+    './js/lattes-types-02-formacao.js',
+    './js/lattes-types-03-atuacao.js',
+    './js/lattes-types-04-projetos.js',
+    './js/lattes-types-05-producao-bibliografica.js',
+    './js/lattes-types-05-producao-tecnica.js',
+    './js/lattes-types-05-producao-artistica.js',
+    './js/lattes-types-06-07-patentes-registros.js',
+    './js/lattes-types-09-eventos.js',
+    './js/lattes-types-10-orientacoes.js',
+    './js/lattes-types-11-bancas.js',
+    './js/lattes-types-12-15-alem-lattes.js',
+    './js/lattes-types-20-registros.js',
     './js/storage.js',
     './js/lattes-xml.js',
     './js/lattes-xml-export.js',

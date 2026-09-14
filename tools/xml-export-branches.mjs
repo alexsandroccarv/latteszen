@@ -2,16 +2,20 @@
    orientação/banca/participação, capítulo de livro) e valida contra o XSD. */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { dirname, join } from 'node:path';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const SRC = join(root, 'src', 'js');
 const XSD = join(root, 'docs', 'CurriculoLattes.xsd');
 const OUT = join(root, 'tools', '_branches-export.xml');
-const win = {};
+const win = globalThis;
+win.window = win;
 const load = (f) => new Function('window', 'document', 'with(window){' + readFileSync(join(SRC, f), 'utf8') + '\n}')(win, undefined);
-load('lattes-types.js'); load('encoding.js'); load('lattes-xml-export.js');
+// lattes-types.js virou um módulo ES de verdade (import/export — dividido em
+// vários arquivos): precisa de import() de verdade em vez de eval/with.
+await import(pathToFileURL(join(SRC, 'lattes-types.js')).href);
+load('encoding.js'); load('lattes-xml-export.js');
 const { LattesXMLExport, LzEncoding } = win;
 
 let n = 0; const mk = (typeKey, categoryKey, fields) => ({ id: 'b' + (++n), typeKey, categoryKey, fields, inLattes: true });

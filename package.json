@@ -1,6 +1,7 @@
 {
   "name": "latteszen",
   "private": true,
+  "type": "module",
   "description": "lattesZen — organizador local de Currículo Lattes (site estático, sem build). Este package.json existe só para os testes automatizados (Playwright); o app em si continua sem dependências de runtime.",
   "scripts": {
     "test": "node tools/tests/run.mjs",

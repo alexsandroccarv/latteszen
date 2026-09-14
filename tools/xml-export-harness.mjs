@@ -11,7 +11,7 @@
    ========================================================================== */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { dirname, join } from 'node:path';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -19,8 +19,11 @@ const SRC = join(root, 'src', 'js');
 const XSD = join(root, 'docs', 'CurriculoLattes.xsd');
 const OUT = join(root, 'tools', '_sample-export.xml');
 
-// "window" falso compartilhado por todos os módulos
-const win = {};
+// "window" falso compartilhado por todos os módulos — é o próprio objeto
+// global do Node (globalThis), então window.X = ... (dentro dos arquivos
+// carregados abaixo) e ler X aqui neste script enxergam a mesma coisa.
+const win = globalThis;
+win.window = win;
 function loadModule(file) {
     const code = readFileSync(join(SRC, file), 'utf8');
     // Executa o arquivo com `window` no escopo. O `with(window)` faz leituras
@@ -29,7 +32,11 @@ function loadModule(file) {
     new Function('window', 'document', 'with(window){' + code + '\n}')(win, undefined);
 }
 
-loadModule('lattes-types.js');
+// lattes-types.js virou um módulo ES de verdade (import/export — dividido
+// em vários arquivos, ver issue de refatoração): não dá mais pra carregar
+// via eval/with como os demais, precisa de import() de verdade. Continua
+// gravando em window.LattesTypes normalmente (window === globalThis aqui).
+await import(pathToFileURL(join(SRC, 'lattes-types.js')).href);
 loadModule('encoding.js');
 loadModule('lattes-xml-export.js');
 
