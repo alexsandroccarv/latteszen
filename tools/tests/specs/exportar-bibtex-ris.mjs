@@ -10,6 +10,10 @@ import { readFileSync } from 'node:fs';
 async function abrirConfig(page, baseUrl) {
     await page.click('[data-tab="config"]');
     await page.waitForTimeout(200);
+    // Exportar BibTeX/RIS mora na página "Trazer e levar dados" do menu
+    // lateral — não é a página ativa por padrão (Armazenamento é).
+    await page.click('[data-cfg-page-link="grp-fontes"]');
+    await page.waitForTimeout(150);
 }
 
 test('Exportar .bib gera um artigo com os campos esperados e ignora tipo não mapeado', async ({ page, baseUrl }) => {

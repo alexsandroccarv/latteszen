@@ -187,6 +187,8 @@ test('Configurações: lista de exclusão e lista de termos compostos da nuvem d
 
     await page.click('[data-tab="config"]');
     await page.waitForTimeout(300);
+    await page.click('[data-cfg-page-link="grp-opcionais"]');
+    await page.waitForTimeout(150);
     await page.fill('#nuvemExclusaoInput', 'institucional');
     await page.fill('#nuvemCompostasInput', 'tech talks');
     await page.click('#btnSalvarNuvemListas');
@@ -222,6 +224,8 @@ test('Configurações: listas da nuvem também funcionam separadas por vírgula 
 
     await page.click('[data-tab="config"]');
     await page.waitForTimeout(300);
+    await page.click('[data-cfg-page-link="grp-opcionais"]');
+    await page.waitForTimeout(150);
     await page.fill('#nuvemExclusaoInput', 'institucional, resiliencia');
     await page.fill('#nuvemCompostasInput', 'tech talks\nmachine learning');
     await page.click('#btnSalvarNuvemListas');

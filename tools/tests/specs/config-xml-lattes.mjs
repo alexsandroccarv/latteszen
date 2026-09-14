@@ -20,6 +20,10 @@ async function abrirConfig(page, baseUrl) {
     await page.waitForTimeout(400);
     await page.click('[data-tab="config"]');
     await page.waitForTimeout(200);
+    // A seção "Currículo Lattes (XML)" mora na página "Trazer e levar
+    // dados" do menu lateral — não é a página ativa por padrão (Armazenamento é).
+    await page.click('[data-cfg-page-link="grp-fontes"]');
+    await page.waitForTimeout(150);
 }
 
 test('Aviso de consistência não aparece mais na seção Currículo Lattes (XML)', async ({ page, baseUrl }) => {

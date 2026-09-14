@@ -36,6 +36,10 @@ test('Autores: aparece em Configurações → "Listas de autocomplete", com "Ren
     await seedCatalog(page, baseUrl, items);
     await page.click('[data-tab="config"]');
     await page.waitForTimeout(200);
+    // "Listas de autocomplete" mora na página "Outros recursos" do menu
+    // lateral — não é a página ativa por padrão (Armazenamento é).
+    await page.click('[data-cfg-page-link="grp-opcionais"]');
+    await page.waitForTimeout(150);
 
     const texto = await page.$eval('#tab-config', (el) => el.textContent);
     assert(texto.includes('Autores'), 'O grupo "Autores" deveria aparecer na lista de autocomplete de Configurações');
@@ -54,6 +58,8 @@ test('Autores: "Renomear em todos os itens" atualiza o nome no repeater (autores
     await seedCatalog(page, baseUrl, items);
     await page.click('[data-tab="config"]');
     await page.waitForTimeout(200);
+    await page.click('[data-cfg-page-link="grp-opcionais"]');
+    await page.waitForTimeout(150);
     // Abre os <details> recolhidos (Listas de autocomplete > Autores) —
     // selectOption exige o elemento visível.
     await page.evaluate(() => document.querySelectorAll('details').forEach((d) => { d.open = true; }));
@@ -84,6 +90,8 @@ test('Listas de autocomplete: categorias aparecem em ordem alfabética', async (
     await seedCatalog(page, baseUrl, []);
     await page.click('[data-tab="config"]');
     await page.waitForTimeout(200);
+    await page.click('[data-cfg-page-link="grp-opcionais"]');
+    await page.waitForTimeout(150);
     await page.evaluate(() => document.querySelectorAll('details').forEach((d) => { d.open = true; }));
 
     const rotulos = await page.$$eval('#detListasAutocomplete details[data-vockey] > summary', (els) =>

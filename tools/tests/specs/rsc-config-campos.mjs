@@ -12,6 +12,8 @@ test('Configurações → RSC só tem o "Habilitar módulo" — os campos do ser
     await seedCatalog(page, baseUrl, []);
     await page.click('[data-tab="config"]');
     await page.waitForTimeout(200);
+    await page.click('[data-cfg-page-link="grp-opcionais"]');
+    await page.waitForTimeout(150);
 
     assertEqual(await page.locator('#rscEnable').count(), 1, 'O checkbox "Habilitar módulo RSC-PCCTAE" deveria continuar em Configurações');
     assertEqual(await page.locator('#rsc-cargo').count(), 0, 'O campo "Cargo" não deveria mais estar em Configurações');
@@ -31,6 +33,8 @@ test('RSC: campo "Classe / nível" não existe; "Telefone" e "E-mail" são campo
     await seedCatalog(page, baseUrl, []);
     await page.click('[data-tab="config"]');
     await page.waitForTimeout(200);
+    await page.click('[data-cfg-page-link="grp-opcionais"]');
+    await page.waitForTimeout(150);
     await page.click('#rscEnable');
     await page.waitForTimeout(100);
     await page.click('[data-tab="rsc"]');
@@ -77,6 +81,8 @@ test('RSC: campo "Matrícula ou Funcional" existe ao lado da Lotação (mesma li
     await seedCatalog(page, baseUrl, []);
     await page.click('[data-tab="config"]');
     await page.waitForTimeout(200);
+    await page.click('[data-cfg-page-link="grp-opcionais"]');
+    await page.waitForTimeout(150);
     await page.click('#rscEnable');
     await page.waitForTimeout(100);
     await page.click('[data-tab="rsc"]');
@@ -98,6 +104,8 @@ test('RSC: "Salvar" bloqueia com e-mail, data incompleta ou telefone sem DDD inv
     await seedCatalog(page, baseUrl, []);
     await page.click('[data-tab="config"]');
     await page.waitForTimeout(200);
+    await page.click('[data-cfg-page-link="grp-opcionais"]');
+    await page.waitForTimeout(150);
     await page.click('#rscEnable');
     await page.waitForTimeout(100);
     await page.click('[data-tab="rsc"]');
@@ -142,6 +150,8 @@ test('RSC: data inválida em "Data de abrangência (final)" também é bloqueada
     await seedCatalog(page, baseUrl, []);
     await page.click('[data-tab="config"]');
     await page.waitForTimeout(200);
+    await page.click('[data-cfg-page-link="grp-opcionais"]');
+    await page.waitForTimeout(150);
     await page.click('#rscEnable');
     await page.waitForTimeout(100);
     await page.click('[data-tab="rsc"]');
@@ -163,6 +173,8 @@ test('RSC: explicação de "Data de abrangência (final)" virou um ícone de aju
     await seedCatalog(page, baseUrl, []);
     await page.click('[data-tab="config"]');
     await page.waitForTimeout(200);
+    await page.click('[data-cfg-page-link="grp-opcionais"]');
+    await page.waitForTimeout(150);
     await page.click('#rscEnable');
     await page.waitForTimeout(100);
     await page.click('[data-tab="rsc"]');
@@ -188,6 +200,8 @@ test('RSC: "Dados pessoais" segue a ordem de campos definida — Cargo/SIAPE, Lo
     await seedCatalog(page, baseUrl, []);
     await page.click('[data-tab="config"]');
     await page.waitForTimeout(200);
+    await page.click('[data-cfg-page-link="grp-opcionais"]');
+    await page.waitForTimeout(150);
     await page.click('#rscEnable');
     await page.waitForTimeout(100);
     await page.click('[data-tab="rsc"]');
