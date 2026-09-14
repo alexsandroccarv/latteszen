@@ -435,6 +435,40 @@
         inicio: TabInicio.render, catalogar: TabCatalogar.render, conformidade: TabConformidade.render,
         linhatempo: TabLinhaTempo.render, publicar: TabPublicar.render, rsc: TabRsc.render, sumula: TabSumula.render, config: TabConfig.render,
     };
+    // Abas que dependem de haver um diretório de armazenamento configurado
+    // (local ou Google Drive) — ficam travadas até a pessoa escolher um em
+    // Configurações › Armazenamento. "Início" e "Configurações" continuam
+    // sempre livres: é lá que mora o assistente de escolha do diretório (e
+    // Início já linka pra lá em "Primeiros passos").
+    const DIR_GATED_TABS = ['catalogar', 'conformidade', 'linhatempo', 'publicar', 'rsc', 'sumula'];
+    // Trava real desligável só em teste (window.__LZ_TEST_SKIP_DIR_GATE) —
+    // mesmo padrão de window.__LZ_TEST_ANALYTICS_ID em config.js: sem isto,
+    // toda a suíte de regressão (que semeia o catálogo direto no
+    // localStorage, sem configurar diretório) ficaria travada fora de
+    // Início/Configurações. tools/tests/harness.mjs liga o bypass por
+    // padrão em todo teste; tools/tests/specs/dir-gate.mjs desliga pra
+    // testar a trava de verdade.
+    function dirGateBypass() { return typeof window !== 'undefined' && !!window.__LZ_TEST_SKIP_DIR_GATE; }
+    // Acinzenta/desabilita os botões das abas travadas (com dica explicando
+    // o motivo) enquanto Storage.hasDirectory() for falso. Chamada no boot
+    // (init, após Storage.restoreDirectory) e sempre que TabConfig re-
+    // renderiza (escolher pasta, "Esquecer diretório de armazenamento",
+    // conectar/migrar Google Drive — todas essas ações já chamam render()
+    // em seguida).
+    function applyDirGate() {
+        const travado = !dirGateBypass() && !Storage.hasDirectory();
+        $$('.tab-btn').forEach(b => {
+            if (!DIR_GATED_TABS.includes(b.dataset.tab)) return;
+            b.disabled = travado;
+            b.classList.toggle('opacity-40', travado);
+            b.classList.toggle('cursor-not-allowed', travado);
+            b.classList.toggle('pointer-events-none', travado);
+            b.title = travado ? 'Configure um diretório de armazenamento em Configurações › Armazenamento antes de usar esta seção' : '';
+        });
+    }
+    // Publicado em AppCore para tab-config.js (chamado a cada render() da
+    // aba Configurações) — mesmo motivo de uid/nowISO.
+    window.AppCore.applyDirGate = applyDirGate;
     // Mostra/oculta a aba RSC conforme o módulo esteja habilitado
     function applyRscVisibility() {
         const btn = $('.tab-btn[data-tab="rsc"]');
@@ -457,6 +491,13 @@
     }
     window.AppCore.applyPublicarVisibility = applyPublicarVisibility;
     function switchTab(name) {
+        // Trava de verdade (não só visual): mesmo que alguém chame
+        // switchTab() direto (ex.: botão "Ir para Catalogar" em Início),
+        // sem diretório configurado a troca não acontece.
+        if (DIR_GATED_TABS.includes(name) && !dirGateBypass() && !Storage.hasDirectory()) {
+            toast('Configure um diretório de armazenamento em Configurações › Armazenamento antes de usar esta seção.', 'aviso');
+            return;
+        }
         // Guarda de alterações não salvas ao sair de "Catalogar"
         if (state.activeTab === 'catalogar' && name !== 'catalogar' && state.formDirty) {
             if (!confirm('Há alterações não salvas no formulário. Sair mesmo assim?')) return;
@@ -658,6 +699,7 @@
         applySumulaVisibility();
         applyPublicarVisibility();
         try { await Storage.restoreDirectory(); } catch (_) {}
+        applyDirGate();
         try { await checkDirHealth(); } catch (_) {} // silencioso: sem pedir permissão de novo sem um clique do usuário
         // Catálogo local vazio mas já há um diretório configurado e acessível:
         // pode ser um navegador/perfil novo, ou dados locais limpos, apontando

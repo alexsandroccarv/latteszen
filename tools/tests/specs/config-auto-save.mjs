@@ -89,6 +89,6 @@ test('Com diretório configurado, o card de status "Backup" mostra sincronizaç�
     await page.click('[data-tab="config"]');
     await page.waitForTimeout(300);
 
-    const texto = await page.$eval('[data-cfg-index="backupSection"]', (el) => el.textContent);
+    const texto = await page.$eval('#backupStatusHint', (el) => el.textContent);
     assert(/sincronizam automaticamente com o diretório/.test(texto), 'Com diretório configurado, o status de Backup deveria indicar sincronização automática, não um contador de alterações');
 });

@@ -108,9 +108,9 @@ test('Assistente: "Já tenho um diretório" > "Google Drive" mostra "Selecionar 
     assert((await btnMigrar.textContent()).includes('Migrar meus arquivos e conectar'), 'O texto do botão, no assistente, deveria ser "Migrar meus arquivos e conectar" (não o texto usado no painel de estado já configurado)');
 });
 
-test('"Esquecer pasta" continua sempre visível, mesmo sem diretório configurado ainda', async ({ page, baseUrl }) => {
+test('"Esquecer diretório de armazenamento" não aparece sem um diretório já configurado', async ({ page, baseUrl }) => {
     await abrirConfig(page, baseUrl);
-    assertEqual(await page.locator('#btnForget').count(), 1, '"Esquecer pasta" deveria continuar visível independente do passo do assistente');
+    assertEqual(await page.locator('#btnForget').count(), 0, 'Sem diretório configurado ainda, não há o que "esquecer" — o botão não deveria aparecer');
 });
 
 test('Com um diretório já configurado, a seção mostra o painel de estado direto, sem o assistente', async ({ page, baseUrl }) => {
@@ -133,12 +133,14 @@ test('Com um diretório já configurado, a seção mostra o painel de estado dir
     const dirLbl = await page.$eval('#dirNameLbl', (el) => el.textContent);
     assert(dirLbl.includes('PastaFake'), 'Deveria mostrar o nome da pasta já configurada');
     assertEqual(await page.locator('#idPrefix').count(), 0, 'Com diretório já configurado, o passo de "Prefixo do identificador" não precisa mais aparecer');
-    assertEqual(await page.locator('#btnChooseDir').count(), 0, 'Com diretório já configurado, "Escolher pasta" não deveria mais aparecer (a troca é via "Esquecer pasta")');
+    assertEqual(await page.locator('#btnChooseDir').count(), 0, 'Com diretório já configurado, "Escolher pasta" não deveria mais aparecer (a troca é via "Esquecer diretório de armazenamento")');
     assertEqual(await page.locator('#btnSync').count(), 1, '"Sincronizar do diretório" deveria continuar aparecendo');
     assertEqual(await page.locator('#btnCheckDir').count(), 1, '"Verificar pasta" deveria continuar aparecendo');
+    assertEqual(await page.locator('#btnForget').count(), 1, '"Esquecer diretório de armazenamento" deveria aparecer, já que há um diretório configurado');
+    assert((await page.locator('#btnForget').textContent()).includes('Esquecer diretório de armazenamento'), 'O botão deveria se chamar "Esquecer diretório de armazenamento" (não mais "Esquecer pasta")');
 });
 
-test('"Esquecer pasta" volta a mostrar o assistente do início (passo 1: primeira configuração/já tenho; sem prefixo ainda, até escolher "Primeira configuração")', async ({ page, baseUrl }) => {
+test('"Esquecer diretório de armazenamento" volta a mostrar o assistente do início (passo 1: primeira configuração/já tenho; sem prefixo ainda, até escolher "Primeira configuração")', async ({ page, baseUrl }) => {
     await page.addInitScript(() => {
         Object.defineProperty(window, 'Storage', {
             configurable: true,
@@ -160,9 +162,9 @@ test('"Esquecer pasta" volta a mostrar o assistente do início (passo 1: primeir
     await page.waitForTimeout(150);
 
     const toasts = await page.evaluate(() => Array.from(document.querySelectorAll('#toasts > div')).map((d) => d.textContent));
-    assert(toasts.some((t) => /pasta esquecida/i.test(t) && /escolha um novo diret[oó]rio|drive/i.test(t)), 'O aviso deveria confirmar que a pasta foi esquecida e indicar o que fazer a seguir');
+    assert(toasts.some((t) => /diret[oó]rio esquecido/i.test(t) && /escolha um novo diret[oó]rio|drive/i.test(t)), 'O aviso deveria confirmar que o diretório foi esquecido e indicar o que fazer a seguir');
 
-    assertEqual(await page.locator('[data-wizard-modo]').count(), 2, 'Depois de esquecer a pasta, o assistente deveria reaparecer do zero (passo 1)');
+    assertEqual(await page.locator('[data-wizard-modo]').count(), 2, 'Depois de esquecer o diretório, o assistente deveria reaparecer do zero (passo 1)');
     assertEqual(await page.locator('#idPrefix').count(), 0, 'O prefixo não deveria aparecer ainda — só depois de escolher "Primeira configuração"');
 });
 
