@@ -45,10 +45,14 @@ test('index.html: clicar no botão de Configurações do cabeçalho abre a aba n
 
     const info = await page.evaluate(() => ({
         painelVisivel: !document.querySelector('#tab-config').hidden,
-        selecionado: document.querySelector('#headerConfigBtn').getAttribute('aria-selected'),
+        // aria-pressed, não aria-selected: headerConfigBtn não tem
+        // role="tab" nem fica dentro do nav[role="tablist"] (issue de
+        // acessibilidade #17 — aria-selected só é válido em elementos com
+        // role tab/option/row; um botão comum usa o padrão "toggle button").
+        selecionado: document.querySelector('#headerConfigBtn').getAttribute('aria-pressed'),
     }));
     assert(info.painelVisivel, 'Clicar no botão do cabeçalho deveria abrir o painel de Configurações');
-    assertEqual(info.selecionado, 'true', 'O botão deveria ficar marcado como selecionado (aria-selected)');
+    assertEqual(info.selecionado, 'true', 'O botão deveria ficar marcado como selecionado (aria-pressed)');
 });
 
 test('index.html#config: abrir direto no hash já cai na aba Configurações (sem precisar clicar)', async ({ page, baseUrl }) => {
@@ -57,7 +61,8 @@ test('index.html#config: abrir direto no hash já cai na aba Configurações (se
 
     const info = await page.evaluate(() => ({
         painelVisivel: !document.querySelector('#tab-config').hidden,
-        selecionado: document.querySelector('[data-tab="config"]').getAttribute('aria-selected'),
+        // aria-pressed (ver comentário no teste acima sobre headerConfigBtn).
+        selecionado: document.querySelector('[data-tab="config"]').getAttribute('aria-pressed'),
     }));
     assert(info.painelVisivel, 'Abrir index.html#config deveria já cair direto na aba Configurações');
     assertEqual(info.selecionado, 'true', 'O botão de Configurações deveria estar marcado como selecionado');

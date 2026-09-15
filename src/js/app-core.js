@@ -299,7 +299,13 @@ window.AppCore = (function () {
         let n = 0;
         const wireOne = (wrap) => {
             const label = wrap.querySelector(':scope > label');
-            const ctrl = wrap.querySelector('input, select, textarea');
+            // input[type="hidden"] excluído de propósito: campos do tipo
+            // "repeater" (ex.: lista de Autores) guardam o valor de verdade
+            // num <input type="hidden"> que vem ANTES dos controles visíveis
+            // no HTML — sem essa exclusão, o <label> do campo apontava pro
+            // hidden (invisível/sem foco), e os controles visíveis (onde a
+            // pessoa realmente digita) ficavam sem nome acessível nenhum.
+            const ctrl = wrap.querySelector('input:not([type="hidden"]), select, textarea');
             if (!label || !ctrl) return;
             if (!ctrl.id) ctrl.id = `fld-${++n}-${ctrl.name || 'x'}`;
             label.setAttribute('for', ctrl.id);

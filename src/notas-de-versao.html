@@ -225,6 +225,13 @@
             desde o marco atual.
         </p>
 
+        <section class="card" id="v0-8-05">
+          <h2><span class="pill">v0.8.05</span> <span class="data">15/09/2026</span></h2>
+          <ul>
+            <li><strong>Auditoria de acessibilidade</strong>: modais (aviso de 1ª execução, aviso de cookies) ganharam armadilha de foco de verdade (Tab não escapa mais pra página por trás; Esc fecha o aviso de 1ª execução); a régua de abas navega por ←/→/Home/End; chips de filtro e botões de alternância expõem <code>aria-pressed</code>; o ícone de ajuda "(?)" virou um botão de verdade (focável, com nome acessível, clicável em telas de toque); colunas de campos "repeater" e níveis de habilidade (Idiomas) ganharam <code>aria-label</code> próprio; o buscador de critério do RSC-PCCTAE virou um combobox ARIA navegável por teclado; alvos de toque maiores nos ícones de ação mais usados — <a href="https://github.com/alexsandroccarv/latteszen/issues/17" target="_blank" rel="noopener">issue #17</a>.</li>
+          </ul>
+        </section>
+
         <section class="card" id="v0-8-04">
           <h2><span class="pill">v0.8.04</span> <span class="data">15/09/2026</span></h2>
           <ul>
@@ -1079,6 +1086,7 @@
 
     <!-- Cabeçalho/rodapé dinâmicos: versão e nome do titular (mesmo comportamento do app) -->
     <script type="module" src="js/config.js"></script>
+    <script type="module" src="js/a11y.js"></script>
     <script type="module" src="js/analytics.js"></script>
     <script type="module" src="js/cookie-consent.js"></script>
     <script type="module" src="js/pwa.js"></script>

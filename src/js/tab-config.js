@@ -41,7 +41,7 @@ import { xmlImportItemHtml, wireExportLattes, onXmlSelected } from './tab-config
 import { orcidImportItemHtml, wireOrcidImport } from './tab-config-orcid.js';
 import { bibImportItemHtml, bibExportItemHtml, onBibFileSelected, wireBibExport } from './tab-config-bibtex.js';
 import { pdfReportExportItemHtml, wirePdfReportExport } from './tab-config-pdf-report.js';
-import { dadosItemHtml, fileStamp } from './tab-config-shared.js';
+import { dadosItemHtml, fileStamp, wireHelpIcons } from './tab-config-shared.js';
 
 window.TabConfig = (function () {
     const {
@@ -426,8 +426,8 @@ window.TabConfig = (function () {
         // certa. Com um diretório já ativo, pula direto pro painel de estado
         // (pasta atual + botões de gerenciar), como sempre foi.
         const semDiretorio = !Storage.hasDirectory();
-        const modoBtn = (val, label) => `<button type="button" data-wizard-modo="${val}" class="px-3 py-2 rounded text-sm border ${dirWizardModo === val ? 'bg-govbr-600 dark:bg-unifesp-700 text-white border-govbr-600 dark:border-unifesp-700' : 'border-gray-300 dark:border-gray-600'}">${esc(label)}</button>`;
-        const tipoBtn = (val, label) => `<button type="button" data-wizard-tipo="${val}" class="px-3 py-2 rounded text-sm border ${dirWizardTipo === val ? 'bg-govbr-600 dark:bg-unifesp-700 text-white border-govbr-600 dark:border-unifesp-700' : 'border-gray-300 dark:border-gray-600'}">${esc(label)}</button>`;
+        const modoBtn = (val, label) => `<button type="button" data-wizard-modo="${val}" aria-pressed="${dirWizardModo === val}" class="px-3 py-2 rounded text-sm border ${dirWizardModo === val ? 'bg-govbr-600 dark:bg-unifesp-700 text-white border-govbr-600 dark:border-unifesp-700' : 'border-gray-300 dark:border-gray-600'}">${esc(label)}</button>`;
+        const tipoBtn = (val, label) => `<button type="button" data-wizard-tipo="${val}" aria-pressed="${dirWizardTipo === val}" class="px-3 py-2 rounded text-sm border ${dirWizardTipo === val ? 'bg-govbr-600 dark:bg-unifesp-700 text-white border-govbr-600 dark:border-unifesp-700' : 'border-gray-300 dark:border-gray-600'}">${esc(label)}</button>`;
 
         let dirSectionHtml;
         if (semDiretorio) {
@@ -613,7 +613,7 @@ window.TabConfig = (function () {
                                     <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-1" data-rencount="${k}"></p>
                                 </div>
                                 <div class="p-2">
-                                    <p class="text-[11px] text-gray-400 dark:text-gray-500 mb-1"><i aria-hidden="true" class="fa-solid fa-eye mr-1"></i> Somente leitura — use “Renomear” acima para alterar.</p>
+                                    <p class="text-[11px] text-gray-500 dark:text-gray-400 mb-1"><i aria-hidden="true" class="fa-solid fa-eye mr-1"></i> Somente leitura — use “Renomear” acima para alterar.</p>
                                     <textarea id="vocab-${k}" rows="6" readonly tabindex="-1" aria-label="Sugestões de ${esc(VOCAB_LABELS[k] || k)} (somente leitura)" class="w-full text-sm px-2 py-1.5 rounded border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 font-mono cursor-default resize-none focus:outline-none">${esc(collectSuggestions(k).join('\n'))}</textarea>
                                 </div>
                             </details>`).join('')}
@@ -644,6 +644,7 @@ window.TabConfig = (function () {
         wirePubWebConfig();
         wireNuvemPalavrasSection();
         wireExportLattes();
+        wireHelpIcons(panel);
         wireLixeiraSection();
         wireOrcidImport();
         $('#bibInput').addEventListener('change', onBibFileSelected);

@@ -116,7 +116,7 @@ const { state, $, $$, esc, toast, isImageExt, isVideoExt, isArchiveExt } = windo
         const hint = $('#evHint');
         if (hint) hint.classList.toggle('hidden', !state.evEditing.length); // só aparece com evidência carregada
         if (!state.evEditing.length) {
-            ul.innerHTML = `<li class="text-xs text-gray-400 dark:text-gray-500 italic">Nenhuma evidência anexada.</li>`;
+            ul.innerHTML = `<li class="text-xs text-gray-500 dark:text-gray-400 italic">Nenhuma evidência anexada.</li>`;
             return;
         }
         ul.innerHTML = state.evEditing.map((ev, idx) => {
@@ -139,10 +139,10 @@ const { state, $, $$, esc, toast, isImageExt, isVideoExt, isArchiveExt } = windo
                 <label class="flex items-center gap-1 text-xs shrink-0" title="Será exibida no futuro módulo de publicação (pode marcar quantas quiser)">
                     <input type="checkbox" data-evpub="${idx}" ${ev.publica ? 'checked' : ''}> pública
                 </label>
-                <button type="button" data-evup="${idx}" title="Subir" class="w-6 h-6 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 shrink-0 disabled:opacity-30" ${idx === 0 ? 'disabled' : ''}><i class="fa-solid fa-arrow-up"></i></button>
-                <button type="button" data-evdown="${idx}" title="Descer" class="w-6 h-6 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 shrink-0 disabled:opacity-30" ${idx === state.evEditing.length - 1 ? 'disabled' : ''}><i class="fa-solid fa-arrow-down"></i></button>
-                <button type="button" data-evsee="${idx}" title="Ver no painel" class="w-6 h-6 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-govbr-600 dark:text-unifesp-400 shrink-0"><i class="fa-solid fa-eye"></i></button>
-                <button type="button" data-evdel="${idx}" title="Remover" class="w-6 h-6 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-red-600 shrink-0"><i class="fa-solid fa-xmark"></i></button>
+                <button type="button" data-evup="${idx}" title="Subir" class="w-8 h-8 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 shrink-0 disabled:opacity-30" ${idx === 0 ? 'disabled' : ''}><i class="fa-solid fa-arrow-up"></i></button>
+                <button type="button" data-evdown="${idx}" title="Descer" class="w-8 h-8 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 shrink-0 disabled:opacity-30" ${idx === state.evEditing.length - 1 ? 'disabled' : ''}><i class="fa-solid fa-arrow-down"></i></button>
+                <button type="button" data-evsee="${idx}" title="Ver no painel" class="w-8 h-8 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-govbr-600 dark:text-unifesp-400 shrink-0"><i class="fa-solid fa-eye"></i></button>
+                <button type="button" data-evdel="${idx}" title="Remover" class="w-8 h-8 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-red-600 shrink-0"><i class="fa-solid fa-xmark"></i></button>
             </li>`;
         }).join('');
 

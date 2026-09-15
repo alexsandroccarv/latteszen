@@ -12,7 +12,13 @@ async function abrirInicio(page, baseUrl) {
     await page.waitForTimeout(400);
 }
 function abaAtiva(page) {
-    return page.evaluate(() => document.querySelector('.tab-btn[aria-selected="true"]').dataset.tab);
+    // headerConfigBtn não usa aria-selected (não tem role="tab" — issue de
+    // acessibilidade #17), e sim aria-pressed — por isso o fallback abaixo,
+    // senão a aba Configurações nunca seria encontrada por este helper.
+    return page.evaluate(() => {
+        const ativo = document.querySelector('.tab-btn[aria-selected="true"]') || document.querySelector('.tab-btn[aria-pressed="true"]');
+        return ativo && ativo.dataset.tab;
+    });
 }
 
 test('Início é a aba mostrada ao abrir o app', async ({ page, baseUrl }) => {

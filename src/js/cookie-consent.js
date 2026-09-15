@@ -68,17 +68,26 @@
         const overflowAnterior = document.documentElement.style.overflow;
         document.documentElement.style.overflow = 'hidden';
 
-        btnAceitar.addEventListener('click', () => {
+        function aceitar() {
             window.LzAnalytics.aceitar();
             document.documentElement.style.overflow = overflowAnterior;
+            if (liberarFoco) liberarFoco();
             overlay.remove();
             barra.remove();
-        });
+        }
+        btnAceitar.addEventListener('click', aceitar);
 
         barra.appendChild(texto);
         barra.appendChild(btnAceitar);
         document.body.appendChild(overlay);
         document.body.appendChild(barra);
+
+        // Sem "Recusar" de propósito (ver comentário do arquivo): o overlay
+        // já bloqueia o mouse, e a armadilha de foco garante que quem
+        // navega só por teclado/leitor de tela fique igualmente bloqueado
+        // (Tab não escapa pro app por trás) até decidir — sem isso, o
+        // aria-modal="true" da barra seria só decorativo.
+        const liberarFoco = window.LzA11y && window.LzA11y.trapFocus(barra, { onEscape: null, initialFocus: btnAceitar });
     }
 
     if (document.readyState === 'loading') {
