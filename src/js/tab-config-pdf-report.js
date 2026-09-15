@@ -97,6 +97,23 @@ export function pdfReportExportItemHtml() {
                     Mais antigas primeiro (crescente)
                 </label>
             </fieldset>
+            <fieldset class="text-sm mb-2">
+                <legend class="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Modelo de diagramação</legend>
+                <label class="flex items-start gap-2 mb-1.5">
+                    <input type="radio" name="pdfReportModelo" id="pdfReportModeloA" value="A" checked class="mt-0.5">
+                    <span>
+                        <strong>A — Editorial sóbrio</strong>
+                        <span class="block text-xs text-gray-500 dark:text-gray-400">Títulos em fonte serifada, cabeçalho com o nome e a seção em toda página, sumário com pontilhado guia até o número.</span>
+                    </span>
+                </label>
+                <label class="flex items-start gap-2">
+                    <input type="radio" name="pdfReportModelo" id="pdfReportModeloB" value="B" class="mt-0.5">
+                    <span>
+                        <strong>B — Índice lateral colorido</strong>
+                        <span class="block text-xs text-gray-500 dark:text-gray-400">Cada categoria ganha uma cor fixa; uma faixa lateral colorida em toda página ajuda a achar a seção folheando o PDF impresso, e cada item ganha um selo de contador + data.</span>
+                    </span>
+                </label>
+            </fieldset>
             <button id="btnPdfReportGerar" class="px-3 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm"><i class="fa-solid fa-file-pdf mr-1"></i> Gerar relatório (PDF)</button>
             <p id="pdfReportStatus" class="text-xs text-gray-500 mt-2"></p>`);
 }
@@ -135,6 +152,7 @@ export function wirePdfReportExport() {
     btn.addEventListener('click', async () => {
         const incluirTodos = $('#pdfReportEscopoTodos').checked;
         const ordemAsc = $('#pdfReportOrdemAsc').checked;
+        const modelo = $('#pdfReportModeloB').checked ? 'B' : 'A';
         const conteudo = ($$('input[name="pdfReportConteudo"]').find((r) => r.checked) || {}).value || 'completo';
         const incluirCurriculo = conteudo !== 'apenas-evidencias';
         const incluirEvidencias = conteudo !== 'sem-evidencias';
@@ -160,7 +178,7 @@ export function wirePdfReportExport() {
             if (!window.LzPdfReport) {
                 throw new Error('O gerador de PDF não carregou (js/pdf-report.js). Verifique sua conexão e se alguma extensão do navegador (bloqueador de anúncios/rastreadores) não está bloqueando o arquivo, depois recarregue a página.');
             }
-            const bytes = await window.LzPdfReport.gerar({ incluirTodos, incluirCurriculo, incluirEvidencias, categorias, ordemAsc });
+            const bytes = await window.LzPdfReport.gerar({ incluirTodos, incluirCurriculo, incluirEvidencias, categorias, ordemAsc, modelo });
             const nomeItem = state.catalogo.items.find((i) => i.typeKey === 'IDENTIFICACAO' && i.fields && i.fields.titulo);
             const safe = (nomeItem && nomeItem.fields.titulo ? nomeItem.fields.titulo : 'curriculo').replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, '-').toLowerCase();
             const nomeArquivo = `relatorio-completo-${safe}-${fileStamp()}.pdf`;

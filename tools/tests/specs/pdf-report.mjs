@@ -211,6 +211,61 @@ test('Ordenar por data: "decrescente" marcado por padrão; "crescente" passa ord
     assertEqual(chamadas[1].ordemAsc, true, 'Com "crescente" marcado, ordemAsc deveria ser true');
 });
 
+/* ==========================================================================
+   Regressão: 2 modelos de diagramação do Relatório (PDF) — A (Editorial
+   sóbrio, padrão) e B (Índice lateral colorido, com a data marcada numa
+   versão CLARA da cor da categoria, não a cor cheia).
+   ========================================================================== */
+test('Modelo de diagramação: "A — Editorial sóbrio" marcado por padrão; escolher "B" passa modelo: "B" para LzPdfReport.gerar()', async ({ page, baseUrl }) => {
+    await seedCatalog(page, baseUrl, [makeItem('IDENTIFICACAO', 'DADOS_GERAIS', { titulo: 'Fulano de Tal' })]);
+    await abrirExportar(page);
+    assertEqual(await page.locator('#pdfReportModeloA').count(), 1, 'A opção "Modelo A" deveria existir');
+    assertEqual(await page.locator('#pdfReportModeloB').count(), 1, 'A opção "Modelo B" deveria existir');
+    assert(await page.isChecked('#pdfReportModeloA'), '"A — Editorial sóbrio" deveria vir marcado por padrão');
+    await page.evaluate(() => {
+        window.__chamadasGerar = [];
+        window.LzPdfReport = { gerar: async (opts) => { window.__chamadasGerar.push(opts); return new Uint8Array([1]); } };
+    });
+
+    await page.click('#btnPdfReportGerar');
+    await page.waitForFunction(() => !document.querySelector('#btnPdfReportGerar').disabled, undefined, { timeout: 10000 });
+    await page.check('#pdfReportModeloB');
+    await page.click('#btnPdfReportGerar');
+    await page.waitForFunction(() => !document.querySelector('#btnPdfReportGerar').disabled, undefined, { timeout: 10000 });
+
+    const chamadas = await page.evaluate(() => window.__chamadasGerar);
+    assertEqual(chamadas[0].modelo, 'A', 'Com "A" marcado, modelo deveria ser "A"');
+    assertEqual(chamadas[1].modelo, 'B', 'Com "B" marcado, modelo deveria ser "B"');
+});
+
+test('pdf-report.js: corDaCategoria() é determinística (mesma categoria sempre cai na mesma cor) e cai num cinza neutro sem número de categoria', async ({ page, baseUrl }) => {
+    await seedCatalog(page, baseUrl, []);
+    const resultado = await page.evaluate(() => ({
+        atuacao1: window.LzPdfReport.corDaCategoria('03'),
+        atuacao2: window.LzPdfReport.corDaCategoria('03'),
+        formacao: window.LzPdfReport.corDaCategoria('02'),
+        semNumero: window.LzPdfReport.corDaCategoria(null),
+    }));
+    assertEqual(resultado.atuacao1, resultado.atuacao2, 'A mesma categoria deveria sempre devolver a mesma cor (determinístico)');
+    assert(JSON.stringify(resultado.atuacao1) !== JSON.stringify(resultado.formacao), 'Categorias diferentes deveriam (em geral) cair em cores diferentes — Atuação e Formação vieram iguais');
+    assertEqual(resultado.semNumero, [0.42, 0.42, 0.42], 'Sem número de categoria (seção mesclada/Memorial/Anexos), deveria cair num cinza neutro fixo');
+    resultado.atuacao1.forEach((c) => assert(c >= 0 && c <= 1, `Cada componente RGB deveria estar entre 0 e 1 — obtido: ${JSON.stringify(resultado.atuacao1)}`));
+});
+
+test('pdf-report.js: misturarComBranco() clareia uma cor sem estourar os limites 0-1 (usado no "chip" de data do Modelo B)', async ({ page, baseUrl }) => {
+    await seedCatalog(page, baseUrl, []);
+    const resultado = await page.evaluate(() => ({
+        semMistura: window.LzPdfReport.misturarComBranco([0.2, 0.4, 0.6], 0),
+        meio: window.LzPdfReport.misturarComBranco([0.2, 0.4, 0.6], 0.5),
+        total: window.LzPdfReport.misturarComBranco([0.2, 0.4, 0.6], 1),
+    }));
+    const proximoDe = (arr, esperado) => arr.every((c, i) => Math.abs(c - esperado[i]) < 0.0001);
+    assert(proximoDe(resultado.semMistura, [0.2, 0.4, 0.6]), `fator 0 deveria devolver a cor original, sem mistura — obtido: ${JSON.stringify(resultado.semMistura)}`);
+    assert(proximoDe(resultado.meio, [0.6, 0.7, 0.8]), `fator 0.5 deveria clarear pela metade do caminho até o branco — obtido: ${JSON.stringify(resultado.meio)}`);
+    assertEqual(resultado.total, [1, 1, 1], 'fator 1 deveria virar branco puro');
+    assert(resultado.meio.every((c, i) => c > resultado.semMistura[i]), 'A versão clareada deveria ter cada componente MAIOR que a cor original (mais clara, não mais escura)');
+});
+
 test('buildPublicModel({ ordemAsc }): ordena os itens dentro da categoria crescente ou decrescente por ano', async ({ page, baseUrl }) => {
     const items = [
         makeItem('ARTIGO_PERIODICO', 'PRODUCOES', { titulo: 'Artigo de 2020', ano: '2020' }),
