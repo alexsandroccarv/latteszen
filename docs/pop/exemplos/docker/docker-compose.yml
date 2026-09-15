@@ -1,0 +1,29 @@
+# lattesZen — docker-compose de exemplo, citado no POP-004.
+#
+# Duas formas de uso (escolha uma, comente a outra):
+#
+# (A) Imagem construída a partir do Dockerfile (dist/ embutido na imagem —
+#     precisa rebuild a cada atualização):
+#     docker compose -f docs/pop/exemplos/docker/docker-compose.yml up -d --build
+#
+# (B) Bind mount do dist/ direto do host (não precisa rebuild — só
+#     substituir os arquivos e recarregar o Nginx, mais parecido com o
+#     fluxo de deploy real do projeto via rsync/SSH). Ative descomentando
+#     "volumes:" abaixo e comentando "build:".
+
+services:
+  web:
+    build:
+      context: ../../../..           # raiz do repositório
+      dockerfile: docs/pop/exemplos/docker/Dockerfile
+    # image: nginx:1.27-alpine        # (B) use a imagem oficial pura
+    # volumes:                        # (B) e monte o dist/ direto
+    #   - ../../../../dist:/usr/share/nginx/html:ro
+    #   - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    ports:
+      - "8080:80"
+    restart: unless-stopped
+
+# Sem volume de dados/banco: o lattesZen não guarda estado nenhum no
+# servidor (ver POP-001) — o único "volume" que faz sentido aqui é o
+# bind mount opcional do próprio site estático, acima (opção B).

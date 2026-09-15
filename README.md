@@ -108,9 +108,21 @@ src/            aplicação (index.html, css/, js/, imagens, páginas de ajuda)
     storage.js           persistência (localStorage + File System Access API)
     encoding.js          codificação ISO-8859-1
 docs/           schema CurriculoLattes.xsd e DTD LMPL de referência
+  pop/          POPs de implantação/operação para infraestrutura e suporte
 tools/          harnesses de validação (XSD + DTD) do XML exportado
 build.mjs       monta a pasta dist/
 ```
+
+---
+
+## Documentação de operação
+
+Para quem instala/mantém o site em produção (infraestrutura, suporte), a
+pasta [`docs/pop/`](docs/pop/) reúne POPs (Procedimentos Operacionais
+Padrão) modulares: visão geral e requisitos, configuração de credenciais,
+instalação nativa em Debian, Docker, hospedagem compartilhada, atualização,
+troubleshooting e boas práticas. Veja também o [`DEPLOY.md`](DEPLOY.md)
+para o passo a passo específico do pipeline de CI/CD.
 
 ---
 
