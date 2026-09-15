@@ -124,7 +124,7 @@ const { state, $, $$, esc, toast } = window.AppCore;
         // Conversor de ENTRADA: decodifica respeitando o encoding do XML (Lattes = ISO-8859-1)
         const text = await LzEncoding.decodeXmlFile(file);
         const res = LattesXML.parse(text);
-        state.lattesParsed = res;
+        state.importacoes.lattes = res;
 
         if (res.errors && res.errors.length) { toast(res.errors[0], 'erro'); }
         renderXmlResult(res);
@@ -200,7 +200,7 @@ const { state, $, $$, esc, toast } = window.AppCore;
             const registrar = (it) => itemSignatures(it).forEach(s => { if (!sigMap.has(s)) sigMap.set(s, it); });
             let n = 0, atualizados = 0, ignorados = 0, feito = 0;
             for (const idx of chosen) {
-                const src = state.lattesParsed.items[idx];
+                const src = state.importacoes.lattes.items[idx];
                 // Tipos únicos (Identificação, Resumo, Outras info...): se já
                 // existir um item desse tipo, ATUALIZA em vez de criar um novo.
                 // Endereço não é singleton global (1 Residencial + 1 Profissional,
@@ -248,7 +248,7 @@ const { state, $, $$, esc, toast } = window.AppCore;
             const extras = [atualizados ? `${atualizados} atualizado(s)` : '', ignorados ? `${ignorados} já existente(s) ignorado(s)` : ''].filter(Boolean).join(', ');
             toast(`${n} item(ns) importado(s)${extras ? ' — ' + extras : ''}.`, 'ok');
             xmlConsistencyToast();
-            renderXmlResult(state.lattesParsed);
+            renderXmlResult(state.importacoes.lattes);
             window.AppCore.renderItemList();
         } finally {
             if (btn && btn.isConnected) { btn.disabled = false; btn.innerHTML = original; }

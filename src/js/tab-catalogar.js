@@ -125,7 +125,7 @@ window.TabCatalogar = (function () {
         const publicarWeb = v.publicarWeb !== false;
         const doLattes = elegivelAoLattes(typeKey, catKey);
         const rsc = (item && item.rsc) || {};
-        const doRsc = state.rscEnabled && !LattesTypes.isNaoLattesType(typeKey);
+        const doRsc = state.rsc.enabled && !LattesTypes.isNaoLattesType(typeKey);
 
         box.innerHTML = `
         <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm bg-sky-50 dark:bg-sky-900/10 border border-sky-200 dark:border-sky-800 rounded px-3 py-2">
@@ -289,7 +289,7 @@ window.TabCatalogar = (function () {
         // os campos depois de Categoria e Tipo escolhidos explicitamente.
         const selCat = $('#selCategoria');
         selCat.innerHTML = `<option value="">— Selecione —</option>` + LattesTypes.categories
-            .filter(c => !c.rscOnly || state.rscEnabled)   // categoria RSC só com o módulo ligado
+            .filter(c => !c.rscOnly || state.rsc.enabled)   // categoria RSC só com o módulo ligado
             .map(c => `<option value="${c.key}">${esc(c.num + '. ' + c.label)}</option>`).join('');
         if (currentCat) selCat.value = currentCat;
 
@@ -1562,7 +1562,7 @@ window.TabCatalogar = (function () {
         item.notasGerais = (form.elements['notasGerais'] ? form.elements['notasGerais'].value.trim() : '');
 
         // Camada RSC (se habilitado e o item é elegível)
-        if (state.rscEnabled) { const rscData = collectRsc(form); if (rscData) item.rsc = rscData; }
+        if (state.rsc.enabled) { const rscData = collectRsc(form); if (rscData) item.rsc = rscData; }
         // Camada de Visibilidade (Exportar Lattes / visibilidade no Lattes / Publicar na Web)
         const visibilidadeData = collectVisibilidade(form);
         if (visibilidadeData) item.visibilidade = visibilidadeData;

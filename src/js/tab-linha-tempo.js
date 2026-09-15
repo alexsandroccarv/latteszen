@@ -99,8 +99,8 @@ window.TabLinhaTempo = (function () {
     // Linha do tempo do app); a geração da página pública passa só os itens
     // que também entram no currículo público (mesmo filtro de privacidade).
     function contarPalavras(limite, itensLista) {
-        const compostas = (state.nuvemCompostas || []).map(s => String(s || '').trim().toLowerCase()).filter(Boolean);
-        const exclusao = new Set((state.nuvemExclusao || []).map(s => String(s || '').trim().toLowerCase()).filter(Boolean));
+        const compostas = (state.linhaTempo.nuvemCompostas || []).map(s => String(s || '').trim().toLowerCase()).filter(Boolean);
+        const exclusao = new Set((state.linhaTempo.nuvemExclusao || []).map(s => String(s || '').trim().toLowerCase()).filter(Boolean));
         const freq = {};
         const conta = (w) => { if (w && !exclusao.has(w)) freq[w] = (freq[w] || 0) + 1; };
 

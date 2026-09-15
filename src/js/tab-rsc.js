@@ -110,7 +110,7 @@ window.TabRsc = (function () {
             });
             if (temErro) { toast('Corrija os campos destacados antes de salvar.', 'erro'); return; }
             cfg.escolaridade = $('#rsc-escolaridade').value;
-            state.rscCfg = cfg;
+            state.rsc.cfg = cfg;
             const s = Storage.loadSettings(); s.rsc = cfg; Storage.saveSettings(s);
             toast('Configuração do RSC salva.', 'ok');
             render();
@@ -118,11 +118,11 @@ window.TabRsc = (function () {
     }
     function render() {
         const panel = $('#tab-rsc');
-        if (!state.rscEnabled) {
+        if (!state.rsc.enabled) {
             panel.innerHTML = `<p class="text-sm text-gray-500 italic py-8 text-center">Módulo RSC desabilitado. Habilite em <strong>Configurações › RSC-PCCTAE</strong>.</p>`;
             return;
         }
-        const cfg = state.rscCfg || {};
+        const cfg = state.rsc.cfg || {};
         const itens = rscItensContados();
         const rscList = itens.map(i => i.rsc);
         const sim = LzRSC.simular(rscList, cfg.escolaridade);
@@ -185,7 +185,7 @@ window.TabRsc = (function () {
                     <button id="btnRscMemorialPadrao" class="px-2 py-1 rounded border border-gray-300 dark:border-gray-600 text-xs"><i class="fa-solid fa-arrows-rotate mr-1"></i> Preencher com modelo automático</button>
                 </div>
                 <p class="text-xs text-gray-500 mb-2">Cole aqui o texto devolvido por uma IA externa (a partir do <strong>Gerar prompt (IA)</strong> acima) ou escreva/edite manualmente. <strong>Gerar memorial</strong> exporta exatamente o que estiver neste campo — se deixar em branco, usa o modelo automático.</p>
-                <textarea id="rscMemorialTexto" rows="16" placeholder="Cole aqui o memorial gerado pela IA, ou escreva o seu…" class="w-full text-sm px-3 py-2 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 font-mono leading-relaxed">${esc(state.rscMemorialTexto || '')}</textarea>
+                <textarea id="rscMemorialTexto" rows="16" placeholder="Cole aqui o memorial gerado pela IA, ou escreva o seu…" class="w-full text-sm px-3 py-2 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 font-mono leading-relaxed">${esc(state.rsc.memorialTexto || '')}</textarea>
                 <p id="rscMemorialSalvo" class="text-xs text-gray-400 mt-1 h-4"></p>
             </div>
 
@@ -201,8 +201,8 @@ window.TabRsc = (function () {
         const memInfo = $('#rscMemorialSalvo');
         let memSaveTimer = null;
         const salvarMemorialTexto = () => {
-            state.rscMemorialTexto = memArea.value;
-            const s = Storage.loadSettings(); s.rscMemorialTexto = state.rscMemorialTexto; Storage.saveSettings(s);
+            state.rsc.memorialTexto = memArea.value;
+            const s = Storage.loadSettings(); s.rscMemorialTexto = state.rsc.memorialTexto; Storage.saveSettings(s);
             if (memInfo) { memInfo.textContent = 'Salvo.'; clearTimeout(memInfo._t); memInfo._t = setTimeout(() => { memInfo.textContent = ''; }, 1500); }
         };
         memArea.addEventListener('input', () => { clearTimeout(memSaveTimer); memSaveTimer = setTimeout(salvarMemorialTexto, 500); });
@@ -552,7 +552,7 @@ window.TabRsc = (function () {
             const anexos = listarAnexosNumerados(ordenados);
             if (btn) btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Gerando memorial e formulário…';
 
-            const textoMemorial = (state.rscMemorialTexto && state.rscMemorialTexto.trim()) ? state.rscMemorialTexto : rscMemorial(itens, sim, cfg);
+            const textoMemorial = (state.rsc.memorialTexto && state.rsc.memorialTexto.trim()) ? state.rsc.memorialTexto : rscMemorial(itens, sim, cfg);
             const memorialBytes = window.LzDocx.buildDocx(memorialDocxBody(textoMemorial, ordenados, anexos, cfg));
             await Storage.writeFile(`Memorial_${nomeServidor}.docx`, memorialBytes, folder);
 

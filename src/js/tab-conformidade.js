@@ -212,7 +212,7 @@ window.TabConformidade = (function () {
                 </div>
             </div>
 
-            ${state.rscEnabled ? rscConformidadeBoxHtml() : ''}
+            ${state.rsc.enabled ? rscConformidadeBoxHtml() : ''}
 
             <div class="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden mb-5">
                 <div class="px-4 py-3 bg-gray-100 dark:bg-gray-800 flex items-center justify-between gap-2 flex-wrap">
@@ -351,12 +351,12 @@ window.TabConformidade = (function () {
         return parseFloat(m[0].replace(',', '.')) < 10;
     }
     function rscEstado(item) {
-        if (!state.rscEnabled) return null;
+        if (!state.rsc.enabled) return null;
         const eligivel = item.typeKey && !LattesTypes.isPerfilType(item.typeKey) && !LattesTypes.isNaoLattesType(item.typeKey);
         if (!eligivel) return null;
         if (cargaHorariaAbaixoDoMinimoRSC(item)) return null;
         if (item.rsc && item.rsc.conta) return 'green';
-        const inicioAno = parseInt(anoDe((state.rscCfg && state.rscCfg.dataInicioContagem) || ''), 10);
+        const inicioAno = parseInt(anoDe((state.rsc.cfg && state.rsc.cfg.dataInicioContagem) || ''), 10);
         const itemAno = itemYear(item);
         const foraDoPeriodo = !isNaN(inicioAno) && itemAno != null && itemAno < inicioAno;
         return foraDoPeriodo ? 'gray' : 'amber';

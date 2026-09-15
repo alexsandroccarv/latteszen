@@ -76,7 +76,7 @@ window.TabSumula = (function () {
                 linkWebOfScience: $('#sumula-linkWebOfScience').value.trim(),
                 linkGoogleScholar: $('#sumula-linkGoogleScholar').value.trim(),
             };
-            state.sumulaCfg = cfg;
+            state.sumula.cfg = cfg;
             const s = Storage.loadSettings(); s.sumula = cfg; Storage.saveSettings(s);
             toast('Configuração da Súmula FAPESP salva.', 'ok');
             render();
@@ -288,7 +288,7 @@ window.TabSumula = (function () {
         if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Gerando…'; }
         try {
             const folder = pastaExportacaoHoje();
-            const texto = (state.sumulaTexto && state.sumulaTexto.trim()) ? state.sumulaTexto : sumulaModelo(cfg);
+            const texto = (state.sumula.texto && state.sumula.texto.trim()) ? state.sumula.texto : sumulaModelo(cfg);
             const bytes = window.LzDocx.buildDocx(sumulaDocxBody(texto));
             await Storage.writeFile(nomeArquivoSumula(), bytes, folder);
             toast(`Súmula Curricular exportada em "${folder}/".`, 'ok');
@@ -298,11 +298,11 @@ window.TabSumula = (function () {
 
     function render() {
         const panel = $('#tab-sumula');
-        if (!state.sumulaEnabled) {
+        if (!state.sumula.enabled) {
             panel.innerHTML = `<p class="text-sm text-gray-500 italic py-8 text-center">Módulo Súmula Curricular FAPESP desabilitado. Habilite em <strong>Configurações › Súmula Curricular FAPESP</strong>.</p>`;
             return;
         }
-        const cfg = state.sumulaCfg || {};
+        const cfg = state.sumula.cfg || {};
         panel.innerHTML = `
             ${sumulaCfgSectionHtml(cfg)}
 
@@ -312,7 +312,7 @@ window.TabSumula = (function () {
                     <button id="btnSumulaModeloPadrao" class="px-2 py-1 rounded border border-gray-300 dark:border-gray-600 text-xs"><i class="fa-solid fa-arrows-rotate mr-1"></i> Preencher com modelo automático</button>
                 </div>
                 <p class="text-xs text-gray-500 mb-2">Organizado nas 6 seções exigidas pela FAPESP (<a href="https://fapesp.br/sumula" target="_blank" rel="noopener" class="underline">roteiro oficial</a>), com sugestões pré-preenchidas a partir do catálogo — revise, edite e complete antes de exportar. <strong>Não é um documento oficial pronto para submissão.</strong> Lembre-se: até 4 páginas A-4 (a FAPESP descarta o excedente).</p>
-                <textarea id="sumulaTexto" rows="20" placeholder="Clique em “Preencher com modelo automático” para começar…" class="w-full text-sm px-3 py-2 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 font-mono leading-relaxed">${esc(state.sumulaTexto || '')}</textarea>
+                <textarea id="sumulaTexto" rows="20" placeholder="Clique em “Preencher com modelo automático” para começar…" class="w-full text-sm px-3 py-2 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 font-mono leading-relaxed">${esc(state.sumula.texto || '')}</textarea>
                 <p id="sumulaTextoSalvo" class="text-xs text-gray-400 mt-1 h-4"></p>
             </div>
 
@@ -327,8 +327,8 @@ window.TabSumula = (function () {
         const info = $('#sumulaTextoSalvo');
         let saveTimer = null;
         const salvar = () => {
-            state.sumulaTexto = area.value;
-            const s = Storage.loadSettings(); s.sumulaTexto = state.sumulaTexto; Storage.saveSettings(s);
+            state.sumula.texto = area.value;
+            const s = Storage.loadSettings(); s.sumulaTexto = state.sumula.texto; Storage.saveSettings(s);
             if (info) { info.textContent = 'Salvo.'; clearTimeout(info._t); info._t = setTimeout(() => { info.textContent = ''; }, 1500); }
         };
         area.addEventListener('input', () => { clearTimeout(saveTimer); saveTimer = setTimeout(salvar, 500); });

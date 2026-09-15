@@ -37,7 +37,7 @@ const { state, $, $$, esc, normNome } = window.AppCore;
         const box = $('#rscBlock'); if (!box) return;
         if (critOutsideClickHandler) { document.removeEventListener('click', critOutsideClickHandler); critOutsideClickHandler = null; }
         const typeKey = $('#selTipo') ? $('#selTipo').value : '';
-        const eligivel = state.rscEnabled && typeKey && !LattesTypes.isPerfilType(typeKey) && !LattesTypes.isNaoLattesType(typeKey);
+        const eligivel = state.rsc.enabled && typeKey && !LattesTypes.isPerfilType(typeKey) && !LattesTypes.isNaoLattesType(typeKey);
         if (!eligivel) { box.innerHTML = ''; return; }
         const rsc = (item && item.rsc) || {};
         // Lista única com TODOS os critérios do decreto (~50 itens), agrupados
@@ -246,7 +246,7 @@ const { state, $, $$, esc, normNome } = window.AppCore;
         const val = id => { const el = form.querySelector('#' + id); return el ? el.value.trim() : ''; };
         const chk = id => { const el = form.querySelector('#' + id); return !!(el && el.checked); };
         const fld = name => { const el = form.elements ? form.elements[name] : null; return (el && typeof el.value === 'string') ? el.value.trim() : ''; };
-        const dataAbrangencia = (state.rscCfg && state.rscCfg.dataAbrangenciaFinal) || '';
+        const dataAbrangencia = (state.rsc.cfg && state.rsc.cfg.dataAbrangenciaFinal) || '';
         return {
             conta: conta.checked,
             criterio: val('rscCrit'),

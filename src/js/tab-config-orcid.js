@@ -215,7 +215,7 @@ const { state, $, $$, esc, toast } = window.AppCore;
             const sigMap = existingSignatureMap();
             let n = 0, ignorados = 0, feito = 0;
             for (const idx of chosen) {
-                const src = state.orcidParsed[idx];
+                const src = state.importacoes.orcid[idx];
                 const sig = itemSignature(src.typeKey, src.fields || {});
                 if (sig && sigMap.has(sig)) { ignorados++; feito++; if (btn) btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-1"></i> Importando… (${feito}/${chosen.length})`; continue; } // já existe (mesma assinatura) — não duplica
                 const item = {
@@ -230,7 +230,7 @@ const { state, $, $$, esc, toast } = window.AppCore;
                 if (btn) btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-1"></i> Importando… (${feito}/${chosen.length})`;
             }
             toast(`${n} item(ns) importado(s) do ORCID${ignorados ? ` — ${ignorados} já existente(s) ignorado(s)` : ''}.`, 'ok');
-            renderOrcidResult(state.orcidParsed);
+            renderOrcidResult(state.importacoes.orcid);
             window.AppCore.renderItemList();
         } finally {
             if (btn && btn.isConnected) { btn.disabled = false; btn.innerHTML = original; }
@@ -245,7 +245,7 @@ const { state, $, $$, esc, toast } = window.AppCore;
             btn.disabled = true; btn.textContent = 'Buscando…';
             try {
                 const items = await fetchOrcidWorks(input.value);
-                state.orcidParsed = items;
+                state.importacoes.orcid = items;
                 renderOrcidResult(items);
             } catch (e) {
                 $('#orcidResult').innerHTML = '';

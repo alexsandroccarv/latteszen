@@ -237,18 +237,18 @@
                 state.idPrefix = sanitizePrefix(merged.idPrefix || 'lz');
                 state.lastCat = merged.lastCat || '';
                 state.lastType = merged.lastType || '';
-                state.rscEnabled = !!merged.rscEnabled;
-                state.rscCfg = merged.rsc || {};
-                state.rscMemorialTexto = merged.rscMemorialTexto || '';
+                state.rsc.enabled = !!merged.rscEnabled;
+                state.rsc.cfg = merged.rsc || {};
+                state.rsc.memorialTexto = merged.rscMemorialTexto || '';
                 applyRscVisibility();
-                state.sumulaEnabled = !!merged.sumulaEnabled;
-                state.sumulaCfg = merged.sumula || {};
-                state.sumulaTexto = merged.sumulaTexto || '';
+                state.sumula.enabled = !!merged.sumulaEnabled;
+                state.sumula.cfg = merged.sumula || {};
+                state.sumula.texto = merged.sumulaTexto || '';
                 applySumulaVisibility();
                 state.pubWebEnabled = merged.pubWebEnabled !== undefined ? !!merged.pubWebEnabled : state.items.length > 0;
                 applyPublicarVisibility();
-                state.nuvemExclusao = Array.isArray(merged.nuvemExclusao) ? merged.nuvemExclusao : [];
-                state.nuvemCompostas = Array.isArray(merged.nuvemCompostas) ? merged.nuvemCompostas : [];
+                state.linhaTempo.nuvemExclusao = Array.isArray(merged.nuvemExclusao) ? merged.nuvemExclusao : [];
+                state.linhaTempo.nuvemCompostas = Array.isArray(merged.nuvemCompostas) ? merged.nuvemCompostas : [];
                 configRestaurada = true;
             }
         } catch (_) {}
@@ -516,7 +516,7 @@
     // Mostra/oculta a aba RSC conforme o módulo esteja habilitado
     function applyRscVisibility() {
         const btn = $('.tab-btn[data-tab="rsc"]');
-        if (btn) btn.classList.toggle('hidden', !state.rscEnabled);
+        if (btn) btn.classList.toggle('hidden', !state.rsc.enabled);
     }
     // Publicado em AppCore para tab-config.js — mesmo motivo de uid/nowISO.
     window.AppCore.applyRscVisibility = applyRscVisibility;
@@ -524,7 +524,7 @@
     // (mesmo mecanismo do RSC acima).
     function applySumulaVisibility() {
         const btn = $('.tab-btn[data-tab="sumula"]');
-        if (btn) btn.classList.toggle('hidden', !state.sumulaEnabled);
+        if (btn) btn.classList.toggle('hidden', !state.sumula.enabled);
     }
     window.AppCore.applySumulaVisibility = applySumulaVisibility;
     // Mostra/oculta a aba Publicar na Web conforme o toggle em Configurações
@@ -768,14 +768,14 @@
         state.idPrefix = sanitizePrefix(cfg.idPrefix || 'lz');
         state.lastCat = cfg.lastCat || '';
         state.lastType = cfg.lastType || '';
-        state.rscEnabled = !!cfg.rscEnabled;
-        state.rscCfg = cfg.rsc || {};
-        state.rscMemorialTexto = cfg.rscMemorialTexto || '';
-        state.sumulaEnabled = !!cfg.sumulaEnabled;
-        state.sumulaCfg = cfg.sumula || {};
-        state.sumulaTexto = cfg.sumulaTexto || '';
-        state.nuvemExclusao = Array.isArray(cfg.nuvemExclusao) ? cfg.nuvemExclusao : [];
-        state.nuvemCompostas = Array.isArray(cfg.nuvemCompostas) ? cfg.nuvemCompostas : [];
+        state.rsc.enabled = !!cfg.rscEnabled;
+        state.rsc.cfg = cfg.rsc || {};
+        state.rsc.memorialTexto = cfg.rscMemorialTexto || '';
+        state.sumula.enabled = !!cfg.sumulaEnabled;
+        state.sumula.cfg = cfg.sumula || {};
+        state.sumula.texto = cfg.sumulaTexto || '';
+        state.linhaTempo.nuvemExclusao = Array.isArray(cfg.nuvemExclusao) ? cfg.nuvemExclusao : [];
+        state.linhaTempo.nuvemCompostas = Array.isArray(cfg.nuvemCompostas) ? cfg.nuvemCompostas : [];
         // Mesmo padrão do RSC/Súmula agora (opt-in, começa desabilitada) —
         // exceto pra quem já tinha itens cadastrados ANTES dessa mudança:
         // a chave nunca foi salva (toggle não existia ainda), mas já
