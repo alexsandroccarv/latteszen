@@ -72,7 +72,7 @@ test('Chamar switchTab() direto pra uma aba travada não troca de aba e mostra u
     await page.evaluate(() => window.AppCore.switchTab('catalogar'));
     await page.waitForTimeout(150);
 
-    const ativa = await page.evaluate(() => window.AppCore.state.activeTab);
+    const ativa = await page.evaluate(() => window.AppCore.state.ui.activeTab);
     assertEqual(ativa, 'inicio', 'Sem diretório configurado, switchTab("catalogar") não deveria trocar de aba');
     const toasts = await page.evaluate(() => Array.from(document.querySelectorAll('#toasts > div')).map((d) => d.textContent));
     assert(toasts.some((t) => /diret[oó]rio/i.test(t)), 'Deveria mostrar um aviso pedindo pra configurar um diretório');
@@ -85,7 +85,7 @@ test('O botão "Ir para Catalogar" em Início não navega quando não há diret�
     await page.click('#btnInicioCatalogar');
     await page.waitForTimeout(150);
 
-    const ativa = await page.evaluate(() => window.AppCore.state.activeTab);
+    const ativa = await page.evaluate(() => window.AppCore.state.ui.activeTab);
     assertEqual(ativa, 'inicio', 'Sem diretório configurado, "Ir para Catalogar" não deveria trocar de aba');
 });
 
@@ -99,7 +99,7 @@ test('Com diretório já configurado, as abas nascem habilitadas e trocar de aba
 
     await page.click('[data-tab="catalogar"]');
     await page.waitForTimeout(200);
-    const ativa = await page.evaluate(() => window.AppCore.state.activeTab);
+    const ativa = await page.evaluate(() => window.AppCore.state.ui.activeTab);
     assertEqual(ativa, 'catalogar', 'Com diretório configurado, deveria ser possível ir para Catalogar normalmente');
 });
 
@@ -150,7 +150,7 @@ test('Clicar numa página travada do menu lateral de Configurações não navega
     await page.evaluate(() => document.querySelector('[data-cfg-page-link="grp-risco"]').dispatchEvent(new MouseEvent('click', { bubbles: true })));
     await page.waitForTimeout(150);
 
-    const ativa = await page.evaluate(() => window.AppCore.state.cfgActiveGroup);
+    const ativa = await page.evaluate(() => window.AppCore.state.ui.cfgActiveGroup);
     assert(ativa !== 'grp-risco', 'Sem diretório configurado, a página ativa de Configurações não deveria virar "Zona de risco"');
     const toasts = await page.evaluate(() => Array.from(document.querySelectorAll('#toasts > div')).map((d) => d.textContent));
     assert(toasts.some((t) => /diret[oó]rio/i.test(t)), 'Deveria mostrar um aviso pedindo pra configurar um diretório');
@@ -168,7 +168,7 @@ test('Com diretório já configurado, as páginas do menu lateral de Configuraç
 
     await page.click('[data-cfg-page-link="grp-risco"]');
     await page.waitForTimeout(150);
-    const ativa = await page.evaluate(() => window.AppCore.state.cfgActiveGroup);
+    const ativa = await page.evaluate(() => window.AppCore.state.ui.cfgActiveGroup);
     assertEqual(ativa, 'grp-risco', 'Com diretório configurado, deveria ser possível navegar até "Zona de risco" normalmente');
 });
 
@@ -192,7 +192,7 @@ test('Perder o diretório enquanto numa página que fica travada por isso volta 
     });
     await page.waitForTimeout(150);
 
-    const ativa = await page.evaluate(() => window.AppCore.state.cfgActiveGroup);
+    const ativa = await page.evaluate(() => window.AppCore.state.ui.cfgActiveGroup);
     assertEqual(ativa, 'grp-armazenamento', 'Perdendo o diretório estando em "Zona de risco", cfgActiveGroup deveria voltar pra "Armazenamento"');
     const paginaVisivel = await page.evaluate(() => !document.querySelector('[data-cfg-page="grp-armazenamento"]').classList.contains('hidden'));
     assert(paginaVisivel, 'A página "Armazenamento" deveria estar visível depois de esquecer o diretório');

@@ -119,7 +119,7 @@ window.TabPublicar = (function () {
         const incluirTodos = !!(opts && opts.incluirTodos);
         const collect = opts && opts.collect;
         const anexosOpts = { external, collect };
-        const items = state.items;
+        const items = state.catalogo.items;
         const first = tk => items.find(i => i.typeKey === tk);
         const byType = tk => items.filter(i => i.typeKey === tk);
         const ident = first('IDENTIFICACAO'), resumo = first('RESUMO_CV'), endereco = first('ENDERECO'), outrasI = first('OUTRAS_INFO'), fotoItem = first('FOTO_PERFIL');
@@ -408,7 +408,7 @@ window.TabPublicar = (function () {
                 if (Storage.hasDirectory()) { ({ folder } = await savePublicBundle()); }
                 const html = await generatePublicHtml();
                 $('#pubPreview').srcdoc = html;
-                const nome = (state.items.find(i => i.typeKey === 'IDENTIFICACAO' && i.fields && i.fields.titulo) || {}).fields;
+                const nome = (state.catalogo.items.find(i => i.typeKey === 'IDENTIFICACAO' && i.fields && i.fields.titulo) || {}).fields;
                 const safe = (nome && nome.titulo ? nome.titulo : 'curriculo').replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, '-').toLowerCase();
                 const blob = new Blob([html], { type: 'text/html' });
                 const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `curriculo-${safe}.html`; a.click(); URL.revokeObjectURL(a.href);
@@ -443,7 +443,7 @@ window.TabPublicar = (function () {
             try {
                 const files = await buildDeployFiles();
                 ghStatus('Publicando no GitHub…');
-                const nome = (state.items.find(i => i.typeKey === 'IDENTIFICACAO' && i.fields && i.fields.titulo) || {}).fields;
+                const nome = (state.catalogo.items.find(i => i.typeKey === 'IDENTIFICACAO' && i.fields && i.fields.titulo) || {}).fields;
                 const titulo = (nome && nome.titulo) ? nome.titulo : 'currículo';
                 const { commitUrl, pagesUrl } = await DeployGithub.publish(Object.assign({}, cfg, { files, message: `Publicar ${titulo} — lattesZen` }));
                 ghStatus(pagesUrl ? `Publicado — ${pagesUrl}` : `Publicado (commit) — ${commitUrl}`);

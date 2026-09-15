@@ -31,7 +31,7 @@ test('Idiomas: editar um item mantém o próprio idioma disponível no seletor (
     await seedCatalog(page, baseUrl, items);
     await page.click('[data-tab="catalogar"]');
     await page.waitForTimeout(150);
-    await page.evaluate(() => window.AppCore.buildForm(window.AppCore.state.items[0]));
+    await page.evaluate(() => window.AppCore.buildForm(window.AppCore.state.catalogo.items[0]));
     await page.waitForTimeout(200);
 
     const opcoes = await page.$eval('#dynFields select[name="titulo"]', (sel) => Array.from(sel.options).map((o) => o.value));

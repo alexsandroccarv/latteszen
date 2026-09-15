@@ -73,7 +73,7 @@ test('O resumo (recolhido) mostra a seleção já salva, sem precisar expandir',
     await page.click('[data-tab="catalogar"]');
     await page.waitForTimeout(150);
     await page.evaluate((id) => {
-        const item = window.AppCore.state.items.find((i) => i.id === id);
+        const item = window.AppCore.state.catalogo.items.find((i) => i.id === id);
         window.AppCore.buildForm(item);
     }, items[0].id);
     await page.waitForTimeout(200);

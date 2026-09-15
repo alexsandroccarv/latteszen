@@ -27,43 +27,62 @@
 window.AppCore = (function () {
     /* ----------------------------- Estado ------------------------------- */
     const state = {
-        items: [],          // catálogo
-        trash: [],          // itens excluídos (lixeira), aguardando restauração ou purga
-        editingId: null,    // item em edição
-        evEditing: [],      // evidências do item em edição (array de trabalho)
-        lattesParsed: null, // resultado do parse do XML
-        orcidParsed: null,  // resultado da busca de publicações no ORCID
-        bibParsed: null,    // resultado do parse de um arquivo BibTeX/RIS
-        currentPdfUrl: null,// URL (blob) do PDF exibido no painel lateral
-        sortOrder: 'desc',  // ordenação por ano na Conformidade
-        viewFilter: 'todos',// recorte da lista (todos/comprovados/semPdf/naoLattes/descObrig)
-        formDirty: false,   // há edições não salvas no formulário de Catalogar?
-        saveAndNew: false,  // flag do botão "Salvar e novo"
-        saveAndNext: false, // flag do botão "Salvar e próximo"
-        activeTab: 'inicio',
-        lastCat: '', lastType: '', // última categoria/tipo usados (agiliza cadastro em série)
+        // O catálogo em si (issue #140) — dado persistido (grava em
+        // localStorage/pasta via Storage.saveCatalog) e o que está em
+        // edição agora. lastCat/lastType agilizam cadastro em série
+        // (lembram a última categoria/tipo usados).
+        catalogo: {
+            items: [],       // catálogo
+            trash: [],       // itens excluídos (lixeira), aguardando restauração ou purga
+            editingId: null, // item em edição
+            evEditing: [],   // evidências do item em edição (array de trabalho)
+            lastCat: '', lastType: '',
+        },
+        // Prévias de importação (issue #140) — um resultado por
+        // fonte, todas mutuamente exclusivas na tela (Trazer e levar dados):
+        // lattes = parse do XML; orcid = busca de publicações no ORCID;
+        // bib = parse de um arquivo BibTeX/RIS.
+        importacoes: { lattes: null, orcid: null, bib: null },
+        // Estado transiente de UI (issue #140) — o que está na tela AGORA
+        // (aba ativa, filtros/ordenação escolhidos, formulário sujo), bem
+        // diferente do dado persistido em `items`/`trash` etc.
+        ui: {
+            activeTab: 'inicio',
+            formDirty: false,     // há edições não salvas no formulário de Catalogar?
+            saveAndNew: false,    // flag do botão "Salvar e novo"
+            saveAndNext: false,   // flag do botão "Salvar e próximo"
+            sortOrder: 'desc',    // ordenação por ano na Conformidade
+            viewFilter: 'todos',  // recorte da lista (todos/comprovados/semPdf/naoLattes/descObrig)
+            itensAberto: false,   // seção "Itens" da Conformidade começa recolhida; abre sozinha ao filtrar por um chip/ícone
+            cfgActiveGroup: null, // Configurações: id do grupo (CFG_GROUPS) atualmente visível — null = ainda não visitada nesta sessão, usa o 1º grupo
+            currentPdfUrl: null,  // URL (blob) do PDF exibido no painel lateral
+        },
         vocab: {},          // listas curadas de autocomplete (por chave de campo)
         idPrefix: 'lz',     // prefixo do ID dos arquivos (configurável, até 3 chars)
-        rscEnabled: false,  // módulo RSC-PCCTAE habilitado?
         // Aba "Publicar na Web" — mesmo mecanismo do RSC (checkbox em
         // Configurações mostra/oculta a aba): padrão desabilitada na
         // primeira utilização (opt-in, como RSC/Súmula), e como os outros
         // dois módulos, fica como a pessoa deixou até ser trocada de novo.
         // Instalações que já tinham itens cadastrados ANTES desse padrão
-        // mudar (pubWebEnabled nunca salvo, mas state.items não-vazio) são
+        // mudar (pubWebEnabled nunca salvo, mas state.catalogo.items não-vazio) são
         // tratadas como já habilitadas, pra não sumir com a aba de quem já
         // publicava — ver o cálculo em app.js/init() e syncFromDirectory().
         pubWebEnabled: false,
-        rscCfg: {},         // dados funcionais do servidor (cargo, escolaridade, etc.)
-        rscMemorialTexto: '', // texto final do memorial (gerado por IA ou editado manualmente)
-        sumulaEnabled: false, // módulo Súmula Curricular FAPESP habilitado? (mesmo padrão do RSC acima)
-        sumulaCfg: {},      // links (ORCID/Lattes/Web of Science/Google Scholar) da Súmula
-        sumulaTexto: '',    // texto final da Súmula Curricular (modelo automático ou editado manualmente)
-        nuvemExclusao: [],  // Linha do tempo: palavras que nunca devem aparecer na nuvem
-        nuvemCompostas: [], // Linha do tempo: termos de mais de uma palavra tratados como um só (ex.: "tech talks")
+        // Módulo RSC-PCCTAE (issue #140 — namespacing do state):
+        // enabled = módulo habilitado?; cfg = dados funcionais do servidor
+        // (cargo, escolaridade etc.); memorialTexto = texto final do
+        // memorial (gerado por IA ou editado manualmente).
+        rsc: { enabled: false, cfg: {}, memorialTexto: '' },
+        // Módulo Súmula Curricular FAPESP (issue #140, mesmo
+        // padrão do RSC acima): enabled = módulo habilitado?; cfg = links
+        // (ORCID/Lattes/Web of Science/Google Scholar); texto = texto final
+        // (modelo automático ou editado manualmente).
+        sumula: { enabled: false, cfg: {}, texto: '' },
+        // Nuvem de palavras da Linha do tempo (issue #140):
+        // nuvemExclusao = palavras que nunca devem aparecer; nuvemCompostas
+        // = termos de mais de uma palavra tratados como um só (ex.: "tech talks").
+        linhaTempo: { nuvemExclusao: [], nuvemCompostas: [] },
         dirHealth: null,    // último resultado de Storage.checkHealth() (null = sem pasta/não verificado)
-        itensAberto: false, // seção "Itens" da Conformidade começa recolhida; abre sozinha ao filtrar por um chip/ícone
-        cfgActiveGroup: null, // Configurações: id do grupo (CFG_GROUPS) atualmente visível — null = ainda não visitada nesta sessão, usa o 1º grupo
     };
 
     /* --------------------------- Utilidades ----------------------------- */
@@ -147,13 +166,13 @@ window.AppCore = (function () {
     function itemsUsingValue(key, value) {
         const v = String(value == null ? '' : value).trim();
         if (!v) return [];
-        if (key === 'evidenciaTag') return state.items.filter(i => (i.evidencias || []).some(e => String(e.tag == null ? '' : e.tag).trim() === v));
-        if (key === 'autor') return state.items.filter(i => {
+        if (key === 'evidenciaTag') return state.catalogo.items.filter(i => (i.evidencias || []).some(e => String(e.tag == null ? '' : e.tag).trim() === v));
+        if (key === 'autor') return state.catalogo.items.filter(i => {
             const f = i.fields || {};
             if (Array.isArray(f.autoresLista) && f.autoresLista.some(a => String((a && a.nomeCompleto) || '').trim() === v)) return true;
             return !!(f.autores && String(f.autores).split(';').some(n => n.trim() === v));
         });
-        return state.items.filter(i => i.fields && String(i.fields[key] == null ? '' : i.fields[key]).trim() === v);
+        return state.catalogo.items.filter(i => i.fields && String(i.fields[key] == null ? '' : i.fields[key]).trim() === v);
     }
 
     // Normaliza um nome para comparação (sem acentos, maiúsculas, espaços)

@@ -92,7 +92,7 @@ window.TabCatalogar = (function () {
         buildForm();
         window.AppCore.maybeShowDraftBanner();
         $('#pdfClose').addEventListener('click', clearPdf);
-        $('#pdfNewTab').addEventListener('click', () => { if (state.currentPdfUrl) window.open(state.currentPdfUrl, '_blank'); });
+        $('#pdfNewTab').addEventListener('click', () => { if (state.ui.currentPdfUrl) window.open(state.ui.currentPdfUrl, '_blank'); });
     }
 
     // Painel de PDF e bandeja de evidências — extraídos para
@@ -125,7 +125,7 @@ window.TabCatalogar = (function () {
         const publicarWeb = v.publicarWeb !== false;
         const doLattes = elegivelAoLattes(typeKey, catKey);
         const rsc = (item && item.rsc) || {};
-        const doRsc = state.rscEnabled && !LattesTypes.isNaoLattesType(typeKey);
+        const doRsc = state.rsc.enabled && !LattesTypes.isNaoLattesType(typeKey);
 
         box.innerHTML = `
         <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm bg-sky-50 dark:bg-sky-900/10 border border-sky-200 dark:border-sky-800 rounded px-3 py-2">
@@ -136,9 +136,9 @@ window.TabCatalogar = (function () {
         </div>`;
 
         const expChk = $('#visExportarLattes');
-        if (expChk) expChk.addEventListener('change', () => { state.formDirty = true; });
+        if (expChk) expChk.addEventListener('change', () => { state.ui.formDirty = true; });
         const pubChk = $('#visPublicarWeb');
-        if (pubChk) pubChk.addEventListener('change', () => { state.formDirty = true; });
+        if (pubChk) pubChk.addEventListener('change', () => { state.ui.formDirty = true; });
     }
     // Lê a camada de Visibilidade do formulário → { exportarLattes,
     // visivelNoLattes, publicarWeb } (ou null se o bloco não foi montado —
@@ -176,7 +176,7 @@ window.TabCatalogar = (function () {
         for (const it of items) { if (it.kind === 'file') { const f = it.getAsFile(); if (f) files.push(f); } }
         if (files.length) { e.preventDefault(); addEvidenceFiles(files); }
     }
-    function onFormInputDirty() { state.formDirty = true; window.AppCore.saveDraftDebounced(); }
+    function onFormInputDirty() { state.ui.formDirty = true; window.AppCore.saveDraftDebounced(); }
 
     function buildForm(item, opts) {
         opts = opts || {};
@@ -187,9 +187,9 @@ window.TabCatalogar = (function () {
         // (painel de campos só aparece depois — ver renderDynFields). Exceção:
         // "Salvar e novo" (opts.keepType) mantém a mesma categoria/tipo, de
         // propósito, para agilizar o cadastro em série.
-        let currentType = item ? LattesTypes.normalizeType(item.typeKey) : (opts.keepType ? (state.lastType || '') : '');
+        let currentType = item ? LattesTypes.normalizeType(item.typeKey) : (opts.keepType ? (state.catalogo.lastType || '') : '');
         let currentCat = item ? (item.categoryKey || LattesTypes.primaryCategory(currentType))
-            : (opts.keepType ? (state.lastCat || (LattesTypes.categories[0] && LattesTypes.categories[0].key)) : '');
+            : (opts.keepType ? (state.catalogo.lastCat || (LattesTypes.categories[0] && LattesTypes.categories[0].key)) : '');
         if (currentCat === 'NAO_LATTES' || currentCat === 'ATIVIDADES_LIVRES') currentCat = 'AL_DESENVOLVIMENTO'; // legado
 
         // Layout em T: `form` tem display:contents (ver renderCatalogar) — os 2
@@ -289,7 +289,7 @@ window.TabCatalogar = (function () {
         // os campos depois de Categoria e Tipo escolhidos explicitamente.
         const selCat = $('#selCategoria');
         selCat.innerHTML = `<option value="">— Selecione —</option>` + LattesTypes.categories
-            .filter(c => !c.rscOnly || state.rscEnabled)   // categoria RSC só com o módulo ligado
+            .filter(c => !c.rscOnly || state.rsc.enabled)   // categoria RSC só com o módulo ligado
             .map(c => `<option value="${c.key}">${esc(c.num + '. ' + c.label)}</option>`).join('');
         if (currentCat) selCat.value = currentCat;
 
@@ -368,7 +368,7 @@ window.TabCatalogar = (function () {
             let itemSingleton = null;
             if (def && (!item || item.typeKey !== def.key)) {
                 if (LattesTypes.isSingleton(def.key)) {
-                    itemSingleton = state.items.find(i => i.typeKey === def.key) || null;
+                    itemSingleton = state.catalogo.items.find(i => i.typeKey === def.key) || null;
                 } else if (LattesTypes.singletonScopeField(def.key)) {
                     // "Singleton por campo" (Endereço: 1 Residencial + 1
                     // Profissional) — mesmo comportamento: abrir a tela já
@@ -376,7 +376,7 @@ window.TabCatalogar = (function () {
                     // de ficar em branco até o usuário reescolher o Tipo.
                     // Trocar o Tipo (wireSingletonScope, mais abaixo) troca
                     // pro outro registro depois.
-                    itemSingleton = state.items.filter(i => i.typeKey === def.key)
+                    itemSingleton = state.catalogo.items.filter(i => i.typeKey === def.key)
                         .sort((a, b) => new Date(b.updatedAt || b.createdAt || 0) - new Date(a.updatedAt || a.createdAt || 0))[0] || null;
                 }
             }
@@ -390,7 +390,7 @@ window.TabCatalogar = (function () {
             // sem trocar o idioma ficaria com o campo vazio.
             let camposParaRenderizar = def ? def.fields : [];
             if (def && def.key === 'IDIOMAS') {
-                const usados = new Set(state.items
+                const usados = new Set(state.catalogo.items
                     .filter(i => i.typeKey === 'IDIOMAS' && (!itemAtual || i.id !== itemAtual.id))
                     .map(i => (i.fields || {}).titulo).filter(Boolean));
                 camposParaRenderizar = def.fields.map(f => f.key === 'titulo'
@@ -427,13 +427,13 @@ window.TabCatalogar = (function () {
             if (def && LattesTypes.singletonScopeField(def.key)) wireSingletonScope(def);
             const semEvidencia = !!(def && def.noEvidence);
             $('#evidenceBlock').style.display = semEvidencia ? 'none' : '';
-            if (semEvidencia) { state.evEditing = []; renderEvList(); clearPdf(); }
+            if (semEvidencia) { state.catalogo.evEditing = []; renderEvList(); clearPdf(); }
             else if (itemSingleton) {
                 // Idem para a evidência: carrega a já salva (ex.: Foto de
                 // perfil, Identidade, Passaporte) em vez de ficar vazia.
-                state.evEditing = window.AppCore.evListFromItem(itemSingleton);
+                state.catalogo.evEditing = window.AppCore.evListFromItem(itemSingleton);
                 renderEvList();
-                if (state.evEditing.length) showPdfForItem(itemSingleton); else clearPdf();
+                if (state.catalogo.evEditing.length) showPdfForItem(itemSingleton); else clearPdf();
             }
             const accept = (def && def.accept) || window.AppCore.EVID_ACCEPT_DEFAULT;
             const inp = $('#pdfInput'); if (inp) inp.accept = accept;
@@ -461,7 +461,7 @@ window.TabCatalogar = (function () {
             if (!scopeSel) return;
             scopeSel.addEventListener('change', () => {
                 const val = scopeSel.value;
-                const match = val ? state.items.find(i => i.typeKey === def.key && (i.fields || {})[scopeField] === val) : null;
+                const match = val ? state.catalogo.items.find(i => i.typeKey === def.key && (i.fields || {})[scopeField] === val) : null;
                 const novosVals = Object.assign({}, match ? match.fields : {}, { [scopeField]: val });
                 $('#dynFields').innerHTML = dynFieldsHtml(def.fields, novosVals);
                 associateLabels($('#dynFields'));
@@ -470,17 +470,17 @@ window.TabCatalogar = (function () {
                 wireSingletonScope(def);
                 // Retarget: passa a editar o registro que já existe pra esse
                 // valor (ou vira um item novo, se ainda não existir) — sem
-                // isto, `state.editingId` continuava apontando pro registro
+                // isto, `state.catalogo.editingId` continuava apontando pro registro
                 // anterior (ex.: acabou de salvar o Residencial, a tela reabre
                 // nele) e salvar depois de trocar o Tipo corrompia esse
                 // registro em vez de criar/editar o outro.
-                state.editingId = match ? match.id : null;
+                state.catalogo.editingId = match ? match.id : null;
                 const idInfo = $('#idInfo');
                 if (idInfo) idInfo.textContent = match ? `ID: ${match.id}` : `O ID será gerado ao salvar (prefixo “${state.idPrefix}”).`;
-                state.evEditing = match ? window.AppCore.evListFromItem(match) : [];
+                state.catalogo.evEditing = match ? window.AppCore.evListFromItem(match) : [];
                 renderEvList();
-                if (state.evEditing.length) showPdfForItem(match); else clearPdf();
-                state.formDirty = true;
+                if (state.catalogo.evEditing.length) showPdfForItem(match); else clearPdf();
+                state.ui.formDirty = true;
                 window.AppCore.saveDraftDebounced();
             });
         }
@@ -498,7 +498,7 @@ window.TabCatalogar = (function () {
         $('#dynFields').addEventListener('change', (e) => { if (e.target.matches('input,select,textarea')) setFieldError(e.target, ''); });
 
         // Evidências: carrega as do item em edição (ou lista vazia p/ novo item)
-        state.evEditing = editing ? window.AppCore.evListFromItem(item) : [];
+        state.catalogo.evEditing = editing ? window.AppCore.evListFromItem(item) : [];
         fillTipos();
         renderEvList();
 
@@ -537,24 +537,24 @@ window.TabCatalogar = (function () {
 
         // Submit / Salvar e novo / Cancelar
         form.addEventListener('submit', onSubmitForm);
-        $('#btnSalvarNovo').addEventListener('click', () => { state.saveAndNew = true; form.requestSubmit(); });
+        $('#btnSalvarNovo').addEventListener('click', () => { state.ui.saveAndNew = true; form.requestSubmit(); });
         const btnProximo = $('#btnSalvarProximo');
-        if (btnProximo) btnProximo.addEventListener('click', () => { state.saveAndNext = true; form.requestSubmit(); });
-        $('#btnCancelar').addEventListener('click', () => { state.editingId = null; state.evEditing = []; state.formDirty = false; buildForm(undefined, { focus: true }); });
+        if (btnProximo) btnProximo.addEventListener('click', () => { state.ui.saveAndNext = true; form.requestSubmit(); });
+        $('#btnCancelar').addEventListener('click', () => { state.catalogo.editingId = null; state.catalogo.evEditing = []; state.ui.formDirty = false; buildForm(undefined, { focus: true }); });
         $('#btnLimpar').addEventListener('click', () => {
-            if (state.formDirty && !confirm('Limpar os dados não salvos deste formulário?')) return;
-            state.editingId = null; state.evEditing = []; state.formDirty = false;
+            if (state.ui.formDirty && !confirm('Limpar os dados não salvos deste formulário?')) return;
+            state.catalogo.editingId = null; state.catalogo.evEditing = []; state.ui.formDirty = false;
             buildForm(undefined, { focus: true });
         });
 
-        state.editingId = editing ? item.id : null;
+        state.catalogo.editingId = editing ? item.id : null;
         $('#idInfo').textContent = editing ? `ID: ${item.id}` : `O ID será gerado ao salvar (prefixo “${state.idPrefix}”).`;
 
         // Painel lateral do PDF: mostra evidência do item em edição, ou limpa
-        if (editing && state.evEditing.length) showPdfForItem(item);
+        if (editing && state.catalogo.evEditing.length) showPdfForItem(item);
         else clearPdf();
 
-        state.formDirty = false;                         // form recém-montado = limpo
+        state.ui.formDirty = false;                         // form recém-montado = limpo
         if (opts.focus) { const first = $('#dynFields').querySelector('input, select, textarea'); if (first) first.focus(); }
     }
     // Publicado em AppCore para os módulos de aba já extraídos (ex.:
@@ -598,15 +598,15 @@ window.TabCatalogar = (function () {
     function collectSuggestions(key) {
         const set = new Set(state.vocab[key] || []);
         if (key === 'evidenciaTag') {
-            state.items.forEach(i => (i.evidencias || []).forEach(e => { if (e.tag && String(e.tag).trim()) set.add(String(e.tag).trim()); }));
+            state.catalogo.items.forEach(i => (i.evidencias || []).forEach(e => { if (e.tag && String(e.tag).trim()) set.add(String(e.tag).trim()); }));
         } else if (key === 'autor') {
-            state.items.forEach(i => {
+            state.catalogo.items.forEach(i => {
                 const f = i.fields || {};
                 if (Array.isArray(f.autoresLista)) f.autoresLista.forEach(a => { const n = a && String(a.nomeCompleto || '').trim(); if (n) set.add(n); });
                 if (f.autores) String(f.autores).split(';').forEach(n => { const t = n.trim(); if (t) set.add(t); });
             });
         } else {
-            state.items.forEach(i => { const v = i.fields && i.fields[key]; if (v && String(v).trim()) set.add(String(v).trim()); });
+            state.catalogo.items.forEach(i => { const v = i.fields && i.fields[key]; if (v && String(v).trim()) set.add(String(v).trim()); });
         }
         return Array.from(set).filter(Boolean).sort((a, b) => a.localeCompare(b, 'pt-BR'));
     }
@@ -1267,7 +1267,7 @@ window.TabCatalogar = (function () {
                     const el = container.querySelector(`[name="${k}"]`);
                     if (el) { el.value = novos[k]; aplicados++; }
                 });
-                state.formDirty = true;
+                state.ui.formDirty = true;
                 setStatus(`${aplicados} campo(s) preenchido(s) a partir do Crossref.`);
             } catch (e) {
                 setStatus(e.message, true);
@@ -1285,7 +1285,7 @@ window.TabCatalogar = (function () {
             if (!input) return;
             if (cb.checked) { input.value = ''; input.disabled = true; input.classList.add('opacity-50'); setFieldError(input, ''); }
             else { input.disabled = false; input.classList.remove('opacity-50'); input.focus(); }
-            state.formDirty = true;
+            state.ui.formDirty = true;
             window.AppCore.saveDraftDebounced();
         }));
     }
@@ -1472,7 +1472,7 @@ window.TabCatalogar = (function () {
         // Trava de reentrância: um duplo-clique ou duplo Enter no botão
         // Salvar reentra aqui enquanto a 1ª chamada ainda está no meio de um
         // await (ex.: gravando evidência) — sem isto, a 2ª chamada roda com
-        // state.evEditing já esvaziado pela 1ª, podia criar 2 itens ou
+        // state.catalogo.evEditing já esvaziado pela 1ª, podia criar 2 itens ou
         // perder evidência. Desabilita os botões de salvar durante o await
         // como feedback visual — se o save recarregar o formulário (sucesso),
         // isto vira um no-op inofensivo sobre os botões antigos, já fora do DOM.
@@ -1492,8 +1492,8 @@ window.TabCatalogar = (function () {
         // "Salvar e próximo") aqui em cima — assim, se a validação abaixo
         // falhar e o usuário salvar depois pelo botão padrão, não fica um
         // "novo"/"próximo" pendente de um clique anterior.
-        const saveNew = state.saveAndNew, saveNext = state.saveAndNext;
-        state.saveAndNew = false; state.saveAndNext = false;
+        const saveNew = state.ui.saveAndNew, saveNext = state.ui.saveAndNext;
+        state.ui.saveAndNew = false; state.ui.saveAndNext = false;
         const categoryKey = $('#selCategoria').value;
         const typeKey = $('#selTipo').value;
         const naoLattes = LattesTypes.isNaoLattesCategory(categoryKey) || LattesTypes.isNaoLattesType(typeKey);
@@ -1503,11 +1503,11 @@ window.TabCatalogar = (function () {
         const encResid = normalizeEncoding(fields); // compatibilidade ISO-8859-1
         if (!validateItemFields(def, fields, form)) return;
 
-        let editing = state.editingId ? state.items.find(i => i.id === state.editingId) : null;
+        let editing = state.catalogo.editingId ? state.catalogo.items.find(i => i.id === state.catalogo.editingId) : null;
         // Tipo único (singleton): se já existir outro item desse tipo, atualiza-o
         // em vez de criar/duplicar.
         if (LattesTypes.isSingleton(typeKey)) {
-            const ex = state.items.find(i => i.typeKey === typeKey && (!editing || i.id !== editing.id));
+            const ex = state.catalogo.items.find(i => i.typeKey === typeKey && (!editing || i.id !== editing.id));
             if (ex) editing = ex;
         } else {
             // Tipo único "por campo" (ex.: Endereço — 1 Residencial + 1
@@ -1515,7 +1515,7 @@ window.TabCatalogar = (function () {
             // atualiza o item existente daquele valor em vez de duplicar.
             const scopeField = LattesTypes.singletonScopeField(typeKey);
             if (scopeField && fields[scopeField]) {
-                const ex = state.items.find(i => i.typeKey === typeKey && (i.fields || {})[scopeField] === fields[scopeField] && (!editing || i.id !== editing.id));
+                const ex = state.catalogo.items.find(i => i.typeKey === typeKey && (i.fields || {})[scopeField] === fields[scopeField] && (!editing || i.id !== editing.id));
                 if (ex) editing = ex;
             }
         }
@@ -1526,7 +1526,7 @@ window.TabCatalogar = (function () {
         // por outro item), não só ao criar. O seletor já filtra os idiomas
         // já usados (ver renderDynFields), então isto é o backstop.
         if (typeKey === 'IDIOMAS' && fields.titulo) {
-            const outroComMesmoIdioma = state.items.find(i => i.typeKey === 'IDIOMAS' && (!editing || i.id !== editing.id) && (i.fields || {}).titulo === fields.titulo);
+            const outroComMesmoIdioma = state.catalogo.items.find(i => i.typeKey === 'IDIOMAS' && (!editing || i.id !== editing.id) && (i.fields || {}).titulo === fields.titulo);
             if (outroComMesmoIdioma) {
                 toast(`"${fields.titulo}" já está cadastrado. Edite o item existente em vez de cadastrar outro.`, 'erro');
                 return;
@@ -1536,7 +1536,7 @@ window.TabCatalogar = (function () {
         if (!editing && !LattesTypes.isSingleton(typeKey)) {
             const key = dupKey(typeKey, fields);
             if (key) {
-                const dup = state.items.find(i => i.typeKey === typeKey && dupKey(i.typeKey, i.fields) === key);
+                const dup = state.catalogo.items.find(i => i.typeKey === typeKey && dupKey(i.typeKey, i.fields) === key);
                 if (dup && !confirm(`Já existe um item parecido:\n"${LattesTypes.itemTitle(dup)}".\n\nDeseja cadastrar mesmo assim?`)) return;
             }
         }
@@ -1562,7 +1562,7 @@ window.TabCatalogar = (function () {
         item.notasGerais = (form.elements['notasGerais'] ? form.elements['notasGerais'].value.trim() : '');
 
         // Camada RSC (se habilitado e o item é elegível)
-        if (state.rscEnabled) { const rscData = collectRsc(form); if (rscData) item.rsc = rscData; }
+        if (state.rsc.enabled) { const rscData = collectRsc(form); if (rscData) item.rsc = rscData; }
         // Camada de Visibilidade (Exportar Lattes / visibilidade no Lattes / Publicar na Web)
         const visibilidadeData = collectVisibilidade(form);
         if (visibilidadeData) item.visibilidade = visibilidadeData;
@@ -1575,12 +1575,12 @@ window.TabCatalogar = (function () {
         if (!semDir && editing && prevCat && prevCat !== item.categoryKey) {
             try { await Storage.moveItemFiles(item.id, LattesTypes.categoryFolder(prevCat), subdir); } catch (_) {}
         }
-        const usedBases = new Set(state.evEditing.filter(ev => ev.basename).map(ev => ev.basename));
+        const usedBases = new Set(state.catalogo.evEditing.filter(ev => ev.basename).map(ev => ev.basename));
         const newBase = () => { let b; do { b = `${item.id}-${window.AppCore.randCode(2)}`; } while (usedBases.has(b)); usedBases.add(b); return b; };
         let naoGravadas = 0;
         const evOut = [];
         const fromInbox = new Set();                 // originais da Inbox a mover p/ Processado
-        for (const ev of state.evEditing) {
+        for (const ev of state.catalogo.evEditing) {
             if (ev.kind === 'link') {
                 // Evidência por link: sem arquivo, guarda a URL direto no item.
                 evOut.push({ kind: 'link', url: ev.url, ext: 'url', name: ev.name || ev.url, publica: !!ev.publica, tag: ev.tag || '' });
@@ -1635,18 +1635,18 @@ window.TabCatalogar = (function () {
         if (encResid) toast(`Atenção: ${encResid} caractere(s) fora do ISO-8859-1 permanecem (ex.: emoji) — na exportação ao Lattes virarão entidades XML.`, 'aviso');
 
         // Lembra a última categoria/tipo (agiliza cadastro em série) e persiste
-        state.lastCat = item.categoryKey; state.lastType = item.typeKey;
-        const st = Storage.loadSettings(); st.lastCat = state.lastCat; st.lastType = state.lastType; Storage.saveSettings(st);
+        state.catalogo.lastCat = item.categoryKey; state.catalogo.lastType = item.typeKey;
+        const st = Storage.loadSettings(); st.lastCat = state.catalogo.lastCat; st.lastType = state.catalogo.lastType; Storage.saveSettings(st);
 
         window.AppCore.clearDraft(); // item salvo → descarta o rascunho automático
-        state.editingId = null; state.evEditing = []; state.formDirty = false;
+        state.catalogo.editingId = null; state.catalogo.evEditing = []; state.ui.formDirty = false;
         // "Salvar" / "Salvar alterações": reabre o item recém-salvo (novo ou editado),
         // para revisar/anexar evidência. "Salvar e novo": abre um item em branco
         // (mesma cat/tipo). "Salvar e próximo": abre o item seguinte dentro da
         // MESMA CATEGORIA (ordem sequencial e circular — ver itemsDaCategoria).
         if (saveNext && !proximoAlvo) toast('Não há outro item nessa categoria para navegar.', 'info');
         if (proximoAlvo) buildForm(proximoAlvo, { focus: false });
-        else if (!saveNew) buildForm(state.items.find(i => i.id === item.id), { focus: false });
+        else if (!saveNew) buildForm(state.catalogo.items.find(i => i.id === item.id), { focus: false });
         else buildForm(undefined, { focus: true, keepType: true });
         window.AppCore.renderItemList();
     }
@@ -1656,8 +1656,8 @@ window.TabCatalogar = (function () {
     // independente do filtro/busca/ordenação em uso na tela de Conformidade
     // naquele momento (evita "perder" itens que não batem no filtro atual).
     function itemsDaCategoria(categoryKey) {
-        const asc = (state.sortOrder || 'desc') === 'asc';
-        const items = state.items.filter(i => i.categoryKey === categoryKey);
+        const asc = (state.ui.sortOrder || 'desc') === 'asc';
+        const items = state.catalogo.items.filter(i => i.categoryKey === categoryKey);
         return sortByYear(items, asc);
     }
     // Próximo/anterior item dentro da MESMA categoria, de forma circular (do
@@ -1686,7 +1686,7 @@ window.TabCatalogar = (function () {
     //    corrigir em cada um.
     function wireKeyboardShortcuts() {
         document.addEventListener('keydown', (e) => {
-            if (state.activeTab !== 'catalogar') return;
+            if (state.ui.activeTab !== 'catalogar') return;
             const form = $('#itemForm');
             if (!form) return;
             const ctrlOrCmd = e.ctrlKey || e.metaKey;
@@ -1710,17 +1710,17 @@ window.TabCatalogar = (function () {
             // pra abrir/fechar o dropdown dele — sequestrar aqui quebraria
             // essa tecla em TODO select de TODO tipo de item (são ~150),
             // sempre que houver um item em edição.
-            if (e.altKey && !ctrlOrCmd && (e.key === 'ArrowDown' || e.key === 'ArrowUp') && state.editingId
+            if (e.altKey && !ctrlOrCmd && (e.key === 'ArrowDown' || e.key === 'ArrowUp') && state.catalogo.editingId
                 && (!e.target || e.target.tagName !== 'SELECT')) {
                 e.preventDefault();
-                const editingItem = state.items.find(i => i.id === state.editingId);
+                const editingItem = state.catalogo.items.find(i => i.id === state.catalogo.editingId);
                 const catKey = editingItem ? editingItem.categoryKey : null;
-                const alvo = e.key === 'ArrowDown' ? nextItemAfter(state.editingId, catKey) : prevItemBefore(state.editingId, catKey);
+                const alvo = e.key === 'ArrowDown' ? nextItemAfter(state.catalogo.editingId, catKey) : prevItemBefore(state.catalogo.editingId, catKey);
                 if (!alvo) {
                     toast('Não há outro item nessa categoria para navegar.', 'info');
                     return;
                 }
-                if (state.formDirty && !confirm('Há alterações não salvas no formulário. Sair mesmo assim?')) return;
+                if (state.ui.formDirty && !confirm('Há alterações não salvas no formulário. Sair mesmo assim?')) return;
                 buildForm(alvo, { focus: false });
             }
         });

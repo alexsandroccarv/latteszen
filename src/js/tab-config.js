@@ -207,7 +207,7 @@ window.TabConfig = (function () {
             <h2 class="text-lg font-bold mb-2 flex items-center gap-2"><i class="fa-solid fa-award text-govbr-600 dark:text-unifesp-400"></i> RSC-PCCTAE (opcional)</h2>
             <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">Reconhecimento de Saberes e Competências (Decreto nº 13.048/2026). Quando habilitado, cada item elegível ganha uma camada com os dados do RSC, e surge a aba <strong>RSC</strong> (simulador) — os dados da pessoa servidora (cargo, SIAPE, contatos etc.) são preenchidos lá. Uso individual.</p>
             <label class="flex items-center gap-2 text-sm">
-                <input type="checkbox" id="rscEnable" ${state.rscEnabled ? 'checked' : ''}>
+                <input type="checkbox" id="rscEnable" ${state.rsc.enabled ? 'checked' : ''}>
                 <span>Habilitar módulo <strong>RSC-PCCTAE</strong></span>
             </label>
         </section>`;
@@ -215,10 +215,10 @@ window.TabConfig = (function () {
     function wireRscConfig() {
         const en = $('#rscEnable'); if (!en) return;
         en.addEventListener('change', () => {
-            state.rscEnabled = en.checked;
-            const s = Storage.loadSettings(); s.rscEnabled = state.rscEnabled; Storage.saveSettings(s);
+            state.rsc.enabled = en.checked;
+            const s = Storage.loadSettings(); s.rscEnabled = state.rsc.enabled; Storage.saveSettings(s);
             window.AppCore.applyRscVisibility();
-            toast(state.rscEnabled ? 'Módulo RSC habilitado.' : 'Módulo RSC desabilitado.', 'ok');
+            toast(state.rsc.enabled ? 'Módulo RSC habilitado.' : 'Módulo RSC desabilitado.', 'ok');
         });
     }
 
@@ -231,7 +231,7 @@ window.TabConfig = (function () {
             <h2 class="text-lg font-bold mb-2 flex items-center gap-2"><i class="fa-solid fa-file-lines text-govbr-600 dark:text-unifesp-400"></i> Súmula Curricular FAPESP (opcional)</h2>
             <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">Gera, a partir do catálogo, uma base de texto organizada no modelo de Súmula Curricular exigido pela FAPESP em processos de bolsas/auxílios (não é um documento oficial pronto para submissão — é um ponto de partida a revisar e ajustar). Quando habilitado, surge a aba <strong>Súmula FAPESP</strong>.</p>
             <label class="flex items-center gap-2 text-sm">
-                <input type="checkbox" id="sumulaEnable" ${state.sumulaEnabled ? 'checked' : ''}>
+                <input type="checkbox" id="sumulaEnable" ${state.sumula.enabled ? 'checked' : ''}>
                 <span>Habilitar módulo <strong>Súmula Curricular FAPESP</strong></span>
             </label>
         </section>`;
@@ -239,10 +239,10 @@ window.TabConfig = (function () {
     function wireSumulaConfig() {
         const en = $('#sumulaEnable'); if (!en) return;
         en.addEventListener('change', () => {
-            state.sumulaEnabled = en.checked;
-            const s = Storage.loadSettings(); s.sumulaEnabled = state.sumulaEnabled; Storage.saveSettings(s);
+            state.sumula.enabled = en.checked;
+            const s = Storage.loadSettings(); s.sumulaEnabled = state.sumula.enabled; Storage.saveSettings(s);
             window.AppCore.applySumulaVisibility();
-            toast(state.sumulaEnabled ? 'Módulo Súmula Curricular FAPESP habilitado.' : 'Módulo Súmula Curricular FAPESP desabilitado.', 'ok');
+            toast(state.sumula.enabled ? 'Módulo Súmula Curricular FAPESP habilitado.' : 'Módulo Súmula Curricular FAPESP desabilitado.', 'ok');
         });
     }
 
@@ -280,12 +280,12 @@ window.TabConfig = (function () {
             <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">Personalize a nuvem de palavras da aba <strong>Gráficos</strong>, montada a partir dos títulos, palavras-chave e área de conhecimento dos seus itens.</p>
             <div class="mb-3">
                 <label class="block text-xs font-semibold mb-1" for="nuvemExclusaoInput">Palavras excluídas</label>
-                <textarea id="nuvemExclusaoInput" rows="2" placeholder="Separe por ponto e vírgula (;), vírgula (,) ou uma por linha" class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900">${esc((state.nuvemExclusao || []).join('; '))}</textarea>
+                <textarea id="nuvemExclusaoInput" rows="2" placeholder="Separe por ponto e vírgula (;), vírgula (,) ou uma por linha" class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900">${esc((state.linhaTempo.nuvemExclusao || []).join('; '))}</textarea>
                 <p class="text-xs text-gray-500 mt-1">Termos que nunca devem aparecer na nuvem (ex.: uma sigla genérica, o nome da sua instituição). Separe por ponto e vírgula, vírgula ou quebra de linha.</p>
             </div>
             <div class="mb-3">
                 <label class="block text-xs font-semibold mb-1" for="nuvemCompostasInput">Palavras compostas</label>
-                <textarea id="nuvemCompostasInput" rows="2" placeholder="Separe por ponto e vírgula (;), vírgula (,) ou uma por linha — ex.: tech talks; machine learning" class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900">${esc((state.nuvemCompostas || []).join('; '))}</textarea>
+                <textarea id="nuvemCompostasInput" rows="2" placeholder="Separe por ponto e vírgula (;), vírgula (,) ou uma por linha — ex.: tech talks; machine learning" class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900">${esc((state.linhaTempo.nuvemCompostas || []).join('; '))}</textarea>
                 <p class="text-xs text-gray-500 mt-1">Termos de mais de uma palavra que devem aparecer juntos na nuvem (ex.: "tech talks"), em vez de contados palavra a palavra. Separe por ponto e vírgula, vírgula ou quebra de linha.</p>
             </div>
             <button id="btnSalvarNuvemListas" class="px-3 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm"><i class="fa-solid fa-floppy-disk mr-1"></i> Salvar listas da nuvem</button>
@@ -300,11 +300,11 @@ window.TabConfig = (function () {
         // nunca batia com nenhuma palavra real da nuvem.
         const parseLista = (v) => v.split(/[;,\n]+/).map(s => s.trim()).filter(Boolean);
         btn.addEventListener('click', () => {
-            state.nuvemExclusao = parseLista($('#nuvemExclusaoInput').value);
-            state.nuvemCompostas = parseLista($('#nuvemCompostasInput').value);
+            state.linhaTempo.nuvemExclusao = parseLista($('#nuvemExclusaoInput').value);
+            state.linhaTempo.nuvemCompostas = parseLista($('#nuvemCompostasInput').value);
             const s = Storage.loadSettings();
-            s.nuvemExclusao = state.nuvemExclusao;
-            s.nuvemCompostas = state.nuvemCompostas;
+            s.nuvemExclusao = state.linhaTempo.nuvemExclusao;
+            s.nuvemCompostas = state.linhaTempo.nuvemCompostas;
             Storage.saveSettings(s);
             toast('Listas da nuvem de palavras salvas.', 'ok');
         });
@@ -327,7 +327,7 @@ window.TabConfig = (function () {
 
     // Menu lateral de Configurações: as 4 seções viram páginas independentes
     // (só uma visível por vez, ver render()) — clicar troca qual está ativa
-    // (state.cfgActiveGroup) e re-renderiza. No celular vira uma barra
+    // (state.ui.cfgActiveGroup) e re-renderiza. No celular vira uma barra
     // horizontal rolável (ver .cfg-sidebar no CSS/classes abaixo).
     function cfgSidebarHtml(activeId) {
         return `
@@ -352,7 +352,7 @@ window.TabConfig = (function () {
                 toast('Configure um diretório de armazenamento em Configurações › Armazenamento antes de usar esta seção.', 'aviso');
                 return;
             }
-            state.cfgActiveGroup = groupId;
+            state.ui.cfgActiveGroup = groupId;
             render();
         }));
     }
@@ -376,14 +376,14 @@ window.TabConfig = (function () {
         return `
             <section class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
                 <h2 class="text-lg font-bold mb-2 flex items-center gap-2">
-                    <i class="fa-solid fa-trash-can text-govbr-600 dark:text-unifesp-400"></i> Lixeira <span class="text-sm font-normal text-gray-500">(${state.trash.length})</span>
+                    <i class="fa-solid fa-trash-can text-govbr-600 dark:text-unifesp-400"></i> Lixeira <span class="text-sm font-normal text-gray-500">(${state.catalogo.trash.length})</span>
                 </h2>
                 <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">Itens excluídos ficam aqui por até ${window.AppCore.TRASH_RETENTION_DIAS} dias antes de serem removidos definitivamente. Os arquivos (quando há diretório configurado) vão para a pasta “${esc(LattesTypes.lixeiraFolder())}”, não são apagados na hora.</p>
-                ${state.trash.length ? `
+                ${state.catalogo.trash.length ? `
                 <div class="flex justify-end mb-2">
                     <button id="btnEsvaziarLixeira" class="px-3 py-1.5 rounded border border-red-300 dark:border-red-700 text-red-700 dark:text-red-400 text-xs"><i class="fa-solid fa-trash mr-1"></i> Esvaziar lixeira</button>
                 </div>
-                <ul class="space-y-2">${state.trash.map(trashItemRowHtml).join('')}</ul>` : `
+                <ul class="space-y-2">${state.catalogo.trash.map(trashItemRowHtml).join('')}</ul>` : `
                 <p class="text-sm text-gray-500 italic">A lixeira está vazia.</p>`}
             </section>`;
     }
@@ -395,7 +395,7 @@ window.TabConfig = (function () {
             render();
         }));
         $$('[data-purgar]').forEach(b => b.addEventListener('click', async () => {
-            const item = state.trash.find(i => i.id === b.dataset.purgar);
+            const item = state.catalogo.trash.find(i => i.id === b.dataset.purgar);
             if (item && !confirm(`Excluir definitivamente "${LattesTypes.itemTitle(item)}"? Esta ação não pode ser desfeita.`)) return;
             await window.AppCore.purgeTrashItem(b.dataset.purgar);
             toast('Item excluído definitivamente.', 'ok');
@@ -403,7 +403,7 @@ window.TabConfig = (function () {
         }));
         const btnEmpty = $('#btnEsvaziarLixeira');
         if (btnEmpty) btnEmpty.addEventListener('click', async () => {
-            if (!confirm(`Excluir definitivamente os ${state.trash.length} item(ns) da lixeira? Esta ação não pode ser desfeita.`)) return;
+            if (!confirm(`Excluir definitivamente os ${state.catalogo.trash.length} item(ns) da lixeira? Esta ação não pode ser desfeita.`)) return;
             await window.AppCore.emptyTrash();
             toast('Lixeira esvaziada.', 'ok');
             render();
@@ -528,18 +528,18 @@ window.TabConfig = (function () {
         }
 
         // Cada seção vira uma "página" independente — só a ativa
-        // (state.cfgActiveGroup, lembrada durante a sessão) fica visível;
+        // (state.ui.cfgActiveGroup, lembrada durante a sessão) fica visível;
         // as outras 3 continuam no DOM só com `hidden`, então toda a wiring
         // abaixo (wireThemeSection, wireRscConfig...) continua funcionando
         // igual, sem precisar saber qual página está aberta.
-        let cfgAtiva = state.cfgActiveGroup || CFG_GROUPS[0].id;
+        let cfgAtiva = state.ui.cfgActiveGroup || CFG_GROUPS[0].id;
         // Defensivo: se a página ativa ficou travada (ex.: "Esquecer
         // diretório de armazenamento" enquanto "Outros recursos" estava
         // aberta), volta pra "Armazenamento" em vez de renderizar uma
         // página que deveria estar bloqueada.
         if (window.AppCore.cfgGroupGated(cfgAtiva)) {
             cfgAtiva = CFG_GROUPS[0].id;
-            state.cfgActiveGroup = cfgAtiva;
+            state.ui.cfgActiveGroup = cfgAtiva;
         }
         panel.innerHTML = `
             <div class="flex flex-col lg:flex-row gap-6">
@@ -804,18 +804,18 @@ window.TabConfig = (function () {
         $('#importJson').addEventListener('change', importCatalog);
         $('#btnClear').addEventListener('click', () => {
             if (!confirm('Isto apaga TODO o índice local no navegador — itens catalogados, rascunho, prévia de importação, listas de autocomplete e as configurações do RSC-PCCTAE e da Súmula FAPESP. Os arquivos no diretório NÃO são removidos. Continuar?')) return;
-            state.items = [];
+            state.catalogo.items = [];
             window.AppCore.saveCatalog();
             window.AppCore.clearDraft();                 // rascunho não salvo (lz_draft)
-            state.lattesParsed = null;    // prévia de importação do XML
-            state.orcidParsed = null;     // prévia de importação do ORCID
-            state.bibParsed = null;       // prévia de importação de BibTeX/RIS
-            state.editingId = null;       // sai de qualquer edição em curso
-            state.evEditing = [];         // evidências em edição
+            state.importacoes.lattes = null;    // prévia de importação do XML
+            state.importacoes.orcid = null;     // prévia de importação do ORCID
+            state.importacoes.bib = null;       // prévia de importação de BibTeX/RIS
+            state.catalogo.editingId = null;       // sai de qualquer edição em curso
+            state.catalogo.evEditing = [];         // evidências em edição
             state.vocab = {};             // listas de autocomplete (curadas)
-            state.rscCfg = {};            // configuração do RSC-PCCTAE
-            state.sumulaCfg = {};         // configuração da Súmula FAPESP
-            state.sumulaTexto = '';       // texto da Súmula FAPESP
+            state.rsc.cfg = {};            // configuração do RSC-PCCTAE
+            state.sumula.cfg = {};         // configuração da Súmula FAPESP
+            state.sumula.texto = '';       // texto da Súmula FAPESP
             // Persiste a limpeza das listas, do RSC e da Súmula nas configurações.
             const s = Storage.loadSettings(); s.vocab = {}; s.rsc = {}; s.sumula = {}; s.sumulaTexto = ''; Storage.saveSettings(s);
             window.AppCore.resetBackupReminder();        // zera o contador de backup
@@ -848,7 +848,7 @@ window.TabConfig = (function () {
     // Varre o catálogo procurando caracteres fora do ISO-8859-1
     function scanEncoding() {
         const problemas = [];
-        state.items.forEach(i => {
+        state.catalogo.items.forEach(i => {
             const chars = new Set();
             Object.values(i.fields || {}).forEach(v => {
                 LzEncoding.findNonLatin1(v).forEach(x => chars.add(x.ch));
@@ -862,7 +862,7 @@ window.TabConfig = (function () {
         const box = $('#encResult');
         const probs = scanEncoding();
         if (!probs.length) {
-            box.innerHTML = `<p class="text-green-700 dark:text-green-400"><i class="fa-solid fa-circle-check"></i> Todos os ${state.items.length} itens são 100% compatíveis com ISO-8859-1. Prontos para exportar ao Lattes.</p>`;
+            box.innerHTML = `<p class="text-green-700 dark:text-green-400"><i class="fa-solid fa-circle-check"></i> Todos os ${state.catalogo.items.length} itens são 100% compatíveis com ISO-8859-1. Prontos para exportar ao Lattes.</p>`;
             return;
         }
         box.innerHTML = `
@@ -878,7 +878,7 @@ window.TabConfig = (function () {
 
     async function normalizarPontuacao() {
         let alterados = 0;
-        state.items.forEach(i => {
+        state.catalogo.items.forEach(i => {
             let changed = false;
             Object.keys(i.fields || {}).forEach(k => {
                 const orig = i.fields[k];
@@ -893,7 +893,7 @@ window.TabConfig = (function () {
         window.AppCore.saveCatalog();
         // regrava os JSON no diretório, se configurado
         if (Storage.hasDirectory()) {
-            for (const i of state.items) {
+            for (const i of state.catalogo.items) {
                 try { await Storage.writeJson(i.id, i, LattesTypes.categoryFolder(i.categoryKey)); } catch (_) {}
             }
         }
@@ -906,7 +906,7 @@ window.TabConfig = (function () {
     // Nome-base do backup: latteszen-<Nome completo>-<timestamp>
     // O nome vem do item de Identificação (Dados gerais); se não houver, omite.
     function catalogBaseName() {
-        const id = state.items.find(i => i.typeKey === 'IDENTIFICACAO' && i.fields && i.fields.titulo);
+        const id = state.catalogo.items.find(i => i.typeKey === 'IDENTIFICACAO' && i.fields && i.fields.titulo);
         const nome = id ? String(id.fields.titulo) : '';
         const safe = nome.replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, ' ').trim();
         return safe ? `latteszen-${safe}-${fileStamp()}` : `latteszen-${fileStamp()}`;
@@ -915,7 +915,7 @@ window.TabConfig = (function () {
     async function exportCatalog() {
         const data = {
             app: 'lattesZen', version: APP_CONFIG.version, schemaVersion: window.AppCore.SCHEMA_VERSION, exportedAt: window.AppCore.nowISO(),
-            items: state.items,
+            items: state.catalogo.items,
             // Configurações do sistema (prefixo do identificador, listas de
             // autocomplete, RSC etc.) — sem isto, restaurar o backup num
             // navegador novo perde tudo que está em Configurações.
@@ -960,9 +960,9 @@ window.TabConfig = (function () {
             const data = JSON.parse(await file.text());
             const items = Array.isArray(data) ? data : data.items;
             if (!Array.isArray(items)) throw new Error('Formato inválido.');
-            const byId = new Map(state.items.map(i => [i.id, i]));
+            const byId = new Map(state.catalogo.items.map(i => [i.id, i]));
             items.forEach(i => { if (i && i.id) { sanitizeImportedItem(i); byId.set(i.id, i); } });
-            state.items = Array.from(byId.values());
+            state.catalogo.items = Array.from(byId.values());
             window.AppCore.saveCatalog();
             // Restaura as configurações do sistema, se presentes no backup (prefixo
             // do identificador, listas de autocomplete, RSC etc.) — essencial ao
@@ -973,16 +973,16 @@ window.TabConfig = (function () {
                 Storage.saveSettings(merged);
                 state.vocab = merged.vocab || {};
                 state.idPrefix = window.AppCore.sanitizePrefix(merged.idPrefix || 'lz');
-                state.lastCat = merged.lastCat || '';
-                state.lastType = merged.lastType || '';
-                state.rscEnabled = !!merged.rscEnabled;
-                state.rscCfg = merged.rsc || {};
+                state.catalogo.lastCat = merged.lastCat || '';
+                state.catalogo.lastType = merged.lastType || '';
+                state.rsc.enabled = !!merged.rscEnabled;
+                state.rsc.cfg = merged.rsc || {};
                 window.AppCore.applyRscVisibility();
-                state.sumulaEnabled = !!merged.sumulaEnabled;
-                state.sumulaCfg = merged.sumula || {};
-                state.sumulaTexto = merged.sumulaTexto || '';
+                state.sumula.enabled = !!merged.sumulaEnabled;
+                state.sumula.cfg = merged.sumula || {};
+                state.sumula.texto = merged.sumulaTexto || '';
                 window.AppCore.applySumulaVisibility();
-                state.pubWebEnabled = merged.pubWebEnabled !== undefined ? !!merged.pubWebEnabled : state.items.length > 0;
+                state.pubWebEnabled = merged.pubWebEnabled !== undefined ? !!merged.pubWebEnabled : state.catalogo.items.length > 0;
                 window.AppCore.applyPublicarVisibility();
                 restaurouConfig = true;
             }

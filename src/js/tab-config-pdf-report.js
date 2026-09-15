@@ -74,7 +74,7 @@ export function wirePdfReportExport() {
                 throw new Error('O gerador de PDF não carregou (js/pdf-report.js). Verifique sua conexão e se alguma extensão do navegador (bloqueador de anúncios/rastreadores) não está bloqueando o arquivo, depois recarregue a página.');
             }
             const bytes = await window.LzPdfReport.gerar({ incluirTodos });
-            const nomeItem = state.items.find((i) => i.typeKey === 'IDENTIFICACAO' && i.fields && i.fields.titulo);
+            const nomeItem = state.catalogo.items.find((i) => i.typeKey === 'IDENTIFICACAO' && i.fields && i.fields.titulo);
             const safe = (nomeItem && nomeItem.fields.titulo ? nomeItem.fields.titulo : 'curriculo').replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, '-').toLowerCase();
             baixarArquivoBinario(`relatorio-completo-${safe}-${fileStamp()}.pdf`, bytes, 'application/pdf');
             status(Storage.hasDirectory() ? 'Relatório gerado.' : 'Relatório gerado — sem diretório configurado, evidências em arquivo (PDF/imagem) não puderam ser anexadas (só evidências em link, se houver).');

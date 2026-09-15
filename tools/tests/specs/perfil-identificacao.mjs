@@ -14,7 +14,7 @@ import { test, assert, assertEqual, makeItem, seedCatalog } from '../harness.mjs
 async function abrirEdicao(page, item) {
     await page.click('[data-tab="catalogar"]');
     await page.waitForTimeout(150);
-    await page.evaluate((it) => window.AppCore.buildForm(window.AppCore.state.items.find((i) => i.id === it.id)), item);
+    await page.evaluate((it) => window.AppCore.buildForm(window.AppCore.state.catalogo.items.find((i) => i.id === it.id)), item);
     await page.waitForTimeout(200);
 }
 

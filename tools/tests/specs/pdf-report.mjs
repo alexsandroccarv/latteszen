@@ -43,7 +43,7 @@ test('MEMORIAL: aparece na categoria "01 Dados gerais" e mostra um trecho do tex
     await seedCatalog(page, baseUrl, items);
     const info = await page.evaluate(() => {
         const cat = window.LattesTypes.categoryByKey('DADOS_GERAIS');
-        const it = window.AppCore.state.items.find((i) => i.typeKey === 'MEMORIAL');
+        const it = window.AppCore.state.catalogo.items.find((i) => i.typeKey === 'MEMORIAL');
         return { naCategoria: cat.types.includes('MEMORIAL'), titulo: window.LattesTypes.itemTitle(it) };
     });
     assert(info.naCategoria, 'MEMORIAL deveria estar na lista de tipos da categoria "01 Dados gerais"');

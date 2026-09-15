@@ -114,12 +114,12 @@ window.TabConformidade = (function () {
     // período de uso (verde + âmbar de rscEstado — exclui os cinzas, fora
     // do período, e os tipos não elegíveis, ex. Identificação/Não-Lattes).
     function rscConformidadeBoxHtml() {
-        const usaveis = state.items.filter(i => { const e = rscEstado(i); return e === 'green' || e === 'amber'; });
+        const usaveis = state.catalogo.items.filter(i => { const e = rscEstado(i); return e === 'green' || e === 'amber'; });
         const marcados = usaveis.filter(i => rscEstado(i) === 'green').length;
         const elegiveis = usaveis.length - marcados;
         const chip = (key, n) => {
             const m = VIEW_META[key];
-            const active = state.viewFilter === key;
+            const active = state.ui.viewFilter === key;
             return `<button type="button" data-view="${key}" title="Filtrar: ${m.titulo}" aria-pressed="${active}"
                 class="text-left bg-white dark:bg-gray-900 border rounded px-3 py-2 hover:shadow transition ${active ? `border-${m.cor}-500 ring-2 ring-${m.cor}-500/40` : 'border-gray-200 dark:border-gray-700'}">
                 <span class="block text-xl font-bold text-${m.cor}-600 dark:text-${m.cor}-400">${n}</span>
@@ -133,7 +133,7 @@ window.TabConformidade = (function () {
                     ${chip('rscUsavel', usaveis.length)}
                     ${chip('rscMarcado', marcados)}
                     ${chip('rscElegivel', elegiveis)}
-                    ${chip('rscForaPeriodo', state.items.filter(VIEW_PREDICATE.rscForaPeriodo).length)}
+                    ${chip('rscForaPeriodo', state.catalogo.items.filter(VIEW_PREDICATE.rscForaPeriodo).length)}
                 </div>
             </div>`;
     }
@@ -144,12 +144,12 @@ window.TabConformidade = (function () {
     function render() {
         const panel = $('#tab-conformidade');
         recalcularDuplicatas(); // os cartões/chips do topo usam count() logo abaixo — precisa estar pronto antes
-        const count = k => state.items.filter(VIEW_PREDICATE[k]).length;
+        const count = k => state.catalogo.items.filter(VIEW_PREDICATE[k]).length;
         // Denominador da conformidade documental: só itens que EXIGEM evidência.
         // 3 estados (mesmo critério de evidenceIconsHtml): verde (evidência
         // pública) / amarelo (evidência, mas nenhuma pública) / vermelho (sem
         // evidência) — mesmo padrão visual da barra de Descrição, abaixo.
-        const itensComEvidencia = state.items.filter(i => i.lattesItem && needsEvidence(i));
+        const itensComEvidencia = state.catalogo.items.filter(i => i.lattesItem && needsEvidence(i));
         const total = itensComEvidencia.length;
         const evG = itensComEvidencia.filter(i => evidenceState(i) === 'green').length;
         const evA = itensComEvidencia.filter(i => evidenceState(i) === 'amber').length;
@@ -157,10 +157,10 @@ window.TabConformidade = (function () {
         const wEv = n => total ? Math.round(n / total * 100) : 0;
         const pct = wEv(evG);
         // Descrição: verde (completo) / amarelo (falta opcional) / vermelho (falta obrigatório)
-        const totalDesc = state.items.length;
-        const descG = state.items.filter(i => descState(i) === 'green').length;
-        const descA = state.items.filter(i => descState(i) === 'amber').length;
-        const descR = state.items.filter(i => descState(i) === 'red').length;
+        const totalDesc = state.catalogo.items.length;
+        const descG = state.catalogo.items.filter(i => descState(i) === 'green').length;
+        const descA = state.catalogo.items.filter(i => descState(i) === 'amber').length;
+        const descR = state.catalogo.items.filter(i => descState(i) === 'red').length;
         const wDesc = n => totalDesc ? Math.round(n / totalDesc * 100) : 0;
         const pctDesc = wDesc(descG);
 
@@ -171,7 +171,7 @@ window.TabConformidade = (function () {
         // com seu ícone por item (ver itemCardHtml), só sumiram do resumo.
         const chip = (key) => {
             const m = VIEW_META[key];
-            const active = state.viewFilter === key;
+            const active = state.ui.viewFilter === key;
             return `<button type="button" data-view="${key}" title="Filtrar: ${m.titulo}" aria-pressed="${active}"
                 class="text-left bg-white dark:bg-gray-900 border rounded px-3 py-2 hover:shadow transition ${active ? `border-${m.cor}-500 ring-2 ring-${m.cor}-500/40` : 'border-gray-200 dark:border-gray-700'}">
                 <span class="block text-xl font-bold text-${m.cor}-600 dark:text-${m.cor}-400">${count(key)}</span>
@@ -212,7 +212,7 @@ window.TabConformidade = (function () {
                 </div>
             </div>
 
-            ${state.rscEnabled ? rscConformidadeBoxHtml() : ''}
+            ${state.rsc.enabled ? rscConformidadeBoxHtml() : ''}
 
             <div class="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden mb-5">
                 <div class="px-4 py-3 bg-gray-100 dark:bg-gray-800 flex items-center justify-between gap-2 flex-wrap">
@@ -238,7 +238,7 @@ window.TabConformidade = (function () {
                     <button id="btnCollapseAll" class="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600">Recolher todas</button>
                     <button id="btnImprimir" class="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600 ml-auto"><i class="fa-solid fa-print mr-1"></i> Imprimir / PDF</button>
                 </div>
-                <details id="itensSection" ${state.itensAberto ? 'open' : ''}>
+                <details id="itensSection" ${state.ui.itensAberto ? 'open' : ''}>
                     <summary class="cursor-pointer select-none px-3 py-2 mt-1 text-sm font-medium text-gray-600 dark:text-gray-300 flex items-center gap-2">
                         <i aria-hidden="true" class="fa-solid fa-angle-right text-xs text-gray-400"></i> Ver itens
                     </summary>
@@ -246,10 +246,10 @@ window.TabConformidade = (function () {
                 </details>
             </div>`;
 
-        $('#sortOrder').value = state.sortOrder || 'desc';
+        $('#sortOrder').value = state.ui.sortOrder || 'desc';
         renderItemList();
         const itensSection = $('#itensSection');
-        if (itensSection) itensSection.addEventListener('toggle', () => { state.itensAberto = itensSection.open; });
+        if (itensSection) itensSection.addEventListener('toggle', () => { state.ui.itensAberto = itensSection.open; });
         // Busca com debounce: currículos com centenas de itens reconstroem uma
         // árvore grande (categoria › tipo/instituição › itens) a cada chamada
         // — sem isso, cada tecla digitada refaz tudo na hora, o que fica
@@ -260,13 +260,13 @@ window.TabConformidade = (function () {
             clearTimeout(filterTimer);
             filterTimer = setTimeout(renderItemList, 200);
         });
-        $('#sortOrder').addEventListener('change', (e) => { state.sortOrder = e.target.value; renderItemList(); });
+        $('#sortOrder').addEventListener('change', (e) => { state.ui.sortOrder = e.target.value; renderItemList(); });
         $('#btnExpandAll').addEventListener('click', () => $$('#itemList details').forEach(d => d.open = true));
         $('#btnCollapseAll').addEventListener('click', () => $$('#itemList details').forEach(d => d.open = false));
         $('#btnImprimir').addEventListener('click', () => {
             // Itens começa recolhido — impressão sem isto perderia a lista
             // inteira (conteúdo de <details> fechado não imprime).
-            if (itensSection) { itensSection.open = true; state.itensAberto = true; }
+            if (itensSection) { itensSection.open = true; state.ui.itensAberto = true; }
             window.print();
         });
         // Delegação (em vez de ligar em cada botão individualmente): os itens
@@ -282,8 +282,8 @@ window.TabConformidade = (function () {
                 const viewBtn = e.target.closest('[data-view]');
                 if (viewBtn) {
                     const k = viewBtn.dataset.view;
-                    state.viewFilter = (state.viewFilter === k) ? 'todos' : k; // clicar de novo limpa
-                    state.itensAberto = true; // filtrar só faz sentido vendo o resultado — abre Itens
+                    state.ui.viewFilter = (state.ui.viewFilter === k) ? 'todos' : k; // clicar de novo limpa
+                    state.ui.itensAberto = true; // filtrar só faz sentido vendo o resultado — abre Itens
                     render();
                     return;
                 }
@@ -351,12 +351,12 @@ window.TabConformidade = (function () {
         return parseFloat(m[0].replace(',', '.')) < 10;
     }
     function rscEstado(item) {
-        if (!state.rscEnabled) return null;
+        if (!state.rsc.enabled) return null;
         const eligivel = item.typeKey && !LattesTypes.isPerfilType(item.typeKey) && !LattesTypes.isNaoLattesType(item.typeKey);
         if (!eligivel) return null;
         if (cargaHorariaAbaixoDoMinimoRSC(item)) return null;
         if (item.rsc && item.rsc.conta) return 'green';
-        const inicioAno = parseInt(anoDe((state.rscCfg && state.rscCfg.dataInicioContagem) || ''), 10);
+        const inicioAno = parseInt(anoDe((state.rsc.cfg && state.rsc.cfg.dataInicioContagem) || ''), 10);
         const itemAno = itemYear(item);
         const foraDoPeriodo = !isNaN(inicioAno) && itemAno != null && itemAno < inicioAno;
         return foraDoPeriodo ? 'gray' : 'amber';
@@ -371,7 +371,7 @@ window.TabConformidade = (function () {
     // mesmo estado (reaproveita o mecanismo dos cartões de filtro do topo:
     // VIEW_PREDICATE/VIEW_META + a delegação de clique em #tab-conformidade).
     function iconBtnHtml(viewKey, estado, title, iconClass) {
-        const active = state.viewFilter === viewKey;
+        const active = state.ui.viewFilter === viewKey;
         return `<button type="button" data-view="${viewKey}" title="${esc(title)}" aria-pressed="${active}"
             class="inline-flex items-center justify-center w-8 h-8 rounded hover:bg-gray-100 dark:hover:bg-gray-700 ${ICON_COLOR_CLASS[estado]} ${active ? 'ring-2 ring-current' : ''}"><i class="fa-solid ${iconClass}"></i></button>`;
     }
@@ -532,7 +532,7 @@ window.TabConformidade = (function () {
     let duplicataIds = new Set();
     function recalcularDuplicatas() {
         const grupos = new Map();
-        state.items.forEach((i) => {
+        state.catalogo.items.forEach((i) => {
             const titulo = normNome(LattesTypes.itemTitle(i) || '');
             if (!titulo) return;
             const chave = `${i.typeKey}|${itemYear(i)}|${titulo}`;
@@ -678,8 +678,8 @@ window.TabConformidade = (function () {
         if (!list) return; // aba Conformidade não está montada
         recalcularDuplicatas();
         const q = ($('#filterBox') && $('#filterBox').value || '').toLowerCase();
-        const asc = (state.sortOrder || 'desc') === 'asc';
-        const view = state.viewFilter && VIEW_PREDICATE[state.viewFilter] ? state.viewFilter : 'todos';
+        const asc = (state.ui.sortOrder || 'desc') === 'asc';
+        const view = state.ui.viewFilter && VIEW_PREDICATE[state.ui.viewFilter] ? state.ui.viewFilter : 'todos';
 
         // Recorte (cartão) atualmente selecionado
         const chip = $('#viewChip');
@@ -689,18 +689,18 @@ window.TabConformidade = (function () {
                 const m = VIEW_META[view];
                 chip.className = `text-xs font-normal badge bg-${m.cor}-100 text-${m.cor}-800 dark:bg-${m.cor}-900/40 dark:text-${m.cor}-300`;
                 chip.innerHTML = `<i class="fa-solid ${m.icone}"></i> ${m.titulo} · <button type="button" id="viewClear" class="underline">ver todos</button>`;
-                const clr = $('#viewClear'); if (clr) clr.addEventListener('click', () => { state.viewFilter = 'todos'; render(); });
+                const clr = $('#viewClear'); if (clr) clr.addEventListener('click', () => { state.ui.viewFilter = 'todos'; render(); });
             }
         }
 
-        let items = state.items.filter(VIEW_PREDICATE[view]);
+        let items = state.catalogo.items.filter(VIEW_PREDICATE[view]);
         if (q) items = items.filter(i => (LattesTypes.itemTitle(i) + ' ' + LattesTypes.label(i.typeKey) + ' ' + LattesTypes.categoryLabel(i.categoryKey)).toLowerCase().includes(q));
 
         const cnt = $('#itemCount');
-        if (cnt) cnt.textContent = (view === 'todos' && !q) ? `(${state.items.length})` : `(${items.length} de ${state.items.length})`;
+        if (cnt) cnt.textContent = (view === 'todos' && !q) ? `(${state.catalogo.items.length})` : `(${items.length} de ${state.catalogo.items.length})`;
 
         if (!items.length) {
-            const vazio = !state.items.length
+            const vazio = !state.catalogo.items.length
                 ? 'Nenhum item ainda. Adicione pelo formulário ou importe o XML do Lattes.'
                 : (view === 'todos' ? 'Nenhum item corresponde ao filtro.' : 'Nenhum item neste recorte.');
             list.innerHTML = `<p class="text-sm text-gray-500 italic py-6 text-center">${vazio}</p>`;
@@ -718,7 +718,7 @@ window.TabConformidade = (function () {
     // um listener direto por botão.
     async function onItemAction(btn) {
         const id = btn.dataset.id;
-        const item = state.items.find(i => i.id === id);
+        const item = state.catalogo.items.find(i => i.id === id);
         if (!item) return;
         if (btn.dataset.act === 'edit' || btn.dataset.act === 'pdf') {
             // Abre o item na aba Catalogar
@@ -740,7 +740,7 @@ window.TabConformidade = (function () {
     // e sem lattesRef (evita colidir com a deduplicação de reimportação do
     // XML). O campo-título do tipo ganha o sufixo " (cópia)".
     async function duplicateItem(id) {
-        const orig = state.items.find(i => i.id === id);
+        const orig = state.catalogo.items.find(i => i.id === id);
         if (!orig || LattesTypes.isSingleton(orig.typeKey) || LattesTypes.singletonScopeField(orig.typeKey)) return;
         const fields = Object.assign({}, orig.fields);
         const labelKey = ['titulo', 'orientando', 'candidato', 'especialidade', 'subarea', 'area', 'instituicao']

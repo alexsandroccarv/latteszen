@@ -101,7 +101,7 @@ test('Endereço: a evidência (comprovante) é por Tipo — trocar entre Residen
     await page.waitForTimeout(100);
     await salvar(page);
 
-    const qtdEvEditing = () => page.evaluate(() => window.AppCore.state.evEditing.length);
+    const qtdEvEditing = () => page.evaluate(() => window.AppCore.state.catalogo.evEditing.length);
 
     // Ainda no Residencial (tela reaberta): a evidência deveria continuar visível.
     assert((await qtdEvEditing()) >= 1, 'O comprovante do Residencial deveria continuar visível após salvar');

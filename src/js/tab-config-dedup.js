@@ -64,6 +64,6 @@ const { state } = window.AppCore;
     // Mapa assinatura -> item existente (primeira ocorrência vence).
     export function existingSignatureMap() {
         const map = new Map();
-        for (const it of state.items) for (const s of itemSignatures(it)) if (!map.has(s)) map.set(s, it);
+        for (const it of state.catalogo.items) for (const s of itemSignatures(it)) if (!map.has(s)) map.set(s, it);
         return map;
     }

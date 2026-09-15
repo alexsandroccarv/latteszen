@@ -27,7 +27,7 @@
    Reaproveita window.TabPublicar.buildPublicModel() (mesma lógica de
    agrupar por categoria/instituição e mesmo critério de evidências —
    ev.publica — já usados na página pública, ver tab-publicar.js) em vez de
-   percorrer state.items de novo — o modelo já traz cada evidência pública
+   percorrer state.catalogo.items de novo — o modelo já traz cada evidência pública
    como base64 (dataUri), pronta para embutir/mesclar aqui.
 
    Única biblioteca externa carregada pelo app até hoje que não é puramente
@@ -351,7 +351,7 @@ window.LzPdfReport = (function () {
             corTextoCapa: rgb(1, 1, 1), corTextoCapaMuted: rgb(0.85, 0.88, 0.95), corCapaFundo: corPrincipal(rgb),
         };
 
-        const memorialItem = (window.AppCore.state.items || []).find((i) => i.typeKey === 'MEMORIAL');
+        const memorialItem = (window.AppCore.state.catalogo.items || []).find((i) => i.typeKey === 'MEMORIAL');
         const memorialTexto = String((memorialItem && memorialItem.fields && memorialItem.fields.descricao) || '').trim();
         const todosAnexos = anexosDoModelo(model);
         const temAnexos = todosAnexos.length > 0;

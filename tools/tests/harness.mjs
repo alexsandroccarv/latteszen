@@ -80,7 +80,7 @@ export function assertEqual(actual, expected, msg) {
     if (a !== e) throw new Error(`${msg ? msg + ': ' : ''}esperado ${e}, obtido ${a}`);
 }
 
-// Semeia state.items (via lz_catalog) antes da primeira renderização —
+// Semeia state.catalogo.items (via lz_catalog) antes da primeira renderização —
 // padrão usado em todos os specs. `items` já vem como array de itens prontos
 // (ver makeItem em cada spec).
 export async function seedCatalog(page, baseUrl, items) {

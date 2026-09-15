@@ -44,7 +44,7 @@ window.TabSumula = (function () {
     // duplicar esse cadastro aqui (mesmo princípio já usado pelo RSC pro
     // nome do servidor, ver tab-rsc.js/nomeServidorAtual).
     function perfilIdentificacao() {
-        const item = state.items.find(i => i.typeKey === 'IDENTIFICACAO');
+        const item = state.catalogo.items.find(i => i.typeKey === 'IDENTIFICACAO');
         return (item && item.fields) || {};
     }
 
@@ -76,7 +76,7 @@ window.TabSumula = (function () {
                 linkWebOfScience: $('#sumula-linkWebOfScience').value.trim(),
                 linkGoogleScholar: $('#sumula-linkGoogleScholar').value.trim(),
             };
-            state.sumulaCfg = cfg;
+            state.sumula.cfg = cfg;
             const s = Storage.loadSettings(); s.sumula = cfg; Storage.saveSettings(s);
             toast('Configuração da Súmula FAPESP salva.', 'ok');
             render();
@@ -95,23 +95,23 @@ window.TabSumula = (function () {
     // formação complementar — ordem cronológica (mais antiga primeiro),
     // igual à tabela do roteiro oficial.
     function formacaoItens() {
-        return state.items.filter(i => ['FORMACAO_ACADEMICA', 'POS_DOUTORADO', 'FORMACAO_COMPLEMENTAR'].includes(i.typeKey))
+        return state.catalogo.items.filter(i => ['FORMACAO_ACADEMICA', 'POS_DOUTORADO', 'FORMACAO_COMPLEMENTAR'].includes(i.typeKey))
             .slice().sort((a, b) => (itemYear(a) || 0) - (itemYear(b) || 0));
     }
     // 2) Histórico Profissional/Acadêmico: até 3 vínculos/atuações mais
     // recentes (o roteiro pede "até 3 principais posições").
     function historicoProfissionalItens(limit) {
-        return sortByYear(state.items.filter(i => i.typeKey === 'VINCULO_PROFISSIONAL'), false).slice(0, limit);
+        return sortByYear(state.catalogo.items.filter(i => i.typeKey === 'VINCULO_PROFISSIONAL'), false).slice(0, limit);
     }
     function premiosItens() {
-        return sortByYear(state.items.filter(i => i.typeKey === 'PREMIO'), false);
+        return sortByYear(state.catalogo.items.filter(i => i.typeKey === 'PREMIO'), false);
     }
     // 3) Contribuições à Ciência: produção bibliográfica/técnica, patentes e
     // registros e inovação, dos últimos `anos` anos — até `limit` mais
     // recentes (o roteiro limita a 5, últimos 5 anos).
     function contribuicoesItens(limit, anos) {
         const anoCorte = new Date().getFullYear() - anos;
-        const elegiveis = state.items.filter(i => {
+        const elegiveis = state.catalogo.items.filter(i => {
             const cat = LattesTypes.primaryCategory(i.typeKey);
             if (!['PRODUCOES', 'PATENTES_REGISTROS', 'INOVACAO'].includes(cat)) return false;
             const y = itemYear(i);
@@ -123,7 +123,7 @@ window.TabSumula = (function () {
     // extensão/ensino — o roteiro fala especificamente em financiamento À
     // PESQUISA), até `limit` mais recentes.
     function financiamentosItens(limit) {
-        return sortByYear(state.items.filter(i => i.typeKey === 'PROJETO_PESQUISA'), false).slice(0, limit);
+        return sortByYear(state.catalogo.items.filter(i => i.typeKey === 'PROJETO_PESQUISA'), false).slice(0, limit);
     }
     // 5) Indicadores Quantitativos: contagens automáticas do catálogo. Nem
     // todos os 12 indicadores do roteiro têm um campo correspondente na app
@@ -131,8 +131,8 @@ window.TabSumula = (function () {
     // solicitada/concedida/licenciada — ver comentário em lattes-types.js
     // sobre a remoção desse campo) — esses ficam como preenchimento manual.
     function indicadoresQuantitativos() {
-        const porTipo = (...tipos) => state.items.filter(i => tipos.includes(i.typeKey)).length;
-        const orientacao = (tipoTipo, situacaoTipo) => state.items.filter(i => i.typeKey === situacaoTipo && i.fields && i.fields.tipo === tipoTipo).length;
+        const porTipo = (...tipos) => state.catalogo.items.filter(i => tipos.includes(i.typeKey)).length;
+        const orientacao = (tipoTipo, situacaoTipo) => state.catalogo.items.filter(i => i.typeKey === situacaoTipo && i.fields && i.fields.tipo === tipoTipo).length;
         return {
             livros: porTipo('LIVROS', 'LIVRO', 'LIVRO_CAPITULO'),
             periodicos: porTipo('ARTIGO_PERIODICO'),
@@ -143,7 +143,7 @@ window.TabSumula = (function () {
             doutoradoAndamento: orientacao('Doutorado', 'ORIENTACAO_ANDAMENTO'),
             posDocConcluidas: orientacao('Pós-Doutorado', 'ORIENTACAO_CONCLUIDA'),
             posDocAndamento: orientacao('Pós-Doutorado', 'ORIENTACAO_ANDAMENTO'),
-            patentes: state.items.filter(i => LattesTypes.primaryCategory(i.typeKey) === 'PATENTES_REGISTROS').length,
+            patentes: state.catalogo.items.filter(i => LattesTypes.primaryCategory(i.typeKey) === 'PATENTES_REGISTROS').length,
         };
     }
 
@@ -288,7 +288,7 @@ window.TabSumula = (function () {
         if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Gerando…'; }
         try {
             const folder = pastaExportacaoHoje();
-            const texto = (state.sumulaTexto && state.sumulaTexto.trim()) ? state.sumulaTexto : sumulaModelo(cfg);
+            const texto = (state.sumula.texto && state.sumula.texto.trim()) ? state.sumula.texto : sumulaModelo(cfg);
             const bytes = window.LzDocx.buildDocx(sumulaDocxBody(texto));
             await Storage.writeFile(nomeArquivoSumula(), bytes, folder);
             toast(`Súmula Curricular exportada em "${folder}/".`, 'ok');
@@ -298,11 +298,11 @@ window.TabSumula = (function () {
 
     function render() {
         const panel = $('#tab-sumula');
-        if (!state.sumulaEnabled) {
+        if (!state.sumula.enabled) {
             panel.innerHTML = `<p class="text-sm text-gray-500 italic py-8 text-center">Módulo Súmula Curricular FAPESP desabilitado. Habilite em <strong>Configurações › Súmula Curricular FAPESP</strong>.</p>`;
             return;
         }
-        const cfg = state.sumulaCfg || {};
+        const cfg = state.sumula.cfg || {};
         panel.innerHTML = `
             ${sumulaCfgSectionHtml(cfg)}
 
@@ -312,7 +312,7 @@ window.TabSumula = (function () {
                     <button id="btnSumulaModeloPadrao" class="px-2 py-1 rounded border border-gray-300 dark:border-gray-600 text-xs"><i class="fa-solid fa-arrows-rotate mr-1"></i> Preencher com modelo automático</button>
                 </div>
                 <p class="text-xs text-gray-500 mb-2">Organizado nas 6 seções exigidas pela FAPESP (<a href="https://fapesp.br/sumula" target="_blank" rel="noopener" class="underline">roteiro oficial</a>), com sugestões pré-preenchidas a partir do catálogo — revise, edite e complete antes de exportar. <strong>Não é um documento oficial pronto para submissão.</strong> Lembre-se: até 4 páginas A-4 (a FAPESP descarta o excedente).</p>
-                <textarea id="sumulaTexto" rows="20" placeholder="Clique em “Preencher com modelo automático” para começar…" class="w-full text-sm px-3 py-2 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 font-mono leading-relaxed">${esc(state.sumulaTexto || '')}</textarea>
+                <textarea id="sumulaTexto" rows="20" placeholder="Clique em “Preencher com modelo automático” para começar…" class="w-full text-sm px-3 py-2 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 font-mono leading-relaxed">${esc(state.sumula.texto || '')}</textarea>
                 <p id="sumulaTextoSalvo" class="text-xs text-gray-400 mt-1 h-4"></p>
             </div>
 
@@ -327,8 +327,8 @@ window.TabSumula = (function () {
         const info = $('#sumulaTextoSalvo');
         let saveTimer = null;
         const salvar = () => {
-            state.sumulaTexto = area.value;
-            const s = Storage.loadSettings(); s.sumulaTexto = state.sumulaTexto; Storage.saveSettings(s);
+            state.sumula.texto = area.value;
+            const s = Storage.loadSettings(); s.sumulaTexto = state.sumula.texto; Storage.saveSettings(s);
             if (info) { info.textContent = 'Salvo.'; clearTimeout(info._t); info._t = setTimeout(() => { info.textContent = ''; }, 1500); }
         };
         area.addEventListener('input', () => { clearTimeout(saveTimer); saveTimer = setTimeout(salvar, 500); });

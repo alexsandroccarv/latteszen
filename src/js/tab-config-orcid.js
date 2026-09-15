@@ -56,7 +56,7 @@ const { state, $, $$, esc, toast } = window.AppCore;
     const ORCID_FALLBACK_TYPE = 'OUTRA_BIBLIOGRAFICA';
 
     export function orcidImportItemHtml() {
-        const perfil = (state.items.find(i => i.typeKey === 'IDENTIFICACAO') || {}).fields || {};
+        const perfil = (state.catalogo.items.find(i => i.typeKey === 'IDENTIFICACAO') || {}).fields || {};
         return dadosItemHtml('fa-brands fa-orcid', 'ORCID (online)',
             'Busca as obras públicas registradas no seu ORCID iD (API pública — nenhuma senha é necessária) e lista para você escolher quais importar, do mesmo jeito que a importação do XML do Lattes. Os autores só saem se o próprio autor tiver um nome público registrado no ORCID daquela obra — quando faltar, complete depois de importar. O tipo de cada obra é inferido automaticamente e pode precisar de ajuste.', `
                 <div class="flex flex-wrap items-end gap-2">
@@ -170,7 +170,7 @@ const { state, $, $$, esc, toast } = window.AppCore;
         const box = $('#orcidResult');
         if (!items.length) { box.innerHTML = `<p class="text-sm text-gray-500 italic">Nenhuma obra pública encontrada para esse ORCID iD.</p>`; return; }
         const sigMap = existingSignatureMap();
-        const isDup = (it) => (LattesTypes.isSingleton(it.typeKey) && state.items.some((x) => x.typeKey === it.typeKey)) || sigMap.has(itemSignature(it.typeKey, it.fields || {}));
+        const isDup = (it) => (LattesTypes.isSingleton(it.typeKey) && state.catalogo.items.some((x) => x.typeKey === it.typeKey)) || sigMap.has(itemSignature(it.typeKey, it.fields || {}));
         const novos = items.filter((it) => !isDup(it)).length;
         box.innerHTML = `
             <div class="mb-3">
@@ -215,7 +215,7 @@ const { state, $, $$, esc, toast } = window.AppCore;
             const sigMap = existingSignatureMap();
             let n = 0, ignorados = 0, feito = 0;
             for (const idx of chosen) {
-                const src = state.orcidParsed[idx];
+                const src = state.importacoes.orcid[idx];
                 const sig = itemSignature(src.typeKey, src.fields || {});
                 if (sig && sigMap.has(sig)) { ignorados++; feito++; if (btn) btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-1"></i> Importando… (${feito}/${chosen.length})`; continue; } // já existe (mesma assinatura) — não duplica
                 const item = {
@@ -230,7 +230,7 @@ const { state, $, $$, esc, toast } = window.AppCore;
                 if (btn) btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-1"></i> Importando… (${feito}/${chosen.length})`;
             }
             toast(`${n} item(ns) importado(s) do ORCID${ignorados ? ` — ${ignorados} já existente(s) ignorado(s)` : ''}.`, 'ok');
-            renderOrcidResult(state.orcidParsed);
+            renderOrcidResult(state.importacoes.orcid);
             window.AppCore.renderItemList();
         } finally {
             if (btn && btn.isConnected) { btn.disabled = false; btn.innerHTML = original; }
@@ -245,7 +245,7 @@ const { state, $, $$, esc, toast } = window.AppCore;
             btn.disabled = true; btn.textContent = 'Buscando…';
             try {
                 const items = await fetchOrcidWorks(input.value);
-                state.orcidParsed = items;
+                state.importacoes.orcid = items;
                 renderOrcidResult(items);
             } catch (e) {
                 $('#orcidResult').innerHTML = '';

@@ -32,10 +32,10 @@ const { state, $, $$, esc, toast, isImageExt, isVideoExt, isArchiveExt } = windo
     function setPdf(url, name, ext) {
         const frame = $('#pdfFrame'), img = $('#pdfImg'), noPreview = $('#pdfNoPreview');
         if (!frame) return; // painel não montado (outra aba ativa)
-        if (state.currentPdfUrl && state.currentPdfUrl !== url) {
-            try { URL.revokeObjectURL(state.currentPdfUrl); } catch (_) {}
+        if (state.ui.currentPdfUrl && state.ui.currentPdfUrl !== url) {
+            try { URL.revokeObjectURL(state.ui.currentPdfUrl); } catch (_) {}
         }
-        state.currentPdfUrl = url;
+        state.ui.currentPdfUrl = url;
         if (isImageExt(ext)) {
             img.src = url; img.classList.remove('hidden');
             frame.src = 'about:blank'; frame.classList.add('hidden');
@@ -64,7 +64,7 @@ const { state, $, $$, esc, toast, isImageExt, isVideoExt, isArchiveExt } = windo
     }
     export function clearPdf() {
         const frame = $('#pdfFrame'), img = $('#pdfImg'), noPreview = $('#pdfNoPreview');
-        if (state.currentPdfUrl) { try { URL.revokeObjectURL(state.currentPdfUrl); } catch (_) {} state.currentPdfUrl = null; }
+        if (state.ui.currentPdfUrl) { try { URL.revokeObjectURL(state.ui.currentPdfUrl); } catch (_) {} state.ui.currentPdfUrl = null; }
         const sec = $('#pdfSection'); if (sec) sec.classList.add('hidden');
         if (!frame) return;
         frame.src = 'about:blank'; frame.classList.add('hidden');
@@ -100,7 +100,7 @@ const { state, $, $$, esc, toast, isImageExt, isVideoExt, isArchiveExt } = windo
         try {
             // Arquivo já gravado: usar a categoria SALVA do item em edição
             // (não o seletor, que pode ter sido alterado sem salvar).
-            const it = state.editingId ? state.items.find(i => i.id === state.editingId) : null;
+            const it = state.catalogo.editingId ? state.catalogo.items.find(i => i.id === state.catalogo.editingId) : null;
             const catKey = it ? it.categoryKey : ($('#selCategoria') ? $('#selCategoria').value : null);
             const subdir = LattesTypes.categoryFolder(catKey);
             const url = await Storage.readAttachmentUrl(ev.basename, subdir, ev.ext);
@@ -114,12 +114,12 @@ const { state, $, $$, esc, toast, isImageExt, isVideoExt, isArchiveExt } = windo
         const ul = $('#evList');
         if (!ul) return;
         const hint = $('#evHint');
-        if (hint) hint.classList.toggle('hidden', !state.evEditing.length); // só aparece com evidência carregada
-        if (!state.evEditing.length) {
+        if (hint) hint.classList.toggle('hidden', !state.catalogo.evEditing.length); // só aparece com evidência carregada
+        if (!state.catalogo.evEditing.length) {
             ul.innerHTML = `<li class="text-xs text-gray-500 dark:text-gray-400 italic">Nenhuma evidência anexada.</li>`;
             return;
         }
-        ul.innerHTML = state.evEditing.map((ev, idx) => {
+        ul.innerHTML = state.catalogo.evEditing.map((ev, idx) => {
             const thumb = ev.kind === 'link'
                 ? `<i aria-hidden="true" class="fa-solid fa-link text-govbr-600 dark:text-unifesp-400 shrink-0 w-8 text-center"></i>`
                 : isImageExt(ev.ext)
@@ -140,19 +140,19 @@ const { state, $, $$, esc, toast, isImageExt, isVideoExt, isArchiveExt } = windo
                     <input type="checkbox" data-evpub="${idx}" ${ev.publica ? 'checked' : ''}> pública
                 </label>
                 <button type="button" data-evup="${idx}" title="Subir" class="w-8 h-8 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 shrink-0 disabled:opacity-30" ${idx === 0 ? 'disabled' : ''}><i class="fa-solid fa-arrow-up"></i></button>
-                <button type="button" data-evdown="${idx}" title="Descer" class="w-8 h-8 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 shrink-0 disabled:opacity-30" ${idx === state.evEditing.length - 1 ? 'disabled' : ''}><i class="fa-solid fa-arrow-down"></i></button>
+                <button type="button" data-evdown="${idx}" title="Descer" class="w-8 h-8 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 shrink-0 disabled:opacity-30" ${idx === state.catalogo.evEditing.length - 1 ? 'disabled' : ''}><i class="fa-solid fa-arrow-down"></i></button>
                 <button type="button" data-evsee="${idx}" title="Ver no painel" class="w-8 h-8 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-govbr-600 dark:text-unifesp-400 shrink-0"><i class="fa-solid fa-eye"></i></button>
                 <button type="button" data-evdel="${idx}" title="Remover" class="w-8 h-8 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-red-600 shrink-0"><i class="fa-solid fa-xmark"></i></button>
             </li>`;
         }).join('');
 
         // Miniaturas de imagens já gravadas (carrega do diretório, se houver)
-        state.evEditing.forEach(async (ev, idx) => {
+        state.catalogo.evEditing.forEach(async (ev, idx) => {
             if (!isImageExt(ev.ext) || ev.file) return;
             const el = ul.querySelector(`[data-evthumb="${idx}"]`);
             if (!el) return;
             try {
-                const it = state.editingId ? state.items.find(i => i.id === state.editingId) : null;
+                const it = state.catalogo.editingId ? state.catalogo.items.find(i => i.id === state.catalogo.editingId) : null;
                 const catKey = it ? it.categoryKey : ($('#selCategoria') ? $('#selCategoria').value : null);
                 const url = await Storage.readAttachmentUrl(ev.basename, LattesTypes.categoryFolder(catKey), ev.ext);
                 if (url) el.src = url;
@@ -161,23 +161,23 @@ const { state, $, $$, esc, toast, isImageExt, isVideoExt, isArchiveExt } = windo
 
         $$('[data-evpub]', ul).forEach(c => c.addEventListener('change', (e) => {
             const i = +e.target.dataset.evpub;
-            state.evEditing[i].publica = e.target.checked; // 0..N públicas (independentes)
-            state.formDirty = true;
+            state.catalogo.evEditing[i].publica = e.target.checked; // 0..N públicas (independentes)
+            state.ui.formDirty = true;
         }));
         $$('[data-evtag]', ul).forEach(inp => inp.addEventListener('input', (e) => {
             const i = +e.target.dataset.evtag;
-            state.evEditing[i].tag = e.target.value;
-            state.formDirty = true;
+            state.catalogo.evEditing[i].tag = e.target.value;
+            state.ui.formDirty = true;
         }));
-        const swap = (i, j) => { const t = state.evEditing[i]; state.evEditing[i] = state.evEditing[j]; state.evEditing[j] = t; state.formDirty = true; renderEvList(); };
+        const swap = (i, j) => { const t = state.catalogo.evEditing[i]; state.catalogo.evEditing[i] = state.catalogo.evEditing[j]; state.catalogo.evEditing[j] = t; state.ui.formDirty = true; renderEvList(); };
         $$('[data-evup]', ul).forEach(b => b.addEventListener('click', (e) => { const i = +e.currentTarget.dataset.evup; if (i > 0) swap(i, i - 1); }));
-        $$('[data-evdown]', ul).forEach(b => b.addEventListener('click', (e) => { const i = +e.currentTarget.dataset.evdown; if (i < state.evEditing.length - 1) swap(i, i + 1); }));
-        $$('[data-evsee]', ul).forEach(b => b.addEventListener('click', (e) => previewEvidence(state.evEditing[+e.currentTarget.dataset.evsee])));
+        $$('[data-evdown]', ul).forEach(b => b.addEventListener('click', (e) => { const i = +e.currentTarget.dataset.evdown; if (i < state.catalogo.evEditing.length - 1) swap(i, i + 1); }));
+        $$('[data-evsee]', ul).forEach(b => b.addEventListener('click', (e) => previewEvidence(state.catalogo.evEditing[+e.currentTarget.dataset.evsee])));
         $$('[data-evdel]', ul).forEach(b => b.addEventListener('click', (e) => {
             const i = +e.currentTarget.dataset.evdel;
-            const ev = state.evEditing[i];
+            const ev = state.catalogo.evEditing[i];
             if (!confirm(`Remover a evidência "${ev.name}"?`)) return;
-            state.evEditing.splice(i, 1); state.formDirty = true; renderEvList();
+            state.catalogo.evEditing.splice(i, 1); state.ui.formDirty = true; renderEvList();
         }));
     }
 
@@ -194,12 +194,12 @@ const { state, $, $$, esc, toast, isImageExt, isVideoExt, isArchiveExt } = windo
             const err = window.AppCore.checkEvidenceFile(f, allowed);
             if (err) { toast(err, 'aviso'); return; }
             const inboxName = inboxByKey.get(`${f.name}|${f.size}`) || null;
-            state.evEditing.push({
+            state.catalogo.evEditing.push({
                 basename: null, ext: window.AppCore.fileExt(f), name: f.name || `colado.${window.AppCore.fileExt(f)}`,
-                publica: state.evEditing.length === 0, tag: '', file: f, inboxName,
+                publica: state.catalogo.evEditing.length === 0, tag: '', file: f, inboxName,
             });
             added = f;
-            state.formDirty = true;
+            state.ui.formDirty = true;
         });
         renderEvList();
         if (added) previewPdfFile(added);
@@ -215,11 +215,11 @@ const { state, $, $$, esc, toast, isImageExt, isVideoExt, isArchiveExt } = windo
         catch (e) { toast('Não foi possível ler o arquivo da bandeja: ' + e.message, 'aviso'); return; }
         const err = window.AppCore.checkEvidenceFile(file, allowed);
         if (err) { toast(err, 'aviso'); return; }
-        state.evEditing.push({
+        state.catalogo.evEditing.push({
             basename: null, ext: window.AppCore.fileExt(file), name: file.name || entry.name,
-            publica: state.evEditing.length === 0, tag: '', file, inboxName: entry.name,
+            publica: state.catalogo.evEditing.length === 0, tag: '', file, inboxName: entry.name,
         });
-        state.formDirty = true;
+        state.ui.formDirty = true;
         renderEvList();
         previewPdfFile(file);
     }
@@ -241,12 +241,12 @@ const { state, $, $$, esc, toast, isImageExt, isVideoExt, isArchiveExt } = windo
         if (!picked) return; // cancelado no seletor
         const err = window.AppCore.checkEvidenceFile(picked.file, allowed);
         if (err) { toast(err, 'aviso'); return; }
-        state.evEditing.push({
+        state.catalogo.evEditing.push({
             basename: null, ext: window.AppCore.fileExt(picked.file), name: picked.file.name,
-            publica: state.evEditing.length === 0, tag: '', file: picked.file,
+            publica: state.catalogo.evEditing.length === 0, tag: '', file: picked.file,
             inboxName: picked.driveSourceInbox ? picked.file.name : null,
         });
-        state.formDirty = true;
+        state.ui.formDirty = true;
         renderEvList();
         previewPdfFile(picked.file);
     }
@@ -275,7 +275,7 @@ const { state, $, $$, esc, toast, isImageExt, isVideoExt, isArchiveExt } = windo
     // Anexa o próximo arquivo da bandeja que ainda não foi anexado a este item
     export async function useNextInbox() {
         const itens = state._inbox || [];
-        const staged = new Set(state.evEditing.filter(e => e.inboxName).map(e => e.inboxName));
+        const staged = new Set(state.catalogo.evEditing.filter(e => e.inboxName).map(e => e.inboxName));
         const prox = itens.find(it => !staged.has(it.name));
         if (!prox) { toast('Bandeja vazia ou já anexada a este item.', 'info'); return; }
         await useInboxFile(prox);
@@ -294,11 +294,11 @@ const { state, $, $$, esc, toast, isImageExt, isVideoExt, isArchiveExt } = windo
         const inp = $('#evUrlInput');
         const url = normalizeUrl(inp.value);
         if (!url) { toast('Informe um link (URL) válido.', 'aviso'); return; }
-        state.evEditing.push({
+        state.catalogo.evEditing.push({
             kind: 'link', basename: null, ext: 'url', file: null,
-            name: url, url, publica: state.evEditing.length === 0, tag: '',
+            name: url, url, publica: state.catalogo.evEditing.length === 0, tag: '',
         });
-        state.formDirty = true;
+        state.ui.formDirty = true;
         inp.value = '';
         $('#evUrlRow').classList.add('hidden');
         renderEvList();

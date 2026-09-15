@@ -113,8 +113,8 @@ const { state, $, $$, esc, toast } = window.AppCore;
             const item = bibEntryToItem(entrada);
             if (item) items.push(item); else ignorados.push(entrada);
         });
-        state.bibParsed = { items, ignorados, formato };
-        renderBibResult(state.bibParsed);
+        state.importacoes.bib = { items, ignorados, formato };
+        renderBibResult(state.importacoes.bib);
     }
     function renderBibResult(parsed) {
         const { items, ignorados, formato } = parsed;
@@ -132,7 +132,7 @@ const { state, $, $$, esc, toast } = window.AppCore;
             return;
         }
         const sigMap = existingSignatureMap();
-        const isDup = (it) => (LattesTypes.isSingleton(it.typeKey) && state.items.some((x) => x.typeKey === it.typeKey)) || sigMap.has(itemSignature(it.typeKey, it.fields || {}));
+        const isDup = (it) => (LattesTypes.isSingleton(it.typeKey) && state.catalogo.items.some((x) => x.typeKey === it.typeKey)) || sigMap.has(itemSignature(it.typeKey, it.fields || {}));
         const novos = items.filter((it) => !isDup(it)).length;
 
         box.innerHTML = `
@@ -175,7 +175,7 @@ const { state, $, $$, esc, toast } = window.AppCore;
         const original = btn ? btn.innerHTML : '';
         if (btn) btn.disabled = true;
         try {
-            const { items, formato } = state.bibParsed;
+            const { items, formato } = state.importacoes.bib;
             const sigMap = existingSignatureMap();
             let n = 0, ignorados = 0, feito = 0;
             for (const idx of chosen) {
@@ -194,7 +194,7 @@ const { state, $, $$, esc, toast } = window.AppCore;
                 if (btn) btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-1"></i> Importando… (${feito}/${chosen.length})`;
             }
             toast(`${n} item(ns) importado(s)${ignorados ? ` — ${ignorados} já existente(s) ignorado(s)` : ''}.`, 'ok');
-            renderBibResult(state.bibParsed);
+            renderBibResult(state.importacoes.bib);
             window.AppCore.renderItemList();
         } finally {
             if (btn && btn.isConnected) { btn.disabled = false; btn.innerHTML = original; }
@@ -231,7 +231,7 @@ const { state, $, $$, esc, toast } = window.AppCore;
         };
     }
     function bibExportRecords() {
-        return state.items.map(itemToBibRecord).filter(Boolean);
+        return state.catalogo.items.map(itemToBibRecord).filter(Boolean);
     }
     function baixarArquivoTexto(nome, texto) {
         const blob = new Blob([texto], { type: 'text/plain;charset=utf-8' });
