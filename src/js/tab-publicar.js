@@ -222,7 +222,7 @@ window.TabPublicar = (function () {
                         const itens = [];
                         for (const it of ordenados) {
                             const y = itemYear(it); if (y != null && y > maxAno) maxAno = y;
-                            itens.push({ titulo: LattesTypes.itemTitle(it), ano: itemAnoRange(it), linha: (it.fields && it.fields.orgao) || '', typeKey: it.typeKey, anexos: await itemAnexos(it, anexosOpts) });
+                            itens.push({ titulo: LattesTypes.itemTitle(it), ano: itemAnoRange(it), linha: (it.fields && it.fields.orgao) || '', typeKey: it.typeKey, cargaHoraria: (it.fields && it.fields.cargaHoraria) || '', anexos: await itemAnexos(it, anexosOpts) });
                             publicItemsFlat.push(it);
                         }
                         subgrupos.push({ label: LattesTypes.label(tk), itens });
@@ -243,7 +243,7 @@ window.TabPublicar = (function () {
                 const its = sortByYear(items.filter(i => i.typeKey === tk && i.categoryKey === cat.key && (incluirTodos || publicarWebOk(i))), ordemAsc);
                 if (!its.length) continue;
                 const itens = [];
-                for (const it of its) { itens.push({ titulo: LattesTypes.itemTitle(it), ano: itemAnoRange(it), linha: itemLinha(it), typeKey: it.typeKey, anexos: await itemAnexos(it, anexosOpts) }); publicItemsFlat.push(it); }
+                for (const it of its) { itens.push({ titulo: LattesTypes.itemTitle(it), ano: itemAnoRange(it), linha: itemLinha(it), typeKey: it.typeKey, cargaHoraria: (it.fields && it.fields.cargaHoraria) || '', anexos: await itemAnexos(it, anexosOpts) }); publicItemsFlat.push(it); }
                 tipos.push({ label: LattesTypes.label(tk), itens });
             }
             const catNum = parseInt(cat.num, 10);

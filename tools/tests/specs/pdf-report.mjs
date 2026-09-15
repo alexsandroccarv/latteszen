@@ -330,6 +330,56 @@ test('pdf-report.js: linhaDoItem() em Formação acadêmica usa "NNN título (an
 });
 
 /* ==========================================================================
+   Regressão: item com carga horária preenchida (campo "cargaHoraria",
+   existe em Eventos/Formação/Vínculo profissional/Produção técnica etc.)
+   mostra a carga horária no FINAL do item, entre parênteses — pedido do
+   Alexsandro. Em Formação acadêmica, entra DEPOIS do "(ano)" (que já é uma
+   exceção de formatação própria — ver teste acima).
+   ========================================================================== */
+test('pdf-report.js: sufixoCargaHoraria() formata " (N h)" quando existe, e ignora vazio/"Não se aplica"', async ({ page, baseUrl }) => {
+    await seedCatalog(page, baseUrl, []);
+    const resultado = await page.evaluate(() => ({
+        com: window.LzPdfReport.sufixoCargaHoraria({ cargaHoraria: '8' }),
+        vazio: window.LzPdfReport.sufixoCargaHoraria({ cargaHoraria: '' }),
+        semCampo: window.LzPdfReport.sufixoCargaHoraria({}),
+        naoSeAplica: window.LzPdfReport.sufixoCargaHoraria({ cargaHoraria: window.AppCore.NA_VALUE }),
+    }));
+    assertEqual(resultado.com, ' (8 h)', `Deveria formatar " (8 h)" — obtido: "${resultado.com}"`);
+    assertEqual(resultado.vazio, '', 'Carga horária vazia não deveria gerar sufixo nenhum');
+    assertEqual(resultado.semCampo, '', 'Item sem o campo cargaHoraria não deveria gerar sufixo nenhum');
+    assertEqual(resultado.naoSeAplica, '', '"Não se aplica" (N/A explícito) não deveria gerar sufixo nenhum, igual a vazio');
+});
+
+test('pdf-report.js: linhaDoItem() acrescenta a carga horária no final; em Formação acadêmica, depois do "(ano)"', async ({ page, baseUrl }) => {
+    await seedCatalog(page, baseUrl, []);
+    const resultado = await page.evaluate(() => ({
+        geral: window.LzPdfReport.linhaDoItem(1, { typeKey: 'PARTICIPACAO_EVENTO', titulo: 'Fórum Estatuinte da UFSC', ano: '1992', cargaHoraria: '8' }),
+        formacao: window.LzPdfReport.linhaDoItem(1, { typeKey: 'FORMACAO_ACADEMICA', titulo: 'Doutorado · Ciência X', ano: '2018–2022', cargaHoraria: '360' }),
+        semCarga: window.LzPdfReport.linhaDoItem(1, { typeKey: 'PARTICIPACAO_EVENTO', titulo: 'Evento sem carga', ano: '2020' }),
+    }));
+    assertEqual(resultado.geral, '001 1992 Fórum Estatuinte da UFSC (8 h)', `Deveria acrescentar a carga horária no final — obtido: "${resultado.geral}"`);
+    assertEqual(resultado.formacao, '001 Doutorado · Ciência X (2018–2022) (360 h)', `Em Formação acadêmica, a carga horária deveria vir DEPOIS do "(ano)" — obtido: "${resultado.formacao}"`);
+    assertEqual(resultado.semCarga, '001 2020 Evento sem carga', 'Sem carga horária, a linha não deveria ganhar nenhum sufixo extra');
+});
+
+test('buildPublicModel(): o item achatado leva a carga horária (fields.cargaHoraria) junto, pro Relatório (PDF) formatar', async ({ page, baseUrl }) => {
+    const items = [
+        makeItem('PARTICIPACAO_EVENTO', 'EVENTOS', { titulo: 'Evento com carga', ano: '2020', cargaHoraria: '8' }),
+        makeItem('ATIV_CONSELHO', 'ATUACAO', { titulo: 'Conselho com carga', instituicao: 'UFSC', orgao: 'CONSU', ano: '2019', cargaHoraria: '4' }),
+    ];
+    await seedCatalog(page, baseUrl, items);
+    const model = await page.evaluate(() => window.TabPublicar.buildPublicModel({ incluirTodos: true }));
+
+    const secEventos = model.secoes.find((s) => s.id === 'sec-eventos');
+    const eventoItem = secEventos.tipos.flatMap((t) => t.itens).find((i) => i.titulo === 'Evento com carga');
+    assertEqual(eventoItem.cargaHoraria, '8', 'O item de Eventos (fora de Atuação) deveria carregar cargaHoraria no objeto achatado');
+
+    const secAtuacao = model.secoes.find((s) => s.id === 'sec-atuacao');
+    const conselhoItem = secAtuacao.tipos[0].subgrupos.flatMap((g) => g.itens).find((i) => i.titulo === 'Conselho com carga');
+    assertEqual(conselhoItem.cargaHoraria, '4', 'O item de Atuação (dentro de subgrupos) também deveria carregar cargaHoraria');
+});
+
+/* ==========================================================================
    Regressão: em Atuação, dentro de cada instituição os itens passam a ser
    agrupados por subtipo (Vínculo, Direção e assessoramento, Conselhos e
    comissões...) em vez de uma lista cronológica única — na ORDEM FIXA em
