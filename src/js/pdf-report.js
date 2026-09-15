@@ -65,10 +65,39 @@ window.LzPdfReport = (function () {
     const CONTENT_W = PAGE_W - MARGIN * 2;
     const CONTENT_H = PAGE_H - MARGIN * 2;
     const ALTURA_ENTRADA_SUMARIO = 18;
+    // Largura da faixa lateral colorida do Modelo B (índice de dedo).
+    const SIDEBAR_W = 58;
 
     function corPrincipal(rgb) { return rgb(0.075, 0.318, 0.706); } // #1351b4 (govbr-600)
     function corTexto(rgb) { return rgb(0.11, 0.11, 0.11); }
     function corMuted(rgb) { return rgb(0.42, 0.42, 0.42); }
+
+    // Modelo B ("Índice lateral colorido"): cada categoria (01-21) recebe uma
+    // cor fixa, ciclando por esta paleta na ORDEM em que as categorias
+    // aparecem em LattesTypes.categories — determinístico (a mesma categoria
+    // sempre cai na mesma cor entre execuções). Sem número de categoria
+    // (seção mesclada "Além do Currículo Lattes", Memorial, Anexos), cai num
+    // cinza neutro em vez de tentar "inventar" uma cor.
+    const PALETA_CATEGORIAS = [
+        [0.357, 0.247, 0.851], [0.318, 0.216, 0.706], [0.075, 0.318, 0.706], [0.055, 0.486, 0.400],
+        [0.184, 0.490, 0.196], [0.722, 0.349, 0.039], [0.757, 0.267, 0.227], [0.541, 0.247, 0.627],
+        [0.231, 0.431, 0.561], [0.549, 0.416, 0.184], [0.698, 0.227, 0.420], [0.102, 0.541, 0.620],
+    ];
+    const CINZA_NEUTRO = [0.42, 0.42, 0.42];
+    function corDaCategoria(num) {
+        if (!num) return CINZA_NEUTRO;
+        const cats = (window.LattesTypes && window.LattesTypes.categories) || [];
+        const idx = cats.findIndex((c) => c.num === num);
+        return PALETA_CATEGORIAS[(idx >= 0 ? idx : 0) % PALETA_CATEGORIAS.length];
+    }
+    // Mistura uma cor [r,g,b] (0-1) com branco — usada no Modelo B pra marcar
+    // a data de cada item com uma versão CLARA (pastel) da cor da categoria
+    // em vez da cor cheia, que fica reservada pro selo do contador/índice
+    // lateral (pedido do Alexsandro: "use a cor do subtipo mais clara ao
+    // marcar as datas").
+    function misturarComBranco(cor, fator) {
+        return [cor[0] + (1 - cor[0]) * fator, cor[1] + (1 - cor[1]) * fator, cor[2] + (1 - cor[2]) * fator];
+    }
 
     // As fontes padrão do PDF (Helvetica) só sabem desenhar o alfabeto
     // WinAnsi (basicamente Latin-1 + alguns símbolos) — QUALQUER caractere
@@ -137,10 +166,20 @@ window.LzPdfReport = (function () {
     // texto fluindo por várias páginas) — usado pelo Memorial, pelo
     // Currículo completo e pelos Anexos.
     function criarEscritor(pdfDoc, fontes) {
-        let pagina = null, y = 0;
+        let pagina = null, y = 0, margemExtra = 0;
+        // decorador(pagina): redesenhado em TODA página nova, inclusive as
+        // criadas automaticamente por garantirEspaco() no meio de uma seção
+        // que estourou a página atual — é assim que o cabeçalho corrido do
+        // Modelo A e a faixa lateral colorida do Modelo B aparecem em toda
+        // página de conteúdo, não só na primeira de cada seção. Quem chama
+        // gerar() atualiza o "contexto" (nome da seção atual, cor da
+        // categoria) ANTES de desenhar essa seção — ver desenharSidebarB/
+        // desenharCabecalhoA e o loop do Currículo completo abaixo.
+        let decorador = null;
         function novaPagina() {
             pagina = pdfDoc.addPage([PAGE_W, PAGE_H]);
             y = PAGE_H - MARGIN;
+            if (decorador) decorador(pagina);
             return pagina;
         }
         function garantirEspaco(altura) {
@@ -157,7 +196,7 @@ window.LzPdfReport = (function () {
             const leading = tamanho * (opts.leading || 1.4);
             garantirEspaco(leading);
             const textoSeguro = sanitizarTexto(fonte, texto);
-            if (textoSeguro) pagina.drawText(textoSeguro, { x: MARGIN + (opts.indent || 0), y, size: tamanho, font: fonte, color: opts.cor || fontes.corTexto });
+            if (textoSeguro) pagina.drawText(textoSeguro, { x: MARGIN + margemExtra + (opts.indent || 0), y, size: tamanho, font: fonte, color: opts.cor || fontes.corTexto });
             y -= leading;
             return pdfDoc.getPageCount() - 1;
         }
@@ -165,7 +204,7 @@ window.LzPdfReport = (function () {
             opts = opts || {};
             const fonte = opts.negrito ? fontes.negrito : fontes.regular;
             const tamanho = opts.tamanho || 10;
-            const largura = CONTENT_W - (opts.indent || 0);
+            const largura = CONTENT_W - margemExtra - (opts.indent || 0);
             let primeiraPagina = null;
             quebrarLinhas(texto, fonte, tamanho, largura).forEach((l) => {
                 const idx = linha(l, opts);
@@ -183,6 +222,9 @@ window.LzPdfReport = (function () {
             get pagina() { return pagina; },
             get y() { return y; },
             set y(v) { y = v; },
+            get margemExtra() { return margemExtra; },
+            set margemExtra(v) { margemExtra = v; },
+            set decorador(fn) { decorador = fn; },
         };
     }
 
@@ -193,10 +235,105 @@ window.LzPdfReport = (function () {
         const pagina = pdfDoc.addPage([PAGE_W, PAGE_H]);
         pagina.drawRectangle({ x: 0, y: PAGE_H / 2 - 60, width: PAGE_W, height: 3, color: fontes.corAccent });
         const tamanho = 28;
-        const textoSeguro = sanitizarTexto(fontes.negrito, titulo);
-        const largura = fontes.negrito.widthOfTextAtSize(textoSeguro, tamanho);
-        pagina.drawText(textoSeguro, { x: (PAGE_W - largura) / 2, y: PAGE_H / 2 - 20, size: tamanho, font: fontes.negrito, color: fontes.corTexto });
+        const fonte = fontes.tituloFonte;
+        const textoSeguro = sanitizarTexto(fonte, titulo);
+        const largura = fonte.widthOfTextAtSize(textoSeguro, tamanho);
+        pagina.drawText(textoSeguro, { x: (PAGE_W - largura) / 2, y: PAGE_H / 2 - 20, size: tamanho, font: fonte, color: fontes.corTexto });
         return pagina;
+    }
+
+    // Faixa lateral colorida do Modelo B, redesenhada em toda página de
+    // conteúdo (ver decorador em criarEscritor) — funciona como um índice de
+    // dedo (thumb index): a cor + número da categoria dão pra achar a seção
+    // certa folheando o PDF impresso, sem abrir o sumário. contexto = { cor,
+    // num, label }, atualizado pelo chamador antes de cada seção/divisória.
+    function desenharSidebarB(pagina, fontes, contexto) {
+        const cor = fontes.rgb(contexto.cor[0], contexto.cor[1], contexto.cor[2]);
+        pagina.drawRectangle({ x: 0, y: 0, width: SIDEBAR_W, height: PAGE_H, color: cor });
+        if (contexto.num) {
+            const numTam = 20;
+            const numSeguro = sanitizarTexto(fontes.negrito, contexto.num);
+            const numW = fontes.negrito.widthOfTextAtSize(numSeguro, numTam);
+            pagina.drawText(numSeguro, { x: (SIDEBAR_W - numW) / 2, y: PAGE_H - 90, size: numTam, font: fontes.negrito, color: fontes.rgb(1, 1, 1) });
+        }
+        const lbl = sanitizarTexto(fontes.negrito, (contexto.label || '').toUpperCase());
+        if (lbl) {
+            pagina.drawText(lbl, { x: SIDEBAR_W - 16, y: 90, size: 7.5, font: fontes.negrito, color: fontes.rgb(1, 1, 1), rotate: fontes.degrees(90) });
+        }
+    }
+
+    // Cabeçalho corrido do Modelo A, redesenhado em toda página de conteúdo
+    // — nome à esquerda, seção atual à direita, uma linha fina embaixo.
+    // Resolve o problema de uma folha impressa solta não dizer a que seção
+    // do currículo ela pertence (o relatório original não tinha isso).
+    // contexto = { nome, secao }, atualizado pelo chamador antes de cada
+    // seção/divisória.
+    function desenharCabecalhoA(pagina, fontes, contexto) {
+        const y = PAGE_H - MARGIN + 16;
+        const nomeTxt = sanitizarTexto(fontes.regular, (contexto.nome || '').toUpperCase());
+        pagina.drawText(nomeTxt, { x: MARGIN, y, size: 6.5, font: fontes.regular, color: fontes.corMuted });
+        const secTxt = sanitizarTexto(fontes.regular, contexto.secao || '');
+        const w = fontes.regular.widthOfTextAtSize(secTxt, 6.5);
+        pagina.drawText(secTxt, { x: PAGE_W - MARGIN - w, y, size: 6.5, font: fontes.regular, color: fontes.corMuted });
+        pagina.drawLine({ start: { x: MARGIN, y: y - 5 }, end: { x: PAGE_W - MARGIN, y: y - 5 }, thickness: 0.5, color: fontes.corRule });
+    }
+
+    // Item do Modelo A: desenha o contador (NNN) na cor de destaque, em
+    // separado do resto da linha (que continua pelo escritor.paragrafo() de
+    // sempre, com recuo suspenso — linhas quebradas alinham com o TEXTO, não
+    // com o número). Reaproveita linhaDoItem() e só descarta o prefixo
+    // "NNN " que ela mesma gera, pra não duplicar a lógica de formatação
+    // (Formação acadêmica com data só no final etc.) em dois lugares.
+    function desenharItemA(escritor, fontes, item, contador, indent) {
+        const num = String(contador).padStart(3, '0');
+        const tamanho = 10;
+        const numGap = fontes.negrito.widthOfTextAtSize('000 ', tamanho);
+        const textoResto = linhaDoItem(contador, item).slice(num.length + 1);
+        escritor.garantirEspaco(tamanho * 1.4);
+        const pagina = escritor.pagina, y = escritor.y;
+        pagina.drawText(sanitizarTexto(fontes.negrito, num), { x: MARGIN + escritor.margemExtra + indent, y, size: tamanho, font: fontes.negrito, color: fontes.corAccent });
+        escritor.paragrafo(textoResto, { tamanho, indent: indent + numGap });
+        if (item.linha) escritor.paragrafo(item.linha, { tamanho: 9, cor: fontes.corMuted, indent: indent + numGap });
+        escritor.espaco(3);
+    }
+
+    // Item do Modelo B: selo circular-quadrado com o contador (borda na cor
+    // da categoria) + "chip" de data (fundo CLARO — mistura da cor da
+    // categoria com branco — texto na cor cheia, pedido do Alexsandro) +
+    // título em negrito, com o texto e a linha secundária desenhados pelo
+    // escritor de sempre (multi-linha/paginação já resolvidos ali).
+    function desenharItemB(escritor, fontes, cor, item, contador, indent) {
+        const tamanho = 10;
+        const anoTxt = item.typeKey === 'FORMACAO_ACADEMICA' ? (item.ano ? `(${item.ano})` : '') : (item.ano || '');
+        const tituloTxt = tituloParaLinha(item);
+        const corClara = misturarComBranco(cor, 0.62);
+
+        const numTxt = String(contador).padStart(2, '0');
+        const numFonte = fontes.negrito, numTam = 8;
+        const numLargura = Math.max(16, numFonte.widthOfTextAtSize(numTxt, numTam) + 6);
+
+        const chipFonte = fontes.negrito, chipTam = 8;
+        const chipTxtSeguro = sanitizarTexto(chipFonte, anoTxt);
+        const chipLargura = anoTxt ? chipFonte.widthOfTextAtSize(chipTxtSeguro, chipTam) + 8 : 0;
+        const offsetTexto = numLargura + (chipLargura ? chipLargura + 6 : 0);
+
+        escritor.garantirEspaco(tamanho * 1.4);
+        const pagina = escritor.pagina;
+        const xBase = MARGIN + escritor.margemExtra + indent;
+        const y = escritor.y;
+
+        pagina.drawRectangle({ x: xBase, y: y - 2, width: numLargura - 3, height: tamanho + 1, borderColor: fontes.rgb(cor[0], cor[1], cor[2]), borderWidth: 0.75, color: fontes.rgb(1, 1, 1) });
+        const numW = numFonte.widthOfTextAtSize(numTxt, numTam);
+        pagina.drawText(numTxt, { x: xBase + (numLargura - 3 - numW) / 2, y: y + 0.5, size: numTam, font: numFonte, color: fontes.rgb(cor[0], cor[1], cor[2]) });
+
+        if (anoTxt) {
+            pagina.drawRectangle({ x: xBase + numLargura, y: y - 2, width: chipLargura, height: tamanho + 1, color: fontes.rgb(corClara[0], corClara[1], corClara[2]) });
+            pagina.drawText(chipTxtSeguro, { x: xBase + numLargura + 4, y: y + 0.5, size: chipTam, font: chipFonte, color: fontes.rgb(cor[0], cor[1], cor[2]) });
+        }
+
+        escritor.paragrafo(tituloTxt, { tamanho, indent: indent + offsetTexto, negrito: true });
+        if (item.linha) escritor.paragrafo(item.linha, { tamanho: 9, cor: fontes.corMuted, indent: indent + offsetTexto });
+        escritor.espaco(5);
     }
 
     function dataUriParaBytes(dataUri) {
@@ -254,11 +391,12 @@ window.LzPdfReport = (function () {
     // em 1 — usada tanto para tipo.itens "normais" (2 níveis: seção > tipo)
     // quanto para tipo.subgrupos.itens de Atuação (3 níveis: seção >
     // instituição > subtipo), sempre reiniciando no começo de CADA lista.
-    function escreverItens(escritor, fontes, itens, indent) {
+    // modelo/cor selecionam entre desenharItemA (contador colorido, linha
+    // corrida) e desenharItemB (selo + chip de data + título) — ver gerar().
+    function escreverItens(escritor, fontes, itens, indent, modelo, cor) {
         itens.forEach((item, i) => {
-            escritor.paragrafo(linhaDoItem(i + 1, item), { tamanho: 10, indent });
-            if (item.linha) escritor.paragrafo(item.linha, { tamanho: 9, cor: fontes.corMuted, indent });
-            escritor.espaco(3);
+            if (modelo === 'B') desenharItemB(escritor, fontes, cor, item, i + 1, indent);
+            else desenharItemA(escritor, fontes, item, i + 1, indent);
         });
     }
 
@@ -304,10 +442,10 @@ window.LzPdfReport = (function () {
                     if (/^(gif|webp)$/i.test(anexo.ext)) { dataUri = await converterParaPng(dataUri); ehPng = true; }
                     const bytes = dataUriParaBytes(dataUri);
                     const imagem = ehPng ? await pdfDoc.embedPng(bytes) : await pdfDoc.embedJpg(bytes);
-                    const areaW = CONTENT_W, areaH = Math.max(60, escritor.y - MARGIN);
+                    const areaW = CONTENT_W - escritor.margemExtra, areaH = Math.max(60, escritor.y - MARGIN);
                     const escala = Math.min(areaW / imagem.width, areaH / imagem.height, 1);
                     const w = imagem.width * escala, h = imagem.height * escala;
-                    escritor.pagina.drawImage(imagem, { x: MARGIN + (areaW - w) / 2, y: escritor.y - h, width: w, height: h });
+                    escritor.pagina.drawImage(imagem, { x: MARGIN + escritor.margemExtra + (areaW - w) / 2, y: escritor.y - h, width: w, height: h });
                     escritor.y -= h + 10;
                 } else {
                     escritor.paragrafo(`Arquivo do tipo ".${anexo.ext}" não pode ser incluído dentro do PDF — consulte a pasta/Google Drive configurado para abri-lo.`, { cor: fontes.corMuted });
@@ -333,6 +471,8 @@ window.LzPdfReport = (function () {
     function desenharCapa(pdfDoc, fontes, model, subtitulo, fotoImg) {
         const pagina = pdfDoc.addPage([PAGE_W, PAGE_H]);
         pagina.drawRectangle({ x: 0, y: 0, width: PAGE_W, height: PAGE_H, color: fontes.corCapaFundo });
+        pagina.drawRectangle({ x: PAGE_W / 2 - 20, y: PAGE_H - 64, width: 40, height: 2, color: fontes.corAccent });
+        pagina.drawRectangle({ x: PAGE_W / 2 - 20, y: 62, width: 40, height: 2, color: fontes.corAccent });
         let y = PAGE_H - 220;
         if (fotoImg) {
             const lado = 130;
@@ -342,14 +482,14 @@ window.LzPdfReport = (function () {
             y -= h + 30;
         }
         const nomeTam = 24;
-        const nomeSeguro = sanitizarTexto(fontes.negrito, model.nome);
-        const nomeLargura = fontes.negrito.widthOfTextAtSize(nomeSeguro, nomeTam);
-        pagina.drawText(nomeSeguro, { x: (PAGE_W - nomeLargura) / 2, y, size: nomeTam, font: fontes.negrito, color: fontes.corTextoCapa });
+        const nomeSeguro = sanitizarTexto(fontes.nomeFonte, model.nome);
+        const nomeLargura = fontes.nomeFonte.widthOfTextAtSize(nomeSeguro, nomeTam);
+        pagina.drawText(nomeSeguro, { x: (PAGE_W - nomeLargura) / 2, y, size: nomeTam, font: fontes.nomeFonte, color: fontes.corTextoCapa });
         y -= 34;
         const subTam = 14;
-        const subSeguro = sanitizarTexto(fontes.regular, subtitulo);
-        const subLargura = fontes.regular.widthOfTextAtSize(subSeguro, subTam);
-        pagina.drawText(subSeguro, { x: (PAGE_W - subLargura) / 2, y, size: subTam, font: fontes.regular, color: fontes.corTextoCapa });
+        const subSeguro = sanitizarTexto(fontes.negrito, subtitulo.toUpperCase());
+        const subLargura = fontes.negrito.widthOfTextAtSize(subSeguro, subTam);
+        pagina.drawText(subSeguro, { x: (PAGE_W - subLargura) / 2, y, size: subTam, font: fontes.negrito, color: fontes.corAccent });
         if (model.orcid) {
             y -= 44;
             const orcidTxt = `ORCID: ${model.orcid}`;
@@ -369,7 +509,7 @@ window.LzPdfReport = (function () {
         let y = PAGE_H / 2 + 20;
         linhas.forEach((l, i) => {
             const tamanho = i === 0 ? 16 : 10;
-            const fonte = i === 0 ? fontes.negrito : fontes.regular;
+            const fonte = i === 0 ? fontes.nomeFonte : fontes.regular;
             const seguro = sanitizarTexto(fonte, l);
             const w = fonte.widthOfTextAtSize(seguro, tamanho);
             pagina.drawText(seguro, { x: (PAGE_W - w) / 2, y, size: tamanho, font: fonte, color: i === 0 ? fontes.corTextoCapa : fontes.corTextoCapaMuted });
@@ -386,9 +526,15 @@ window.LzPdfReport = (function () {
         const alturaTotal = alturaTitulo + entradas.length * ALTURA_ENTRADA_SUMARIO;
         return Math.max(1, Math.ceil(alturaTotal / CONTENT_H));
     }
-    function desenharSumario(paginasReservadas, fontes, entradas) {
+    // modelo === 'A': pontilhado guiando o olho até o número da página
+    // (linha do meio) — hoje o número só "flutuava" à direita, sem ligação
+    // visual com o título. modelo === 'B': entradas de categoria (nivel 1)
+    // ganham um ponto colorido na cor da própria categoria, funcionando como
+    // legenda da faixa lateral colorida que aparece nas páginas de conteúdo.
+    function desenharSumario(paginasReservadas, fontes, entradas, modelo) {
         let paginaIdx = 0, pagina = paginasReservadas[0], y = PAGE_H - MARGIN;
-        pagina.drawText('Sumário', { x: MARGIN, y, size: 20, font: fontes.negrito, color: fontes.corTexto });
+        const tituloFonte = fontes.tituloFonte;
+        pagina.drawText(sanitizarTexto(tituloFonte, 'Sumário'), { x: MARGIN, y, size: 20, font: tituloFonte, color: fontes.corTexto });
         y -= 40;
         entradas.forEach((e) => {
             if (y < MARGIN + ALTURA_ENTRADA_SUMARIO) {
@@ -399,11 +545,32 @@ window.LzPdfReport = (function () {
             const tamanho = e.nivel === 0 ? 12 : 10;
             const fonte = e.nivel === 0 ? fontes.negrito : fontes.regular;
             const indent = e.nivel === 0 ? 0 : 18;
-            const cor = e.nivel === 0 ? fontes.corTexto : fontes.corMuted;
             const numero = e.paginaIndex != null ? String(e.paginaIndex) : '';
-            pagina.drawText(sanitizarTexto(fonte, e.titulo), { x: MARGIN + indent, y, size: tamanho, font: fonte, color: cor });
-            const nw = fonte.widthOfTextAtSize(numero, tamanho);
-            pagina.drawText(numero, { x: PAGE_W - MARGIN - nw, y, size: tamanho, font: fonte, color: cor });
+            const tituloSeguro = sanitizarTexto(fonte, e.titulo);
+            if (modelo === 'B' && e.nivel === 1) {
+                const cor = fontes.rgb(...corDaCategoria(e.num));
+                pagina.drawCircle({ x: MARGIN + indent + 4, y: y + 3, size: 3.5, color: cor });
+                pagina.drawText(tituloSeguro, { x: MARGIN + indent + 14, y, size: tamanho, font: fonte, color: fontes.corTexto });
+                const nw = fonte.widthOfTextAtSize(numero, tamanho);
+                pagina.drawText(numero, { x: PAGE_W - MARGIN - nw, y, size: tamanho, font: fonte, color: fontes.corMuted });
+            } else {
+                const cor = e.nivel === 0 ? fontes.corTexto : fontes.corMuted;
+                pagina.drawText(tituloSeguro, { x: MARGIN + indent, y, size: tamanho, font: fonte, color: cor });
+                if (modelo === 'A') {
+                    const tituloLargura = fonte.widthOfTextAtSize(tituloSeguro, tamanho);
+                    const numLargura = fonte.widthOfTextAtSize(numero, tamanho);
+                    const inicioX = MARGIN + indent + tituloLargura + 4;
+                    const fimX = PAGE_W - MARGIN - numLargura - 4;
+                    if (fimX > inicioX) {
+                        const passo = fonte.widthOfTextAtSize('.', tamanho) * 2.2;
+                        for (let px = inicioX; px < fimX; px += passo) {
+                            pagina.drawText('.', { x: px, y, size: tamanho, font: fonte, color: fontes.corMuted });
+                        }
+                    }
+                }
+                const nw = fonte.widthOfTextAtSize(numero, tamanho);
+                pagina.drawText(numero, { x: PAGE_W - MARGIN - nw, y, size: tamanho, font: fonte, color: cor });
+            }
             y -= ALTURA_ENTRADA_SUMARIO;
         });
     }
@@ -435,6 +602,19 @@ window.LzPdfReport = (function () {
     // opts.ordemAsc: true ordena os itens DENTRO de cada categoria/tipo por
     // ano crescente (mais antigos primeiro); false/ausente = decrescente
     // (mais recentes primeiro, comportamento de sempre).
+    // opts.modelo: 'A' (Editorial sóbrio, padrão) ou 'B' (Índice lateral
+    // colorido) — os 2 modelos de diagramação do relatório. 'A' troca os
+    // títulos pra uma fonte serifada (Times, já embutida no pdf-lib — sem
+    // baixar fonte nenhuma), acrescenta um cabeçalho corrido (nome + seção
+    // atual) em toda página de conteúdo e um pontilhado guia no sumário até
+    // o número da página. 'B' dá a cada categoria uma cor fixa (determinada
+    // pela posição dela em LattesTypes.categories — ver corDaCategoria);
+    // toda página de conteúdo ganha uma faixa lateral colorida com o número
+    // da categoria (funciona como um índice de dedo ao folhear o PDF
+    // impresso), o sumário ganha um ponto colorido por categoria, e cada
+    // item ganha um selo com o contador + um "chip" de data — o chip usa
+    // uma versão CLARA da cor da categoria (mistura com branco), não a cor
+    // cheia, que fica reservada pro selo/índice lateral.
     // Devolve o PDF pronto (Uint8Array).
     async function gerar(opts) {
         const incluirTodos = !!(opts && opts.incluirTodos);
@@ -442,8 +622,9 @@ window.LzPdfReport = (function () {
         const incluirEvidencias = !(opts && opts.incluirEvidencias === false);
         const categorias = (opts && opts.categorias) || null;
         const ordemAsc = !!(opts && opts.ordemAsc);
+        const modelo = (opts && opts.modelo === 'B') ? 'B' : 'A';
         const PDFLib = await carregarPdfLib();
-        const { PDFDocument, StandardFonts, rgb } = PDFLib;
+        const { PDFDocument, StandardFonts, rgb, degrees } = PDFLib;
 
         const pdfDoc = await PDFDocument.create();
         const model = await window.TabPublicar.buildPublicModel({ incluirTodos, categorias, ordemAsc });
@@ -452,11 +633,20 @@ window.LzPdfReport = (function () {
         pdfDoc.setProducer('lattesZen');
         pdfDoc.setCreator('lattesZen (https://github.com/alexsandroccarv/latteszen)');
 
+        const regular = await pdfDoc.embedFont(StandardFonts.Helvetica);
+        const negrito = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+        // TimesRomanBold é uma das 14 fontes padrão do PDF — vem embutida no
+        // próprio pdf-lib, sem precisar baixar nada de fonte alguma (mesmo
+        // raciocínio de usar só StandardFonts que já regia o resto do
+        // arquivo) — usada só nos títulos do Modelo A, pro efeito "editorial".
+        const serifNegrito = modelo === 'A' ? await pdfDoc.embedFont(StandardFonts.TimesRomanBold) : negrito;
         const fontes = {
-            regular: await pdfDoc.embedFont(StandardFonts.Helvetica),
-            negrito: await pdfDoc.embedFont(StandardFonts.HelveticaBold),
+            regular, negrito, serifNegrito, rgb, degrees,
+            nomeFonte: modelo === 'A' ? serifNegrito : negrito,
+            tituloFonte: modelo === 'A' ? serifNegrito : negrito,
             corTexto: corTexto(rgb), corMuted: corMuted(rgb), corAccent: corPrincipal(rgb),
-            corTextoCapa: rgb(1, 1, 1), corTextoCapaMuted: rgb(0.85, 0.88, 0.95), corCapaFundo: corPrincipal(rgb),
+            corRule: rgb(0.85, 0.83, 0.78),
+            corTextoCapa: corTexto(rgb), corTextoCapaMuted: corMuted(rgb), corCapaFundo: rgb(0.984, 0.980, 0.968),
         };
 
         // Memorial é conteúdo do CURRÍCULO — some junto com ele no modo
@@ -489,7 +679,7 @@ window.LzPdfReport = (function () {
         const entradasPorSecao = new Map();
         if (incluirCurriculo) {
             model.secoes.forEach((sec) => {
-                const entrada = { titulo: sec.num ? `${sec.num}. ${sec.label}` : sec.label, nivel: 1, paginaIndex: null };
+                const entrada = { titulo: sec.num ? `${sec.num}. ${sec.label}` : sec.label, nivel: 1, paginaIndex: null, num: sec.num };
                 entradasSumario.push(entrada);
                 entradasPorSecao.set(sec.id, entrada);
             });
@@ -501,10 +691,21 @@ window.LzPdfReport = (function () {
         for (let i = 0; i < numPaginasSumario; i++) paginasSumario.push(pdfDoc.addPage([PAGE_W, PAGE_H]));
 
         const escritor = criarEscritor(pdfDoc, fontes);
+        // contextoA/contextoB alimentam o decorador (cabeçalho corrido do
+        // Modelo A / faixa lateral do Modelo B), atualizados ANTES de cada
+        // novaPagina()/seção — ver criarEscritor() e desenharCabecalhoA/
+        // desenharSidebarB acima.
+        const contextoA = { nome: model.nome, secao: '' };
+        const contextoB = { cor: CINZA_NEUTRO, num: null, label: '' };
+        if (modelo === 'A') escritor.decorador = (pagina) => desenharCabecalhoA(pagina, fontes, contextoA);
+        else escritor.decorador = (pagina) => desenharSidebarB(pagina, fontes, contextoB);
+        if (modelo === 'B') escritor.margemExtra = SIDEBAR_W + 18;
 
         // 3) Memorial (só existe se houver texto e incluirCurriculo)
         if (memorialTexto) {
             desenharDivisoria(pdfDoc, fontes, 'Memorial');
+            contextoA.secao = 'Memorial';
+            Object.assign(contextoB, { cor: CINZA_NEUTRO, num: null, label: 'Memorial' });
             escritor.novaPagina();
             entradasSumario[0].paginaIndex = pdfDoc.getPageCount() - 1;
             escritor.paragrafo(memorialTexto, { tamanho: 11, leading: 1.6 });
@@ -513,12 +714,20 @@ window.LzPdfReport = (function () {
         // 4) Currículo completo (pulado inteiro no modo "apenas evidências")
         if (incluirCurriculo) {
             desenharDivisoria(pdfDoc, fontes, 'Currículo Completo');
+            contextoA.secao = 'Currículo completo';
+            Object.assign(contextoB, { cor: CINZA_NEUTRO, num: null, label: 'Currículo' });
             escritor.novaPagina();
             entradasSumario.find((e) => e.titulo === 'Currículo completo').paginaIndex = pdfDoc.getPageCount() - 1;
             if (!model.secoes.length) {
                 escritor.paragrafo('Nenhum item cadastrado ainda.', { cor: fontes.corMuted });
             }
             model.secoes.forEach((sec) => {
+                // Atualiza o contexto ANTES de desenhar qualquer coisa desta
+                // seção — se o título da seção estourar pra uma página nova
+                // (garantirEspaco dispara o decorador), ele já reflete a
+                // seção certa, não a anterior.
+                contextoA.secao = sec.num ? `${sec.num} · ${sec.label}` : sec.label;
+                Object.assign(contextoB, { cor: corDaCategoria(sec.num), num: sec.num, label: sec.label });
                 escritor.espaco(6);
                 const idx = escritor.linha(sec.num ? `${sec.num}. ${sec.label}` : sec.label, { negrito: true, tamanho: 13 });
                 entradasPorSecao.get(sec.id).paginaIndex = idx;
@@ -533,10 +742,10 @@ window.LzPdfReport = (function () {
                         tipo.subgrupos.forEach((sub) => {
                             escritor.espaco(2);
                             escritor.linha(sub.label, { negrito: true, tamanho: 10, indent: 20, cor: fontes.corMuted });
-                            escreverItens(escritor, fontes, sub.itens, 28);
+                            escreverItens(escritor, fontes, sub.itens, 28, modelo, contextoB.cor);
                         });
                     } else {
-                        escreverItens(escritor, fontes, tipo.itens, 24);
+                        escreverItens(escritor, fontes, tipo.itens, 24, modelo, contextoB.cor);
                     }
                 });
             });
@@ -545,6 +754,8 @@ window.LzPdfReport = (function () {
         // 5) Anexos (evidências marcadas como "pública" — mescladas de verdade)
         if (temAnexos) {
             desenharDivisoria(pdfDoc, fontes, 'Anexos — Evidências');
+            contextoA.secao = 'Anexos — Evidências';
+            Object.assign(contextoB, { cor: CINZA_NEUTRO, num: null, label: 'Anexos' });
             escritor.novaPagina();
             entradasSumario.find((e) => e.titulo === 'Anexos — Evidências').paginaIndex = pdfDoc.getPageCount() - 1;
             await anexarEvidencias(pdfDoc, PDFLib, escritor, fontes, model);
@@ -554,16 +765,20 @@ window.LzPdfReport = (function () {
         desenharContracapa(pdfDoc, fontes, model);
 
         // 7) Sumário (agora com os índices de página resolvidos) e paginação.
-        desenharSumario(paginasSumario, fontes, entradasSumario);
+        desenharSumario(paginasSumario, fontes, entradasSumario, modelo);
         numerarPaginas(pdfDoc, fontes);
 
         return pdfDoc.save();
     }
 
     // quebrarLinhas/anexosDoModelo/calcularPaginasSumario/sanitizarTexto/
-    // tituloParaLinha expostos só para teste (tools/tests/specs/pdf-report.mjs)
-    // — nenhum deles depende do pdf-lib estar carregado, então dá pra
-    // verificar a lógica pura mesmo com o CDN bloqueado (mesmo bloqueio de
-    // rede que a suíte já aplica a Tailwind/Font Awesome — ver harness.mjs).
-    return { gerar, quebrarLinhas, anexosDoModelo, calcularPaginasSumario, sanitizarTexto, tituloParaLinha, linhaDoItem };
+    // tituloParaLinha/corDaCategoria/misturarComBranco expostos só para
+    // teste (tools/tests/specs/pdf-report.mjs) — nenhum deles depende do
+    // pdf-lib estar carregado, então dá pra verificar a lógica pura mesmo
+    // com o CDN bloqueado (mesmo bloqueio de rede que a suíte já aplica a
+    // Tailwind/Font Awesome — ver harness.mjs).
+    return {
+        gerar, quebrarLinhas, anexosDoModelo, calcularPaginasSumario, sanitizarTexto, tituloParaLinha, linhaDoItem,
+        corDaCategoria, misturarComBranco,
+    };
 })();
