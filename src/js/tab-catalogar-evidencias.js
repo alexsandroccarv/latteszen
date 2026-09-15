@@ -32,10 +32,10 @@ const { state, $, $$, esc, toast, isImageExt, isVideoExt, isArchiveExt } = windo
     function setPdf(url, name, ext) {
         const frame = $('#pdfFrame'), img = $('#pdfImg'), noPreview = $('#pdfNoPreview');
         if (!frame) return; // painel não montado (outra aba ativa)
-        if (state.currentPdfUrl && state.currentPdfUrl !== url) {
-            try { URL.revokeObjectURL(state.currentPdfUrl); } catch (_) {}
+        if (state.ui.currentPdfUrl && state.ui.currentPdfUrl !== url) {
+            try { URL.revokeObjectURL(state.ui.currentPdfUrl); } catch (_) {}
         }
-        state.currentPdfUrl = url;
+        state.ui.currentPdfUrl = url;
         if (isImageExt(ext)) {
             img.src = url; img.classList.remove('hidden');
             frame.src = 'about:blank'; frame.classList.add('hidden');
@@ -64,7 +64,7 @@ const { state, $, $$, esc, toast, isImageExt, isVideoExt, isArchiveExt } = windo
     }
     export function clearPdf() {
         const frame = $('#pdfFrame'), img = $('#pdfImg'), noPreview = $('#pdfNoPreview');
-        if (state.currentPdfUrl) { try { URL.revokeObjectURL(state.currentPdfUrl); } catch (_) {} state.currentPdfUrl = null; }
+        if (state.ui.currentPdfUrl) { try { URL.revokeObjectURL(state.ui.currentPdfUrl); } catch (_) {} state.ui.currentPdfUrl = null; }
         const sec = $('#pdfSection'); if (sec) sec.classList.add('hidden');
         if (!frame) return;
         frame.src = 'about:blank'; frame.classList.add('hidden');
@@ -162,14 +162,14 @@ const { state, $, $$, esc, toast, isImageExt, isVideoExt, isArchiveExt } = windo
         $$('[data-evpub]', ul).forEach(c => c.addEventListener('change', (e) => {
             const i = +e.target.dataset.evpub;
             state.evEditing[i].publica = e.target.checked; // 0..N públicas (independentes)
-            state.formDirty = true;
+            state.ui.formDirty = true;
         }));
         $$('[data-evtag]', ul).forEach(inp => inp.addEventListener('input', (e) => {
             const i = +e.target.dataset.evtag;
             state.evEditing[i].tag = e.target.value;
-            state.formDirty = true;
+            state.ui.formDirty = true;
         }));
-        const swap = (i, j) => { const t = state.evEditing[i]; state.evEditing[i] = state.evEditing[j]; state.evEditing[j] = t; state.formDirty = true; renderEvList(); };
+        const swap = (i, j) => { const t = state.evEditing[i]; state.evEditing[i] = state.evEditing[j]; state.evEditing[j] = t; state.ui.formDirty = true; renderEvList(); };
         $$('[data-evup]', ul).forEach(b => b.addEventListener('click', (e) => { const i = +e.currentTarget.dataset.evup; if (i > 0) swap(i, i - 1); }));
         $$('[data-evdown]', ul).forEach(b => b.addEventListener('click', (e) => { const i = +e.currentTarget.dataset.evdown; if (i < state.evEditing.length - 1) swap(i, i + 1); }));
         $$('[data-evsee]', ul).forEach(b => b.addEventListener('click', (e) => previewEvidence(state.evEditing[+e.currentTarget.dataset.evsee])));
@@ -177,7 +177,7 @@ const { state, $, $$, esc, toast, isImageExt, isVideoExt, isArchiveExt } = windo
             const i = +e.currentTarget.dataset.evdel;
             const ev = state.evEditing[i];
             if (!confirm(`Remover a evidência "${ev.name}"?`)) return;
-            state.evEditing.splice(i, 1); state.formDirty = true; renderEvList();
+            state.evEditing.splice(i, 1); state.ui.formDirty = true; renderEvList();
         }));
     }
 
@@ -199,7 +199,7 @@ const { state, $, $$, esc, toast, isImageExt, isVideoExt, isArchiveExt } = windo
                 publica: state.evEditing.length === 0, tag: '', file: f, inboxName,
             });
             added = f;
-            state.formDirty = true;
+            state.ui.formDirty = true;
         });
         renderEvList();
         if (added) previewPdfFile(added);
@@ -219,7 +219,7 @@ const { state, $, $$, esc, toast, isImageExt, isVideoExt, isArchiveExt } = windo
             basename: null, ext: window.AppCore.fileExt(file), name: file.name || entry.name,
             publica: state.evEditing.length === 0, tag: '', file, inboxName: entry.name,
         });
-        state.formDirty = true;
+        state.ui.formDirty = true;
         renderEvList();
         previewPdfFile(file);
     }
@@ -246,7 +246,7 @@ const { state, $, $$, esc, toast, isImageExt, isVideoExt, isArchiveExt } = windo
             publica: state.evEditing.length === 0, tag: '', file: picked.file,
             inboxName: picked.driveSourceInbox ? picked.file.name : null,
         });
-        state.formDirty = true;
+        state.ui.formDirty = true;
         renderEvList();
         previewPdfFile(picked.file);
     }
@@ -298,7 +298,7 @@ const { state, $, $$, esc, toast, isImageExt, isVideoExt, isArchiveExt } = windo
             kind: 'link', basename: null, ext: 'url', file: null,
             name: url, url, publica: state.evEditing.length === 0, tag: '',
         });
-        state.formDirty = true;
+        state.ui.formDirty = true;
         inp.value = '';
         $('#evUrlRow').classList.add('hidden');
         renderEvList();

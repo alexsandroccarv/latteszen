@@ -327,7 +327,7 @@ window.TabConfig = (function () {
 
     // Menu lateral de Configurações: as 4 seções viram páginas independentes
     // (só uma visível por vez, ver render()) — clicar troca qual está ativa
-    // (state.cfgActiveGroup) e re-renderiza. No celular vira uma barra
+    // (state.ui.cfgActiveGroup) e re-renderiza. No celular vira uma barra
     // horizontal rolável (ver .cfg-sidebar no CSS/classes abaixo).
     function cfgSidebarHtml(activeId) {
         return `
@@ -352,7 +352,7 @@ window.TabConfig = (function () {
                 toast('Configure um diretório de armazenamento em Configurações › Armazenamento antes de usar esta seção.', 'aviso');
                 return;
             }
-            state.cfgActiveGroup = groupId;
+            state.ui.cfgActiveGroup = groupId;
             render();
         }));
     }
@@ -528,18 +528,18 @@ window.TabConfig = (function () {
         }
 
         // Cada seção vira uma "página" independente — só a ativa
-        // (state.cfgActiveGroup, lembrada durante a sessão) fica visível;
+        // (state.ui.cfgActiveGroup, lembrada durante a sessão) fica visível;
         // as outras 3 continuam no DOM só com `hidden`, então toda a wiring
         // abaixo (wireThemeSection, wireRscConfig...) continua funcionando
         // igual, sem precisar saber qual página está aberta.
-        let cfgAtiva = state.cfgActiveGroup || CFG_GROUPS[0].id;
+        let cfgAtiva = state.ui.cfgActiveGroup || CFG_GROUPS[0].id;
         // Defensivo: se a página ativa ficou travada (ex.: "Esquecer
         // diretório de armazenamento" enquanto "Outros recursos" estava
         // aberta), volta pra "Armazenamento" em vez de renderizar uma
         // página que deveria estar bloqueada.
         if (window.AppCore.cfgGroupGated(cfgAtiva)) {
             cfgAtiva = CFG_GROUPS[0].id;
-            state.cfgActiveGroup = cfgAtiva;
+            state.ui.cfgActiveGroup = cfgAtiva;
         }
         panel.innerHTML = `
             <div class="flex flex-col lg:flex-row gap-6">

@@ -92,7 +92,7 @@ window.TabCatalogar = (function () {
         buildForm();
         window.AppCore.maybeShowDraftBanner();
         $('#pdfClose').addEventListener('click', clearPdf);
-        $('#pdfNewTab').addEventListener('click', () => { if (state.currentPdfUrl) window.open(state.currentPdfUrl, '_blank'); });
+        $('#pdfNewTab').addEventListener('click', () => { if (state.ui.currentPdfUrl) window.open(state.ui.currentPdfUrl, '_blank'); });
     }
 
     // Painel de PDF e bandeja de evidências — extraídos para
@@ -136,9 +136,9 @@ window.TabCatalogar = (function () {
         </div>`;
 
         const expChk = $('#visExportarLattes');
-        if (expChk) expChk.addEventListener('change', () => { state.formDirty = true; });
+        if (expChk) expChk.addEventListener('change', () => { state.ui.formDirty = true; });
         const pubChk = $('#visPublicarWeb');
-        if (pubChk) pubChk.addEventListener('change', () => { state.formDirty = true; });
+        if (pubChk) pubChk.addEventListener('change', () => { state.ui.formDirty = true; });
     }
     // Lê a camada de Visibilidade do formulário → { exportarLattes,
     // visivelNoLattes, publicarWeb } (ou null se o bloco não foi montado —
@@ -176,7 +176,7 @@ window.TabCatalogar = (function () {
         for (const it of items) { if (it.kind === 'file') { const f = it.getAsFile(); if (f) files.push(f); } }
         if (files.length) { e.preventDefault(); addEvidenceFiles(files); }
     }
-    function onFormInputDirty() { state.formDirty = true; window.AppCore.saveDraftDebounced(); }
+    function onFormInputDirty() { state.ui.formDirty = true; window.AppCore.saveDraftDebounced(); }
 
     function buildForm(item, opts) {
         opts = opts || {};
@@ -480,7 +480,7 @@ window.TabCatalogar = (function () {
                 state.evEditing = match ? window.AppCore.evListFromItem(match) : [];
                 renderEvList();
                 if (state.evEditing.length) showPdfForItem(match); else clearPdf();
-                state.formDirty = true;
+                state.ui.formDirty = true;
                 window.AppCore.saveDraftDebounced();
             });
         }
@@ -537,13 +537,13 @@ window.TabCatalogar = (function () {
 
         // Submit / Salvar e novo / Cancelar
         form.addEventListener('submit', onSubmitForm);
-        $('#btnSalvarNovo').addEventListener('click', () => { state.saveAndNew = true; form.requestSubmit(); });
+        $('#btnSalvarNovo').addEventListener('click', () => { state.ui.saveAndNew = true; form.requestSubmit(); });
         const btnProximo = $('#btnSalvarProximo');
-        if (btnProximo) btnProximo.addEventListener('click', () => { state.saveAndNext = true; form.requestSubmit(); });
-        $('#btnCancelar').addEventListener('click', () => { state.editingId = null; state.evEditing = []; state.formDirty = false; buildForm(undefined, { focus: true }); });
+        if (btnProximo) btnProximo.addEventListener('click', () => { state.ui.saveAndNext = true; form.requestSubmit(); });
+        $('#btnCancelar').addEventListener('click', () => { state.editingId = null; state.evEditing = []; state.ui.formDirty = false; buildForm(undefined, { focus: true }); });
         $('#btnLimpar').addEventListener('click', () => {
-            if (state.formDirty && !confirm('Limpar os dados não salvos deste formulário?')) return;
-            state.editingId = null; state.evEditing = []; state.formDirty = false;
+            if (state.ui.formDirty && !confirm('Limpar os dados não salvos deste formulário?')) return;
+            state.editingId = null; state.evEditing = []; state.ui.formDirty = false;
             buildForm(undefined, { focus: true });
         });
 
@@ -554,7 +554,7 @@ window.TabCatalogar = (function () {
         if (editing && state.evEditing.length) showPdfForItem(item);
         else clearPdf();
 
-        state.formDirty = false;                         // form recém-montado = limpo
+        state.ui.formDirty = false;                         // form recém-montado = limpo
         if (opts.focus) { const first = $('#dynFields').querySelector('input, select, textarea'); if (first) first.focus(); }
     }
     // Publicado em AppCore para os módulos de aba já extraídos (ex.:
@@ -1267,7 +1267,7 @@ window.TabCatalogar = (function () {
                     const el = container.querySelector(`[name="${k}"]`);
                     if (el) { el.value = novos[k]; aplicados++; }
                 });
-                state.formDirty = true;
+                state.ui.formDirty = true;
                 setStatus(`${aplicados} campo(s) preenchido(s) a partir do Crossref.`);
             } catch (e) {
                 setStatus(e.message, true);
@@ -1285,7 +1285,7 @@ window.TabCatalogar = (function () {
             if (!input) return;
             if (cb.checked) { input.value = ''; input.disabled = true; input.classList.add('opacity-50'); setFieldError(input, ''); }
             else { input.disabled = false; input.classList.remove('opacity-50'); input.focus(); }
-            state.formDirty = true;
+            state.ui.formDirty = true;
             window.AppCore.saveDraftDebounced();
         }));
     }
@@ -1492,8 +1492,8 @@ window.TabCatalogar = (function () {
         // "Salvar e próximo") aqui em cima — assim, se a validação abaixo
         // falhar e o usuário salvar depois pelo botão padrão, não fica um
         // "novo"/"próximo" pendente de um clique anterior.
-        const saveNew = state.saveAndNew, saveNext = state.saveAndNext;
-        state.saveAndNew = false; state.saveAndNext = false;
+        const saveNew = state.ui.saveAndNew, saveNext = state.ui.saveAndNext;
+        state.ui.saveAndNew = false; state.ui.saveAndNext = false;
         const categoryKey = $('#selCategoria').value;
         const typeKey = $('#selTipo').value;
         const naoLattes = LattesTypes.isNaoLattesCategory(categoryKey) || LattesTypes.isNaoLattesType(typeKey);
@@ -1639,7 +1639,7 @@ window.TabCatalogar = (function () {
         const st = Storage.loadSettings(); st.lastCat = state.lastCat; st.lastType = state.lastType; Storage.saveSettings(st);
 
         window.AppCore.clearDraft(); // item salvo → descarta o rascunho automático
-        state.editingId = null; state.evEditing = []; state.formDirty = false;
+        state.editingId = null; state.evEditing = []; state.ui.formDirty = false;
         // "Salvar" / "Salvar alterações": reabre o item recém-salvo (novo ou editado),
         // para revisar/anexar evidência. "Salvar e novo": abre um item em branco
         // (mesma cat/tipo). "Salvar e próximo": abre o item seguinte dentro da
@@ -1656,7 +1656,7 @@ window.TabCatalogar = (function () {
     // independente do filtro/busca/ordenação em uso na tela de Conformidade
     // naquele momento (evita "perder" itens que não batem no filtro atual).
     function itemsDaCategoria(categoryKey) {
-        const asc = (state.sortOrder || 'desc') === 'asc';
+        const asc = (state.ui.sortOrder || 'desc') === 'asc';
         const items = state.items.filter(i => i.categoryKey === categoryKey);
         return sortByYear(items, asc);
     }
@@ -1686,7 +1686,7 @@ window.TabCatalogar = (function () {
     //    corrigir em cada um.
     function wireKeyboardShortcuts() {
         document.addEventListener('keydown', (e) => {
-            if (state.activeTab !== 'catalogar') return;
+            if (state.ui.activeTab !== 'catalogar') return;
             const form = $('#itemForm');
             if (!form) return;
             const ctrlOrCmd = e.ctrlKey || e.metaKey;
@@ -1720,7 +1720,7 @@ window.TabCatalogar = (function () {
                     toast('Não há outro item nessa categoria para navegar.', 'info');
                     return;
                 }
-                if (state.formDirty && !confirm('Há alterações não salvas no formulário. Sair mesmo assim?')) return;
+                if (state.ui.formDirty && !confirm('Há alterações não salvas no formulário. Sair mesmo assim?')) return;
                 buildForm(alvo, { focus: false });
             }
         });

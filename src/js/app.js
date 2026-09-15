@@ -334,7 +334,7 @@
             const el = form.elements[k];
             if (el && el.tagName && /^(INPUT|SELECT|TEXTAREA)$/.test(el.tagName) && el.type !== 'file') el.value = v;
         });
-        state.formDirty = true;
+        state.ui.formDirty = true;
         toast('Rascunho restaurado.', 'ok');
     }
 
@@ -543,11 +543,11 @@
             return;
         }
         // Guarda de alterações não salvas ao sair de "Catalogar"
-        if (state.activeTab === 'catalogar' && name !== 'catalogar' && state.formDirty) {
+        if (state.ui.activeTab === 'catalogar' && name !== 'catalogar' && state.ui.formDirty) {
             if (!confirm('Há alterações não salvas no formulário. Sair mesmo assim?')) return;
-            state.formDirty = false;
+            state.ui.formDirty = false;
         }
-        state.activeTab = name;
+        state.ui.activeTab = name;
         // headerConfigBtn não é um role="tab" de verdade (fica fora do
         // role="tablist" da régua de abas — issue de acessibilidade #17),
         // então usa aria-pressed (padrão "toggle button") em vez de
@@ -901,7 +901,7 @@
         }
 
         // Aviso ao fechar/recarregar com edições não salvas
-        window.addEventListener('beforeunload', (e) => { if (state.formDirty) { e.preventDefault(); e.returnValue = ''; } });
+        window.addEventListener('beforeunload', (e) => { if (state.ui.formDirty) { e.preventDefault(); e.returnValue = ''; } });
 
         // Abas
         $$('.tab-btn').forEach(b => b.addEventListener('click', () => switchTab(b.dataset.tab)));

@@ -36,13 +36,20 @@ window.AppCore = (function () {
         // lattes = parse do XML; orcid = busca de publicações no ORCID;
         // bib = parse de um arquivo BibTeX/RIS.
         importacoes: { lattes: null, orcid: null, bib: null },
-        currentPdfUrl: null,// URL (blob) do PDF exibido no painel lateral
-        sortOrder: 'desc',  // ordenação por ano na Conformidade
-        viewFilter: 'todos',// recorte da lista (todos/comprovados/semPdf/naoLattes/descObrig)
-        formDirty: false,   // há edições não salvas no formulário de Catalogar?
-        saveAndNew: false,  // flag do botão "Salvar e novo"
-        saveAndNext: false, // flag do botão "Salvar e próximo"
-        activeTab: 'inicio',
+        // Estado transiente de UI (issue #140) — o que está na tela AGORA
+        // (aba ativa, filtros/ordenação escolhidos, formulário sujo), bem
+        // diferente do dado persistido em `items`/`trash` etc.
+        ui: {
+            activeTab: 'inicio',
+            formDirty: false,     // há edições não salvas no formulário de Catalogar?
+            saveAndNew: false,    // flag do botão "Salvar e novo"
+            saveAndNext: false,   // flag do botão "Salvar e próximo"
+            sortOrder: 'desc',    // ordenação por ano na Conformidade
+            viewFilter: 'todos',  // recorte da lista (todos/comprovados/semPdf/naoLattes/descObrig)
+            itensAberto: false,   // seção "Itens" da Conformidade começa recolhida; abre sozinha ao filtrar por um chip/ícone
+            cfgActiveGroup: null, // Configurações: id do grupo (CFG_GROUPS) atualmente visível — null = ainda não visitada nesta sessão, usa o 1º grupo
+            currentPdfUrl: null,  // URL (blob) do PDF exibido no painel lateral
+        },
         lastCat: '', lastType: '', // última categoria/tipo usados (agiliza cadastro em série)
         vocab: {},          // listas curadas de autocomplete (por chave de campo)
         idPrefix: 'lz',     // prefixo do ID dos arquivos (configurável, até 3 chars)
@@ -70,8 +77,6 @@ window.AppCore = (function () {
         // = termos de mais de uma palavra tratados como um só (ex.: "tech talks").
         linhaTempo: { nuvemExclusao: [], nuvemCompostas: [] },
         dirHealth: null,    // último resultado de Storage.checkHealth() (null = sem pasta/não verificado)
-        itensAberto: false, // seção "Itens" da Conformidade começa recolhida; abre sozinha ao filtrar por um chip/ícone
-        cfgActiveGroup: null, // Configurações: id do grupo (CFG_GROUPS) atualmente visível — null = ainda não visitada nesta sessão, usa o 1º grupo
     };
 
     /* --------------------------- Utilidades ----------------------------- */

@@ -110,7 +110,7 @@ const { state, $, $$, esc, normNome } = window.AppCore;
             if (!crit) { el.textContent = 'Selecione o critério para calcular os pontos.'; return; }
             el.textContent = `Pontos: ${String(pi.pontos).replace('.', ',')}  (${pi.quantidade} × ${String(pi.unitario).replace('.', ',')} · ${crit.unidade})`;
         }
-        conta.addEventListener('change', () => { fields.classList.toggle('hidden', !conta.checked); state.formDirty = true; recompute(); });
+        conta.addEventListener('change', () => { fields.classList.toggle('hidden', !conta.checked); state.ui.formDirty = true; recompute(); });
 
         // Buscador de critério (issues #24/#25): lista de resultados clicável
         // logo abaixo do campo, refeita a cada tecla — em vez de um <select>
@@ -148,7 +148,7 @@ const { state, $, $$, esc, normNome } = window.AppCore;
             critHidden.value = id;
             critFiltro.value = labelDoCriterio(id);
             fecharLista();
-            state.formDirty = true;
+            state.ui.formDirty = true;
             recompute();
         }
         // Destaque por teclado (↓/↑) entre as opções visíveis no momento —
@@ -165,7 +165,7 @@ const { state, $, $$, esc, normNome } = window.AppCore;
         critFiltro.addEventListener('focus', () => abrirLista(critFiltro.value));
         critFiltro.addEventListener('input', (e) => {
             // Não deixa o evento borbulhar até o listener de #itemForm (que
-            // marca state.formDirty a qualquer "input" no formulário) — só
+            // marca state.ui.formDirty a qualquer "input" no formulário) — só
             // vira dado do item quando um resultado é de fato clicado.
             e.stopPropagation();
             critHidden.value = ''; // texto mudou: a seleção anterior não vale mais até escolher de novo (ou restaurar)
@@ -207,7 +207,7 @@ const { state, $, $$, esc, normNome } = window.AppCore;
         };
         document.addEventListener('click', critOutsideClickHandler);
 
-        ['change', 'input'].forEach(ev => $('#rscFields').addEventListener(ev, () => { state.formDirty = true; recompute(); }));
+        ['change', 'input'].forEach(ev => $('#rscFields').addEventListener(ev, () => { state.ui.formDirty = true; recompute(); }));
         // O período do RSC vem dos campos de data do item: recalcula ao editá-los.
         const itemForm = $('#itemForm');
         ['anoInicio', 'anoFim', 'ano'].forEach(name => {

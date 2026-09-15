@@ -44,13 +44,13 @@ test('Buscador de critério RSC mostra lista clicável que filtra a cada tecla',
     assert(antesDoFiltro > 40, `Deveria listar todos os ~50 critérios sem filtro (obtido ${antesDoFiltro})`);
 
     // Digitar "premiação" já filtra a lista visível, sem precisar abrir nada.
-    await page.evaluate(() => { window.AppCore.state.formDirty = false; });
+    await page.evaluate(() => { window.AppCore.state.ui.formDirty = false; });
     await page.fill('#rscCritFiltro', 'premiação');
     await page.waitForTimeout(150);
     const depoisDoFiltro = await page.$$eval('#rscCritLista [data-crit]', (btns) => btns.map((b) => b.textContent));
     assertEqual(depoisDoFiltro.length, 3, 'Filtrar por "premiação" deveria restringir aos 3 critérios do Anexo III');
     assert(depoisDoFiltro.every((t) => /premiaç/i.test(t)), 'Todas as opções restantes deveriam mencionar "premiação"');
-    const formDirtyAoDigitar = await page.evaluate(() => window.AppCore.state.formDirty);
+    const formDirtyAoDigitar = await page.evaluate(() => window.AppCore.state.ui.formDirty);
     assert(!formDirtyAoDigitar, 'Digitar no filtro não deveria, por si só, marcar o formulário como alterado');
 
     // Clicar num resultado seleciona o critério (guardado em #rscCrit, oculto)
@@ -63,7 +63,7 @@ test('Buscador de critério RSC mostra lista clicável que filtra a cada tecla',
     assert(textoAposSelecionar.includes('Premiação de âmbito nacional'), 'O campo deveria mostrar a descrição completa do critério escolhido');
     const listaFechou = await page.$eval('#rscCritLista', (el) => el.classList.contains('hidden'));
     assert(listaFechou, 'A lista deveria fechar depois de escolher um critério');
-    const formDirtyAoSelecionar = await page.evaluate(() => window.AppCore.state.formDirty);
+    const formDirtyAoSelecionar = await page.evaluate(() => window.AppCore.state.ui.formDirty);
     assert(formDirtyAoSelecionar, 'Selecionar um critério de fato deveria marcar o formulário como alterado');
 
     // Digita de novo sem escolher nada e clica fora: volta a mostrar o
