@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://ccarvalho.net/labs/latteszen/sitemap.xml
