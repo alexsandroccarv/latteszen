@@ -89,6 +89,277 @@ test('Configurações → Trazer e levar dados → Exportar: cartão "Relatório
     assert(await page.isChecked('#pdfReportEscopoTodos'), '"Catálogo inteiro" deveria vir marcado por padrão');
 });
 
+test('Cartão "Relatório completo (PDF)": as 4 opções de conteúdo existem, "Completo" marcada por padrão', async ({ page, baseUrl }) => {
+    await seedCatalog(page, baseUrl, []);
+    await abrirExportar(page);
+    for (const id of ['pdfReportConteudoCompleto', 'pdfReportConteudoSemEvidencias', 'pdfReportConteudoApenasEvidencias', 'pdfReportConteudoPersonalizado']) {
+        assertEqual(await page.locator('#' + id).count(), 1, `A opção "${id}" deveria existir`);
+    }
+    assert(await page.isChecked('#pdfReportConteudoCompleto'), '"Currículo completo (com evidências)" deveria vir marcada por padrão');
+    assert(await page.locator('#pdfReportCategoriasWrap').evaluate((el) => el.classList.contains('hidden')), 'O bloco de categorias deveria começar escondido (só "Personalizado" o revela)');
+});
+
+test('Cartão "Relatório completo (PDF)": escolher "Personalizado" revela as 21 categorias; escolher outra opção esconde de novo', async ({ page, baseUrl }) => {
+    await seedCatalog(page, baseUrl, []);
+    await abrirExportar(page);
+
+    await page.check('#pdfReportConteudoPersonalizado');
+    assert(!(await page.locator('#pdfReportCategoriasWrap').evaluate((el) => el.classList.contains('hidden'))), 'O bloco de categorias deveria aparecer ao escolher "Personalizado"');
+    const numCategorias = await page.locator('.pdfReportCategoria').count();
+    // 21 categorias no total (01-21), menos as 2 do módulo RSC (rscOnly),
+    // que ficam de fora enquanto o módulo estiver desligado (padrão do seed).
+    assertEqual(numCategorias, 19, `Deveria haver 19 checkboxes (21 categorias - 2 do RSC, desligado por padrão) — obtido: ${numCategorias}`);
+    const todasMarcadas = await page.locator('.pdfReportCategoria').evaluateAll((els) => els.every((el) => el.checked));
+    assert(todasMarcadas, 'Todas as categorias deveriam vir marcadas por padrão ao abrir "Personalizado"');
+
+    await page.check('#pdfReportConteudoCompleto');
+    assert(await page.locator('#pdfReportCategoriasWrap').evaluate((el) => el.classList.contains('hidden')), 'O bloco de categorias deveria esconder de novo ao voltar para "Completo"');
+});
+
+test('Cartão "Relatório completo (PDF)": "Selecionar todas"/"Limpar seleção" agem sobre as categorias', async ({ page, baseUrl }) => {
+    await seedCatalog(page, baseUrl, []);
+    await abrirExportar(page);
+    await page.check('#pdfReportConteudoPersonalizado');
+
+    await page.click('#pdfReportCategoriasNenhuma');
+    let marcadas = await page.locator('.pdfReportCategoria:checked').count();
+    assertEqual(marcadas, 0, '"Limpar seleção" deveria desmarcar todas as categorias');
+
+    await page.click('#pdfReportCategoriasTodas');
+    marcadas = await page.locator('.pdfReportCategoria:checked').count();
+    assertEqual(marcadas, 19, '"Selecionar todas" deveria marcar todas as categorias de novo (19, com o RSC desligado)');
+});
+
+test('Gerar em "Personalizado" sem nenhuma categoria marcada mostra aviso e não tenta gerar', async ({ page, baseUrl }) => {
+    await seedCatalog(page, baseUrl, [makeItem('IDENTIFICACAO', 'DADOS_GERAIS', { titulo: 'Fulano de Tal' })]);
+    await abrirExportar(page);
+    await page.evaluate(() => {
+        window.__gerarChamado = false;
+        window.LzPdfReport = { gerar: async () => { window.__gerarChamado = true; return new Uint8Array([1]); } };
+    });
+    await page.check('#pdfReportConteudoPersonalizado');
+    await page.click('#pdfReportCategoriasNenhuma');
+
+    await page.click('#btnPdfReportGerar');
+    await page.waitForFunction(
+        () => Array.from(document.querySelectorAll('#toasts > div')).some((d) => /selecione pelo menos uma categoria/i.test(d.textContent)),
+        undefined,
+        { timeout: 5000 },
+    );
+    const chamado = await page.evaluate(() => window.__gerarChamado);
+    assertEqual(chamado, false, 'window.LzPdfReport.gerar NÃO deveria ter sido chamado sem nenhuma categoria selecionada');
+    const disabled = await page.evaluate(() => document.querySelector('#btnPdfReportGerar').disabled);
+    assert(!disabled, 'O botão não deveria ficar travado em "Gerando…" — a validação acontece antes de desabilitá-lo');
+});
+
+test('Cada opção de conteúdo passa os parâmetros certos para LzPdfReport.gerar()', async ({ page, baseUrl }) => {
+    await seedCatalog(page, baseUrl, [makeItem('IDENTIFICACAO', 'DADOS_GERAIS', { titulo: 'Fulano de Tal' })]);
+    await abrirExportar(page);
+    await page.evaluate(() => {
+        window.__chamadasGerar = [];
+        window.LzPdfReport = { gerar: async (opts) => { window.__chamadasGerar.push(opts); return new Uint8Array([1]); } };
+    });
+
+    const casos = [
+        { id: 'pdfReportConteudoCompleto', esperado: { incluirCurriculo: true, incluirEvidencias: true, categorias: null } },
+        { id: 'pdfReportConteudoSemEvidencias', esperado: { incluirCurriculo: true, incluirEvidencias: false, categorias: null } },
+        { id: 'pdfReportConteudoApenasEvidencias', esperado: { incluirCurriculo: false, incluirEvidencias: true, categorias: null } },
+    ];
+    for (const { id, esperado } of casos) {
+        await page.check('#' + id);
+        await page.click('#btnPdfReportGerar');
+        await page.waitForFunction(() => !document.querySelector('#btnPdfReportGerar').disabled, undefined, { timeout: 10000 });
+    }
+    // "Personalizado" com 2 categorias marcadas (as outras desmarcadas)
+    await page.check('#pdfReportConteudoPersonalizado');
+    await page.click('#pdfReportCategoriasNenhuma');
+    await page.check('input.pdfReportCategoria[value="DADOS_GERAIS"]');
+    await page.check('input.pdfReportCategoria[value="FORMACAO"]');
+    await page.click('#btnPdfReportGerar');
+    await page.waitForFunction(() => !document.querySelector('#btnPdfReportGerar').disabled, undefined, { timeout: 10000 });
+
+    const chamadas = await page.evaluate(() => window.__chamadasGerar);
+    assertEqual(chamadas.length, 4, `Deveria ter gerado 4 vezes (uma por opção testada) — obtido: ${chamadas.length}`);
+    casos.forEach((caso, i) => {
+        assertEqual(chamadas[i].incluirCurriculo, caso.esperado.incluirCurriculo, `${caso.id}: incluirCurriculo incorreto`);
+        assertEqual(chamadas[i].incluirEvidencias, caso.esperado.incluirEvidencias, `${caso.id}: incluirEvidencias incorreto`);
+        assertEqual(chamadas[i].categorias, caso.esperado.categorias, `${caso.id}: categorias deveria ser null`);
+    });
+    const personalizado = chamadas[3];
+    assertEqual(personalizado.incluirCurriculo, true, 'Personalizado: incluirCurriculo deveria ser true');
+    assertEqual(personalizado.incluirEvidencias, true, 'Personalizado: incluirEvidencias deveria ser true');
+    assertEqual([...personalizado.categorias].sort(), ['DADOS_GERAIS', 'FORMACAO'], `Personalizado: categorias deveria ser só as 2 marcadas — obtido: ${JSON.stringify(personalizado.categorias)}`);
+});
+
+test('Ordenar por data: "decrescente" marcado por padrão; "crescente" passa ordemAsc: true para LzPdfReport.gerar()', async ({ page, baseUrl }) => {
+    await seedCatalog(page, baseUrl, [makeItem('IDENTIFICACAO', 'DADOS_GERAIS', { titulo: 'Fulano de Tal' })]);
+    await abrirExportar(page);
+    assert(await page.isChecked('#pdfReportOrdemDesc'), '"Mais recentes primeiro (decrescente)" deveria vir marcada por padrão');
+    await page.evaluate(() => {
+        window.__chamadasGerar = [];
+        window.LzPdfReport = { gerar: async (opts) => { window.__chamadasGerar.push(opts); return new Uint8Array([1]); } };
+    });
+
+    await page.click('#btnPdfReportGerar');
+    await page.waitForFunction(() => !document.querySelector('#btnPdfReportGerar').disabled, undefined, { timeout: 10000 });
+    await page.check('#pdfReportOrdemAsc');
+    await page.click('#btnPdfReportGerar');
+    await page.waitForFunction(() => !document.querySelector('#btnPdfReportGerar').disabled, undefined, { timeout: 10000 });
+
+    const chamadas = await page.evaluate(() => window.__chamadasGerar);
+    assertEqual(chamadas[0].ordemAsc, false, 'Com "decrescente" marcado, ordemAsc deveria ser false');
+    assertEqual(chamadas[1].ordemAsc, true, 'Com "crescente" marcado, ordemAsc deveria ser true');
+});
+
+test('buildPublicModel({ ordemAsc }): ordena os itens dentro da categoria crescente ou decrescente por ano', async ({ page, baseUrl }) => {
+    const items = [
+        makeItem('ARTIGO_PERIODICO', 'PRODUCOES', { titulo: 'Artigo de 2020', ano: '2020' }),
+        makeItem('ARTIGO_PERIODICO', 'PRODUCOES', { titulo: 'Artigo de 2023', ano: '2023' }),
+        makeItem('ARTIGO_PERIODICO', 'PRODUCOES', { titulo: 'Artigo de 2015', ano: '2015' }),
+    ];
+    await seedCatalog(page, baseUrl, items);
+
+    const decrescente = await page.evaluate(() => window.TabPublicar.buildPublicModel({ incluirTodos: true }));
+    const titulosDesc = decrescente.secoes.flatMap((s) => s.tipos.flatMap((t) => t.itens.map((i) => i.titulo)));
+    assertEqual(titulosDesc, ['Artigo de 2023', 'Artigo de 2020', 'Artigo de 2015'], `Padrão (sem ordemAsc) deveria ser decrescente — obtido: ${JSON.stringify(titulosDesc)}`);
+
+    const crescente = await page.evaluate(() => window.TabPublicar.buildPublicModel({ incluirTodos: true, ordemAsc: true }));
+    const titulosAsc = crescente.secoes.flatMap((s) => s.tipos.flatMap((t) => t.itens.map((i) => i.titulo)));
+    assertEqual(titulosAsc, ['Artigo de 2015', 'Artigo de 2020', 'Artigo de 2023'], `ordemAsc: true deveria inverter para crescente — obtido: ${JSON.stringify(titulosAsc)}`);
+});
+
+/* ==========================================================================
+   Regressão: Formação acadêmica/titulação tinha a data duplicada no
+   Relatório (PDF) — LattesTypes.itemTitle() já prefixa o título com o
+   período ("2018-2022 Doutorado · Ciência X"), e o relatório também
+   acrescenta item.ano no FINAL da linha. tituloParaLinha() remove o
+   prefixo só para este tipo, mantendo a data apenas no final.
+   ========================================================================== */
+test('pdf-report.js: tituloParaLinha() remove a data do início só em Formação acadêmica/titulação', async ({ page, baseUrl }) => {
+    await seedCatalog(page, baseUrl, []);
+    const resultado = await page.evaluate(() => ({
+        comPeriodo: window.LzPdfReport.tituloParaLinha({ typeKey: 'FORMACAO_ACADEMICA', titulo: '2018-2022 Doutorado · Ciência X' }),
+        anoUnico: window.LzPdfReport.tituloParaLinha({ typeKey: 'FORMACAO_ACADEMICA', titulo: '2022 Doutorado · Ciência X' }),
+        semPeriodo: window.LzPdfReport.tituloParaLinha({ typeKey: 'FORMACAO_ACADEMICA', titulo: 'Doutorado · Ciência X' }),
+        outroTipo: window.LzPdfReport.tituloParaLinha({ typeKey: 'ARTIGO_PERIODICO', titulo: '2018-2022 Não deveria mexer' }),
+    }));
+    assertEqual(resultado.comPeriodo, 'Doutorado · Ciência X', `Deveria remover o período "ano-ano" do início — obtido: "${resultado.comPeriodo}"`);
+    assertEqual(resultado.anoUnico, 'Doutorado · Ciência X', `Deveria remover o ano único do início — obtido: "${resultado.anoUnico}"`);
+    assertEqual(resultado.semPeriodo, 'Doutorado · Ciência X', 'Título sem período no início não deveria ser alterado');
+    assertEqual(resultado.outroTipo, '2018-2022 Não deveria mexer', 'Outros tipos (sem esse prefixo de data) não deveriam ser afetados');
+});
+
+/* ==========================================================================
+   Regressão: contador (001, 002...) no início de cada item, reiniciando a
+   cada subtipo — formato padrão "NNN ano título"; Formação acadêmica é
+   exceção (mantém a data só no final, ver tituloParaLinha acima).
+   ========================================================================== */
+test('pdf-report.js: linhaDoItem() formata "NNN ano título" por padrão, com contador de 3 dígitos', async ({ page, baseUrl }) => {
+    await seedCatalog(page, baseUrl, []);
+    const resultado = await page.evaluate(() => ({
+        primeiro: window.LzPdfReport.linhaDoItem(1, { typeKey: 'PARTICIPACAO_EVENTO', titulo: 'Fórum Estatuinte da UFSC', ano: '1992' }),
+        decimoQuinto: window.LzPdfReport.linhaDoItem(15, { typeKey: 'PARTICIPACAO_EVENTO', titulo: 'Outro evento', ano: '2020' }),
+        semAno: window.LzPdfReport.linhaDoItem(2, { typeKey: 'PARTICIPACAO_EVENTO', titulo: 'Evento sem ano' }),
+    }));
+    assertEqual(resultado.primeiro, '001 1992 Fórum Estatuinte da UFSC', `Formato padrão incorreto — obtido: "${resultado.primeiro}"`);
+    assertEqual(resultado.decimoQuinto, '015 2020 Outro evento', `Contador de 2 dígitos deveria virar "015" (3 dígitos) — obtido: "${resultado.decimoQuinto}"`);
+    assertEqual(resultado.semAno, '002 Evento sem ano', `Sem ano, não deveria sobrar espaço extra — obtido: "${resultado.semAno}"`);
+});
+
+test('pdf-report.js: linhaDoItem() em Formação acadêmica usa "NNN título (ano)" (exceção — data no final)', async ({ page, baseUrl }) => {
+    await seedCatalog(page, baseUrl, []);
+    const resultado = await page.evaluate(() => window.LzPdfReport.linhaDoItem(1, {
+        typeKey: 'FORMACAO_ACADEMICA', titulo: '2018-2022 Doutorado · Ciência X', ano: '2018–2022',
+    }));
+    assertEqual(resultado, '001 Doutorado · Ciência X (2018–2022)', `Formação acadêmica deveria manter a data só no final — obtido: "${resultado}"`);
+});
+
+/* ==========================================================================
+   Regressão: em Atuação, dentro de cada instituição os itens passam a ser
+   agrupados por subtipo (Vínculo, Direção e assessoramento, Conselhos e
+   comissões...) em vez de uma lista cronológica única — na ORDEM FIXA em
+   que os tipos de Atuação estão cadastrados no sistema, não por recência.
+   Vale tanto para o Relatório (PDF) quanto para a página pública (os dois
+   usam buildPublicModel) — ver tipoHtml()/subgrupoHtml() em publish.js.
+   ========================================================================== */
+test('buildPublicModel(): Atuação agrupa por subtipo dentro de cada instituição, em ordem fixa (não cronológica)', async ({ page, baseUrl }) => {
+    const items = [
+        // UFSC: um item de Conselho (mais antigo) e um de Direção (mais
+        // recente) — se a ordem fosse por recência, Direção viria primeiro;
+        // na ordem fixa do tipo, Direção (ATIV_DIRECAO) vem ANTES de
+        // Conselho (ATIV_CONSELHO) no cadastro do sistema.
+        makeItem('ATIV_CONSELHO', 'ATUACAO', { titulo: 'Conselho Curador', instituicao: 'UFSC', orgao: 'CONSU', ano: '2010' }),
+        makeItem('ATIV_DIRECAO', 'ATUACAO', { titulo: 'Diretor de Departamento', instituicao: 'UFSC', orgao: 'Depto. X', ano: '2022' }),
+        makeItem('VINCULO_PROFISSIONAL', 'ATUACAO', { cargo: 'Professor Associado', instituicao: 'UFSC', ano: '2015' }),
+    ];
+    await seedCatalog(page, baseUrl, items);
+    const model = await page.evaluate(() => window.TabPublicar.buildPublicModel({ incluirTodos: true }));
+    const secAtuacao = model.secoes.find((s) => s.id === 'sec-atuacao');
+    assert(secAtuacao, 'Deveria existir uma seção de Atuação');
+    const ufsc = secAtuacao.tipos.find((t) => t.label === 'UFSC');
+    assert(ufsc, 'Deveria existir um grupo "UFSC" (por instituição)');
+    assert(Array.isArray(ufsc.subgrupos), 'O grupo da instituição deveria ter subgrupos (por subtipo), não itens direto');
+    const rotulos = ufsc.subgrupos.map((g) => g.label);
+    const idxVinculo = rotulos.findIndex((r) => /profissional/i.test(r));
+    const idxDirecao = rotulos.findIndex((r) => /dire[çc][ãa]o/i.test(r));
+    const idxConselho = rotulos.findIndex((r) => /conselho/i.test(r));
+    assert(idxVinculo >= 0 && idxDirecao >= 0 && idxConselho >= 0, `Os 3 subtipos deveriam aparecer — obtido: ${JSON.stringify(rotulos)}`);
+    assert(idxVinculo < idxDirecao && idxDirecao < idxConselho, `Ordem deveria ser fixa (Vínculo, Direção, Conselho), não por recência — obtido: ${JSON.stringify(rotulos)}`);
+    const direcaoGrupo = ufsc.subgrupos[idxDirecao];
+    assertEqual(direcaoGrupo.itens.length, 1, 'O subgrupo de Direção deveria ter 1 item');
+    assertEqual(direcaoGrupo.itens[0].titulo, 'Diretor de Departamento', 'Título do item de Direção incorreto');
+});
+
+test('buildPublicModel(): instituições diferentes em Atuação continuam sendo grupos separados', async ({ page, baseUrl }) => {
+    const items = [
+        makeItem('ATIV_CONSELHO', 'ATUACAO', { titulo: 'Conselho A', instituicao: 'UFSC', orgao: 'X', ano: '2020' }),
+        makeItem('ATIV_CONSELHO', 'ATUACAO', { titulo: 'Conselho B', instituicao: 'USP', orgao: 'Y', ano: '2019' }),
+    ];
+    await seedCatalog(page, baseUrl, items);
+    const model = await page.evaluate(() => window.TabPublicar.buildPublicModel({ incluirTodos: true }));
+    const secAtuacao = model.secoes.find((s) => s.id === 'sec-atuacao');
+    const instituicoes = secAtuacao.tipos.map((t) => t.label);
+    assert(instituicoes.includes('UFSC') && instituicoes.includes('USP'), `Deveria ter 2 grupos, um por instituição — obtido: ${JSON.stringify(instituicoes)}`);
+});
+
+/* ==========================================================================
+   Regressão: buildPublicModel({ categorias }) — base do modo "Personalizado"
+   do Relatório completo (PDF). O filtro precisa acontecer ANTES da mescla
+   das categorias 12-19 numa seção só ("Além do Currículo Lattes"), senão
+   escolher uma categoria mesclada isoladamente não funcionaria.
+   ========================================================================== */
+test('buildPublicModel({ categorias }): restringe o modelo só às categorias informadas', async ({ page, baseUrl }) => {
+    const items = [
+        makeItem('IDENTIFICACAO', 'DADOS_GERAIS', { titulo: 'Fulano de Tal' }),
+        makeItem('ARTIGO_PERIODICO', 'PRODUCOES', { titulo: 'Artigo de Produções', ano: '2023' }),
+        makeItem('FORMACAO_ACADEMICA', 'FORMACAO', { nivel: 'Doutorado', curso: 'Ciência X', anoInicio: '2018', anoFim: '2022' }),
+    ];
+    await seedCatalog(page, baseUrl, items);
+
+    const soProducoes = await page.evaluate(() => window.TabPublicar.buildPublicModel({ incluirTodos: true, categorias: ['PRODUCOES'] }));
+    const titulosProducoes = soProducoes.secoes.flatMap((s) => s.tipos.flatMap((t) => t.itens.map((i) => i.titulo)));
+    assert(titulosProducoes.includes('Artigo de Produções'), 'Categoria PRODUCOES deveria aparecer quando selecionada');
+    assert(!titulosProducoes.some((t) => /Doutorado/.test(t)), 'Categoria FORMACAO NÃO deveria aparecer quando só PRODUCOES foi selecionada');
+
+    const semFiltro = await page.evaluate(() => window.TabPublicar.buildPublicModel({ incluirTodos: true }));
+    const titulosSemFiltro = semFiltro.secoes.flatMap((s) => s.tipos.flatMap((t) => t.itens.map((i) => i.titulo)));
+    assert(titulosSemFiltro.includes('Artigo de Produções') && titulosSemFiltro.some((t) => /Doutorado/.test(t)), 'Sem opts.categorias, o comportamento de sempre (todas as categorias) deveria continuar');
+});
+
+test('buildPublicModel({ categorias }): filtra corretamente mesmo dentro da seção mesclada "Além do Currículo Lattes" (categorias 12-19)', async ({ page, baseUrl }) => {
+    const items = [
+        makeItem('IDENTIFICACAO', 'DADOS_GERAIS', { titulo: 'Fulano de Tal' }),
+        makeItem('AL_HOBBY', 'AL_INTERESSES', { titulo: 'Fotografia analógica' }),      // categoria 15
+        makeItem('AL_VOLUNTARIADO', 'AL_ENGAJAMENTO', { titulo: 'ONG de leitura' }),    // categoria 13
+    ];
+    await seedCatalog(page, baseUrl, items);
+
+    const soInteresses = await page.evaluate(() => window.TabPublicar.buildPublicModel({ incluirTodos: true, categorias: ['AL_INTERESSES'] }));
+    const titulos = soInteresses.secoes.flatMap((s) => s.tipos.flatMap((t) => t.itens.map((i) => i.titulo)));
+    assert(titulos.some((t) => /Fotografia anal[oó]gica/.test(t)), 'AL_INTERESSES (categoria 15) deveria aparecer quando selecionada');
+    assert(!titulos.some((t) => /ONG de leitura/.test(t)), 'AL_ENGAJAMENTO (categoria 13, não selecionada) NÃO deveria vazar pra dentro da seção mesclada');
+});
+
 test('Gerar relatório sem conseguir carregar o pdf-lib (rede bloqueada) mostra um erro claro e não deixa o botão travado', async ({ page, baseUrl }) => {
     await seedCatalog(page, baseUrl, [makeItem('IDENTIFICACAO', 'DADOS_GERAIS', { titulo: 'Fulano de Tal' })]);
     await abrirExportar(page);
