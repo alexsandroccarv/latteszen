@@ -94,7 +94,27 @@ window.LzPublish = (function () {
         </li>`;
     }
 
+    // Atuação: cada "tipo" aqui é na verdade uma INSTITUIÇÃO (ver
+    // buildPublicModel em tab-publicar.js), com os itens dela agrupados por
+    // subtipo (Vínculo, Direção e assessoramento, Conselhos/comissões...)
+    // dentro de `t.subgrupos` em vez de uma lista achatada em `t.itens`.
+    function subgrupoHtml(g) {
+        if (!g.itens || !g.itens.length) return '';
+        return `<div class="subgrupo">
+            <h4 class="subgrupo-label">${esc(g.label)}<span class="count">${g.itens.length}</span></h4>
+            <ul class="items">${g.itens.map(itemHtml).join('')}</ul>
+        </div>`;
+    }
+
     function tipoHtml(t) {
+        if (t.subgrupos) {
+            const subgrupos = t.subgrupos.map(subgrupoHtml).join('');
+            if (!subgrupos) return '';
+            return `<div class="tipo">
+                <h3 class="tipo-label">${esc(t.label)}</h3>
+                ${subgrupos}
+            </div>`;
+        }
         if (!t.itens || !t.itens.length) return '';
         return `<div class="tipo">
             <h3 class="tipo-label">${esc(t.label)}<span class="count">${t.itens.length}</span></h3>
@@ -128,10 +148,17 @@ window.LzPublish = (function () {
     // Amplitude de anos (para a estatística "Período")
     function yearRange(m) {
         let lo = Infinity, hi = -Infinity;
-        (m.secoes || []).forEach(s => (s.tipos || []).forEach(t => (t.itens || []).forEach(it => {
+        const marcar = (it) => {
             const mm = String(it.ano == null ? '' : it.ano).match(/\d{4}/);
             if (mm) { const y = +mm[0]; if (y < lo) lo = y; if (y > hi) hi = y; }
-        })));
+        };
+        // Atuação usa t.subgrupos em vez de t.itens (ver tipoHtml acima) —
+        // sem isto, o período (estatística "Período") ficava sem contar os
+        // anos de Atuação.
+        (m.secoes || []).forEach(s => (s.tipos || []).forEach(t => {
+            if (t.subgrupos) t.subgrupos.forEach(g => (g.itens || []).forEach(marcar));
+            else (t.itens || []).forEach(marcar);
+        }));
         return (lo <= hi) ? { lo, hi } : null;
     }
 
@@ -372,6 +399,12 @@ main{padding:8px 0 72px}
   text-transform:uppercase;color:var(--accent);margin:0 0 4px}
 .count{font-family:var(--sans);font-size:.68rem;font-weight:700;letter-spacing:.02em;color:var(--faint);
   background:var(--chip);border-radius:999px;padding:1px 8px}
+/* Atuação: subgrupo por subtipo (Vínculo, Direção e assessoramento...)
+   dentro de uma instituição — um nível abaixo de .tipo, mesmo padrão visual
+   com leve recuo pra deixar a hierarquia institução > subtipo clara. */
+.subgrupo{margin:14px 0 0 12px}
+.subgrupo-label{display:flex;align-items:center;gap:8px;font-size:.68rem;font-weight:700;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--muted);margin:0 0 4px}
 .items{list-style:none;margin:0;padding:0}
 .item{padding:12px 8px 12px 10px;border-bottom:1px solid var(--line);border-radius:8px;transition:background-color .2s}
 .item:hover{background:var(--chip)}
@@ -431,7 +464,8 @@ footer strong{color:var(--muted);font-weight:700}
         style = STYLES[style] ? style : 'elegante';
         opts = opts || {};
         const m = model || {};
-        const secoesComItens = (m.secoes || []).filter(s => (s.tipos || []).some(t => t.itens && t.itens.length));
+        const secoesComItens = (m.secoes || []).filter(s => (s.tipos || []).some(t =>
+            t.subgrupos ? t.subgrupos.some(g => g.itens && g.itens.length) : (t.itens && t.itens.length)));
         const navExtra = [];
         if (m.nuvemPalavras && m.nuvemPalavras.length) navExtra.push('<a href="#nuvem">Nuvem de palavras</a>');
         if (m.linhaTempo && m.linhaTempo.categorias && m.linhaTempo.categorias.length) navExtra.push('<a href="#tempo">Linha do tempo</a>');

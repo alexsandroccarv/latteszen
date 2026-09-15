@@ -223,14 +223,58 @@ window.LzPdfReport = (function () {
         });
     }
 
+    // Formação acadêmica/titulação: LattesTypes.itemTitle() já prefixa o
+    // título com o período ("2018-2022 Doutorado · Ciência X") — bom nas
+    // demais telas do app, mas duplicava a data no relatório, que já
+    // acrescenta item.ano no FINAL da linha ("... (2018–2022)"). Mantém a
+    // data só no final aqui, removendo o prefixo (ano ou "ano-ano" seguido
+    // de espaço) só para este tipo — os demais tipos não têm esse prefixo,
+    // então o replace() não acha nada e não faz diferença.
+    function tituloParaLinha(item) {
+        if (item.typeKey !== 'FORMACAO_ACADEMICA') return item.titulo;
+        return item.titulo.replace(/^\d{4}(-\d{4})?\s+/, '');
+    }
+
+    // Contador (001, 002...) no início de cada item — reinicia a cada
+    // subtipo/tipo (o `contador` já vem calculado por escreverItens()
+    // abaixo, sempre a partir de 1 para cada lista de itens nova). Ordem
+    // padrão: "NNN ano título". Formação acadêmica/titulação foge à regra
+    // (ver tituloParaLinha) — mantém a data só no final: "NNN título (ano)".
+    function linhaDoItem(contador, item) {
+        const num = String(contador).padStart(3, '0');
+        if (item.typeKey === 'FORMACAO_ACADEMICA') {
+            const anoTxt = item.ano ? ` (${item.ano})` : '';
+            return `${num} ${tituloParaLinha(item)}${anoTxt}`;
+        }
+        const anoPrefixo = item.ano ? `${item.ano} ` : '';
+        return `${num} ${anoPrefixo}${item.titulo}`;
+    }
+
+    // Escreve uma lista de itens (já ordenada) com o contador reiniciando
+    // em 1 — usada tanto para tipo.itens "normais" (2 níveis: seção > tipo)
+    // quanto para tipo.subgrupos.itens de Atuação (3 níveis: seção >
+    // instituição > subtipo), sempre reiniciando no começo de CADA lista.
+    function escreverItens(escritor, fontes, itens, indent) {
+        itens.forEach((item, i) => {
+            escritor.paragrafo(linhaDoItem(i + 1, item), { tamanho: 10, indent });
+            if (item.linha) escritor.paragrafo(item.linha, { tamanho: 9, cor: fontes.corMuted, indent });
+            escritor.espaco(3);
+        });
+    }
+
     // Percorre o modelo (mesmas seções/tipos/itens da página pública) e
     // devolve a lista achatada de {item, anexo} — só evidências realmente
     // marcadas "pública" chegam aqui (buildPublicModel/itemAnexos já filtra).
     function anexosDoModelo(model) {
         const lista = [];
-        model.secoes.forEach((sec) => sec.tipos.forEach((tipo) => tipo.itens.forEach((item) => {
-            (item.anexos || []).forEach((anexo) => lista.push({ itemTitulo: item.titulo, anexo }));
-        })));
+        const registrar = (item) => (item.anexos || []).forEach((anexo) => lista.push({ itemTitulo: item.titulo, anexo }));
+        model.secoes.forEach((sec) => sec.tipos.forEach((tipo) => {
+            // Atuação: "tipo" é uma instituição, com os itens agrupados por
+            // subtipo em tipo.subgrupos em vez de tipo.itens direto (ver
+            // buildPublicModel em tab-publicar.js).
+            if (tipo.subgrupos) tipo.subgrupos.forEach((sub) => sub.itens.forEach(registrar));
+            else tipo.itens.forEach(registrar);
+        }));
         return lista;
     }
 
@@ -388,17 +432,21 @@ window.LzPdfReport = (function () {
     // opts.categorias: array de categoryKey (ex.: ['DADOS_GERAIS', 'FORMACAO']) —
     // repassado a buildPublicModel(); null/ausente = todas as categorias
     // (mesmo comportamento de sempre).
+    // opts.ordemAsc: true ordena os itens DENTRO de cada categoria/tipo por
+    // ano crescente (mais antigos primeiro); false/ausente = decrescente
+    // (mais recentes primeiro, comportamento de sempre).
     // Devolve o PDF pronto (Uint8Array).
     async function gerar(opts) {
         const incluirTodos = !!(opts && opts.incluirTodos);
         const incluirCurriculo = !(opts && opts.incluirCurriculo === false);
         const incluirEvidencias = !(opts && opts.incluirEvidencias === false);
         const categorias = (opts && opts.categorias) || null;
+        const ordemAsc = !!(opts && opts.ordemAsc);
         const PDFLib = await carregarPdfLib();
         const { PDFDocument, StandardFonts, rgb } = PDFLib;
 
         const pdfDoc = await PDFDocument.create();
-        const model = await window.TabPublicar.buildPublicModel({ incluirTodos, categorias });
+        const model = await window.TabPublicar.buildPublicModel({ incluirTodos, categorias, ordemAsc });
         pdfDoc.setTitle(`Relatório completo — ${model.nome}`);
         pdfDoc.setAuthor(model.nome);
         pdfDoc.setProducer('lattesZen');
@@ -477,12 +525,19 @@ window.LzPdfReport = (function () {
                 sec.tipos.forEach((tipo) => {
                     escritor.espaco(4);
                     escritor.linha(tipo.label, { negrito: true, tamanho: 11, indent: 12 });
-                    tipo.itens.forEach((item) => {
-                        const anoTxt = item.ano ? ` (${item.ano})` : '';
-                        escritor.paragrafo(`${item.titulo}${anoTxt}`, { tamanho: 10, indent: 24 });
-                        if (item.linha) escritor.paragrafo(item.linha, { tamanho: 9, cor: fontes.corMuted, indent: 24 });
-                        escritor.espaco(3);
-                    });
+                    // Atuação: "tipo" é uma instituição, com os itens dela
+                    // agrupados por subtipo em tipo.subgrupos (ver
+                    // buildPublicModel em tab-publicar.js) — um nível a mais
+                    // que os demais tipos, que continuam com tipo.itens direto.
+                    if (tipo.subgrupos) {
+                        tipo.subgrupos.forEach((sub) => {
+                            escritor.espaco(2);
+                            escritor.linha(sub.label, { negrito: true, tamanho: 10, indent: 20, cor: fontes.corMuted });
+                            escreverItens(escritor, fontes, sub.itens, 28);
+                        });
+                    } else {
+                        escreverItens(escritor, fontes, tipo.itens, 24);
+                    }
                 });
             });
         }
@@ -505,10 +560,10 @@ window.LzPdfReport = (function () {
         return pdfDoc.save();
     }
 
-    // quebrarLinhas/anexosDoModelo/calcularPaginasSumario/sanitizarTexto
-    // expostos só para teste (tools/tests/specs/pdf-report.mjs) — nenhum dos
-    // quatro depende do pdf-lib estar carregado, então dá pra verificar a
-    // lógica pura mesmo com o CDN bloqueado (mesmo bloqueio de rede que a
-    // suíte já aplica a Tailwind/Font Awesome — ver harness.mjs).
-    return { gerar, quebrarLinhas, anexosDoModelo, calcularPaginasSumario, sanitizarTexto };
+    // quebrarLinhas/anexosDoModelo/calcularPaginasSumario/sanitizarTexto/
+    // tituloParaLinha expostos só para teste (tools/tests/specs/pdf-report.mjs)
+    // — nenhum deles depende do pdf-lib estar carregado, então dá pra
+    // verificar a lógica pura mesmo com o CDN bloqueado (mesmo bloqueio de
+    // rede que a suíte já aplica a Tailwind/Font Awesome — ver harness.mjs).
+    return { gerar, quebrarLinhas, anexosDoModelo, calcularPaginasSumario, sanitizarTexto, tituloParaLinha, linhaDoItem };
 })();

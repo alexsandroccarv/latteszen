@@ -44,3 +44,22 @@ test('Item com "Publicar na Web" desmarcado não aparece na prévia', async ({ p
     assert(srcdoc.includes('Artigo Público'), 'O item publicável deveria aparecer na prévia');
     assert(!srcdoc.includes('Artigo Privado'), 'O item com "Publicar na Web" desmarcado não deveria aparecer na prévia');
 });
+
+test('Atuação na página pública: itens de uma instituição aparecem agrupados por subtipo (subgrupo-label)', async ({ page, baseUrl }) => {
+    const items = [
+        makeItem('IDENTIFICACAO', 'DADOS_GERAIS', { titulo: 'Fulana de Tal' }),
+        makeItem('ATIV_CONSELHO', 'ATUACAO', { titulo: 'Conselho Curador', instituicao: 'UFSC', orgao: 'CONSU', ano: '2010' }),
+        makeItem('ATIV_DIRECAO', 'ATUACAO', { titulo: 'Diretor de Departamento', instituicao: 'UFSC', orgao: 'Depto. X', ano: '2022' }),
+    ];
+    await seedCatalog(page, baseUrl, items);
+    await page.click('[data-tab="publicar"]');
+    await page.waitForTimeout(200);
+    await page.click('#btnPubPreview');
+    await page.waitForTimeout(400);
+
+    const srcdoc = await page.$eval('#pubPreview', (el) => el.srcdoc);
+    assert(srcdoc.includes('>UFSC<'), 'A instituição (UFSC) deveria aparecer como título do grupo');
+    assert(/subgrupo-label[^>]*>\s*Dire[çc][ãa]o e administra[çc][ãa]o/.test(srcdoc), `Deveria haver um subgrupo "Direção e administração" — trecho não encontrado no HTML gerado`);
+    assert(/subgrupo-label[^>]*>\s*Conselhos, comiss[õo]es e consultoria/.test(srcdoc), `Deveria haver um subgrupo "Conselhos, comissões e consultoria" — trecho não encontrado no HTML gerado`);
+    assert(srcdoc.includes('Diretor de Departamento') && srcdoc.includes('Conselho Curador'), 'Os títulos dos 2 itens deveriam aparecer na prévia');
+});

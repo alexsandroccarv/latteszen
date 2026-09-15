@@ -120,10 +120,15 @@ window.TabPublicar = (function () {
     // das categorias 12-19 numa única seção "Além do Currículo Lattes"
     // (ver PUB_MERGE_ID abaixo) — por isso o filtro funciona corretamente
     // mesmo escolhendo só uma dessas categorias mescladas.
+    // opts.ordemAsc: ordena os itens DENTRO de cada categoria/instituição
+    // por ano crescente (mais antigos primeiro) em vez do padrão
+    // decrescente (mais recentes primeiro) — usado pelo Relatório completo
+    // (PDF); a página pública continua sempre decrescente (não passa esta opção).
     async function buildPublicModel(opts) {
         const external = !!(opts && opts.external);
         const incluirTodos = !!(opts && opts.incluirTodos);
         const categorias = (opts && opts.categorias) ? new Set(opts.categorias) : null;
+        const ordemAsc = !!(opts && opts.ordemAsc);
         const collect = opts && opts.collect;
         const anexosOpts = { external, collect };
         const items = state.catalogo.items;
@@ -196,17 +201,33 @@ window.TabPublicar = (function () {
                 }
                 const gruposAtu = [];
                 for (const [inst, its] of porInstituicao) {
-                    const ordenados = sortByYear(its, false);
-                    const itens = [];
+                    // Dentro de cada instituição, agrupa por subtipo (Vínculo,
+                    // Direção e assessoramento, Conselhos/comissões...), na
+                    // ORDEM FIXA em que os tipos de Atuação estão cadastrados
+                    // no sistema (`seus`, acima) — não por recência, pra ficar
+                    // sempre na mesma ordem, independente de quando cada item
+                    // foi cadastrado/editado. `linha` não repete mais o
+                    // tipoLabel (agora é o próprio título do subgrupo).
+                    const porTipo = new Map();
+                    its.forEach((it) => {
+                        if (!porTipo.has(it.typeKey)) porTipo.set(it.typeKey, []);
+                        porTipo.get(it.typeKey).push(it);
+                    });
                     let maxAno = -Infinity;
-                    for (const it of ordenados) {
-                        const y = itemYear(it); if (y != null && y > maxAno) maxAno = y;
-                        const tipoLabel = LattesTypes.label(it.typeKey);
-                        const linha = [tipoLabel, (it.fields && it.fields.orgao) || ''].map(s => String(s || '').trim()).filter(Boolean).join(' · ');
-                        itens.push({ titulo: LattesTypes.itemTitle(it), ano: itemAnoRange(it), linha, anexos: await itemAnexos(it, anexosOpts) });
-                        publicItemsFlat.push(it);
+                    const subgrupos = [];
+                    for (const tk of seus) {
+                        const doTipo = porTipo.get(tk);
+                        if (!doTipo || !doTipo.length) continue;
+                        const ordenados = sortByYear(doTipo, ordemAsc);
+                        const itens = [];
+                        for (const it of ordenados) {
+                            const y = itemYear(it); if (y != null && y > maxAno) maxAno = y;
+                            itens.push({ titulo: LattesTypes.itemTitle(it), ano: itemAnoRange(it), linha: (it.fields && it.fields.orgao) || '', typeKey: it.typeKey, anexos: await itemAnexos(it, anexosOpts) });
+                            publicItemsFlat.push(it);
+                        }
+                        subgrupos.push({ label: LattesTypes.label(tk), itens });
                     }
-                    gruposAtu.push({ label: inst === '\0outras' ? 'Outras atuações' : inst, itens, _maxAno: maxAno });
+                    gruposAtu.push({ label: inst === '\0outras' ? 'Outras atuações' : inst, subgrupos, _maxAno: maxAno });
                 }
                 gruposAtu.sort((a, b) => (b.label === 'Outras atuações' ? -1 : a.label === 'Outras atuações' ? 1 : b._maxAno - a._maxAno));
                 gruposAtu.forEach(g => delete g._maxAno);
@@ -219,10 +240,10 @@ window.TabPublicar = (function () {
                 if (PUB_EXCLUDE_TYPES.has(tk)) continue;
                 // Casa tipo E categoria do item (um tipo pode figurar em mais de
                 // uma categoria; o item pertence só à sua categoria de origem)
-                const its = sortByYear(items.filter(i => i.typeKey === tk && i.categoryKey === cat.key && (incluirTodos || publicarWebOk(i))), false);
+                const its = sortByYear(items.filter(i => i.typeKey === tk && i.categoryKey === cat.key && (incluirTodos || publicarWebOk(i))), ordemAsc);
                 if (!its.length) continue;
                 const itens = [];
-                for (const it of its) { itens.push({ titulo: LattesTypes.itemTitle(it), ano: itemAnoRange(it), linha: itemLinha(it), anexos: await itemAnexos(it, anexosOpts) }); publicItemsFlat.push(it); }
+                for (const it of its) { itens.push({ titulo: LattesTypes.itemTitle(it), ano: itemAnoRange(it), linha: itemLinha(it), typeKey: it.typeKey, anexos: await itemAnexos(it, anexosOpts) }); publicItemsFlat.push(it); }
                 tipos.push({ label: LattesTypes.label(tk), itens });
             }
             const catNum = parseInt(cat.num, 10);

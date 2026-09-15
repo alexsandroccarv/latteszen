@@ -86,6 +86,17 @@ export function pdfReportExportItemHtml() {
                     ${categoriasCheckboxesHtml()}
                 </div>
             </fieldset>
+            <fieldset class="text-sm mb-2">
+                <legend class="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Ordenar por data, dentro de cada categoria</legend>
+                <label class="flex items-center gap-2 mb-1">
+                    <input type="radio" name="pdfReportOrdem" id="pdfReportOrdemDesc" value="desc" checked>
+                    Mais recentes primeiro (decrescente)
+                </label>
+                <label class="flex items-center gap-2">
+                    <input type="radio" name="pdfReportOrdem" id="pdfReportOrdemAsc" value="asc">
+                    Mais antigas primeiro (crescente)
+                </label>
+            </fieldset>
             <button id="btnPdfReportGerar" class="px-3 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm"><i class="fa-solid fa-file-pdf mr-1"></i> Gerar relatório (PDF)</button>
             <p id="pdfReportStatus" class="text-xs text-gray-500 mt-2"></p>`);
 }
@@ -123,6 +134,7 @@ export function wirePdfReportExport() {
     const status = (t) => { const el = $('#pdfReportStatus'); if (el) el.textContent = t; };
     btn.addEventListener('click', async () => {
         const incluirTodos = $('#pdfReportEscopoTodos').checked;
+        const ordemAsc = $('#pdfReportOrdemAsc').checked;
         const conteudo = ($$('input[name="pdfReportConteudo"]').find((r) => r.checked) || {}).value || 'completo';
         const incluirCurriculo = conteudo !== 'apenas-evidencias';
         const incluirEvidencias = conteudo !== 'sem-evidencias';
@@ -148,7 +160,7 @@ export function wirePdfReportExport() {
             if (!window.LzPdfReport) {
                 throw new Error('O gerador de PDF não carregou (js/pdf-report.js). Verifique sua conexão e se alguma extensão do navegador (bloqueador de anúncios/rastreadores) não está bloqueando o arquivo, depois recarregue a página.');
             }
-            const bytes = await window.LzPdfReport.gerar({ incluirTodos, incluirCurriculo, incluirEvidencias, categorias });
+            const bytes = await window.LzPdfReport.gerar({ incluirTodos, incluirCurriculo, incluirEvidencias, categorias, ordemAsc });
             const nomeItem = state.catalogo.items.find((i) => i.typeKey === 'IDENTIFICACAO' && i.fields && i.fields.titulo);
             const safe = (nomeItem && nomeItem.fields.titulo ? nomeItem.fields.titulo : 'curriculo').replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, '-').toLowerCase();
             const nomeArquivo = `relatorio-completo-${safe}-${fileStamp()}.pdf`;
