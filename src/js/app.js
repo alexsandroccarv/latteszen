@@ -412,6 +412,12 @@
         saveTrash();
         const toFolder = item.trashFromFolder || LattesTypes.categoryFolder(item.categoryKey);
         delete item.deletedAt; delete item.trashFromFolder;
+        // Carimba updatedAt na restauração: sem isto, um item restaurado
+        // guardava só o updatedAt de antes de ser excluído — mais antigo que
+        // o deletedAt que outra aba possa ter visto, fazendo a reconciliação
+        // entre abas (ver reconcileRemoteList() abaixo) achar que a exclusão
+        // "venceu" e devolver o item pra lixeira por cima da restauração.
+        item.updatedAt = nowISO();
         state.catalogo.items.push(item);
         saveCatalog();
         if (Storage.hasDirectory()) {
@@ -449,6 +455,142 @@
         const limite = Date.now() - TRASH_RETENTION_DIAS * 24 * 60 * 60 * 1000;
         const vencidos = state.catalogo.trash.filter(i => new Date(i.deletedAt).getTime() < limite).map(i => i.id);
         if (vencidos.length) await emptyTrash(vencidos);
+    }
+
+    /* =====================================================================
+       Coordenação entre abas abertas simultaneamente (issue #140, item 2)
+       --------------------------------------------------------------------
+       Antes desta seção, cada aba mantinha seu próprio state.catalogo em
+       memória e Storage.saveCatalog()/saveTrash() sempre regravava o array
+       INTEIRO no localStorage — sem mesclar. Duas abas abertas ao mesmo
+       tempo se atropelavam silenciosamente: a última a salvar sobrescrevia
+       tudo que a outra tivesse feito e que ainda não estivesse na memória
+       da primeira.
+       A correção usa o evento nativo "storage" do navegador — que o
+       próprio browser já dispara automaticamente em toda ABA IRMÃ (nunca na
+       aba que escreveu) sempre que localStorage.setItem() muda o valor de
+       uma chave — pra detectar a escrita de outra aba e mesclar item a item
+       por id, reaproveitando o mesmo padrão (merge por id, nunca sobrescreve
+       tudo de uma vez) já usado por syncFromDirectory() acima.
+       O desempate usa o timestamp mais recente entre updatedAt (item vivo
+       no catálogo) e deletedAt (item na lixeira) — os dois já existiam e já
+       são carimbados em toda gravação (persistItem/deleteItem/restoreItem).
+       Isto resolve edição-vs-edição (o campo mais recente vence) e
+       edição-vs-exclusão (a ação mais recente vence, seja ela salvar ou
+       excluir) sem precisar de nenhuma API nova.
+       Limitação aceita, no mesmo espírito do comentário de
+       syncFromDirectory() acima ("nunca apaga, só acrescenta/atualiza"):
+       uma exclusão DEFINITIVA (purgeTrashItem/emptyTrash, sem tombstone —
+       o registro simplesmente deixa de existir) não tem como "vencer" uma
+       edição concorrente feita em outra aba antes de ela saber da exclusão;
+       o item pode reaparecer. Preferimos esse risco raro a arriscar perder
+       dados de verdade silenciosamente, que é o problema original. */
+
+    // Timestamp de referência de um item: updatedAt/createdAt quando vivo no
+    // catálogo, deletedAt quando na lixeira. 0 se não houver nenhum (item
+    // muito antigo, de antes desses campos existirem).
+    function itemTimestamp(item, trashed) {
+        const raw = trashed ? item.deletedAt : (item.updatedAt || item.createdAt);
+        const t = raw ? new Date(raw).getTime() : NaN;
+        return isNaN(t) ? 0 : t;
+    }
+
+    // Mescla uma lista recém-gravada por OUTRA aba (o novo valor de
+    // lz_catalog ou lz_trash) no estado local, item a item, comparando o
+    // timestamp mais recente já conhecido localmente (catálogo OU lixeira)
+    // contra o da versão remota — a mais recente vence e some da lista onde
+    // estava (catálogo/lixeira local), reaparecendo na lista certa. Uma
+    // versão local mais recente que a remota é preservada (a mesclagem
+    // nunca deixa a aba local "regredir" pra um estado mais antigo). Devolve
+    // quantos ids realmente mudaram algo localmente.
+    function reconcileRemoteList(remoteItems, remoteTrashed) {
+        let mudou = 0;
+        remoteItems.forEach((r) => {
+            if (!r || !r.id) return;
+            const rTs = itemTimestamp(r, remoteTrashed);
+            const idxCat = state.catalogo.items.findIndex((i) => i.id === r.id);
+            const idxTrash = state.catalogo.trash.findIndex((i) => i.id === r.id);
+            const localTs = Math.max(
+                idxCat >= 0 ? itemTimestamp(state.catalogo.items[idxCat], false) : -1,
+                idxTrash >= 0 ? itemTimestamp(state.catalogo.trash[idxTrash], true) : -1,
+            );
+            if (rTs < localTs) return; // versão local já é mais recente — ignora a remota
+            // Já idêntico (a mesma versão, no mesmo lugar) — nada a fazer.
+            const jaIgual = remoteTrashed ? (idxTrash >= 0 && idxCat < 0 && rTs === localTs) : (idxCat >= 0 && idxTrash < 0 && rTs === localTs);
+            if (jaIgual) return;
+            if (idxCat >= 0) state.catalogo.items.splice(idxCat, 1);
+            if (idxTrash >= 0) state.catalogo.trash.splice(idxTrash, 1);
+            if (remoteTrashed) state.catalogo.trash.unshift(r); else state.catalogo.items.push(r);
+            mudou++;
+        });
+        return mudou;
+    }
+
+    // Abas seguras para re-renderizar automaticamente ao mesclar uma mudança
+    // vinda de outra aba: só as que exibem o catálogo/lixeira de forma
+    // read-only (sem formulário de texto livre em aberto que a mesclagem
+    // pudesse derrubar). "catalogar" também entra, mas só quando não há
+    // edição não salva em andamento (ver scheduleCrossTabRefresh abaixo) —
+    // exatamente a mesma trava que switchTab() já usa para proteger o
+    // formulário ao trocar de aba (linha ~546).
+    const CROSS_TAB_AUTO_RENDER_TABS = ['catalogar', 'conformidade', 'linhatempo', 'publicar', 'inicio'];
+
+    let crossTabRefreshTimer = null;
+    let crossTabAnyChange = false;
+    // Agrupa (debounce) mudanças de outra aba que cheguem em rajada — ex.:
+    // excluir um item grava catálogo E lixeira em sequência, o que dispara
+    // dois eventos "storage" quase juntos — num único aviso/re-render.
+    function scheduleCrossTabRefresh() {
+        crossTabAnyChange = true;
+        clearTimeout(crossTabRefreshTimer);
+        crossTabRefreshTimer = setTimeout(() => {
+            if (!crossTabAnyChange) return;
+            crossTabAnyChange = false;
+            const editandoAgora = state.ui.activeTab === 'catalogar' && state.ui.formDirty;
+            if (!editandoAgora && CROSS_TAB_AUTO_RENDER_TABS.includes(state.ui.activeTab)) {
+                RENDERERS[state.ui.activeTab]();
+            }
+            toast(editandoAgora
+                ? 'O catálogo mudou em outra aba — termine ou cancele esta edição para ver as mudanças.'
+                : 'Catálogo atualizado a partir de outra aba aberta.', 'info');
+        }, 250);
+    }
+
+    // Handler do evento nativo "storage" (só dispara em abas IRMÃS, nunca na
+    // que escreveu). e.key === null significa localStorage.clear() inteiro —
+    // ignorado aqui (não há o que mesclar); e.newValue === null significa
+    // remoção da chave (não usado por saveCatalog/saveTrash, que sempre
+    // gravam um array — ignorado por segurança).
+    function onCrossTabStorage(e) {
+        if (!e.key || e.newValue === null) return;
+        if (e.key === APP_CONFIG.storageKeys.catalog || e.key === APP_CONFIG.storageKeys.trash) {
+            let remote; try { remote = JSON.parse(e.newValue); } catch (_) { return; }
+            if (!Array.isArray(remote)) return;
+            const mudou = reconcileRemoteList(remote, e.key === APP_CONFIG.storageKeys.trash) > 0;
+            if (mudou) {
+                // Regrava os dois já mesclados: mesmo padrão de
+                // syncFromDirectory() acima (mescla e já persiste em
+                // seguida) — garante que uma 3ª aba que abra depois veja o
+                // estado mais completo já em disco, sem depender de esta
+                // aba fazer alguma outra edição pra "arrastar" a mesclagem
+                // pro localStorage.
+                saveCatalog();
+                saveTrash();
+                scheduleCrossTabRefresh();
+            }
+        } else if (e.key === APP_CONFIG.storageKeys.settings) {
+            // Configurações (prefixo, vocabulário, RSC/Súmula, toggles) não
+            // têm o mesmo mecanismo de merge por id — são poucos campos,
+            // mas muito heterogêneos entre si, sem um "id" natural pra
+            // reconciliar item a item. Mesclar às cegas arriscaria misturar
+            // metade das configurações de uma aba com metade de outra. Em
+            // vez de continuar sobrescrevendo em silêncio (o bug original),
+            // avisamos e deixamos a pessoa decidir recarregar.
+            toast('As configurações mudaram em outra aba aberta. Recarregue esta aba para ver a versão mais recente.', 'info');
+        }
+    }
+    function wireCrossTabSync() {
+        window.addEventListener('storage', onCrossTabStorage);
     }
 
     /* =====================================================================
@@ -902,6 +1044,9 @@
 
         // Aviso ao fechar/recarregar com edições não salvas
         window.addEventListener('beforeunload', (e) => { if (state.ui.formDirty) { e.preventDefault(); e.returnValue = ''; } });
+
+        // Coordenação entre abas abertas simultaneamente (issue #140, item 2)
+        wireCrossTabSync();
 
         // Abas
         $$('.tab-btn').forEach(b => b.addEventListener('click', () => switchTab(b.dataset.tab)));

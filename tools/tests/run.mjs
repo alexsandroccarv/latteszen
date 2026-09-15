@@ -83,6 +83,7 @@ import './specs/salvar-reentrancia.mjs';
 import './specs/colar-evidencia-sem-duplicar.mjs';
 import './specs/seo.mjs';
 import './specs/a11y.mjs';
+import './specs/coordenacao-abas.mjs';
 
 console.log('Rodando suíte de testes de regressão (Playwright)...\n');
 await runAll();
