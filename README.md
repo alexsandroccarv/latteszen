@@ -4,8 +4,6 @@ Organizador do **Currículo Lattes** que roda inteiramente no navegador, com
 importação fiel ao XML oficial do CNPq e anexação de evidências
 (comprovações) diretamente numa pasta local do seu computador.
 
-> Versão 0.2.0 · UNIFESP
-
 ---
 
 ## Objetivo e escopo
@@ -46,8 +44,8 @@ dados ficam **no seu navegador e numa pasta que você escolhe**.
 - Alguns tipos **não existem no formato de importação do Lattes** e por isso
   ficam apenas locais/na página pública (não vão para o XML): *Licença*,
   *Membro de corpo editorial*, *Comitê de assessoramento* e *Revisor
-  (periódico/fomento)*. As categorias **RSC (97)** e **Registros pessoais
-  (20)** também não são exportadas ao Lattes por design, assim como os itens
+  (periódico/fomento)*. As categorias **RSC** e **Registros pessoais**
+  também não são vinculadas ao Lattes por design, assim como os itens
   de **Conexões** (rede social/acadêmica/profissional — agrupados dentro de
   Dados gerais).
 

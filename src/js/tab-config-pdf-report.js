@@ -60,7 +60,7 @@ export function wirePdfReportExport() {
         const incluirTodos = $('#pdfReportEscopoTodos').checked;
         const original = btn.innerHTML;
         btn.disabled = true;
-        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Gerando relatório… (pode levar alguns segundos)';
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Gerando relatório… (pode levar alguns minutos)';
         status('');
         try {
             // window.LzPdfReport pode nunca ter sido definido se js/pdf-report.js
