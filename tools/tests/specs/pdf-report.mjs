@@ -100,6 +100,7 @@ test('Gerar relatório sem conseguir carregar o pdf-lib (rede bloqueada) mostra 
     // forma intermitente mesmo com o comportamento correto.
     await page.waitForFunction(
         () => Array.from(document.querySelectorAll('#toasts > div')).some((d) => /falha ao gerar o relat[oó]rio/i.test(d.textContent)),
+        undefined,
         { timeout: 10000 },
     );
 
