@@ -66,9 +66,10 @@ window.LATTES_CATEGORIES = [
       // usuário) — os tipos (DOC_IDENTIDADE/DOC_PASSAPORTE) continuam
       // definidos em TYPES pra não quebrar itens já cadastrados, só não
       // aparecem mais como opção pra criar um item novo.
-      // Texto inicial do CV e Outras informações ficam ao final da lista.
+      // Texto inicial do CV, Memorial descritivo e Outras informações ficam
+      // ao final da lista.
       types: ['IDENTIFICACAO', 'ENDERECO', 'FOTO_PERFIL', 'DOCUMENTO_PESSOAL',
-          'LICENCA', 'IDIOMAS', 'PREMIO', 'CONEXAO_SOCIAL', 'CONEXAO_ACADEMICA', 'CONEXAO_PROFISSIONAL', 'RESUMO_CV', 'OUTRAS_INFO'] },
+          'LICENCA', 'IDIOMAS', 'PREMIO', 'CONEXAO_SOCIAL', 'CONEXAO_ACADEMICA', 'CONEXAO_PROFISSIONAL', 'RESUMO_CV', 'MEMORIAL', 'OUTRAS_INFO'] },
     { num: '02', key: 'FORMACAO', label: 'Formação', icon: 'fa-user-graduate',
       types: ['FORMACAO_ACADEMICA', 'POS_DOUTORADO', 'FORMACAO_COMPLEMENTAR'] },
     { num: '03', key: 'ATUACAO', label: 'Atuação', icon: 'fa-briefcase',
@@ -334,9 +335,10 @@ window.LattesTypes = (function () {
                 const t = [f.tipoSituacao, f.ato].map(x => String(x || '').trim()).filter(Boolean).join(' — ');
                 if (t) return t;
             }
-            // Texto inicial do CV / Outras informações: não têm campo "titulo" —
-            // mostram um trecho do próprio texto (evita repetir o rótulo do card).
-            if (item.typeKey === 'RESUMO_CV' || item.typeKey === 'OUTRAS_INFO') {
+            // Texto inicial do CV / Memorial descritivo / Outras informações:
+            // não têm campo "titulo" — mostram um trecho do próprio texto
+            // (evita repetir o rótulo do card).
+            if (item.typeKey === 'RESUMO_CV' || item.typeKey === 'MEMORIAL' || item.typeKey === 'OUTRAS_INFO') {
                 const d = String(f.descricao || '').trim().replace(/\s+/g, ' ');
                 if (d) return d.length > 60 ? d.slice(0, 60) + '…' : d;
             }

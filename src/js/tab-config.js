@@ -40,6 +40,7 @@
 import { xmlImportItemHtml, wireExportLattes, onXmlSelected } from './tab-config-xml.js';
 import { orcidImportItemHtml, wireOrcidImport } from './tab-config-orcid.js';
 import { bibImportItemHtml, bibExportItemHtml, onBibFileSelected, wireBibExport } from './tab-config-bibtex.js';
+import { pdfReportExportItemHtml, wirePdfReportExport } from './tab-config-pdf-report.js';
 import { dadosItemHtml, fileStamp } from './tab-config-shared.js';
 
 window.TabConfig = (function () {
@@ -188,6 +189,7 @@ window.TabConfig = (function () {
                 <div class="space-y-3">
                     ${bibExportItemHtml()}
                     ${jsonExportItemHtml(dirName)}
+                    ${pdfReportExportItemHtml()}
                 </div>
             </section>`;
     }
@@ -646,6 +648,7 @@ window.TabConfig = (function () {
         wireOrcidImport();
         $('#bibInput').addEventListener('change', onBibFileSelected);
         wireBibExport();
+        wirePdfReportExport();
         $('#xmlInput').addEventListener('change', onXmlSelected);
         const idPrefixInput = $('#idPrefix');
         if (idPrefixInput) idPrefixInput.addEventListener('input', (e) => {
