@@ -31,6 +31,12 @@ dados ficam **no seu navegador e numa pasta que você escolhe**.
   único, autossuficiente), com as evidências marcadas como públicas embutidas.
 - **Módulo RSC-PCCTAE** (opcional, Decreto nº 13.048/2026): simulação de
   pontuação e nível a partir dos itens catalogados.
+- **Módulo Súmula Curricular FAPESP** (opcional): roteiro nas seções oficiais,
+  com o texto de cada uma montado a partir dos itens catalogados, exportável
+  em `.docx`.
+- **Relatório completo (PDF)**: um único arquivo pronto para impressão/
+  encadernação — capa, sumário paginado, Memorial descritivo, o currículo
+  completo e as evidências públicas mescladas de verdade dentro do PDF.
 
 **Fora do escopo (por ora):**
 

@@ -65,6 +65,20 @@ test('Seção "Importante: suporte do navegador" aparece entre "Que dores..." e 
     const texto = await page.$eval('#tab-inicio', (el) => el.textContent);
     assert(texto.includes('Chromium'), 'Deveria mencionar navegadores baseados em Chromium');
     assert(texto.includes('Google Drive'), 'Deveria mencionar a opção de conectar ao Google Drive');
+});
+
+test('Seção "Que dores..." lista "RSC sem planilha (opcional)" e, logo abaixo, "Súmula FAPESP (opcional)"', async ({ page, baseUrl }) => {
+    await abrirInicio(page, baseUrl);
+    const itens = await page.$$eval('#tab-inicio section', (secs) => {
+        const sec = secs.find((s) => s.querySelector('h2')?.textContent.includes('Que dores'));
+        return sec ? Array.from(sec.querySelectorAll(':scope > div > div')).map((d) => d.textContent.trim()) : [];
+    });
+    const idxRsc = itens.findIndex((t) => t.includes('RSC sem planilha'));
+    const idxSumula = itens.findIndex((t) => t.includes('Súmula FAPESP'));
+    assert(idxRsc >= 0, `Deveria haver um item "RSC sem planilha" na seção "Que dores..." — itens: ${JSON.stringify(itens)}`);
+    assert(itens[idxRsc].includes('(opcional)'), 'O item "RSC sem planilha" deveria estar marcado como "(opcional)"');
+    assert(idxSumula === idxRsc + 1, `"Súmula FAPESP" deveria vir logo abaixo de "RSC sem planilha" — itens: ${JSON.stringify(itens)}`);
+    assert(itens[idxSumula].includes('(opcional)'), 'O item "Súmula FAPESP" deveria estar marcado como "(opcional)"');
 
     const linkSolicitar = await page.$eval('#tab-inicio a[href*="github.com"][href*="issues"]', (el) => el.href);
     assert(linkSolicitar.includes('/issues'), 'Deveria linkar para o canal de solicitação (issues do repositório)');

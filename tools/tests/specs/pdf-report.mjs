@@ -148,6 +148,27 @@ test('pdf-report.js: anexosDoModelo() achata as evidências de todas as seções
     assertEqual(lista[1].itemTitulo, 'Item C');
 });
 
+test('Gerar relatório quando window.LzPdfReport não carregou (ex.: bloqueado por extensão do navegador) mostra um erro claro, não um TypeError críptico', async ({ page, baseUrl }) => {
+    await seedCatalog(page, baseUrl, [makeItem('IDENTIFICACAO', 'DADOS_GERAIS', { titulo: 'Fulano de Tal' })]);
+    await abrirExportar(page);
+    // Simula js/pdf-report.js nunca tendo carregado (rede instável, ou uma
+    // extensão de bloqueio de anúncios/rastreadores barrando o arquivo —
+    // já aconteceu de verdade: o clique dava "Cannot read properties of
+    // undefined (reading 'gerar')", um TypeError sem indicar a causa).
+    await page.evaluate(() => { delete window.LzPdfReport; });
+
+    await page.click('#btnPdfReportGerar');
+    await page.waitForFunction(
+        () => Array.from(document.querySelectorAll('#toasts > div')).some((d) => /falha ao gerar o relat[oó]rio/i.test(d.textContent)),
+        undefined,
+        { timeout: 10000 },
+    );
+    const toasts = await page.evaluate(() => Array.from(document.querySelectorAll('#toasts > div')).map((d) => d.textContent));
+    assert(toasts.some((t) => /pdf-report\.js/.test(t) && /bloqueando/i.test(t)), `Deveria explicar que js/pdf-report.js não carregou e sugerir verificar extensões/conexão — toasts: ${JSON.stringify(toasts)}`);
+    const disabled = await page.evaluate(() => document.querySelector('#btnPdfReportGerar').disabled);
+    assert(!disabled, 'O botão deveria voltar a ficar habilitado depois da falha (não travar preso em "Gerando…")');
+});
+
 test('pdf-report.js: calcularPaginasSumario() cresce com o número de entradas', async ({ page, baseUrl }) => {
     await seedCatalog(page, baseUrl, []);
     const { poucas, muitas } = await page.evaluate(() => {

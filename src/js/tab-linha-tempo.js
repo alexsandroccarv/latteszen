@@ -837,7 +837,7 @@ window.TabLinhaTempo = (function () {
                     <div>${seletorHtml}</div>
                 </div>
                 <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">Rede egocêntrica de coautoria: você (Ego) no centro e seus colaboradores (Alteri) ao redor, a partir do campo "Autores" (lista) dos itens do catálogo.${ocultos > 0 ? ` Mostrando os ${MAX_ALTERI_EXIBIDOS} colaboradores com mais itens em comum — ${ocultos} com menos colaborações não exibido${ocultos === 1 ? '' : 's'} no desenho (continuam na tabela abaixo).` : ''}</p>
-                <div class="overflow-x-auto">
+                <div class="overflow-x-auto flex justify-center">
                     <svg viewBox="0 0 ${REDE_SVG} ${REDE_SVG}" width="${REDE_SVG}" height="${REDE_SVG}" role="img" aria-label="Rede de colaboração e coautoria">
                         ${arestasAlterAlterHtml}
                         ${arestasEgoHtml}

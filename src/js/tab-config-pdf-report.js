@@ -63,6 +63,16 @@ export function wirePdfReportExport() {
         btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Gerando relatório… (pode levar alguns segundos)';
         status('');
         try {
+            // window.LzPdfReport pode nunca ter sido definido se js/pdf-report.js
+            // falhou ao carregar (rede instável, ou uma extensão de
+            // bloqueio de anúncios/rastreadores barrando o arquivo — o
+            // nome "pdf-report" bate com filtros comuns desse tipo de
+            // extensão). Sem esta checagem, o erro virava um TypeError
+            // críptico ("Cannot read properties of undefined (reading
+            // 'gerar')"), sem indicar a causa nem o que fazer.
+            if (!window.LzPdfReport) {
+                throw new Error('O gerador de PDF não carregou (js/pdf-report.js). Verifique sua conexão e se alguma extensão do navegador (bloqueador de anúncios/rastreadores) não está bloqueando o arquivo, depois recarregue a página.');
+            }
             const bytes = await window.LzPdfReport.gerar({ incluirTodos });
             const nomeItem = state.items.find((i) => i.typeKey === 'IDENTIFICACAO' && i.fields && i.fields.titulo);
             const safe = (nomeItem && nomeItem.fields.titulo ? nomeItem.fields.titulo : 'curriculo').replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, '-').toLowerCase();

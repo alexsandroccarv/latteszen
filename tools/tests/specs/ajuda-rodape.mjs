@@ -20,12 +20,6 @@ import { test, assert, assertEqual } from '../harness.mjs';
 
 const PAGINAS = ['index.html', 'ajuda.html', 'doe-um-cafe.html', 'notas-de-versao.html', 'privacidade.html', 'termodeuso.html', 'sobre.html'];
 
-// Páginas estáticas "de apoio" (fora do app propriamente dito) — a 2ª linha
-// do cabeçalho não é mais uma régua de abas fictícia (Catalogar/Conformidade/
-// Publicar na Web, todas levando pra index.html mesmo assim); agora é só um
-// link "Início" de volta pro app.
-const PAGINAS_ESTATICAS = ['privacidade.html', 'termodeuso.html', 'ajuda.html', 'sobre.html', 'doe-um-cafe.html', 'notas-de-versao.html'];
-
 async function footerInfo(page) {
     return page.evaluate(() => {
         const footer = document.querySelector('footer');
@@ -82,15 +76,35 @@ for (const pagina of PAGINAS) {
     });
 }
 
-test('Rodapé (index.html): ordem dos itens segue Termo/Privacidade/Ajuda/Sobre/AltoContraste/Fonte, depois Autor/Café/Licença/Código-fonte/Versão', async ({ page, baseUrl }) => {
+test('Rodapé (index.html): ordem dos itens segue Termo/Privacidade/Ajuda/Sobre/AltoContraste/Fonte, depois Autor/Café/Licença/Versão/Código-fonte (extrema direita)', async ({ page, baseUrl }) => {
     await page.goto(baseUrl + '/index.html');
     await page.waitForTimeout(300);
     const hrefs = await page.evaluate(() => Array.from(document.querySelectorAll('footer a[href]')).map((a) => a.getAttribute('href')));
     assertEqual(hrefs, [
         'termodeuso.html', 'privacidade.html', './ajuda.html', 'sobre.html',
         'https://github.com/alexsandroccarv', 'doe-um-cafe.html',
-        'https://www.gnu.org/licenses/agpl-3.0.html', 'https://github.com/alexsandroccarv/latteszen', 'notas-de-versao.html',
+        'https://www.gnu.org/licenses/agpl-3.0.html', 'notas-de-versao.html', 'https://github.com/alexsandroccarv/latteszen',
     ], `Ordem dos links do rodapé não confere — obtido: ${hrefs.join(', ')}`);
+});
+
+test('Rodapé: "Código-fonte" é só ícone (sem texto visível), na extrema direita', async ({ page, baseUrl }) => {
+    await page.goto(baseUrl + '/index.html');
+    await page.waitForTimeout(300);
+    const info = await page.evaluate(() => {
+        const link = document.querySelector('footer a[href="https://github.com/alexsandroccarv/latteszen"]');
+        const rightGroup = link ? link.parentElement : null;
+        const ultimoFilho = rightGroup ? rightGroup.lastElementChild : null;
+        return link && {
+            text: link.textContent.trim(),
+            title: link.getAttribute('title'),
+            ariaLabel: link.getAttribute('aria-label'),
+            ehOUltimo: ultimoFilho === link,
+        };
+    });
+    assert(info, 'Link de código-fonte deveria existir no rodapé');
+    assertEqual(info.text, '', 'Código-fonte não deveria mais ter texto visível (só ícone)');
+    assertEqual(info.ariaLabel, 'Código-fonte (repositório no GitHub)', 'Código-fonte deveria ter aria-label (ícone sem texto)');
+    assert(info.ehOUltimo, 'Código-fonte deveria ser o último item do grupo direito do rodapé (extrema direita)');
 });
 
 test('Página sobre.html existe, com cabeçalho/rodapé padrão e menciona o DOI (Zenodo)', async ({ page, baseUrl }) => {
@@ -104,7 +118,13 @@ test('Página sobre.html existe, com cabeçalho/rodapé padrão e menciona o DOI
     assert(temFooter, 'sobre.html deveria ter o mesmo rodapé padrão do site');
 });
 
-for (const pagina of PAGINAS_ESTATICAS) {
+// doe-um-cafe.html manteve só o link "Início" — as outras 5 ganharam
+// "Voltar ao lattesZen" ao lado (subido do corpo da página para o
+// cabeçalho, mesma posição/estilo de "Início").
+const PAGINAS_SO_INICIO = ['doe-um-cafe.html'];
+const PAGINAS_INICIO_E_VOLTAR = ['privacidade.html', 'termodeuso.html', 'ajuda.html', 'sobre.html', 'notas-de-versao.html'];
+
+for (const pagina of PAGINAS_SO_INICIO) {
     test(`${pagina}: 2ª linha do cabeçalho mostra só "Início" (ícone + texto), sem a régua de abas fictícia`, async ({ page, baseUrl }) => {
         await page.goto(baseUrl + '/' + pagina);
         await page.waitForTimeout(300);
@@ -123,6 +143,27 @@ for (const pagina of PAGINAS_ESTATICAS) {
         assert(/Início/.test(info.textos[0]), `${pagina}: o único link deveria ser "Início" — obtido "${info.textos[0]}"`);
         assertEqual(info.hrefs[0], 'index.html', `${pagina}: o link "Início" deveria apontar para index.html`);
         assert(info.temIcone, `${pagina}: o link "Início" deveria manter o ícone de casa (fa-house)`);
+    });
+}
+
+for (const pagina of PAGINAS_INICIO_E_VOLTAR) {
+    test(`${pagina}: 2ª linha do cabeçalho mostra "Início" e "Voltar ao lattesZen" lado a lado`, async ({ page, baseUrl }) => {
+        await page.goto(baseUrl + '/' + pagina);
+        await page.waitForTimeout(300);
+
+        const info = await page.evaluate(() => {
+            const nav = document.querySelector('header nav');
+            const links = nav ? Array.from(nav.querySelectorAll('a')) : [];
+            return {
+                quantidade: links.length,
+                textos: links.map((a) => a.textContent.trim()),
+                hrefs: links.map((a) => a.getAttribute('href')),
+            };
+        });
+        assertEqual(info.quantidade, 2, `${pagina}: a 2ª linha do cabeçalho deveria ter 2 links (Início + Voltar ao lattesZen) — obtido: ${info.textos.join(', ')}`);
+        assert(/Início/.test(info.textos[0]), `${pagina}: o 1º link deveria ser "Início" — obtido "${info.textos[0]}"`);
+        assert(/Voltar ao lattesZen/.test(info.textos[1]), `${pagina}: o 2º link deveria ser "Voltar ao lattesZen" — obtido "${info.textos[1]}"`);
+        assert(info.hrefs.every((h) => h === 'index.html'), `${pagina}: os dois links deveriam apontar para index.html — obtido: ${info.hrefs.join(', ')}`);
     });
 }
 

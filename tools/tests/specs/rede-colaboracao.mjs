@@ -35,6 +35,13 @@ test('Sem coautoria no catálogo, mostra aviso em vez do grafo', async ({ page, 
     assertEqual(await page.locator('#redeColaboracao svg').count(), 0, 'Sem coautoria, o SVG do grafo não deveria existir ainda');
 });
 
+test('O grafo (SVG) fica centralizado dentro da seção, não colado à esquerda', async ({ page, baseUrl }) => {
+    await seedCatalog(page, baseUrl, [itemProducao('Artigo A', 'ARTIGO_PERIODICO', ['Maria Silva', 'João Souza'])]);
+    await abrirGraficos(page);
+    const classes = await page.$eval('#redeColaboracao svg', (svg) => svg.parentElement.className);
+    assert(/\bflex\b/.test(classes) && /\bjustify-center\b/.test(classes), `O container do SVG deveria ter as classes "flex justify-center" pra centralizar o grafo — obtido: "${classes}"`);
+});
+
 test('Seção "Rede de colaboração" aparece logo abaixo de "Produção por tipo"', async ({ page, baseUrl }) => {
     await seedCatalog(page, baseUrl, [itemProducao('Artigo A', 'ARTIGO_PERIODICO', ['Maria Silva'])]);
     await abrirGraficos(page);
