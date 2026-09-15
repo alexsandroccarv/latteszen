@@ -60,7 +60,7 @@ export function wirePdfReportExport() {
         const incluirTodos = $('#pdfReportEscopoTodos').checked;
         const original = btn.innerHTML;
         btn.disabled = true;
-        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Gerando relatório… (pode levar alguns segundos)';
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Gerando relatório… (pode levar alguns minutos)';
         status('');
         try {
             // window.LzPdfReport pode nunca ter sido definido se js/pdf-report.js
@@ -76,9 +76,27 @@ export function wirePdfReportExport() {
             const bytes = await window.LzPdfReport.gerar({ incluirTodos });
             const nomeItem = state.catalogo.items.find((i) => i.typeKey === 'IDENTIFICACAO' && i.fields && i.fields.titulo);
             const safe = (nomeItem && nomeItem.fields.titulo ? nomeItem.fields.titulo : 'curriculo').replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, '-').toLowerCase();
-            baixarArquivoBinario(`relatorio-completo-${safe}-${fileStamp()}.pdf`, bytes, 'application/pdf');
-            status(Storage.hasDirectory() ? 'Relatório gerado.' : 'Relatório gerado — sem diretório configurado, evidências em arquivo (PDF/imagem) não puderam ser anexadas (só evidências em link, se houver).');
-            toast('Relatório completo (PDF) gerado.', 'ok');
+            const nomeArquivo = `relatorio-completo-${safe}-${fileStamp()}.pdf`;
+            baixarArquivoBinario(nomeArquivo, bytes, 'application/pdf');
+            // Além do download, guarda uma cópia na pasta "Relatórios" do
+            // diretório configurado (local ou Google Drive) — essa pasta já
+            // existia na estrutura criada por Storage.ensureSubdirs(), mas
+            // nada gravava nela até agora. Não fatal: se falhar (permissão
+            // perdida, sem conexão com o Drive...), o download já feito
+            // continua valendo — só avisa, não derruba o "sucesso" geral.
+            let salvoNoDiretorio = false, avisoDiretorio = '';
+            if (Storage.hasDirectory()) {
+                try {
+                    await Storage.writeFile(nomeArquivo, bytes, LattesTypes.relatoriosFolder());
+                    salvoNoDiretorio = true;
+                } catch (e) {
+                    avisoDiretorio = ` (baixado, mas não foi possível salvar na pasta "Relatórios": ${e.message})`;
+                }
+            }
+            status(Storage.hasDirectory()
+                ? `Relatório gerado${salvoNoDiretorio ? ' e salvo na pasta "Relatórios"' : avisoDiretorio}.`
+                : 'Relatório gerado — sem diretório configurado, evidências em arquivo (PDF/imagem) não puderam ser anexadas (só evidências em link, se houver), e não há onde salvar uma cópia (só o download).');
+            toast(`Relatório completo (PDF) gerado${salvoNoDiretorio ? ' e salvo na pasta "Relatórios"' : ''}.`, avisoDiretorio ? 'aviso' : 'ok');
         } catch (e) {
             status('');
             toast('Falha ao gerar o relatório: ' + e.message, 'erro');

@@ -169,6 +169,96 @@ test('Gerar relatório quando window.LzPdfReport não carregou (ex.: bloqueado p
     assert(!disabled, 'O botão deveria voltar a ficar habilitado depois da falha (não travar preso em "Gerando…")');
 });
 
+/* ==========================================================================
+   Regressão: caracteres fora do alfabeto WinAnsi (grego, setas, scripts não-
+   latinos, emoji) derrubavam a geração do relatório inteiro com um erro
+   técnico incompreensível ("WinAnsi cannot encode..."), por causa de UM
+   caractere em qualquer campo (título, Memorial, nome de instituição) —
+   nada incomum num currículo acadêmico (ex.: "α-sinucleína" num título de
+   produção). sanitizarTexto() troca o que dá por um equivalente legível e o
+   resto por "?", sem depender do pdf-lib estar carregado (a fonte falsa
+   abaixo simula exatamente o alfabeto WinAnsi via getCharacterSet()).
+   ========================================================================== */
+test('pdf-report.js: sanitizarTexto() troca letras gregas/setas por equivalentes legíveis (não crasha)', async ({ page, baseUrl }) => {
+    await seedCatalog(page, baseUrl, []);
+    const resultado = await page.evaluate(() => {
+        const fonteFalsa = (() => {
+            const chars = " -():abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789áéíóúãõâêôàçÁÉÍÓÚÃÕÂÊÔÀÇ—'\"";
+            const codes = new Set(Array.from(chars).map((c) => c.codePointAt(0)));
+            return { widthOfTextAtSize: (t) => t.length * 5, getCharacterSet: () => Array.from(codes) };
+        })();
+        return window.LzPdfReport.sanitizarTexto(fonteFalsa, 'α-sinucleína: 2020 → 2024 (γ e não-latino: 你好)');
+    });
+    assertEqual(resultado, 'alfa-sinucleína: 2020 -> 2024 (gama e não-latino: ??)', `Deveria trocar α/→/γ por equivalentes legíveis e "你好" por "?" cada — obtido: ${JSON.stringify(resultado)}`);
+});
+
+test('pdf-report.js: sanitizarTexto() não mexe em texto já compatível, e ignora fontes de teste sem getCharacterSet()', async ({ page, baseUrl }) => {
+    await seedCatalog(page, baseUrl, []);
+    const { normal, semCharSet } = await page.evaluate(() => {
+        const fonteFalsa = { widthOfTextAtSize: (t) => t.length * 5, getCharacterSet: () => Array.from({ length: 128 }, (_, i) => i) };
+        const fonteSemCharSet = { widthOfTextAtSize: (t) => t.length * 5 }; // ex.: a fonteFalsa usada em quebrarLinhas() acima
+        return {
+            normal: window.LzPdfReport.sanitizarTexto(fonteFalsa, 'Texto normal, so ASCII.'),
+            semCharSet: window.LzPdfReport.sanitizarTexto(fonteSemCharSet, 'α grego, sem char set pra filtrar.'),
+        };
+    });
+    assertEqual(normal, 'Texto normal, so ASCII.', 'Texto já compatível com a fonte não deveria ser alterado');
+    assertEqual(semCharSet, 'α grego, sem char set pra filtrar.', 'Sem getCharacterSet() (fonte de teste), a sanitização deveria ser pulada, não travar');
+});
+
+/* ==========================================================================
+   Regressão: com um diretório configurado, o relatório gerado agora também
+   é salvo na pasta "Relatórios" (já existia na estrutura de pastas, mas
+   nada gravava nela) — além do download de sempre, que continua intacto.
+   window.Storage é um objeto JS comum, sobrescrevível (mesmo padrão já
+   usado em sincronizacao.mjs) — substitui hasDirectory()/writeFile() pra
+   testar a chamada sem depender de um diretório real nem do pdf-lib.
+   ========================================================================== */
+test('Gerar relatório com diretório configurado também salva uma cópia na pasta "Relatórios"', async ({ page, baseUrl }) => {
+    await seedCatalog(page, baseUrl, [makeItem('IDENTIFICACAO', 'DADOS_GERAIS', { titulo: 'Fulano de Tal' })]);
+    await abrirExportar(page);
+    await page.evaluate(() => {
+        window.LzPdfReport = { gerar: async () => new Uint8Array([1, 2, 3]) };
+        window.Storage.hasDirectory = () => true;
+        window.__writeFileChamadas = [];
+        window.Storage.writeFile = async (nome, bytes, subdir) => { window.__writeFileChamadas.push({ nome, subdir }); };
+    });
+
+    await page.click('#btnPdfReportGerar');
+    await page.waitForFunction(() => !document.querySelector('#btnPdfReportGerar').disabled, undefined, { timeout: 10000 });
+    await page.waitForTimeout(100);
+
+    const chamadas = await page.evaluate(() => window.__writeFileChamadas);
+    assertEqual(chamadas.length, 1, 'Storage.writeFile deveria ter sido chamado uma vez pra salvar o relatório na pasta');
+    assertEqual(chamadas[0].subdir, 'Relatórios', `Deveria salvar dentro da pasta "Relatórios" — obtido: ${JSON.stringify(chamadas[0])}`);
+    assert(chamadas[0].nome.startsWith('relatorio-completo-') && chamadas[0].nome.endsWith('.pdf'), `Nome do arquivo salvo inesperado: ${chamadas[0].nome}`);
+
+    const status = await page.$eval('#pdfReportStatus', (el) => el.textContent);
+    assert(/salvo na pasta "Relat[oó]rios"/i.test(status), `O status deveria confirmar que salvou na pasta "Relatórios" — obtido: "${status}"`);
+    const toasts = await page.evaluate(() => Array.from(document.querySelectorAll('#toasts > div')).map((d) => d.textContent));
+    assert(toasts.some((t) => /salvo na pasta "Relat[oó]rios"/i.test(t)), `O toast deveria confirmar o salvamento na pasta — toasts: ${JSON.stringify(toasts)}`);
+});
+
+test('Gerar relatório sem diretório configurado NÃO tenta salvar na pasta (só o download)', async ({ page, baseUrl }) => {
+    await seedCatalog(page, baseUrl, [makeItem('IDENTIFICACAO', 'DADOS_GERAIS', { titulo: 'Fulano de Tal' })]);
+    await abrirExportar(page);
+    await page.evaluate(() => {
+        window.LzPdfReport = { gerar: async () => new Uint8Array([1, 2, 3]) };
+        window.Storage.hasDirectory = () => false;
+        window.__writeFileChamado = false;
+        window.Storage.writeFile = async () => { window.__writeFileChamado = true; };
+    });
+
+    await page.click('#btnPdfReportGerar');
+    await page.waitForFunction(() => !document.querySelector('#btnPdfReportGerar').disabled, undefined, { timeout: 10000 });
+    await page.waitForTimeout(100);
+
+    const chamado = await page.evaluate(() => window.__writeFileChamado);
+    assertEqual(chamado, false, 'Sem diretório configurado, Storage.writeFile não deveria ser chamado');
+    const status = await page.$eval('#pdfReportStatus', (el) => el.textContent);
+    assert(/sem diret[oó]rio configurado/i.test(status), `O status deveria explicar que não há onde salvar uma cópia — obtido: "${status}"`);
+});
+
 test('pdf-report.js: calcularPaginasSumario() cresce com o número de entradas', async ({ page, baseUrl }) => {
     await seedCatalog(page, baseUrl, []);
     const { poucas, muitas } = await page.evaluate(() => {

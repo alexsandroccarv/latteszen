@@ -118,11 +118,11 @@ test('Página sobre.html existe, com cabeçalho/rodapé padrão e menciona o DOI
     assert(temFooter, 'sobre.html deveria ter o mesmo rodapé padrão do site');
 });
 
-// doe-um-cafe.html manteve só o link "Início" — as outras 5 ganharam
-// "Voltar ao lattesZen" ao lado (subido do corpo da página para o
-// cabeçalho, mesma posição/estilo de "Início").
+// doe-um-cafe.html manteve só o link "Início" — as outras 5 tinham "Início"
+// e "Voltar ao lattesZen" lado a lado (2 links redundantes, ambos indo pro
+// mesmo lugar), consolidados num único link "Voltar ao início".
 const PAGINAS_SO_INICIO = ['doe-um-cafe.html'];
-const PAGINAS_INICIO_E_VOLTAR = ['privacidade.html', 'termodeuso.html', 'ajuda.html', 'sobre.html', 'notas-de-versao.html'];
+const PAGINAS_VOLTAR_AO_INICIO = ['privacidade.html', 'termodeuso.html', 'ajuda.html', 'sobre.html', 'notas-de-versao.html'];
 
 for (const pagina of PAGINAS_SO_INICIO) {
     test(`${pagina}: 2ª linha do cabeçalho mostra só "Início" (ícone + texto), sem a régua de abas fictícia`, async ({ page, baseUrl }) => {
@@ -146,8 +146,8 @@ for (const pagina of PAGINAS_SO_INICIO) {
     });
 }
 
-for (const pagina of PAGINAS_INICIO_E_VOLTAR) {
-    test(`${pagina}: 2ª linha do cabeçalho mostra "Início" e "Voltar ao lattesZen" lado a lado`, async ({ page, baseUrl }) => {
+for (const pagina of PAGINAS_VOLTAR_AO_INICIO) {
+    test(`${pagina}: 2ª linha do cabeçalho mostra um único link "Voltar ao início" (ícones casa + seta)`, async ({ page, baseUrl }) => {
         await page.goto(baseUrl + '/' + pagina);
         await page.waitForTimeout(300);
 
@@ -158,12 +158,13 @@ for (const pagina of PAGINAS_INICIO_E_VOLTAR) {
                 quantidade: links.length,
                 textos: links.map((a) => a.textContent.trim()),
                 hrefs: links.map((a) => a.getAttribute('href')),
+                temIcones: links.length === 1 && !!links[0].querySelector('i.fa-house') && !!links[0].querySelector('i.fa-arrow-left'),
             };
         });
-        assertEqual(info.quantidade, 2, `${pagina}: a 2ª linha do cabeçalho deveria ter 2 links (Início + Voltar ao lattesZen) — obtido: ${info.textos.join(', ')}`);
-        assert(/Início/.test(info.textos[0]), `${pagina}: o 1º link deveria ser "Início" — obtido "${info.textos[0]}"`);
-        assert(/Voltar ao lattesZen/.test(info.textos[1]), `${pagina}: o 2º link deveria ser "Voltar ao lattesZen" — obtido "${info.textos[1]}"`);
-        assert(info.hrefs.every((h) => h === 'index.html'), `${pagina}: os dois links deveriam apontar para index.html — obtido: ${info.hrefs.join(', ')}`);
+        assertEqual(info.quantidade, 1, `${pagina}: a 2ª linha do cabeçalho deveria ter só 1 link — obtido: ${info.textos.join(', ')}`);
+        assert(/Voltar ao início/.test(info.textos[0]), `${pagina}: o link deveria ser "Voltar ao início" — obtido "${info.textos[0]}"`);
+        assertEqual(info.hrefs[0], 'index.html', `${pagina}: o link deveria apontar para index.html`);
+        assert(info.temIcones, `${pagina}: o link deveria ter os ícones de casa (fa-house) e seta (fa-arrow-left)`);
     });
 }
 

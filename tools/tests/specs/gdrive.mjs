@@ -595,3 +595,110 @@ test('Assistente: "Já tenho um diretório" > "Google Drive" > "Migrar meus arqu
 
     assertEqual(await page.locator('#btnGDriveConnect').count(), 0, 'Com o diretório já configurado, a seção "Armazenamento remoto" não deveria mais aparecer no painel de estado');
 });
+
+/* ==========================================================================
+   Regressão: migração local→Drive interrompida no meio da cópia (issue
+   #140, item 3) — antes desta correção, connectGoogleDrive() já trocava
+   `mode` pra 'gdrive' e persistia isso ANTES da cópia dos arquivos rodar;
+   uma falha no meio (rede caiu, aba fechada) deixava o app preso apontando
+   pra uma pasta do Drive só parcialmente copiada, sem nenhum jeito de
+   perceber ou retomar. Os testes abaixo derrubam só a etapa de UPLOAD (a
+   cópia em si) — conectar e criar a estrutura de pastas continuam
+   funcionando — pra isolar exatamente esse cenário.
+   ========================================================================== */
+
+test('Migração que falha no meio da cópia não troca de back-end — volta pro local e oferece retomar/descartar', async ({ page, baseUrl }) => {
+    const mock = createMockDrive();
+    await mock.install(page);
+    await mockGis(page);
+    await mockPicker(page, { name: 'lattesZen' });
+    await mockLocalDir(page, [{ name: 'it-1.json', kind: 'file', content: '{"id":"it-1"}' }]);
+    await page.route('https://www.googleapis.com/upload/drive/v3/files**', (route) => route.abort('failed'));
+
+    await abrirConfig(page, baseUrl);
+    await page.click('[data-wizard-modo="existente"]');
+    await page.waitForTimeout(50);
+    await page.click('[data-wizard-tipo="remoto"]');
+    await page.waitForTimeout(50);
+    await page.click('#btnGDriveMigrate');
+    await page.waitForFunction(() => !!document.querySelector('#gdriveMigrationPendente'), { timeout: 8000 });
+    await page.waitForTimeout(100);
+
+    const modo = await page.evaluate(() => window.Storage.storageMode());
+    assertEqual(modo, 'local', 'Uma cópia que falhou no meio NÃO deveria ter deixado o app preso no Google Drive');
+    const dirLbl = await page.$eval('#dirNameLbl', (el) => el.textContent);
+    assert(dirLbl.includes('MinhaPastaLocal'), 'A pasta local deveria continuar sendo a "pasta atual" depois da falha');
+    assertEqual(await page.locator('#btnResumeGDriveMigration').count(), 1, 'Deveria oferecer "Retomar migração"');
+    assertEqual(await page.locator('#btnDiscardGDriveMigration').count(), 1, 'Deveria oferecer "Descartar aviso"');
+
+    const toasts = await page.evaluate(() => Array.from(document.querySelectorAll('#toasts > div')).map((d) => d.textContent));
+    assert(toasts.some((t) => /pasta local continua sendo usada normalmente/i.test(t)), 'Deveria avisar que a pasta local continua em uso após a falha');
+});
+
+test('Retomar uma migração pendente reconecta na mesma pasta (sem seletor de novo) e completa a cópia', async ({ page, baseUrl }) => {
+    const mock = createMockDrive();
+    await mock.install(page);
+    await mockGis(page);
+    await mockPicker(page, { name: 'lattesZen' });
+    await mockLocalDir(page, [{ name: 'it-1.json', kind: 'file', content: '{"id":"it-1"}' }]);
+    let bloquearUpload = true;
+    await page.route('https://www.googleapis.com/upload/drive/v3/files**', (route) => bloquearUpload ? route.abort('failed') : route.fallback());
+
+    await abrirConfig(page, baseUrl);
+    await page.click('[data-wizard-modo="existente"]');
+    await page.waitForTimeout(50);
+    await page.click('[data-wizard-tipo="remoto"]');
+    await page.waitForTimeout(50);
+    await page.click('#btnGDriveMigrate');
+    await page.waitForFunction(() => !!document.querySelector('#gdriveMigrationPendente'), { timeout: 8000 });
+
+    bloquearUpload = false; // "a conexão voltou"
+    await page.click('#btnResumeGDriveMigration');
+    await page.waitForFunction(() => !document.querySelector('#gdriveMigrationPendente'), { timeout: 8000 });
+    await page.waitForTimeout(100);
+
+    const modo = await page.evaluate(() => window.Storage.storageMode());
+    assertEqual(modo, 'gdrive', 'Depois de retomar com sucesso, o back-end em uso deveria passar a ser o Google Drive');
+    const nomes = Array.from(mock.files.values()).map((f) => f.name);
+    assert(nomes.includes('it-1.json'), 'O arquivo deveria ter sido copiado ao retomar a migração');
+    const pendente = await page.evaluate(() => window.Storage.loadPendingGDriveMigration());
+    assertEqual(pendente, null, 'A migração pendente deveria ter sido limpa após concluir com sucesso');
+});
+
+test('Descartar o aviso de migração pendente só remove o aviso — pasta local continua em uso', async ({ page, baseUrl }) => {
+    const mock = createMockDrive();
+    await mock.install(page);
+    await mockGis(page);
+    await mockPicker(page, { name: 'lattesZen' });
+    await mockLocalDir(page, [{ name: 'it-1.json', kind: 'file', content: '{"id":"it-1"}' }]);
+    await page.route('https://www.googleapis.com/upload/drive/v3/files**', (route) => route.abort('failed'));
+
+    await abrirConfig(page, baseUrl);
+    await page.click('[data-wizard-modo="existente"]');
+    await page.waitForTimeout(50);
+    await page.click('[data-wizard-tipo="remoto"]');
+    await page.waitForTimeout(50);
+    await page.click('#btnGDriveMigrate');
+    await page.waitForFunction(() => !!document.querySelector('#gdriveMigrationPendente'), { timeout: 8000 });
+
+    await page.click('#btnDiscardGDriveMigration'); // confirm() aceito automaticamente pelo harness
+    await page.waitForFunction(() => !document.querySelector('#gdriveMigrationPendente'), { timeout: 8000 });
+
+    const pendente = await page.evaluate(() => window.Storage.loadPendingGDriveMigration());
+    assertEqual(pendente, null, 'A migração pendente deveria ter sido descartada');
+    const modo = await page.evaluate(() => window.Storage.storageMode());
+    assertEqual(modo, 'local', 'Descartar o aviso não deveria mudar o back-end em uso (continua local)');
+});
+
+test('Reabrir o app com uma migração pendente avisa por toast, apontando pra Configurações', async ({ page, baseUrl }) => {
+    await page.goto(baseUrl + '/index.html');
+    await page.evaluate(() => {
+        const s = JSON.parse(localStorage.getItem('lz_settings') || '{}');
+        s.gdriveMigrationPendente = { pasta: 'lattesZen', rootFolderId: 'abc123', email: null, iniciadaEm: new Date().toISOString() };
+        localStorage.setItem('lz_settings', JSON.stringify(s));
+    });
+    await page.reload();
+    await page.waitForTimeout(600);
+    const toasts = await page.evaluate(() => Array.from(document.querySelectorAll('#toasts > div')).map((d) => d.textContent));
+    assert(toasts.some((t) => /migra[çc][ãa]o para o google drive ficou incompleta/i.test(t)), 'Deveria avisar, ao reabrir, que há uma migração pendente');
+});

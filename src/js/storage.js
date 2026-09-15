@@ -197,6 +197,15 @@ window.Storage = (function () {
     // não é digitado) — usado em "já tenho um diretório". Sem isso, cfg.pasta
     // é o nome de uma pasta a criar/encontrar na raiz do Drive — usado só em
     // "primeira configuração". Retorna null se o seletor for cancelado.
+    // cfg.deferCommit: true deixa `mode`/`gdriveCfg` valendo só EM MEMÓRIA,
+    // sem persistir em lz_settings (ver commitGDriveConnection() abaixo) —
+    // usado pela migração local→Drive (issue #140, item 3): enquanto o Drive
+    // ainda não é o back-end "de verdade" (persistido), uma falha no meio da
+    // cópia (rede caiu, aba fechada) não deixa o app preso apontando pra uma
+    // pasta do Drive só parcialmente preenchida — restoreDirectory() no
+    // próximo boot volta a achar a pasta local (nunca deixou de ser a
+    // configuração persistida) exatamente como se a migração nunca tivesse
+    // começado.
     async function connectGoogleDrive(cfg) {
         window.GDriveClient.configure(APP_CONFIG.googleDriveClientId);
         await window.GDriveClient.connectInteractive(); // abre o consentimento do Google
@@ -213,9 +222,70 @@ window.Storage = (function () {
         }
         gdriveCfg = { pasta, rootFolderId, folderCache: {}, email: email || null };
         mode = 'gdrive';
-        persistGDriveConfig();
+        if (!cfg || !cfg.deferCommit) persistGDriveConfig();
         return gdriveCfg;
     }
+
+    // Reconecta a uma pasta do Drive JÁ CONHECIDA (rootFolderId salvo por uma
+    // migração pendente — ver savePendingGDriveMigration abaixo), sem passar
+    // pelo seletor de novo. O token de acesso é de curta duração, então uma
+    // retomada em outra sessão ainda pede o consentimento do Google (rápido,
+    // pra quem já autorizou antes) — só pula a escolha da pasta em si.
+    // Sempre com deferCommit: só confirma o Drive como back-end ativo se a
+    // cópia (chamada por quem invoca isto) terminar com sucesso.
+    async function resumeGDriveConnection(pending) {
+        window.GDriveClient.configure(APP_CONFIG.googleDriveClientId);
+        await window.GDriveClient.connectInteractive();
+        const email = await window.GDriveClient.testConnection();
+        gdriveCfg = { pasta: pending.pasta, rootFolderId: pending.rootFolderId, folderCache: {}, email: email || pending.email || null };
+        mode = 'gdrive';
+        return gdriveCfg;
+    }
+
+    // Confirma a conexão iniciada com deferCommit — persiste de vez o Drive
+    // como back-end ativo. Só deveria ser chamada depois que a cópia dos
+    // arquivos (migrateLocalToGoogleDrive) já terminou com sucesso.
+    function commitGDriveConnection() {
+        persistGDriveConfig();
+        clearPendingGDriveMigration();
+    }
+
+    // Desfaz uma conexão iniciada com deferCommit que NÃO chegou a ser
+    // confirmada (cópia falhou) — volta a apontar pro back-end local em
+    // memória. Nada precisa ser desfeito de verdade: como a conexão nunca
+    // foi persistida, a pasta local sempre continuou sendo a configuração
+    // "de verdade" (dirHandle nunca foi tocado). A pasta do Drive pode ter
+    // ficado com uma cópia parcial — inofensiva, mas mencionada no aviso de
+    // migração pendente (ver tab-config.js) pra quem for conferir.
+    function discardGDriveConnection() {
+        mode = 'local';
+        gdriveCfg = null;
+    }
+
+    // Migração pendente: registrada ANTES da cópia começar (não depois),
+    // exatamente pra sobreviver a uma aba fechada/travada no meio do
+    // caminho — sem isto, uma falha nesse ponto não deixava rastro nenhum
+    // pra recuperação/retomada (o problema original do item 3 da issue
+    // #140). Guardada em lz_settings (mesmo lugar de `gdrive`, mas numa
+    // chave à parte — nunca as duas coisas ao mesmo tempo têm o mesmo
+    // significado: uma é "back-end ativo", a outra é "havia uma migração em
+    // andamento pra esta pasta, ainda não confirmada").
+    function savePendingGDriveMigration(info) {
+        const s = loadSettings();
+        s.gdriveMigrationPendente = { pasta: info.pasta, rootFolderId: info.rootFolderId, email: info.email || null, iniciadaEm: nowISOStorage() };
+        saveSettings(s);
+    }
+    function loadPendingGDriveMigration() {
+        const s = loadSettings();
+        return s.gdriveMigrationPendente || null;
+    }
+    function clearPendingGDriveMigration() {
+        const s = loadSettings();
+        if (s.gdriveMigrationPendente) { delete s.gdriveMigrationPendente; saveSettings(s); }
+    }
+    // Cópia local de nowISO() — storage.js carrega ANTES de app.js (onde
+    // window.AppCore.nowISO nasce), então não pode depender dele.
+    function nowISOStorage() { return new Date().toISOString(); }
 
     // Copia recursivamente TODO o conteúdo da pasta LOCAL ativa (dirHandle)
     // para dentro da pasta já conectada no Google Drive (gdriveCfg), mantendo
@@ -910,6 +980,11 @@ window.Storage = (function () {
         // Google Drive
         storageMode, connectGoogleDrive, migrateLocalToGoogleDrive, gdriveFolderUrl,
         pickDriveEvidenceFile,
+        // Migração local→Drive: confirmação/desfazimento da conexão adiada
+        // (deferCommit) e a migração pendente que sobrevive a uma aba
+        // fechada no meio da cópia — ver comentários nas próprias funções.
+        resumeGDriveConnection, commitGDriveConnection, discardGDriveConnection,
+        savePendingGDriveMigration, loadPendingGDriveMigration, clearPendingGDriveMigration,
         // arquivos
         writeJson, writeFile, writeAttachment, deleteEntry, deleteItemFiles, moveItemFiles, removeSubdirIfEmpty, renameRootFolder, renameNestedFolder, readAttachmentUrl, readAttachmentFile, scanDirectory, ensureSubdirs,
         // bandeja de entrada (inbox)
