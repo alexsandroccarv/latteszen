@@ -225,6 +225,12 @@ window.LzPdfReport = (function () {
             get margemExtra() { return margemExtra; },
             set margemExtra(v) { margemExtra = v; },
             set decorador(fn) { decorador = fn; },
+            // Mesmo número que numerarPaginas() vai desenhar no rodapé desta
+            // página (capa não numerada; 1ª página depois dela vira "1") —
+            // usado pelo cabeçalho de cada página de evidência, pra dar
+            // contexto de posição sem esperar numerarPaginas() rodar (só no
+            // fim, depois que o documento inteiro já foi montado).
+            get numeroPagina() { return pdfDoc.getPageCount() - 1; },
         };
     }
 
@@ -416,41 +422,87 @@ window.LzPdfReport = (function () {
         return lista;
     }
 
-    // Anexa de fato os arquivos de evidência: PDF mescla página a página no
-    // documento final; imagem vira uma página própria (redimensionada pra
-    // caber); links e tipos não suportados (vídeo/zip) viram uma nota em
-    // texto — nada é descartado silenciosamente.
+    // Uma página de evidência: cabeçalho com o nome do item (à esquerda,
+    // truncado com reticências se não couber) e o número da página do
+    // relatório (à direita — mesmo número que numerarPaginas() vai
+    // desenhar no rodapé), uma linha fina, e a evidência reduzida de forma
+    // SEMPRE proporcional (nunca estica um eixo mais que o outro) pra caber
+    // na área reservada abaixo do cabeçalho. `desenhar(pagina, area)` faz o
+    // drawImage/drawPage de verdade — este helper só cuida do layout comum
+    // entre os dois casos (ver anexarEvidencias).
+    function desenharPaginaEvidencia(escritor, fontes, itemTitulo, anexoNome, larguraNatural, alturaNatural, desenhar) {
+        escritor.novaPagina();
+        const pagina = escritor.pagina;
+        const xBase = MARGIN + escritor.margemExtra;
+        const tam = 11;
+        const numero = String(escritor.numeroPagina);
+        const numLargura = fontes.regular.widthOfTextAtSize(numero, 9);
+        const tituloLarguraMax = CONTENT_W - escritor.margemExtra - numLargura - 10;
+        let tituloSeguro = sanitizarTexto(fontes.negrito, itemTitulo);
+        if (fontes.negrito.widthOfTextAtSize(tituloSeguro, tam) > tituloLarguraMax) {
+            while (tituloSeguro.length > 1 && fontes.negrito.widthOfTextAtSize(tituloSeguro + '…', tam) > tituloLarguraMax) {
+                tituloSeguro = tituloSeguro.slice(0, -1);
+            }
+            tituloSeguro += '…';
+        }
+        pagina.drawText(tituloSeguro, { x: xBase, y: escritor.y, size: tam, font: fontes.negrito, color: fontes.corTexto });
+        pagina.drawText(numero, { x: PAGE_W - MARGIN - numLargura, y: escritor.y + 1, size: 9, font: fontes.regular, color: fontes.corMuted });
+        escritor.y -= tam * 1.4;
+        escritor.linha(`Evidência: ${anexoNome}`, { tamanho: 9, cor: fontes.corMuted });
+        escritor.espaco(6);
+        pagina.drawLine({ start: { x: xBase, y: escritor.y + 3 }, end: { x: PAGE_W - MARGIN, y: escritor.y + 3 }, thickness: 0.5, color: fontes.corRule });
+        escritor.espaco(6);
+
+        const areaW = CONTENT_W - escritor.margemExtra, areaH = Math.max(60, escritor.y - MARGIN);
+        const escala = Math.min(areaW / larguraNatural, areaH / alturaNatural, 1);
+        const w = larguraNatural * escala, h = alturaNatural * escala;
+        const x = xBase + (areaW - w) / 2, y = MARGIN + (areaH - h) / 2;
+        desenhar(pagina, { x, y, w, h });
+    }
+
+    // Anexa de fato os arquivos de evidência: cada página de PDF (uma ou
+    // várias) e cada imagem viram sua PRÓPRIA página no relatório, com
+    // cabeçalho (nome do item + nº da página) e reduzidas proporcionalmente
+    // pra caber no espaço abaixo dele — ver desenharPaginaEvidencia(). Links
+    // e tipos não suportados (vídeo/zip) viram uma nota em texto; nada é
+    // descartado silenciosamente.
     async function anexarEvidencias(pdfDoc, PDFLib, escritor, fontes, model) {
         const { PDFDocument } = PDFLib;
         const anexos = anexosDoModelo(model);
         const linksNota = [];
         for (const { itemTitulo, anexo } of anexos) {
             if (anexo.ext === 'url') { linksNota.push({ itemTitulo, anexo }); continue; }
-            escritor.novaPagina();
-            escritor.linha(itemTitulo, { negrito: true, tamanho: 11 });
-            escritor.linha(`Evidência: ${anexo.name}`, { tamanho: 9, cor: fontes.corMuted });
-            escritor.espaco(8);
             try {
                 if (anexo.ext === 'pdf') {
                     const bytes = dataUriParaBytes(anexo.dataUri);
                     const origem = await PDFDocument.load(bytes, { ignoreEncryption: true });
-                    const paginasCopiadas = await pdfDoc.copyPages(origem, origem.getPageIndices());
-                    paginasCopiadas.forEach((p) => pdfDoc.addPage(p));
+                    const paginasEmbutidas = await pdfDoc.embedPdf(origem, origem.getPageIndices());
+                    paginasEmbutidas.forEach((embutida) => {
+                        desenharPaginaEvidencia(escritor, fontes, itemTitulo, anexo.name, embutida.width, embutida.height, (pagina, area) => {
+                            pagina.drawPage(embutida, { x: area.x, y: area.y, width: area.w, height: area.h });
+                        });
+                    });
                 } else if (window.AppCore.isImageExt(anexo.ext)) {
                     let dataUri = anexo.dataUri;
                     let ehPng = /^(png)$/i.test(anexo.ext);
                     if (/^(gif|webp)$/i.test(anexo.ext)) { dataUri = await converterParaPng(dataUri); ehPng = true; }
                     const bytes = dataUriParaBytes(dataUri);
                     const imagem = ehPng ? await pdfDoc.embedPng(bytes) : await pdfDoc.embedJpg(bytes);
-                    const areaW = CONTENT_W - escritor.margemExtra, areaH = Math.max(60, escritor.y - MARGIN);
-                    const escala = Math.min(areaW / imagem.width, areaH / imagem.height, 1);
-                    const w = imagem.width * escala, h = imagem.height * escala;
-                    escritor.pagina.drawImage(imagem, { x: MARGIN + escritor.margemExtra + (areaW - w) / 2, y: escritor.y - h, width: w, height: h });
-                    escritor.y -= h + 10;
+                    desenharPaginaEvidencia(escritor, fontes, itemTitulo, anexo.name, imagem.width, imagem.height, (pagina, area) => {
+                        pagina.drawImage(imagem, { x: area.x, y: area.y, width: area.w, height: area.h });
+                    });
                 } else {
+                    escritor.novaPagina();
+                    escritor.linha(itemTitulo, { negrito: true, tamanho: 11 });
+                    escritor.linha(`Evidência: ${anexo.name}`, { tamanho: 9, cor: fontes.corMuted });
+                    escritor.espaco(8);
                     escritor.paragrafo(`Arquivo do tipo ".${anexo.ext}" não pode ser incluído dentro do PDF — consulte a pasta/Google Drive configurado para abri-lo.`, { cor: fontes.corMuted });
                 }
             } catch (e) {
+                escritor.novaPagina();
+                escritor.linha(itemTitulo, { negrito: true, tamanho: 11 });
+                escritor.linha(`Evidência: ${anexo.name}`, { tamanho: 9, cor: fontes.corMuted });
+                escritor.espaco(8);
                 escritor.paragrafo(`Não foi possível incluir este arquivo automaticamente (${e.message || 'formato inválido'}).`, { cor: fontes.corMuted });
             }
         }
