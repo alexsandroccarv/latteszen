@@ -125,7 +125,19 @@ export async function runAll() {
     let passed = 0, failed = 0;
     const falhas = [];
     for (const { name, fn } of TESTS) {
-        const context = await browser.newContext();
+        // Service Worker real (sw.js, registrado incondicionalmente por
+        // pwa.js) desligado nesta suíte: depois de ativo, ele intercepta as
+        // próprias requisições (inclusive CDNs carregadas dinamicamente
+        // bem depois do carregamento da página, como o pdf-lib sob demanda
+        // em pdf-report.js) com seu próprio fetch() — que, ao que tudo
+        // indica, nem sempre é capturado pelo context.route() abaixo, e num
+        // runner de CI com internet de verdade (ao contrário deste sandbox)
+        // isso deixa passar a requisição de verdade em vez de abortada,
+        // quebrando testes que dependem da CDN estar bloqueada (ver a suíte
+        // travando num teste de erro de rede que nunca falhava, PR/issue de
+        // SEO #37). pwa-atualizacao.mjs já mocka navigator.serviceWorker
+        // inteiro via addInitScript, então não depende de um SW real.
+        const context = await browser.newContext({ serviceWorkers: 'block' });
         // Bloqueia as CDNs externas de estilo/ícone/fonte/analytics (Tailwind
         // Play CDN, Font Awesome, fonte Rawline do governo, Google Tag
         // Manager, Google Fonts — usada pelo seletor de Tema em Configurações
