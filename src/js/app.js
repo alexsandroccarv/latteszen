@@ -606,11 +606,11 @@
     // sempre livres: é lá que mora o assistente de escolha do diretório (e
     // Início já linka pra lá em "Primeiros passos").
     const DIR_GATED_TABS = ['catalogar', 'conformidade', 'linhatempo', 'publicar', 'rsc', 'sumula'];
-    // Mesma trava, agora também para 3 das 4 páginas do menu lateral de
+    // Mesma trava, agora também para 4 das 5 páginas do menu lateral de
     // Configurações — só "Armazenamento" (onde mora o assistente de escolha
-    // do diretório) fica sempre livre; "Trazer e levar dados", "Outros
-    // recursos" e "Zona de risco" dependem de já haver um diretório.
-    const DIR_GATED_CFG_GROUPS = ['grp-fontes', 'grp-opcionais', 'grp-risco'];
+    // do diretório) fica sempre livre; "Importar", "Exportar", "Recursos
+    // opcionais" e "Zona de risco" dependem de já haver um diretório.
+    const DIR_GATED_CFG_GROUPS = ['grp-importar', 'grp-exportar', 'grp-opcionais', 'grp-risco'];
     // Trava real desligável só em teste (window.__LZ_TEST_SKIP_DIR_GATE) —
     // mesmo padrão de window.__LZ_TEST_ANALYTICS_ID em config.js: sem isto,
     // toda a suíte de regressão (que semeia o catálogo direto no

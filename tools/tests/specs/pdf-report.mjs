@@ -21,7 +21,7 @@ import { test, assert, assertEqual, makeItem, seedCatalog } from '../harness.mjs
 async function abrirExportar(page) {
     await page.click('[data-tab="config"]');
     await page.waitForTimeout(200);
-    await page.click('[data-cfg-page-link="grp-fontes"]');
+    await page.click('[data-cfg-page-link="grp-exportar"]');
     await page.waitForTimeout(150);
 }
 
@@ -80,7 +80,7 @@ test('buildPublicModel({ incluirTodos }): "catálogo inteiro" ignora o filtro Pu
     assert(titulosCompleto.includes('Publicado na web') && titulosCompleto.includes('Não publicado na web'), `Com incluirTodos, os dois itens deveriam aparecer — obtido: ${JSON.stringify(titulosCompleto)}`);
 });
 
-test('Configurações → Trazer e levar dados → Exportar: cartão "Relatório completo (PDF)" com as 2 opções de escopo', async ({ page, baseUrl }) => {
+test('Configurações → Exportar: cartão "Relatório completo (PDF)" com as 2 opções de escopo', async ({ page, baseUrl }) => {
     await seedCatalog(page, baseUrl, []);
     await abrirExportar(page);
     assertEqual(await page.locator('#btnPdfReportGerar').count(), 1, 'O botão "Gerar relatório (PDF)" deveria existir');

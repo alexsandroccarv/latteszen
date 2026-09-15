@@ -17,7 +17,7 @@
 
 /* ==========================================================================
    lattesZen — "Relatório completo (PDF)" — cartão dentro de Configurações →
-   Trazer e levar dados → Exportar
+   Exportar
    --------------------------------------------------------------------------
    Extraído no mesmo padrão de tab-config-bibtex.js/tab-config-xml.js — só a
    UI e a wiring do botão vivem aqui; a montagem do PDF em si (capa, sumário,

@@ -36,7 +36,7 @@ test('Autores: aparece em Configurações → "Listas de autocomplete", com "Ren
     await seedCatalog(page, baseUrl, items);
     await page.click('[data-tab="config"]');
     await page.waitForTimeout(200);
-    // "Listas de autocomplete" mora na página "Outros recursos" do menu
+    // "Listas de autocomplete" mora na página "Recursos opcionais" do menu
     // lateral — não é a página ativa por padrão (Armazenamento é).
     await page.click('[data-cfg-page-link="grp-opcionais"]');
     await page.waitForTimeout(150);

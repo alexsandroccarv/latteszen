@@ -93,10 +93,10 @@ export const TYPES_01_DADOS_GERAIS = {
     RESUMO_CV: { label: 'Texto inicial do Currículo Lattes', singleton: true, noEvidence: true, perfil: true, fields: [{ key: 'descricao', label: 'Texto', type: 'textarea', required: true }] },
     // Texto narrativo (memorial descritivo, comum em processos de progressão/
     // concurso) usado como abertura do "Relatório completo (PDF)" — ver
-    // Configurações → Trazer e levar dados → Exportar. Distinto do "Texto
+    // Configurações → Exportar. Distinto do "Texto
     // inicial do Currículo Lattes" acima (mais curto, também exportado no
     // XML do Lattes): o Memorial não é um campo do Lattes (noExport) e não
     // aparece na página pública (Publicar na Web).
-    MEMORIAL: { label: 'Memorial descritivo', singleton: true, noEvidence: true, noExport: true, perfil: true, fields: [{ key: 'descricao', label: 'Texto do memorial', type: 'textarea', help: 'Texto narrativo usado como abertura do "Relatório completo (PDF)" (Configurações → Trazer e levar dados). Deixe em branco para não incluir essa seção no relatório.' }] },
+    MEMORIAL: { label: 'Memorial descritivo', singleton: true, noEvidence: true, noExport: true, perfil: true, fields: [{ key: 'descricao', label: 'Texto do memorial', type: 'textarea', help: 'Texto narrativo usado como abertura do "Relatório completo (PDF)" (Configurações → Exportar). Deixe em branco para não incluir essa seção no relatório.' }] },
     OUTRAS_INFO: { label: 'Outras informações relevantes', singleton: true, noEvidence: true, perfil: true, fields: [{ key: 'descricao', label: 'Descrição', type: 'textarea' }] },
 };

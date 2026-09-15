@@ -21,14 +21,14 @@ test('"Avançado" e "Sobre e suporte" não existem mais como grupos de Configura
     const grupos = await page.$$eval('[data-cfg-page-link]', (els) => els.map((el) => el.textContent.trim()));
     assert(!grupos.some((g) => /avançado/i.test(g)), 'O grupo "Avançado" não deveria mais existir no menu lateral');
     assert(!grupos.some((g) => /sobre e suporte/i.test(g)), 'O grupo "Sobre e suporte" não deveria mais existir no menu lateral');
-    assert(grupos.some((g) => /outros recursos/i.test(g)), 'O grupo "Outros recursos" deveria continuar existindo');
+    assert(grupos.some((g) => /recursos opcionais/i.test(g)), 'O grupo "Recursos opcionais" deveria existir (renomeado de "Outros recursos")');
     assert(grupos.some((g) => /zona de risco/i.test(g)), 'O grupo "Zona de risco" deveria continuar existindo');
 
     const texto = await page.$eval('#tab-config', (el) => el.textContent);
     assert(!texto.includes('Sobre o lattesZen'), 'A seção "Sobre o lattesZen" não deveria mais aparecer em Configurações');
 });
 
-test('"Listas de autocomplete" e "Tema" aparecem dentro do grupo "Outros recursos"', async ({ page, baseUrl }) => {
+test('"Listas de autocomplete" e "Tema" aparecem dentro do grupo "Recursos opcionais"', async ({ page, baseUrl }) => {
     await abrirConfig(page, baseUrl);
     const ordem = await page.evaluate(() => {
         const panel = document.querySelector('#tab-config');
