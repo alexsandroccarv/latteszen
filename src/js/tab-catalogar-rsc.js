@@ -25,7 +25,7 @@
    parte e continua em tab-catalogar.js). Nenhuma mudança de conteúdo, só
    saiu do arquivo único original.
    ========================================================================== */
-const { state, $, esc, normNome } = window.AppCore;
+const { state, $, $$, esc, normNome } = window.AppCore;
 
     // Camada RSC no formulário (abaixo dos campos do item), quando habilitado.
     // Listener global de "clique fora" do buscador de critério — fechado/
@@ -56,6 +56,8 @@ const { state, $, esc, normNome } = window.AppCore;
             const c = todosCriterios.find(x => x.id === id);
             return c ? `${c.item}. ${c.desc} — ${c.unidade} · ${String(c.pontos).replace('.', ',')} pts` : '';
         }
+        // id previsível por critério (usado em aria-activedescendant, abaixo)
+        const critOptId = (id) => `rsc-crit-opt-${id}`;
         function critListaHtml(filtro) {
             const encontrados = criteriosFiltrados(filtro);
             if (!encontrados.length) return `<p class="px-2 py-2 text-sm text-gray-500 italic">Nenhum critério encontrado.</p>`;
@@ -63,7 +65,7 @@ const { state, $, esc, normNome } = window.AppCore;
             encontrados.forEach(c => (porReq[c.reqLabel] = porReq[c.reqLabel] || []).push(c));
             return Object.keys(porReq).map(label => {
                 const itens = porReq[label].map(c =>
-                    `<button type="button" data-crit="${c.id}" class="block w-full text-left px-2 py-1.5 text-sm hover:bg-amber-100 dark:hover:bg-gray-700">${c.item}. ${esc(c.desc)} — ${esc(c.unidade)} · ${String(c.pontos).replace('.', ',')} pts</button>`).join('');
+                    `<button type="button" id="${critOptId(c.id)}" role="option" data-crit="${c.id}" class="block w-full text-left px-2 py-1.5 text-sm hover:bg-amber-100 dark:hover:bg-gray-700">${c.item}. ${esc(c.desc)} — ${esc(c.unidade)} · ${String(c.pontos).replace('.', ',')} pts</button>`).join('');
                 return `<div><p class="sticky top-0 px-2 py-1 text-[11px] font-semibold text-gray-500 bg-gray-50 dark:bg-gray-800">Requisito ${esc(label)}</p>${itens}</div>`;
             }).join('');
         }
@@ -72,9 +74,10 @@ const { state, $, esc, normNome } = window.AppCore;
             <div class="relative"><label class="block text-xs font-semibold mb-1" for="rscCritFiltro">Critério específico (Anexos I–VI do Decreto)</label>
                 <input type="text" id="rscCritFiltro" autocomplete="off" placeholder="Digite pra buscar (ex.: prêmio, capacitação, comissão...)"
                        value="${esc(labelDoCriterio(rsc.criterio))}"
+                       role="combobox" aria-expanded="false" aria-controls="rscCritLista" aria-autocomplete="list"
                        class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900">
                 <input type="hidden" id="rscCrit" value="${esc(rsc.criterio || '')}">
-                <div id="rscCritLista" class="hidden absolute z-10 mt-1 w-full max-h-64 overflow-y-auto rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 shadow-lg"></div>
+                <div id="rscCritLista" role="listbox" aria-label="Critérios encontrados" class="hidden absolute z-10 mt-1 w-full max-h-64 overflow-y-auto rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 shadow-lg"></div>
                 <p class="text-[11px] text-gray-500 mt-0.5">Todos os critérios do decreto estão listados, agrupados por Requisito (I a VI). Digite acima para filtrar.</p></div>
             <p class="text-[11px] text-gray-500"><i aria-hidden="true" class="fa-solid fa-calendar-days mr-1"></i>Para critérios por tempo (ano/mês), o período é calculado a partir dos campos de <strong>data</strong> do item acima (início/fim).</p>
             <div class="grid sm:grid-cols-2 gap-2">
@@ -118,8 +121,23 @@ const { state, $, esc, normNome } = window.AppCore;
         // a valer algo quando ele clica num resultado). É o que "restaurar o
         // campo" (clique fora / Esc sem escolher) usa como valor de retorno.
         let criterioConfirmado = rsc.criterio || '';
-        const abrirLista = (filtro) => { critLista.innerHTML = critListaHtml(filtro); critLista.classList.remove('hidden'); };
-        const fecharLista = () => critLista.classList.add('hidden');
+        // Semântica ARIA de combobox (issue de acessibilidade #17): sem
+        // isto, um leitor de tela não anunciava que o campo abre uma lista
+        // de opções, nem qual delas estava "em destaque" ao navegar com
+        // ↓/↑ — aria-expanded reflete aberto/fechado, aria-activedescendant
+        // aponta pro <button role="option"> destacado no momento (sem
+        // mover o foco de verdade pra fora do campo de texto).
+        const abrirLista = (filtro) => {
+            critLista.innerHTML = critListaHtml(filtro);
+            critLista.classList.remove('hidden');
+            critFiltro.setAttribute('aria-expanded', 'true');
+            critFiltro.removeAttribute('aria-activedescendant');
+        };
+        const fecharLista = () => {
+            critLista.classList.add('hidden');
+            critFiltro.setAttribute('aria-expanded', 'false');
+            critFiltro.removeAttribute('aria-activedescendant');
+        };
         const restaurarConfirmado = () => {
             critHidden.value = criterioConfirmado;
             critFiltro.value = labelDoCriterio(criterioConfirmado);
@@ -133,6 +151,17 @@ const { state, $, esc, normNome } = window.AppCore;
             state.formDirty = true;
             recompute();
         }
+        // Destaque por teclado (↓/↑) entre as opções visíveis no momento —
+        // move só o "destaque" visual/aria-activedescendant, o foco real
+        // continua no campo de texto (padrão combobox do WAI-ARIA APG).
+        function opcoesVisiveis() { return $$('[role="option"]', critLista); }
+        function destacar(btn) {
+            opcoesVisiveis().forEach(o => o.classList.remove('bg-amber-100', 'dark:bg-gray-700'));
+            if (!btn) { critFiltro.removeAttribute('aria-activedescendant'); return; }
+            btn.classList.add('bg-amber-100', 'dark:bg-gray-700');
+            btn.scrollIntoView({ block: 'nearest' });
+            critFiltro.setAttribute('aria-activedescendant', btn.id);
+        }
         critFiltro.addEventListener('focus', () => abrirLista(critFiltro.value));
         critFiltro.addEventListener('input', (e) => {
             // Não deixa o evento borbulhar até o listener de #itemForm (que
@@ -144,10 +173,24 @@ const { state, $, esc, normNome } = window.AppCore;
             recompute();
         });
         critFiltro.addEventListener('keydown', (e) => {
-            if (e.key !== 'Escape') return;
-            fecharLista();
-            restaurarConfirmado();
-            critFiltro.blur();
+            if (e.key === 'Escape') {
+                fecharLista();
+                restaurarConfirmado();
+                critFiltro.blur();
+                return;
+            }
+            if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp' && e.key !== 'Enter') return;
+            const opcoes = opcoesVisiveis();
+            if (!opcoes.length) return;
+            e.preventDefault();
+            if (e.key === 'Enter') {
+                const atual = opcoes.find(o => o.id === critFiltro.getAttribute('aria-activedescendant'));
+                if (atual) selecionarCriterio(atual.dataset.crit);
+                return;
+            }
+            const atualIdx = opcoes.findIndex(o => o.id === critFiltro.getAttribute('aria-activedescendant'));
+            const proximo = e.key === 'ArrowDown' ? (atualIdx + 1) % opcoes.length : (atualIdx - 1 + opcoes.length) % opcoes.length;
+            destacar(opcoes[proximo]);
         });
         critLista.addEventListener('click', (e) => {
             const btn = e.target.closest('[data-crit]');

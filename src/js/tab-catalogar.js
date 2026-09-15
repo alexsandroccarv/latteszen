@@ -74,11 +74,11 @@ window.TabCatalogar = (function () {
                         </div>
                     </div>
                     <div class="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-900 flex items-center justify-center" style="height: 85vh; min-height: 560px">
-                        <div id="pdfEmpty" class="h-full flex flex-col items-center justify-center text-center text-gray-400 dark:text-gray-500 p-6">
+                        <div id="pdfEmpty" class="h-full flex flex-col items-center justify-center text-center text-gray-500 dark:text-gray-400 p-6">
                             <i class="fa-regular fa-file-lines text-5xl mb-3"></i>
                             <p class="text-sm">O arquivo (PDF ou imagem) aparece aqui ao anexá-lo no formulário<br>ou ao abrir um item com evidência (aba <strong>Conformidade</strong>).</p>
                         </div>
-                        <div id="pdfNoPreview" class="hidden h-full flex flex-col items-center justify-center text-center text-gray-400 dark:text-gray-500 p-6">
+                        <div id="pdfNoPreview" class="hidden h-full flex flex-col items-center justify-center text-center text-gray-500 dark:text-gray-400 p-6">
                             <i class="fa-solid fa-file-zipper text-5xl mb-3"></i>
                             <p class="text-sm">Sem pré-visualização para este tipo de arquivo.<br>Use “Abrir em nova aba” para baixá-lo.</p>
                         </div>
@@ -684,21 +684,27 @@ window.TabCatalogar = (function () {
         }).filter(Boolean).join(' · ');
     }
     function repeaterListHtml(f, rows) {
-        if (!rows.length) return `<li class="text-xs text-gray-400 dark:text-gray-500 italic">Nenhum item adicionado.</li>`;
+        if (!rows.length) return `<li class="text-xs text-gray-500 dark:text-gray-400 italic">Nenhum item adicionado.</li>`;
         return rows.map((row, i) => `<li class="flex items-center gap-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded px-2 py-1 text-sm" data-repeater-row="${i}">
             <span class="flex-1 min-w-0 truncate">${esc(repeaterRowLabel(f, row) || '(sem descrição)')}</span>
-            <button type="button" data-repeater-del="${f.key}" data-idx="${i}" title="Remover" class="w-6 h-6 shrink-0 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-red-600"><i aria-hidden="true" class="fa-solid fa-trash"></i></button>
+            <button type="button" data-repeater-del="${f.key}" data-idx="${i}" title="Remover" class="w-8 h-8 shrink-0 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-red-600"><i aria-hidden="true" class="fa-solid fa-trash"></i></button>
         </li>`).join('');
     }
     function repeaterColInput(fkey, c) {
         const base = 'text-sm px-2 py-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900';
         const tag = `data-repeater-input="${fkey}:${c.key}"`;
+        // aria-label em cada coluna (issue de acessibilidade #17): o
+        // <label> do campo (via associateLabels, app-core.js) só alcança o
+        // 1º controle visível — colunas além da 1ª (repeaters com mais de
+        // uma coluna) e o placeholder sozinho (some ao digitar, não é nome
+        // acessível confiável) não bastavam.
+        const al = `aria-label="${esc(c.label)}"`;
         if (c.type === 'checkbox') return `<label class="flex items-center gap-1 text-xs whitespace-nowrap"><input type="checkbox" ${tag}> ${esc(c.label)}</label>`;
-        if (c.type === 'select') return `<select ${tag} class="${base}"><option value="">${esc(c.label)}</option>${(c.options || []).map(o => `<option value="${esc(o)}">${esc(o)}</option>`).join('')}</select>`;
-        if (c.type === 'datebr') return `<input type="text" ${tag} autocomplete="off" readonly data-ro-focus inputmode="numeric" maxlength="10" placeholder="${esc(c.label)}" data-datebr class="${base}" style="width:7rem">`;
+        if (c.type === 'select') return `<select ${tag} ${al} class="${base}"><option value="">${esc(c.label)}</option>${(c.options || []).map(o => `<option value="${esc(o)}">${esc(o)}</option>`).join('')}</select>`;
+        if (c.type === 'datebr') return `<input type="text" ${tag} ${al} autocomplete="off" readonly data-ro-focus inputmode="numeric" maxlength="10" placeholder="${esc(c.label)}" data-datebr class="${base}" style="width:7rem">`;
         const t = c.type === 'number' ? 'number' : 'text';
         const listAttr = c.datalist ? `list="${c.datalist}"` : '';
-        return `<input type="${t}" ${tag} autocomplete="off" readonly data-ro-focus ${listAttr} placeholder="${esc(c.label)}" class="${base}" style="min-width:9rem">`;
+        return `<input type="${t}" ${tag} ${al} autocomplete="off" readonly data-ro-focus ${listAttr} placeholder="${esc(c.label)}" class="${base}" style="min-width:9rem">`;
     }
 
     // autocomplete="off" sozinho não impede o autofill de "Nome"/"Endereço"
@@ -722,7 +728,7 @@ window.TabCatalogar = (function () {
     function fieldTextarea(f, val, req, base) {
         const max = f.maxlength || 4000;
         return `<textarea name="${f.key}" ${req} autocomplete="off" ${RO} rows="2" maxlength="${max}" data-maxcount="${max}" placeholder="${esc(f.placeholder || '')}" class="${base}">${esc(val)}</textarea>
-            <p class="text-[11px] text-gray-400 dark:text-gray-500 text-right mt-0.5" data-counter-for="${f.key}"></p>`;
+            <p class="text-[11px] text-gray-500 dark:text-gray-400 text-right mt-0.5" data-counter-for="${f.key}"></p>`;
     }
     function fieldSelect(f, val, req, base) {
         // `noBlankOption`: pula o "—" inicial — usado em selects de poucas
@@ -769,10 +775,14 @@ window.TabCatalogar = (function () {
             const idx = pair.indexOf(':');
             if (idx > -1) { const s = pair.slice(0, idx).trim(), l = pair.slice(idx + 1).trim(); if (s && l) map[s] = l; }
         });
+        // Cada select ganha aria-label próprio (mesmo motivo/padrão de
+        // fieldAreaTree, acima) — sem isto, um leitor de tela só reconhecia
+        // o 1º (o único ligado à <label> do campo via associateLabels); os
+        // demais (2º-4º nível de habilidade) ficavam sem nome acessível.
         return `<div class="space-y-1 pt-1">
             ${f.options.map(sk => `<div class="flex items-center gap-2 text-sm">
                 <span class="w-32 shrink-0">${esc(sk)}</span>
-                <select data-slgroup="${f.key}" data-skill="${esc(sk)}" class="${base}">
+                <select data-slgroup="${f.key}" data-skill="${esc(sk)}" aria-label="${esc(sk)}" class="${base}">
                     <option value="">—</option>
                     ${levels.map(l => `<option value="${esc(l)}" ${map[sk] === l ? 'selected' : ''}>${esc(l)}</option>`).join('')}
                 </select>

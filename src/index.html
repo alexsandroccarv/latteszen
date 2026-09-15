@@ -153,7 +153,7 @@
                 <!-- Configurações: mesma posição do templateZen (1ª linha do
                      cabeçalho, extrema direita) — continua sendo uma aba
                      normal (tab-btn/data-tab), só mudou de lugar visualmente. -->
-                <button id="headerConfigBtn" class="tab-btn text-white/90 hover:text-white transition-colors w-8 h-8 flex items-center justify-center rounded shrink-0" aria-selected="false" data-tab="config" title="Configurações" aria-label="Configurações">
+                <button id="headerConfigBtn" class="tab-btn text-white/90 hover:text-white transition-colors w-8 h-8 flex items-center justify-center rounded shrink-0" aria-pressed="false" aria-controls="tab-config" data-tab="config" title="Configurações" aria-label="Configurações">
                     <i aria-hidden="true" class="fa-solid fa-gear"></i>
                 </button>
             </div>
@@ -162,25 +162,25 @@
         <!-- Abas de navegação -->
         <nav class="print:hidden bg-white dark:bg-gray-800 border-t border-govbr-700/20 dark:border-gray-700 px-2" role="tablist" aria-label="Seções">
             <div class="max-w-5xl flex gap-1 overflow-x-auto">
-                <button class="tab-btn inline-flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-gray-600 dark:text-gray-300 hover:text-govbr-600 dark:hover:text-unifesp-400 whitespace-nowrap" role="tab" aria-selected="true" data-tab="inicio">
+                <button id="tabBtnInicio" class="tab-btn inline-flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-gray-600 dark:text-gray-300 hover:text-govbr-600 dark:hover:text-unifesp-400 whitespace-nowrap" role="tab" aria-selected="true" aria-controls="tab-inicio" data-tab="inicio">
                     <i aria-hidden="true" class="fa-solid fa-house text-[1.75rem]"></i> Início
                 </button>
-                <button class="tab-btn inline-flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-gray-600 dark:text-gray-300 hover:text-govbr-600 dark:hover:text-unifesp-400 whitespace-nowrap" role="tab" aria-selected="false" data-tab="catalogar">
+                <button id="tabBtnCatalogar" class="tab-btn inline-flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-gray-600 dark:text-gray-300 hover:text-govbr-600 dark:hover:text-unifesp-400 whitespace-nowrap" role="tab" aria-selected="false" aria-controls="tab-catalogar" data-tab="catalogar">
                     <i aria-hidden="true" class="fa-solid fa-file-circle-plus text-[1.75rem]"></i> Catalogar
                 </button>
-                <button class="tab-btn inline-flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-gray-600 dark:text-gray-300 hover:text-govbr-600 dark:hover:text-unifesp-400 whitespace-nowrap" role="tab" aria-selected="false" data-tab="conformidade">
+                <button id="tabBtnConformidade" class="tab-btn inline-flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-gray-600 dark:text-gray-300 hover:text-govbr-600 dark:hover:text-unifesp-400 whitespace-nowrap" role="tab" aria-selected="false" aria-controls="tab-conformidade" data-tab="conformidade">
                     <i aria-hidden="true" class="fa-solid fa-clipboard-check text-[1.75rem]"></i> Conformidade
                 </button>
-                <button class="tab-btn inline-flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-gray-600 dark:text-gray-300 hover:text-govbr-600 dark:hover:text-unifesp-400 whitespace-nowrap" role="tab" aria-selected="false" data-tab="linhatempo">
+                <button id="tabBtnLinhatempo" class="tab-btn inline-flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-gray-600 dark:text-gray-300 hover:text-govbr-600 dark:hover:text-unifesp-400 whitespace-nowrap" role="tab" aria-selected="false" aria-controls="tab-linhatempo" data-tab="linhatempo">
                     <i aria-hidden="true" class="fa-solid fa-table-cells text-[1.75rem]"></i> Gráficos
                 </button>
-                <button class="tab-btn inline-flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-gray-600 dark:text-gray-300 hover:text-govbr-600 dark:hover:text-unifesp-400 whitespace-nowrap" role="tab" aria-selected="false" data-tab="publicar">
+                <button id="tabBtnPublicar" class="tab-btn inline-flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-gray-600 dark:text-gray-300 hover:text-govbr-600 dark:hover:text-unifesp-400 whitespace-nowrap" role="tab" aria-selected="false" aria-controls="tab-publicar" data-tab="publicar">
                     <i aria-hidden="true" class="fa-solid fa-globe text-[1.75rem]"></i> Publicar na Web
                 </button>
-                <button class="tab-btn inline-flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-gray-600 dark:text-gray-300 hover:text-govbr-600 dark:hover:text-unifesp-400 whitespace-nowrap hidden" role="tab" aria-selected="false" data-tab="rsc">
+                <button id="tabBtnRsc" class="tab-btn inline-flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-gray-600 dark:text-gray-300 hover:text-govbr-600 dark:hover:text-unifesp-400 whitespace-nowrap hidden" role="tab" aria-selected="false" aria-controls="tab-rsc" data-tab="rsc">
                     <i aria-hidden="true" class="fa-solid fa-award text-[1.75rem]"></i> RSC
                 </button>
-                <button class="tab-btn inline-flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-gray-600 dark:text-gray-300 hover:text-govbr-600 dark:hover:text-unifesp-400 whitespace-nowrap hidden" role="tab" aria-selected="false" data-tab="sumula">
+                <button id="tabBtnSumula" class="tab-btn inline-flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-gray-600 dark:text-gray-300 hover:text-govbr-600 dark:hover:text-unifesp-400 whitespace-nowrap hidden" role="tab" aria-selected="false" aria-controls="tab-sumula" data-tab="sumula">
                     <i aria-hidden="true" class="fa-solid fa-file-lines text-[1.75rem]"></i> Súmula FAPESP
                 </button>
             </div>
@@ -196,14 +196,14 @@
 
     <!-- ============================ CONTEÚDO ============================ -->
     <main class="flex-1 w-full max-w-[1498px] mx-auto px-4 py-6">
-        <div id="tab-inicio"       class="tab-panel" role="tabpanel"></div>
-        <div id="tab-catalogar"    class="tab-panel" role="tabpanel" hidden></div>
-        <div id="tab-conformidade" class="tab-panel" role="tabpanel" hidden></div>
-        <div id="tab-linhatempo"   class="tab-panel" role="tabpanel" hidden></div>
-        <div id="tab-publicar"     class="tab-panel" role="tabpanel" hidden></div>
-        <div id="tab-rsc"          class="tab-panel" role="tabpanel" hidden></div>
-        <div id="tab-sumula"       class="tab-panel" role="tabpanel" hidden></div>
-        <div id="tab-config"       class="tab-panel" role="tabpanel" hidden></div>
+        <div id="tab-inicio"       class="tab-panel" role="tabpanel" aria-labelledby="tabBtnInicio"></div>
+        <div id="tab-catalogar"    class="tab-panel" role="tabpanel" aria-labelledby="tabBtnCatalogar" hidden></div>
+        <div id="tab-conformidade" class="tab-panel" role="tabpanel" aria-labelledby="tabBtnConformidade" hidden></div>
+        <div id="tab-linhatempo"   class="tab-panel" role="tabpanel" aria-labelledby="tabBtnLinhatempo" hidden></div>
+        <div id="tab-publicar"     class="tab-panel" role="tabpanel" aria-labelledby="tabBtnPublicar" hidden></div>
+        <div id="tab-rsc"          class="tab-panel" role="tabpanel" aria-labelledby="tabBtnRsc" hidden></div>
+        <div id="tab-sumula"       class="tab-panel" role="tabpanel" aria-labelledby="tabBtnSumula" hidden></div>
+        <div id="tab-config"       class="tab-panel" role="tabpanel" aria-labelledby="headerConfigBtn" hidden></div>
     </main>
 
     <!-- Área de notificações (toasts) -->
@@ -279,6 +279,7 @@
          documento) — só passa a ser adiado até o fim do parse do HTML, sem
          efeito aqui porque já são os últimos elementos antes de </body>. -->
     <script type="module" src="js/config.js"></script>
+    <script type="module" src="js/a11y.js"></script>
     <script type="module" src="js/analytics.js"></script>
     <script type="module" src="js/cookie-consent.js"></script>
     <script type="module" src="js/pwa.js"></script>

@@ -257,14 +257,23 @@ window.TabLinhaTempo = (function () {
                 // horizontal abranja só a área dos anos, não o quadro inteiro —
                 // as duas tabelas usam a mesma altura de linha (h-[18px]/h-[22px])
                 // e o mesmo border-spacing, então as linhas ficam alinhadas.
-                const headCells = anos.map(y => `<th class="px-0.5 pb-1 text-[10px] font-normal text-gray-500 dark:text-gray-400 text-center whitespace-nowrap">${y}</th>`).join('');
-                const labelRows = catKeys.map(k => `<tr class="h-[22px]"><th class="pr-3 text-xs font-medium text-left whitespace-nowrap">${esc(labelByKey[k])}</th></tr>`).join('');
+                const headCells = anos.map(y => `<th scope="col" class="px-0.5 pb-1 text-[10px] font-normal text-gray-500 dark:text-gray-400 text-center whitespace-nowrap">${y}</th>`).join('');
+                const labelRows = catKeys.map(k => `<tr class="h-[22px]"><th scope="row" class="pr-3 text-xs font-medium text-left whitespace-nowrap">${esc(labelByKey[k])}</th></tr>`).join('');
+                // aria-label no <td> (não só no title do <div>) — issue de
+                // acessibilidade #17: por estar dividida em 2 <table>
+                // (rótulos fora do <div> com scroll horizontal, dados
+                // dentro), um leitor de tela não relaciona coluna/linha
+                // entre elas; sem isto, cada célula da tabela de dados era
+                // lida como uma div vazia (o `title` sozinho não é anunciado
+                // ao navegar célula a célula) — o aria-label repete o
+                // rótulo completo (categoria + ano + contagem) por célula
+                // pra compensar essa falta de associação entre as 2 tabelas.
                 const dataRows = catKeys.map(k => {
                     const cells = anos.map(y => {
                         const n = porCategoria[k][y] || 0;
                         const cls = NIVEL_CLASSES[nivel(n, max)];
                         const titulo = `${labelByKey[k]} — ${y}: ${n} ite${n === 1 ? 'm' : 'ns'}`;
-                        return `<td class="p-0.5"><div class="w-[11px] h-[11px] rounded-sm ${cls}" data-ano="${y}" data-qtd="${n}" title="${esc(titulo)}"></div></td>`;
+                        return `<td class="p-0.5" aria-label="${esc(titulo)}"><div class="w-[11px] h-[11px] rounded-sm ${cls}" data-ano="${y}" data-qtd="${n}" title="${esc(titulo)}"></div></td>`;
                     }).join('');
                     return `<tr class="h-[22px]">${cells}</tr>`;
                 }).join('');
@@ -272,11 +281,13 @@ window.TabLinhaTempo = (function () {
                 return `
                     <div class="flex items-start">
                         <table class="border-separate shrink-0" style="border-spacing:2px">
+                            <caption class="sr-only">Categorias da linha do tempo</caption>
                             <thead><tr class="h-[18px]"><th class="pr-3">&nbsp;</th></tr></thead>
                             <tbody>${labelRows}</tbody>
                         </table>
                         <div class="overflow-x-auto min-w-0 flex-1 scroll-area">
                             <table class="border-separate" style="border-spacing:2px">
+                                <caption class="sr-only">Quantidade de itens por categoria e ano — cada célula traz a categoria, o ano e a contagem</caption>
                                 <thead><tr class="h-[18px]">${headCells}</tr></thead>
                                 <tbody>${dataRows}</tbody>
                             </table>
@@ -453,7 +464,7 @@ window.TabLinhaTempo = (function () {
         const legendHtml = series.map(sr => `
             <span class="inline-flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-300">
                 <span class="w-2.5 h-2.5 rounded-sm shrink-0 ${sr.corClasse}"></span>
-                ${esc(sr.label)} <span class="text-gray-400 dark:text-gray-500">(${sr.total})</span>
+                ${esc(sr.label)} <span class="text-gray-500 dark:text-gray-400">(${sr.total})</span>
             </span>`).join('');
 
         // Alternativa acessível/tabular aos dados do gráfico — tipo × ano,

@@ -45,7 +45,7 @@ html.high-contrast button {
 /* O botão de Configurações mora na barra azul do topo (não na régua branca
    de abas) — a cor de "aba ativa" acima (azul/verde) ficaria ilegível ali;
    mantém a cor branca do próprio botão mesmo selecionado. */
-#headerConfigBtn[aria-selected="true"] {
+#headerConfigBtn[aria-pressed="true"] {
     color: rgba(255, 255, 255, .9);
     border-bottom-color: transparent;
 }
@@ -197,7 +197,7 @@ html.lz-theme header [class*="text-white/30"] { color: var(--lz-header-text) !im
 html.lz-theme nav { background-color: var(--lz-nav) !important; border-color: var(--lz-border) !important; }
 html.lz-theme .tab-btn { color: var(--lz-nav-text) !important; }
 html.lz-theme .tab-btn[aria-selected="true"] { color: var(--lz-accent) !important; border-bottom-color: var(--lz-accent) !important; }
-html.lz-theme #headerConfigBtn[aria-selected="true"] { color: var(--lz-header-text) !important; }
+html.lz-theme #headerConfigBtn[aria-pressed="true"] { color: var(--lz-header-text) !important; }
 html.lz-theme #govBrLogo { background-color: #ffffff !important; }
 html.lz-theme footer { background-color: var(--lz-footer) !important; color: var(--lz-footer-text) !important; }
 html.lz-theme footer a,

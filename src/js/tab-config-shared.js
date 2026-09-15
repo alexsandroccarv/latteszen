@@ -21,13 +21,30 @@
    Extraído de tab-config.js (issue de refatoração). Nenhuma mudança de
    conteúdo, só saiu do arquivo único original.
    ========================================================================== */
-const { esc } = window.AppCore;
+const { esc, toast } = window.AppCore;
 
     // Ícone de ajuda "(?)" — mostra a explicação num tooltip nativo ao passar
     // o mouse (atributo title), em vez de texto solto ocupando espaço na
-    // tela (a pedido do usuário, pra seção "Trazer e levar dados").
+    // tela (a pedido do usuário, pra seção "Trazer e levar dados"). Um
+    // <button> de verdade (não um <i aria-hidden> solto, issue de
+    // acessibilidade #17): alcançável por teclado, com nome acessível via
+    // aria-label, e clicável — o clique mostra a mesma explicação num toast,
+    // cobrindo tanto quem não usa mouse quanto telas de toque (sem hover) —
+    // mesmo padrão do botão de ajuda do RSC (tab-rsc.js). Delegado uma
+    // única vez em #tab-config (ver wireHelpIcons() no fim deste arquivo).
     function helpIcon(texto) {
-        return `<i aria-hidden="true" class="fa-regular fa-circle-question text-gray-400 dark:text-gray-500 text-xs cursor-help" title="${esc(texto)}"></i>`;
+        return `<button type="button" class="lz-help-btn text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 cursor-help" title="${esc(texto)}" data-help="${esc(texto)}" aria-label="Ajuda"><i aria-hidden="true" class="fa-regular fa-circle-question text-xs"></i></button>`;
+    }
+    // Liga o clique dos helpIcon() de dentro de `panel` (mostra um toast com
+    // a explicação completa) uma única vez — nó estável entre re-renders,
+    // mesmo padrão de delegação usado em tab-conformidade.js.
+    export function wireHelpIcons(panel) {
+        if (!panel || panel.dataset.helpDelegado) return;
+        panel.dataset.helpDelegado = '1';
+        panel.addEventListener('click', (e) => {
+            const btn = e.target.closest('.lz-help-btn');
+            if (btn) toast(btn.dataset.help, 'info');
+        });
     }
     // Um item das colunas Importar/Exportar de "Trazer e levar dados":
     // ícone + rótulo + ajuda (?) no cabeçalho, corpo (inputs/botões) embaixo.

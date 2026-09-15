@@ -120,7 +120,7 @@ window.TabConformidade = (function () {
         const chip = (key, n) => {
             const m = VIEW_META[key];
             const active = state.viewFilter === key;
-            return `<button type="button" data-view="${key}" title="Filtrar: ${m.titulo}"
+            return `<button type="button" data-view="${key}" title="Filtrar: ${m.titulo}" aria-pressed="${active}"
                 class="text-left bg-white dark:bg-gray-900 border rounded px-3 py-2 hover:shadow transition ${active ? `border-${m.cor}-500 ring-2 ring-${m.cor}-500/40` : 'border-gray-200 dark:border-gray-700'}">
                 <span class="block text-xl font-bold text-${m.cor}-600 dark:text-${m.cor}-400">${n}</span>
                 <span class="block text-xs text-gray-600 dark:text-gray-400">${m.titulo}</span>
@@ -172,7 +172,7 @@ window.TabConformidade = (function () {
         const chip = (key) => {
             const m = VIEW_META[key];
             const active = state.viewFilter === key;
-            return `<button type="button" data-view="${key}" title="Filtrar: ${m.titulo}"
+            return `<button type="button" data-view="${key}" title="Filtrar: ${m.titulo}" aria-pressed="${active}"
                 class="text-left bg-white dark:bg-gray-900 border rounded px-3 py-2 hover:shadow transition ${active ? `border-${m.cor}-500 ring-2 ring-${m.cor}-500/40` : 'border-gray-200 dark:border-gray-700'}">
                 <span class="block text-xl font-bold text-${m.cor}-600 dark:text-${m.cor}-400">${count(key)}</span>
                 <span class="block text-xs text-gray-600 dark:text-gray-400">${m.titulo}</span>
@@ -324,7 +324,7 @@ window.TabConformidade = (function () {
         return Array.from(groups.entries()).map(([icon, g]) => {
             const title = g.names.join(', ') + (g.publica ? ' (pública)' : '');
             const badge = g.count > 1 ? `<span class="absolute -bottom-1 -right-1 min-w-[14px] h-3.5 px-0.5 bg-gray-700 dark:bg-gray-300 text-white dark:text-gray-900 text-[9px] leading-[14px] rounded-full text-center">${g.count}</span>` : '';
-            return `<button type="button" data-act="pdf" data-id="${item.id}" title="${esc(title)}" class="relative inline-flex items-center justify-center w-6 h-6 rounded hover:bg-gray-100 dark:hover:bg-gray-700 ${cor}"><i class="fa-solid ${icon}"></i>${badge}</button>`;
+            return `<button type="button" data-act="pdf" data-id="${item.id}" title="${esc(title)}" class="relative inline-flex items-center justify-center w-8 h-8 rounded hover:bg-gray-100 dark:hover:bg-gray-700 ${cor}"><i class="fa-solid ${icon}"></i>${badge}</button>`;
         }).join('');
     }
     // Estado do item em relação ao RSC: 'green' (marcado/em uso), 'amber'
@@ -364,7 +364,7 @@ window.TabConformidade = (function () {
     // Cores compartilhadas pelos ícones de status do card do item.
     const ICON_COLOR_CLASS = {
         green: 'text-green-600 dark:text-green-500', amber: 'text-amber-600 dark:text-amber-500',
-        red: 'text-red-600 dark:text-red-500', gray: 'text-gray-400 dark:text-gray-500',
+        red: 'text-red-600 dark:text-red-500', gray: 'text-gray-500 dark:text-gray-400',
     };
     // Ícone de status clicável: mesma aparência de sempre, mas agora é um
     // botão com data-view — clicar filtra a lista para só os itens com esse
@@ -372,8 +372,8 @@ window.TabConformidade = (function () {
     // VIEW_PREDICATE/VIEW_META + a delegação de clique em #tab-conformidade).
     function iconBtnHtml(viewKey, estado, title, iconClass) {
         const active = state.viewFilter === viewKey;
-        return `<button type="button" data-view="${viewKey}" title="${esc(title)}"
-            class="inline-flex items-center justify-center w-6 h-6 rounded hover:bg-gray-100 dark:hover:bg-gray-700 ${ICON_COLOR_CLASS[estado]} ${active ? 'ring-2 ring-current' : ''}"><i class="fa-solid ${iconClass}"></i></button>`;
+        return `<button type="button" data-view="${viewKey}" title="${esc(title)}" aria-pressed="${active}"
+            class="inline-flex items-center justify-center w-8 h-8 rounded hover:bg-gray-100 dark:hover:bg-gray-700 ${ICON_COLOR_CLASS[estado]} ${active ? 'ring-2 ring-current' : ''}"><i class="fa-solid ${iconClass}"></i></button>`;
     }
     // Ícone do RSC: verde (marcado), âmbar (elegível, dentro do período de uso,
     // ainda não marcado) ou cinza (fora do período de uso). Some quando o
@@ -591,9 +591,9 @@ window.TabConformidade = (function () {
                         ${cargaHorariaIconHtml(i)}${periodoInvalidoIconHtml(i)}${anoImplausivelIconHtml(i)}${semInstituicaoIconHtml(i)}${semIdentificadorIconHtml(i)}${semAutoresIconHtml(i)}${duplicataIconHtml(i)}${rscIconHtml(i)}${lattesIconHtml(i)}${exportarLattesIconHtml(i)}${publicarWebIconHtml(i)}${descIconHtml(i)}
                         <span class="print:hidden contents">
                             ${sep}
-                            <button data-act="edit" data-id="${i.id}" title="Abrir / Editar" class="w-7 h-7 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-govbr-600 dark:text-unifesp-400"><i class="fa-solid fa-pen"></i></button>
-                            ${(LattesTypes.isSingleton(i.typeKey) || LattesTypes.singletonScopeField(i.typeKey)) ? '' : `<button data-act="dup" data-id="${i.id}" title="Duplicar" class="w-7 h-7 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400"><i class="fa-solid fa-clone"></i></button>`}
-                            <button data-act="del" data-id="${i.id}" title="Excluir" class="w-7 h-7 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-red-600"><i class="fa-solid fa-trash"></i></button>
+                            <button data-act="edit" data-id="${i.id}" title="Abrir / Editar" class="w-9 h-9 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-govbr-600 dark:text-unifesp-400"><i class="fa-solid fa-pen"></i></button>
+                            ${(LattesTypes.isSingleton(i.typeKey) || LattesTypes.singletonScopeField(i.typeKey)) ? '' : `<button data-act="dup" data-id="${i.id}" title="Duplicar" class="w-9 h-9 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400"><i class="fa-solid fa-clone"></i></button>`}
+                            <button data-act="del" data-id="${i.id}" title="Excluir" class="w-9 h-9 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-red-600"><i class="fa-solid fa-trash"></i></button>
                         </span>
                     </div>
                 </div>

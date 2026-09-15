@@ -116,6 +116,41 @@ do projeto.
 
 ---
 
+## Acessibilidade
+
+Auditoria de teclado/leitor de tela feita e corrigida (issue #17):
+
+- **Modais com armadilha de foco de verdade** — o aviso de 1ª execução e o
+  aviso de cookies (`src/js/a11y.js`, `trapFocus()`) movem o foco pra dentro
+  ao abrir, prendem Tab/Shift+Tab só entre os elementos focáveis de dentro
+  (nada de escapar pra página por trás) e devolvem o foco a quem estava
+  focado antes ao fechar. O aviso de 1ª execução também fecha com Esc.
+- **Régua de abas navegável por setas** (padrão WAI-ARIA Authoring
+  Practices para `tablist`): ←/→ movem o foco entre as abas visíveis e
+  habilitadas, Home/End vão pra 1ª/última — com ativação automática.
+- **Estado de alternância exposto via `aria-pressed`** nos chips de filtro
+  (Conformidade), ícones de status, e nos botões do assistente de
+  diretório (Configurações) — antes só visual (cor/borda).
+- **Controles antes mudos ganharam nome acessível**: o ícone de ajuda "(?)"
+  das seções de importar/exportar virou um `<button>` de verdade (focável,
+  com `aria-label`, e clicável — o clique mostra a explicação num toast,
+  cobrindo também quem usa tela de toque sem hover); cada coluna de um
+  campo "repeater" (ex.: lista de Autores) e cada seletor de nível de
+  habilidade (Idiomas) ganhou `aria-label` próprio.
+- **Buscador de critério do RSC-PCCTAE** virou um combobox ARIA completo
+  (`role="combobox"`/`"listbox"`/`"option"`, `aria-expanded`,
+  `aria-activedescendant`), navegável por ↓/↑/Enter, não só clique.
+- **Alvos de toque maiores** nos ícones de ação mais usados (editar/
+  duplicar/excluir, evidências, reordenar) — de 24-28px para 32-36px.
+- **Contraste** nas paletas clara/escura e no alto contraste existente
+  auditado contra WCAG AA (todas as combinações principais já passavam;
+  um par de cores inconsistente — texto auxiliar `gray-400`/`gray-500`
+  trocados entre os dois temas — foi corrigido).
+
+Suíte de regressão dedicada em `tools/tests/specs/a11y.mjs`.
+
+---
+
 ## SEO
 
 Cada uma das 10 páginas públicas (`src/index.html` e as páginas estáticas de

@@ -548,7 +548,14 @@
             state.formDirty = false;
         }
         state.activeTab = name;
-        $$('.tab-btn').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === name ? 'true' : 'false'));
+        // headerConfigBtn não é um role="tab" de verdade (fica fora do
+        // role="tablist" da régua de abas — issue de acessibilidade #17),
+        // então usa aria-pressed (padrão "toggle button") em vez de
+        // aria-selected, que só é válido em elementos com role tab/option/row.
+        $$('.tab-btn').forEach(b => {
+            const ativo = b.dataset.tab === name ? 'true' : 'false';
+            b.setAttribute(b.id === 'headerConfigBtn' ? 'aria-pressed' : 'aria-selected', ativo);
+        });
         $$('.tab-panel').forEach(p => p.hidden = (p.id !== 'tab-' + name));
         RENDERERS[name] && RENDERERS[name]();
     }
@@ -684,6 +691,35 @@
     // Publicado em AppCore para tab-config.js — mesmo motivo de uid/nowISO.
     window.AppCore.updateHeaderIdentity = updateHeaderIdentity;
 
+    // Navegação por setas na régua de abas (issue #17 — auditoria de
+    // acessibilidade): role="tablist"/"tab" já existiam, mas só davam pra
+    // trocar de aba com Tab (uma a uma) + Enter/Espaço — o padrão do WAI-ARIA
+    // Authoring Practices para tablist espera ←/→ (e Home/End) movendo o
+    // foco ENTRE as abas, com ativação automática (mais simples aqui, já
+    // que trocar de aba é barato). Só considera abas visíveis e habilitadas
+    // (RSC/Súmula/Publicar podem estar ocultas; as travadas por
+    // "sem diretório" ficam desabilitadas) — e não inclui o botão de
+    // Configurações do cabeçalho, que não tem role="tab" (não faz parte
+    // deste tablist visualmente nem estruturalmente).
+    function wireTabListKeyboardNav() {
+        const tablist = document.querySelector('[role="tablist"]');
+        if (!tablist) return;
+        tablist.addEventListener('keydown', (e) => {
+            if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) return;
+            const abas = $$('[role="tab"]', tablist).filter(b => !b.disabled && !b.classList.contains('hidden'));
+            const atual = abas.indexOf(document.activeElement);
+            if (atual === -1) return;
+            e.preventDefault();
+            let alvo;
+            if (e.key === 'Home') alvo = 0;
+            else if (e.key === 'End') alvo = abas.length - 1;
+            else if (e.key === 'ArrowRight') alvo = (atual + 1) % abas.length;
+            else alvo = (atual - 1 + abas.length) % abas.length;
+            abas[alvo].focus();
+            switchTab(abas[alvo].dataset.tab);
+        });
+    }
+
     // Aviso de 1ª execução: mostra uma vez (fica marcado em Configurações/settings)
     // que o app está em desenvolvimento e sem garantias — reforça o backup.
     function wireFirstRunNotice() {
@@ -694,11 +730,17 @@
         if (cfg.avisoDevVisto) return;
         modal.classList.remove('hidden');
         modal.classList.add('flex');
-        btn.addEventListener('click', () => {
+        // Armadilha de foco (issue #17): sem isto, Tab escapava do modal e
+        // chegava em botões/campos da página por trás — role="alertdialog"
+        // ficava só decorativo pra quem navega por teclado/leitor de tela.
+        const liberarFoco = window.LzA11y && window.LzA11y.trapFocus(modal, { onEscape: fechar, initialFocus: btn });
+        function fechar() {
             modal.classList.add('hidden');
             modal.classList.remove('flex');
+            if (liberarFoco) liberarFoco();
             const s = Storage.loadSettings(); s.avisoDevVisto = true; Storage.saveSettings(s);
-        });
+        }
+        btn.addEventListener('click', fechar);
     }
 
     async function init() {
@@ -863,6 +905,7 @@
 
         // Abas
         $$('.tab-btn').forEach(b => b.addEventListener('click', () => switchTab(b.dataset.tab)));
+        wireTabListKeyboardNav();
         // Vindo de outra página pelo botão de Configurações no cabeçalho
         // (ex.: index.html#config a partir de privacidade.html) — abre a
         // aba direto, em vez de sempre cair em "Início".
