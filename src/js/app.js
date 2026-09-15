@@ -934,6 +934,15 @@
         try { await Storage.restoreDirectory(); } catch (_) {}
         applyDirGate();
         try { await checkDirHealth(); } catch (_) {} // silencioso: sem pedir permissão de novo sem um clique do usuário
+        // Migração local→Drive pendente (issue #140, item 3): uma migração
+        // que começou a copiar mas não chegou a ser confirmada (aba
+        // fechada/travada no meio) deixa a pasta local em uso normalmente
+        // (ver connectGoogleDrive({ deferCommit: true }) em storage.js) —
+        // mas a pessoa pode nem abrir Configurações pra perceber. Um aviso
+        // aqui, uma vez por sessão, aponta pra onde retomar ou descartar.
+        if (Storage.loadPendingGDriveMigration()) {
+            toast('Uma migração para o Google Drive ficou incompleta — veja Configurações › Armazenamento para retomar ou descartar.', 'aviso');
+        }
         // Catálogo local vazio mas já há um diretório configurado e acessível:
         // pode ser um navegador/perfil novo, ou dados locais limpos, apontando
         // pra uma pasta que já tinha itens — sincroniza automaticamente em vez

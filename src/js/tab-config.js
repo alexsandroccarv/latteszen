@@ -410,6 +410,63 @@ window.TabConfig = (function () {
         });
     }
 
+    // Banner de migração local→Drive pendente (issue #140, item 3): aparece
+    // sempre que Storage.loadPendingGDriveMigration() encontra uma migração
+    // que começou a copiar mas não chegou a ser confirmada — a decisão de UX
+    // pra recuperação/retomada que faltava (aba fechada/travada no meio da
+    // cópia não deixava rastro nenhum antes disso). "Retomar" reconecta na
+    // MESMA pasta do Drive (sem passar pelo seletor de novo) e refaz a
+    // cópia — idempotente, então arquivos já copiados só são sobrescritos,
+    // não duplicados. "Descartar" só apaga o aviso; a pasta local continua
+    // sendo usada normalmente (nada precisa ser desfeito de verdade).
+    function pendingGDriveMigrationHtml() {
+        const pendente = Storage.loadPendingGDriveMigration();
+        if (!pendente) return '';
+        return `<div id="gdriveMigrationPendente" class="text-sm mt-3 p-3 rounded border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-300">
+            <p><i aria-hidden="true" class="fa-solid fa-triangle-exclamation mr-1"></i> Uma migração para o Google Drive (pasta "${esc(pendente.pasta)}") ficou incompleta — a pasta local ainda é a que está em uso. A pasta do Drive pode ter recebido uma cópia parcial dos arquivos.</p>
+            <div class="flex flex-wrap gap-2 mt-2">
+                <button id="btnResumeGDriveMigration" class="px-3 py-1.5 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-xs"><i class="fa-solid fa-rotate-right mr-1"></i> Retomar migração</button>
+                <button id="btnDiscardGDriveMigration" class="px-3 py-1.5 rounded border border-amber-400 dark:border-amber-600 text-xs">Descartar aviso</button>
+            </div>
+            <p id="gdriveMigrationPendenteStatus" class="text-xs mt-1"></p>
+        </div>`;
+    }
+
+    // Corpo comum da migração local→Drive (issue #140, item 3): cria a
+    // estrutura de pastas, copia os arquivos e SÓ ENTÃO confirma o Drive
+    // como back-end ativo (Storage.commitGDriveConnection) — chamada tanto
+    // por uma migração nova quanto por "Retomar migração", depois que o
+    // chamador já deixou gdriveCfg/mode apontando pro Drive (via
+    // connectGoogleDrive({ deferCommit: true }) ou resumeGDriveConnection())
+    // e já salvou a migração pendente. Numa falha no meio da cópia, desfaz a
+    // conexão em memória (volta pro local) mas MANTÉM a migração pendente
+    // salva, pra "Retomar migração" aparecer de novo da próxima vez.
+    async function runGDriveMigrationCopy(statusEl) {
+        try {
+            await Storage.ensureSubdirs(LattesTypes.allFolders()); // cria a estrutura de pastas
+            try { await Storage.ensureInbox(); } catch (_) {}      // garante a subpasta "Processados" da Caixa de Entrada
+            if (statusEl) statusEl.innerHTML = '<span class="text-gray-500">Copiando arquivos da pasta local para o Google Drive…</span>';
+            const copiados = await Storage.migrateLocalToGoogleDrive((n, name) => {
+                if (statusEl) statusEl.innerHTML = `<span class="text-gray-500">Copiando arquivos… (${n} até agora — ${esc(name)})</span>`;
+            });
+            Storage.commitGDriveConnection(); // só agora o Drive vira o back-end ativo de verdade (persistido)
+            state.dirHealth = null; // acabou de trocar de armazenamento; revalidada no próximo render
+            let msg = `Migração concluída: ${copiados} arquivo(s) copiado(s) para o Google Drive.`;
+            try {
+                const { encontrados } = await window.AppCore.syncFromDirectory();
+                if (encontrados) msg += ` ${encontrados} item(ns) sincronizado(s).`;
+            } catch (_) {}
+            toast(msg, 'ok');
+            gdriveMigrationNotice = 'Migração concluída. A partir de agora, todas as atualizações do lattesZen ocorrem no Google Drive — a pasta local não será mais usada pelo app. Confira na pasta do Drive se os arquivos foram copiados corretamente; depois disso, a pasta local pode ser excluída com segurança.';
+            window.AppCore.renderItemList();
+            render();
+        } catch (e) {
+            Storage.discardGDriveConnection();
+            toast('Falha na migração — a pasta local continua sendo usada normalmente. ' + e.message, 'erro');
+            render(); // já mostra o banner "migração pendente" (Retomar/Descartar) em vez do estado antigo
+        }
+    }
+
     async function render() {
         window.AppCore.updateHeaderIdentity(); // reflete edições no nome (Identificação, import, limpar catálogo…)
         window.AppCore.applyDirGate(); // reflete escolher/esquecer pasta, conectar/migrar Google Drive etc. nas abas travadas
@@ -559,6 +616,7 @@ window.TabConfig = (function () {
                         <i class="fa-solid fa-triangle-exclamation mr-1"></i> ${esc(gdriveMigrationNotice)}
                         <button id="btnDismissGDriveNotice" class="block mt-1 text-xs underline">Entendi, dispensar</button>
                     </div>` : ''}
+                    ${pendingGDriveMigrationHtml()}
                 </section>
                 </div>
 
@@ -771,34 +829,62 @@ window.TabConfig = (function () {
                     await Storage.chooseDirectory();
                 }
                 if (statusEl) statusEl.innerHTML = '<span class="text-gray-500">Conectando… (autorize na janela do Google e escolha a pasta de destino no seletor)</span>';
-                const resultado = await Storage.connectGoogleDrive({ pickExisting: true });
+                // deferCommit: true — só passa a valer pra valer (persistido,
+                // usado por restoreDirectory() no próximo boot) depois que a
+                // cópia terminar com sucesso, lá em runGDriveMigrationCopy()
+                // (ver comentário completo em Storage.connectGoogleDrive).
+                const resultado = await Storage.connectGoogleDrive({ pickExisting: true, deferCommit: true });
                 if (!resultado) { btnGDriveMigrate.disabled = false; if (btnGDriveConnect) btnGDriveConnect.disabled = false; if (statusEl) statusEl.innerHTML = ''; return; } // cancelou o seletor de pasta
-                await Storage.ensureSubdirs(LattesTypes.allFolders()); // cria a estrutura de pastas
-                try { await Storage.ensureInbox(); } catch (_) {}      // garante a subpasta "Processados" da Caixa de Entrada
-                if (statusEl) statusEl.innerHTML = '<span class="text-gray-500">Copiando arquivos da pasta local para o Google Drive…</span>';
-                const copiados = await Storage.migrateLocalToGoogleDrive((n, name) => {
-                    if (statusEl) statusEl.innerHTML = `<span class="text-gray-500">Copiando arquivos… (${n} até agora — ${esc(name)})</span>`;
-                });
-                state.dirHealth = null; // acabou de trocar de armazenamento; revalidada no próximo render
-                let msg = `Migração concluída: ${copiados} arquivo(s) copiado(s) para o Google Drive.`;
-                try {
-                    const { encontrados } = await window.AppCore.syncFromDirectory();
-                    if (encontrados) msg += ` ${encontrados} item(ns) sincronizado(s).`;
-                } catch (_) {}
-                toast(msg, 'ok');
-                gdriveMigrationNotice = 'Migração concluída. A partir de agora, todas as atualizações do lattesZen ocorrem no Google Drive — a pasta local não será mais usada pelo app. Confira na pasta do Drive se os arquivos foram copiados corretamente; depois disso, a pasta local pode ser excluída com segurança.';
-                window.AppCore.renderItemList();
-                render();
+                // Registra a migração como pendente ANTES de copiar — é o
+                // que sobrevive a uma aba fechada/travada no meio do
+                // caminho, permitindo "Retomar migração" depois (ver banner
+                // em dirSectionHtml) em vez de recomeçar do zero.
+                Storage.savePendingGDriveMigration(resultado);
+                await runGDriveMigrationCopy(statusEl);
             } catch (e) {
                 if (e.name === 'AbortError') { btnGDriveMigrate.disabled = false; if (btnGDriveConnect) btnGDriveConnect.disabled = false; return; } // cancelou o seletor de pasta
-                if (statusEl) statusEl.innerHTML = `<span class="text-red-700 dark:text-red-400"><i aria-hidden="true" class="fa-solid fa-triangle-exclamation mr-1"></i> ${esc(e.message)}</span>`;
-                toast('Falha na migração: ' + e.message, 'erro');
+                Storage.discardGDriveConnection();
+                toast('Falha ao conectar/preparar a migração: ' + e.message, 'erro');
                 btnGDriveMigrate.disabled = false;
                 if (btnGDriveConnect) btnGDriveConnect.disabled = false;
             }
         });
         const btnDismissGDriveNotice = $('#btnDismissGDriveNotice');
         if (btnDismissGDriveNotice) btnDismissGDriveNotice.addEventListener('click', () => { gdriveMigrationNotice = null; render(); });
+
+        // Migração pendente (issue #140, item 3): banner mostrado por
+        // dirSectionHtml/pendingGDriveMigrationHtml() sempre que
+        // Storage.loadPendingGDriveMigration() encontra uma migração que
+        // começou a copiar mas não chegou a ser confirmada (ver
+        // connectGoogleDrive({ deferCommit: true }) acima).
+        const btnResumeGDriveMigration = $('#btnResumeGDriveMigration');
+        if (btnResumeGDriveMigration) btnResumeGDriveMigration.addEventListener('click', async () => {
+            const pending = Storage.loadPendingGDriveMigration();
+            if (!pending) return;
+            if (Storage.storageMode() !== 'local' || !Storage.hasDirectory()) {
+                toast('A pasta local original não está mais configurada aqui — não é possível retomar automaticamente. Descarte este aviso e, se quiser, repita a migração escolhendo a pasta de novo.', 'erro');
+                return;
+            }
+            const statusEl = $('#gdriveMigrationPendenteStatus');
+            btnResumeGDriveMigration.disabled = true;
+            try {
+                if (statusEl) statusEl.textContent = 'Reconectando ao Google Drive…';
+                await Storage.resumeGDriveConnection(pending);
+                await runGDriveMigrationCopy(statusEl);
+            } catch (e) {
+                Storage.discardGDriveConnection();
+                if (statusEl) statusEl.textContent = '';
+                toast('Falha ao retomar a migração: ' + e.message, 'erro');
+                btnResumeGDriveMigration.disabled = false;
+            }
+        });
+        const btnDiscardGDriveMigration = $('#btnDiscardGDriveMigration');
+        if (btnDiscardGDriveMigration) btnDiscardGDriveMigration.addEventListener('click', () => {
+            if (!confirm('Descartar o aviso de migração pendente? A pasta local continua sendo usada normalmente. Se a pasta do Google Drive já tiver recebido alguma cópia parcial, você pode apagá-la manualmente pelo drive.google.com — o lattesZen não vai tentar completá-la sozinho.')) return;
+            Storage.clearPendingGDriveMigration();
+            toast('Aviso de migração pendente descartado.', 'ok');
+            render();
+        });
 
         $('#btnExport').addEventListener('click', exportCatalog);
         $('#importJson').addEventListener('change', importCatalog);
