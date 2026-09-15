@@ -44,7 +44,7 @@ window.TabSumula = (function () {
     // duplicar esse cadastro aqui (mesmo princípio já usado pelo RSC pro
     // nome do servidor, ver tab-rsc.js/nomeServidorAtual).
     function perfilIdentificacao() {
-        const item = state.items.find(i => i.typeKey === 'IDENTIFICACAO');
+        const item = state.catalogo.items.find(i => i.typeKey === 'IDENTIFICACAO');
         return (item && item.fields) || {};
     }
 
@@ -95,23 +95,23 @@ window.TabSumula = (function () {
     // formação complementar — ordem cronológica (mais antiga primeiro),
     // igual à tabela do roteiro oficial.
     function formacaoItens() {
-        return state.items.filter(i => ['FORMACAO_ACADEMICA', 'POS_DOUTORADO', 'FORMACAO_COMPLEMENTAR'].includes(i.typeKey))
+        return state.catalogo.items.filter(i => ['FORMACAO_ACADEMICA', 'POS_DOUTORADO', 'FORMACAO_COMPLEMENTAR'].includes(i.typeKey))
             .slice().sort((a, b) => (itemYear(a) || 0) - (itemYear(b) || 0));
     }
     // 2) Histórico Profissional/Acadêmico: até 3 vínculos/atuações mais
     // recentes (o roteiro pede "até 3 principais posições").
     function historicoProfissionalItens(limit) {
-        return sortByYear(state.items.filter(i => i.typeKey === 'VINCULO_PROFISSIONAL'), false).slice(0, limit);
+        return sortByYear(state.catalogo.items.filter(i => i.typeKey === 'VINCULO_PROFISSIONAL'), false).slice(0, limit);
     }
     function premiosItens() {
-        return sortByYear(state.items.filter(i => i.typeKey === 'PREMIO'), false);
+        return sortByYear(state.catalogo.items.filter(i => i.typeKey === 'PREMIO'), false);
     }
     // 3) Contribuições à Ciência: produção bibliográfica/técnica, patentes e
     // registros e inovação, dos últimos `anos` anos — até `limit` mais
     // recentes (o roteiro limita a 5, últimos 5 anos).
     function contribuicoesItens(limit, anos) {
         const anoCorte = new Date().getFullYear() - anos;
-        const elegiveis = state.items.filter(i => {
+        const elegiveis = state.catalogo.items.filter(i => {
             const cat = LattesTypes.primaryCategory(i.typeKey);
             if (!['PRODUCOES', 'PATENTES_REGISTROS', 'INOVACAO'].includes(cat)) return false;
             const y = itemYear(i);
@@ -123,7 +123,7 @@ window.TabSumula = (function () {
     // extensão/ensino — o roteiro fala especificamente em financiamento À
     // PESQUISA), até `limit` mais recentes.
     function financiamentosItens(limit) {
-        return sortByYear(state.items.filter(i => i.typeKey === 'PROJETO_PESQUISA'), false).slice(0, limit);
+        return sortByYear(state.catalogo.items.filter(i => i.typeKey === 'PROJETO_PESQUISA'), false).slice(0, limit);
     }
     // 5) Indicadores Quantitativos: contagens automáticas do catálogo. Nem
     // todos os 12 indicadores do roteiro têm um campo correspondente na app
@@ -131,8 +131,8 @@ window.TabSumula = (function () {
     // solicitada/concedida/licenciada — ver comentário em lattes-types.js
     // sobre a remoção desse campo) — esses ficam como preenchimento manual.
     function indicadoresQuantitativos() {
-        const porTipo = (...tipos) => state.items.filter(i => tipos.includes(i.typeKey)).length;
-        const orientacao = (tipoTipo, situacaoTipo) => state.items.filter(i => i.typeKey === situacaoTipo && i.fields && i.fields.tipo === tipoTipo).length;
+        const porTipo = (...tipos) => state.catalogo.items.filter(i => tipos.includes(i.typeKey)).length;
+        const orientacao = (tipoTipo, situacaoTipo) => state.catalogo.items.filter(i => i.typeKey === situacaoTipo && i.fields && i.fields.tipo === tipoTipo).length;
         return {
             livros: porTipo('LIVROS', 'LIVRO', 'LIVRO_CAPITULO'),
             periodicos: porTipo('ARTIGO_PERIODICO'),
@@ -143,7 +143,7 @@ window.TabSumula = (function () {
             doutoradoAndamento: orientacao('Doutorado', 'ORIENTACAO_ANDAMENTO'),
             posDocConcluidas: orientacao('Pós-Doutorado', 'ORIENTACAO_CONCLUIDA'),
             posDocAndamento: orientacao('Pós-Doutorado', 'ORIENTACAO_ANDAMENTO'),
-            patentes: state.items.filter(i => LattesTypes.primaryCategory(i.typeKey) === 'PATENTES_REGISTROS').length,
+            patentes: state.catalogo.items.filter(i => LattesTypes.primaryCategory(i.typeKey) === 'PATENTES_REGISTROS').length,
         };
     }
 

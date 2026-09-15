@@ -114,7 +114,7 @@ window.TabConformidade = (function () {
     // período de uso (verde + âmbar de rscEstado — exclui os cinzas, fora
     // do período, e os tipos não elegíveis, ex. Identificação/Não-Lattes).
     function rscConformidadeBoxHtml() {
-        const usaveis = state.items.filter(i => { const e = rscEstado(i); return e === 'green' || e === 'amber'; });
+        const usaveis = state.catalogo.items.filter(i => { const e = rscEstado(i); return e === 'green' || e === 'amber'; });
         const marcados = usaveis.filter(i => rscEstado(i) === 'green').length;
         const elegiveis = usaveis.length - marcados;
         const chip = (key, n) => {
@@ -133,7 +133,7 @@ window.TabConformidade = (function () {
                     ${chip('rscUsavel', usaveis.length)}
                     ${chip('rscMarcado', marcados)}
                     ${chip('rscElegivel', elegiveis)}
-                    ${chip('rscForaPeriodo', state.items.filter(VIEW_PREDICATE.rscForaPeriodo).length)}
+                    ${chip('rscForaPeriodo', state.catalogo.items.filter(VIEW_PREDICATE.rscForaPeriodo).length)}
                 </div>
             </div>`;
     }
@@ -144,12 +144,12 @@ window.TabConformidade = (function () {
     function render() {
         const panel = $('#tab-conformidade');
         recalcularDuplicatas(); // os cartões/chips do topo usam count() logo abaixo — precisa estar pronto antes
-        const count = k => state.items.filter(VIEW_PREDICATE[k]).length;
+        const count = k => state.catalogo.items.filter(VIEW_PREDICATE[k]).length;
         // Denominador da conformidade documental: só itens que EXIGEM evidência.
         // 3 estados (mesmo critério de evidenceIconsHtml): verde (evidência
         // pública) / amarelo (evidência, mas nenhuma pública) / vermelho (sem
         // evidência) — mesmo padrão visual da barra de Descrição, abaixo.
-        const itensComEvidencia = state.items.filter(i => i.lattesItem && needsEvidence(i));
+        const itensComEvidencia = state.catalogo.items.filter(i => i.lattesItem && needsEvidence(i));
         const total = itensComEvidencia.length;
         const evG = itensComEvidencia.filter(i => evidenceState(i) === 'green').length;
         const evA = itensComEvidencia.filter(i => evidenceState(i) === 'amber').length;
@@ -157,10 +157,10 @@ window.TabConformidade = (function () {
         const wEv = n => total ? Math.round(n / total * 100) : 0;
         const pct = wEv(evG);
         // Descrição: verde (completo) / amarelo (falta opcional) / vermelho (falta obrigatório)
-        const totalDesc = state.items.length;
-        const descG = state.items.filter(i => descState(i) === 'green').length;
-        const descA = state.items.filter(i => descState(i) === 'amber').length;
-        const descR = state.items.filter(i => descState(i) === 'red').length;
+        const totalDesc = state.catalogo.items.length;
+        const descG = state.catalogo.items.filter(i => descState(i) === 'green').length;
+        const descA = state.catalogo.items.filter(i => descState(i) === 'amber').length;
+        const descR = state.catalogo.items.filter(i => descState(i) === 'red').length;
         const wDesc = n => totalDesc ? Math.round(n / totalDesc * 100) : 0;
         const pctDesc = wDesc(descG);
 
@@ -532,7 +532,7 @@ window.TabConformidade = (function () {
     let duplicataIds = new Set();
     function recalcularDuplicatas() {
         const grupos = new Map();
-        state.items.forEach((i) => {
+        state.catalogo.items.forEach((i) => {
             const titulo = normNome(LattesTypes.itemTitle(i) || '');
             if (!titulo) return;
             const chave = `${i.typeKey}|${itemYear(i)}|${titulo}`;
@@ -693,14 +693,14 @@ window.TabConformidade = (function () {
             }
         }
 
-        let items = state.items.filter(VIEW_PREDICATE[view]);
+        let items = state.catalogo.items.filter(VIEW_PREDICATE[view]);
         if (q) items = items.filter(i => (LattesTypes.itemTitle(i) + ' ' + LattesTypes.label(i.typeKey) + ' ' + LattesTypes.categoryLabel(i.categoryKey)).toLowerCase().includes(q));
 
         const cnt = $('#itemCount');
-        if (cnt) cnt.textContent = (view === 'todos' && !q) ? `(${state.items.length})` : `(${items.length} de ${state.items.length})`;
+        if (cnt) cnt.textContent = (view === 'todos' && !q) ? `(${state.catalogo.items.length})` : `(${items.length} de ${state.catalogo.items.length})`;
 
         if (!items.length) {
-            const vazio = !state.items.length
+            const vazio = !state.catalogo.items.length
                 ? 'Nenhum item ainda. Adicione pelo formulário ou importe o XML do Lattes.'
                 : (view === 'todos' ? 'Nenhum item corresponde ao filtro.' : 'Nenhum item neste recorte.');
             list.innerHTML = `<p class="text-sm text-gray-500 italic py-6 text-center">${vazio}</p>`;
@@ -718,7 +718,7 @@ window.TabConformidade = (function () {
     // um listener direto por botão.
     async function onItemAction(btn) {
         const id = btn.dataset.id;
-        const item = state.items.find(i => i.id === id);
+        const item = state.catalogo.items.find(i => i.id === id);
         if (!item) return;
         if (btn.dataset.act === 'edit' || btn.dataset.act === 'pdf') {
             // Abre o item na aba Catalogar
@@ -740,7 +740,7 @@ window.TabConformidade = (function () {
     // e sem lattesRef (evita colidir com a deduplicação de reimportação do
     // XML). O campo-título do tipo ganha o sufixo " (cópia)".
     async function duplicateItem(id) {
-        const orig = state.items.find(i => i.id === id);
+        const orig = state.catalogo.items.find(i => i.id === id);
         if (!orig || LattesTypes.isSingleton(orig.typeKey) || LattesTypes.singletonScopeField(orig.typeKey)) return;
         const fields = Object.assign({}, orig.fields);
         const labelKey = ['titulo', 'orientando', 'candidato', 'especialidade', 'subarea', 'area', 'instituicao']

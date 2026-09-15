@@ -95,7 +95,7 @@ window.TabLinhaTempo = (function () {
     // itens — devolve os N mais frequentes, do maior para o menor. Aplica as
     // duas listas configuráveis em Configurações → Nuvem de palavras: termos
     // compostos (contados como uma só unidade) e palavras excluídas.
-    // `itensLista` opcional: por padrão usa state.items (todo o catálogo, aba
+    // `itensLista` opcional: por padrão usa state.catalogo.items (todo o catálogo, aba
     // Linha do tempo do app); a geração da página pública passa só os itens
     // que também entram no currículo público (mesmo filtro de privacidade).
     function contarPalavras(limite, itensLista) {
@@ -104,7 +104,7 @@ window.TabLinhaTempo = (function () {
         const freq = {};
         const conta = (w) => { if (w && !exclusao.has(w)) freq[w] = (freq[w] || 0) + 1; };
 
-        (itensLista || state.items).forEach(it => {
+        (itensLista || state.catalogo.items).forEach(it => {
             if (!it.categoryKey || CATEGORIAS_EXCLUIDAS.has(it.categoryKey)) return;
             const f = it.fields || {};
             const textos = [f.titulo, f.areaConhecimento, ...String(f.palavrasChave || '').split(';')];
@@ -220,7 +220,7 @@ window.TabLinhaTempo = (function () {
         let anoMin = null;
         const anoAtual = new Date().getFullYear();
         let anoMax = anoAtual;
-        (itensLista || state.items).forEach(it => {
+        (itensLista || state.catalogo.items).forEach(it => {
             const ano = itemYear(it);
             if (ano == null || !it.categoryKey) return;
             const porAno = (porCategoria[it.categoryKey] = porCategoria[it.categoryKey] || {});
@@ -337,7 +337,7 @@ window.TabLinhaTempo = (function () {
     function contarProducaoPorTipoEAno() {
         const porTipo = {}, totalPorTipo = {};
         let anoMin = null, anoMax = null;
-        state.items.forEach(it => {
+        state.catalogo.items.forEach(it => {
             if (!ehTipoDeProducao(it)) return;
             const ano = itemYear(it);
             if (ano == null) return;
@@ -548,7 +548,7 @@ window.TabLinhaTempo = (function () {
     // da lista de autores que bater com um desses (normalizado) é excluída
     // (não vira um Alter, nem conta como colaborador de si mesmo).
     function nomesConhecidosDoEgo() {
-        const ident = state.items.find(i => i.typeKey === 'IDENTIFICACAO' && i.fields && i.fields.titulo);
+        const ident = state.catalogo.items.find(i => i.typeKey === 'IDENTIFICACAO' && i.fields && i.fields.titulo);
         if (!ident) return new Set();
         const variacoes = (ident.fields.citacoes || []).map(c => c && c.nome);
         return new Set([ident.fields.titulo, ...variacoes].filter(Boolean).map(normalizarNomeAutor));
@@ -564,7 +564,7 @@ window.TabLinhaTempo = (function () {
         const alteri = new Map();
         const paresAlterAlter = new Map();
 
-        state.items.forEach(it => {
+        state.catalogo.items.forEach(it => {
             const lista = it.fields && it.fields.autoresLista;
             if (!Array.isArray(lista) || !lista.length) return;
             const vistos = new Map(); // chave normalizada -> nome de exibição, só deste item
@@ -805,7 +805,7 @@ window.TabLinhaTempo = (function () {
         }).join('');
 
         const egoNome = (() => {
-            const ident = state.items.find(i => i.typeKey === 'IDENTIFICACAO' && i.fields && i.fields.titulo);
+            const ident = state.catalogo.items.find(i => i.typeKey === 'IDENTIFICACAO' && i.fields && i.fields.titulo);
             return ident ? String(ident.fields.titulo).trim() : 'Você (Ego)';
         })();
 

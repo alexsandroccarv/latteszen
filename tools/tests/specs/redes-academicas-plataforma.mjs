@@ -76,6 +76,6 @@ test('Redes acadêmicas: escolher "Outra" e nomear a rede salva e exibe o nome d
 test('Redes acadêmicas: item com "Outra" exibe o nome digitado na lista, não o rótulo genérico "Outra"', async ({ page, baseUrl }) => {
     const items = [makeItem('CONEXAO_ACADEMICA', 'DADOS_GERAIS', { titulo: 'Outra', outraNome: 'Academia.edu', url: 'https://independent.academia.edu/exemplo' })];
     await seedCatalog(page, baseUrl, items);
-    const texto = await page.evaluate(() => window.LattesTypes.itemTitle(window.AppCore.state.items[0]));
+    const texto = await page.evaluate(() => window.LattesTypes.itemTitle(window.AppCore.state.catalogo.items[0]));
     assertEqual(texto, 'Academia.edu', 'A exibição do item deveria usar o nome digitado, não "Outra"');
 });

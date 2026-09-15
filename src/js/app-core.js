@@ -27,10 +27,17 @@
 window.AppCore = (function () {
     /* ----------------------------- Estado ------------------------------- */
     const state = {
-        items: [],          // catálogo
-        trash: [],          // itens excluídos (lixeira), aguardando restauração ou purga
-        editingId: null,    // item em edição
-        evEditing: [],      // evidências do item em edição (array de trabalho)
+        // O catálogo em si (issue #140) — dado persistido (grava em
+        // localStorage/pasta via Storage.saveCatalog) e o que está em
+        // edição agora. lastCat/lastType agilizam cadastro em série
+        // (lembram a última categoria/tipo usados).
+        catalogo: {
+            items: [],       // catálogo
+            trash: [],       // itens excluídos (lixeira), aguardando restauração ou purga
+            editingId: null, // item em edição
+            evEditing: [],   // evidências do item em edição (array de trabalho)
+            lastCat: '', lastType: '',
+        },
         // Prévias de importação (issue #140) — um resultado por
         // fonte, todas mutuamente exclusivas na tela (Trazer e levar dados):
         // lattes = parse do XML; orcid = busca de publicações no ORCID;
@@ -50,7 +57,6 @@ window.AppCore = (function () {
             cfgActiveGroup: null, // Configurações: id do grupo (CFG_GROUPS) atualmente visível — null = ainda não visitada nesta sessão, usa o 1º grupo
             currentPdfUrl: null,  // URL (blob) do PDF exibido no painel lateral
         },
-        lastCat: '', lastType: '', // última categoria/tipo usados (agiliza cadastro em série)
         vocab: {},          // listas curadas de autocomplete (por chave de campo)
         idPrefix: 'lz',     // prefixo do ID dos arquivos (configurável, até 3 chars)
         // Aba "Publicar na Web" — mesmo mecanismo do RSC (checkbox em
@@ -58,7 +64,7 @@ window.AppCore = (function () {
         // primeira utilização (opt-in, como RSC/Súmula), e como os outros
         // dois módulos, fica como a pessoa deixou até ser trocada de novo.
         // Instalações que já tinham itens cadastrados ANTES desse padrão
-        // mudar (pubWebEnabled nunca salvo, mas state.items não-vazio) são
+        // mudar (pubWebEnabled nunca salvo, mas state.catalogo.items não-vazio) são
         // tratadas como já habilitadas, pra não sumir com a aba de quem já
         // publicava — ver o cálculo em app.js/init() e syncFromDirectory().
         pubWebEnabled: false,
@@ -160,13 +166,13 @@ window.AppCore = (function () {
     function itemsUsingValue(key, value) {
         const v = String(value == null ? '' : value).trim();
         if (!v) return [];
-        if (key === 'evidenciaTag') return state.items.filter(i => (i.evidencias || []).some(e => String(e.tag == null ? '' : e.tag).trim() === v));
-        if (key === 'autor') return state.items.filter(i => {
+        if (key === 'evidenciaTag') return state.catalogo.items.filter(i => (i.evidencias || []).some(e => String(e.tag == null ? '' : e.tag).trim() === v));
+        if (key === 'autor') return state.catalogo.items.filter(i => {
             const f = i.fields || {};
             if (Array.isArray(f.autoresLista) && f.autoresLista.some(a => String((a && a.nomeCompleto) || '').trim() === v)) return true;
             return !!(f.autores && String(f.autores).split(';').some(n => n.trim() === v));
         });
-        return state.items.filter(i => i.fields && String(i.fields[key] == null ? '' : i.fields[key]).trim() === v);
+        return state.catalogo.items.filter(i => i.fields && String(i.fields[key] == null ? '' : i.fields[key]).trim() === v);
     }
 
     // Normaliza um nome para comparação (sem acentos, maiúsculas, espaços)

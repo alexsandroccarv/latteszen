@@ -56,7 +56,7 @@ const { state, $, $$, esc, toast } = window.AppCore;
     const ORCID_FALLBACK_TYPE = 'OUTRA_BIBLIOGRAFICA';
 
     export function orcidImportItemHtml() {
-        const perfil = (state.items.find(i => i.typeKey === 'IDENTIFICACAO') || {}).fields || {};
+        const perfil = (state.catalogo.items.find(i => i.typeKey === 'IDENTIFICACAO') || {}).fields || {};
         return dadosItemHtml('fa-brands fa-orcid', 'ORCID (online)',
             'Busca as obras públicas registradas no seu ORCID iD (API pública — nenhuma senha é necessária) e lista para você escolher quais importar, do mesmo jeito que a importação do XML do Lattes. Os autores só saem se o próprio autor tiver um nome público registrado no ORCID daquela obra — quando faltar, complete depois de importar. O tipo de cada obra é inferido automaticamente e pode precisar de ajuste.', `
                 <div class="flex flex-wrap items-end gap-2">
@@ -170,7 +170,7 @@ const { state, $, $$, esc, toast } = window.AppCore;
         const box = $('#orcidResult');
         if (!items.length) { box.innerHTML = `<p class="text-sm text-gray-500 italic">Nenhuma obra pública encontrada para esse ORCID iD.</p>`; return; }
         const sigMap = existingSignatureMap();
-        const isDup = (it) => (LattesTypes.isSingleton(it.typeKey) && state.items.some((x) => x.typeKey === it.typeKey)) || sigMap.has(itemSignature(it.typeKey, it.fields || {}));
+        const isDup = (it) => (LattesTypes.isSingleton(it.typeKey) && state.catalogo.items.some((x) => x.typeKey === it.typeKey)) || sigMap.has(itemSignature(it.typeKey, it.fields || {}));
         const novos = items.filter((it) => !isDup(it)).length;
         box.innerHTML = `
             <div class="mb-3">

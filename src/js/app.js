@@ -71,10 +71,10 @@
         const pref = state.idPrefix || 'lz';
         for (let tentativa = 0; tentativa < 800; tentativa++) {
             const id = `${pref}-${randCode(3)}`;
-            if (!state.items.some(i => i.id === id)) return id;
+            if (!state.catalogo.items.some(i => i.id === id)) return id;
         }
         // Espaço de 3 caracteres praticamente esgotado — estende para 4.
-        let id; do { id = `${pref}-${randCode(4)}`; } while (state.items.some(i => i.id === id));
+        let id; do { id = `${pref}-${randCode(4)}`; } while (state.catalogo.items.some(i => i.id === id));
         return id;
     }
     function sanitizePrefix(s) {
@@ -141,7 +141,7 @@
     /* --------------------------- Persistência --------------------------- */
     // Grava o índice no localStorage protegendo contra estouro de cota.
     function saveCatalog() {
-        try { Storage.saveCatalog(state.items); return true; }
+        try { Storage.saveCatalog(state.catalogo.items); return true; }
         catch (e) {
             toast('Não foi possível salvar no navegador (armazenamento cheio). Exporte um backup em Configurações e/ou remova itens.', 'erro');
             return false;
@@ -150,7 +150,7 @@
     // Publicado em AppCore para tab-catalogar.js — mesmo motivo de uid/nowISO.
     window.AppCore.saveCatalog = saveCatalog;
     function saveTrash() {
-        try { Storage.saveTrash(state.trash); return true; }
+        try { Storage.saveTrash(state.catalogo.trash); return true; }
         catch (e) {
             toast('Não foi possível salvar a lixeira (armazenamento cheio).', 'erro');
             return false;
@@ -215,9 +215,9 @@
     // já existe um diretório configurado — ver init()).
     async function syncFromDirectory() {
         const found = await Storage.scanDirectory();
-        const byId = new Map(state.items.map(i => [i.id, i]));
+        const byId = new Map(state.catalogo.items.map(i => [i.id, i]));
         found.forEach(f => byId.set(f.id, f));
-        state.items = Array.from(byId.values());
+        state.catalogo.items = Array.from(byId.values());
         saveCatalog();
 
         // Restaura as configurações do sistema (prefixo do identificador,
@@ -235,8 +235,8 @@
                 Storage.saveSettings(merged);
                 state.vocab = merged.vocab || {};
                 state.idPrefix = sanitizePrefix(merged.idPrefix || 'lz');
-                state.lastCat = merged.lastCat || '';
-                state.lastType = merged.lastType || '';
+                state.catalogo.lastCat = merged.lastCat || '';
+                state.catalogo.lastType = merged.lastType || '';
                 state.rsc.enabled = !!merged.rscEnabled;
                 state.rsc.cfg = merged.rsc || {};
                 state.rsc.memorialTexto = merged.rscMemorialTexto || '';
@@ -245,7 +245,7 @@
                 state.sumula.cfg = merged.sumula || {};
                 state.sumula.texto = merged.sumulaTexto || '';
                 applySumulaVisibility();
-                state.pubWebEnabled = merged.pubWebEnabled !== undefined ? !!merged.pubWebEnabled : state.items.length > 0;
+                state.pubWebEnabled = merged.pubWebEnabled !== undefined ? !!merged.pubWebEnabled : state.catalogo.items.length > 0;
                 applyPublicarVisibility();
                 state.linhaTempo.nuvemExclusao = Array.isArray(merged.nuvemExclusao) ? merged.nuvemExclusao : [];
                 state.linhaTempo.nuvemCompostas = Array.isArray(merged.nuvemCompostas) ? merged.nuvemCompostas : [];
@@ -283,7 +283,7 @@
     const DRAFT_KEY = 'lz_draft';
     let draftTimer = null;
     function saveDraftDebounced() {
-        if (state.editingId) return;                 // não rascunha edição de item existente
+        if (state.catalogo.editingId) return;                 // não rascunha edição de item existente
         clearTimeout(draftTimer);
         draftTimer = setTimeout(() => {
             const form = $('#itemForm'); if (!form) return;
@@ -306,7 +306,7 @@
     function loadDraft() { try { return JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null'); } catch (_) { return null; } }
     function maybeShowDraftBanner() {
         const bn = $('#draftBanner'); if (!bn) return;
-        const d = state.editingId ? null : loadDraft();
+        const d = state.catalogo.editingId ? null : loadDraft();
         if (!d || !d.fields) { bn.innerHTML = ''; return; }
         const label = LattesTypes.label(d.type) || '';
         bn.innerHTML = `<div class="flex items-center gap-2 text-xs bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded px-3 py-2 mb-3">
@@ -342,8 +342,8 @@
     // (evidências) são gravados/removidos separadamente em onSubmitForm.
     async function persistItem(item) {
         item.schemaVersion = SCHEMA_VERSION;       // carimba a versão do esquema
-        const idx = state.items.findIndex(i => i.id === item.id);
-        if (idx >= 0) state.items[idx] = item; else state.items.push(item);
+        const idx = state.catalogo.items.findIndex(i => i.id === item.id);
+        if (idx >= 0) state.catalogo.items[idx] = item; else state.catalogo.items.push(item);
         saveCatalog();
         bumpBackupReminder();
         if (Storage.hasDirectory()) {
@@ -380,19 +380,19 @@
     // Publicado em AppCore para tab-config.js — mesmo motivo de uid/nowISO.
     window.AppCore.TRASH_RETENTION_DIAS = TRASH_RETENTION_DIAS;
 
-    // "Exclusão" move o item para a lixeira (state.trash) em vez de apagar de
+    // "Exclusão" move o item para a lixeira (state.catalogo.trash) em vez de apagar de
     // vez — os arquivos, se houver diretório configurado, vão para a pasta
     // "Lixeira" (não são removidos). Restaurar (restoreItem) desfaz os dois.
     async function deleteItem(id) {
-        const idx = state.items.findIndex(i => i.id === id);
+        const idx = state.catalogo.items.findIndex(i => i.id === id);
         if (idx === -1) return;
-        const item = state.items[idx];
-        state.items.splice(idx, 1);
+        const item = state.catalogo.items[idx];
+        state.catalogo.items.splice(idx, 1);
         saveCatalog();
         const fromFolder = LattesTypes.categoryFolder(item.categoryKey);
         item.deletedAt = nowISO();
         item.trashFromFolder = fromFolder; // pra saber de onde restaurar depois
-        state.trash.unshift(item);
+        state.catalogo.trash.unshift(item);
         saveTrash();
         if (Storage.hasDirectory()) {
             try { await Storage.moveItemFiles(id, fromFolder, LattesTypes.lixeiraFolder()); } catch (_) {}
@@ -405,14 +405,14 @@
     // Restaura um item da lixeira de volta ao catálogo (e move os arquivos de
     // volta para a pasta original da categoria, se houver diretório).
     async function restoreItem(id) {
-        const idx = state.trash.findIndex(i => i.id === id);
+        const idx = state.catalogo.trash.findIndex(i => i.id === id);
         if (idx === -1) return;
-        const item = state.trash[idx];
-        state.trash.splice(idx, 1);
+        const item = state.catalogo.trash[idx];
+        state.catalogo.trash.splice(idx, 1);
         saveTrash();
         const toFolder = item.trashFromFolder || LattesTypes.categoryFolder(item.categoryKey);
         delete item.deletedAt; delete item.trashFromFolder;
-        state.items.push(item);
+        state.catalogo.items.push(item);
         saveCatalog();
         if (Storage.hasDirectory()) {
             try { await Storage.moveItemFiles(id, LattesTypes.lixeiraFolder(), toFolder); } catch (_) {}
@@ -423,9 +423,9 @@
 
     // Exclui definitivamente um item já na lixeira (não pode mais ser desfeito).
     async function purgeTrashItem(id) {
-        const idx = state.trash.findIndex(i => i.id === id);
+        const idx = state.catalogo.trash.findIndex(i => i.id === id);
         if (idx === -1) return;
-        state.trash.splice(idx, 1);
+        state.catalogo.trash.splice(idx, 1);
         saveTrash();
         try { await Storage.deleteItemFiles(id, LattesTypes.lixeiraFolder()); } catch (_) {}
     }
@@ -435,9 +435,9 @@
     // Esvazia a lixeira inteira (usado pelo botão "Esvaziar lixeira" e pela
     // purga automática de itens antigos no início do app).
     async function emptyTrash(ids) {
-        const alvo = ids || state.trash.map(i => i.id);
+        const alvo = ids || state.catalogo.trash.map(i => i.id);
         for (const id of alvo) { try { await Storage.deleteItemFiles(id, LattesTypes.lixeiraFolder()); } catch (_) {} }
-        state.trash = state.trash.filter(i => !alvo.includes(i.id));
+        state.catalogo.trash = state.catalogo.trash.filter(i => !alvo.includes(i.id));
         saveTrash();
     }
     // Publicado em AppCore para tab-config.js — mesmo motivo de uid/nowISO.
@@ -447,7 +447,7 @@
     // Roda uma vez no início do app (init()).
     async function purgeOldTrash() {
         const limite = Date.now() - TRASH_RETENTION_DIAS * 24 * 60 * 60 * 1000;
-        const vencidos = state.trash.filter(i => new Date(i.deletedAt).getTime() < limite).map(i => i.id);
+        const vencidos = state.catalogo.trash.filter(i => new Date(i.deletedAt).getTime() < limite).map(i => i.id);
         if (vencidos.length) await emptyTrash(vencidos);
     }
 
@@ -636,7 +636,7 @@
         let changed = false;
         const conexoesMigradas = [];
         const pastasParaMover = []; // { id, oldFolder, newFolder } — nova estrutura ("Evidências" + recategorização)
-        state.items.forEach(i => {
+        state.catalogo.items.forEach(i => {
             if (i.categoryKey === 'NAO_LATTES') { i.categoryKey = 'ATIVIDADES_LIVRES'; changed = true; }
             if (i.lattesItem === false && !i.categoryKey) { i.categoryKey = 'ATIVIDADES_LIVRES'; changed = true; }
             if (i.typeKey) {
@@ -680,7 +680,7 @@
     // item de Identificação). Sem nome preenchido, mantém o título estático
     // da página (TITULO_PAGINA_BASE, acima).
     function updateHeaderIdentity() {
-        const ident = state.items.find(i => i.typeKey === 'IDENTIFICACAO' && i.fields && i.fields.titulo);
+        const ident = state.catalogo.items.find(i => i.typeKey === 'IDENTIFICACAO' && i.fields && i.fields.titulo);
         const nome = ident ? String(ident.fields.titulo).trim() : '';
         const wrap = $('#headerNomeWrap');
         if (wrap) wrap.classList.toggle('hidden', !nome);
@@ -758,16 +758,16 @@
         });
 
         // Carrega catálogo, vocabulários e restaura diretório
-        state.items = Storage.loadCatalog();
-        state.trash = Storage.loadTrash();
+        state.catalogo.items = Storage.loadCatalog();
+        state.catalogo.trash = Storage.loadTrash();
         const cfg = Storage.loadSettings();
         state.vocab = cfg.vocab || {};
         // Semeia a lista curada de tags de evidências uma única vez (1ª execução);
         // depois disso, o que estiver salvo prevalece (o usuário pode editar/remover).
         if (state.vocab.evidenciaTag === undefined) { state.vocab.evidenciaTag = DEFAULT_EVIDENCE_TAGS.slice(); saveVocab(); }
         state.idPrefix = sanitizePrefix(cfg.idPrefix || 'lz');
-        state.lastCat = cfg.lastCat || '';
-        state.lastType = cfg.lastType || '';
+        state.catalogo.lastCat = cfg.lastCat || '';
+        state.catalogo.lastType = cfg.lastType || '';
         state.rsc.enabled = !!cfg.rscEnabled;
         state.rsc.cfg = cfg.rsc || {};
         state.rsc.memorialTexto = cfg.rscMemorialTexto || '';
@@ -783,7 +783,7 @@
         // com a aba de quem já usa. Só se aplica enquanto a chave nunca foi
         // salva — uma vez que a pessoa mexe no checkbox (ligado OU
         // desligado), o valor explícito sempre prevalece.
-        state.pubWebEnabled = cfg.pubWebEnabled !== undefined ? !!cfg.pubWebEnabled : state.items.length > 0;
+        state.pubWebEnabled = cfg.pubWebEnabled !== undefined ? !!cfg.pubWebEnabled : state.catalogo.items.length > 0;
         const { conexoesMigradas, pastasParaMover } = migrarItens();
         updateHeaderIdentity();
         applyRscVisibility();
@@ -797,7 +797,7 @@
         // pra uma pasta que já tinha itens — sincroniza automaticamente em vez
         // de deixar a lista vazia até o usuário lembrar de clicar em
         // "Sincronizar do diretório".
-        if (state.items.length === 0 && Storage.hasDirectory() && state.dirHealth && state.dirHealth.ok) {
+        if (state.catalogo.items.length === 0 && Storage.hasDirectory() && state.dirHealth && state.dirHealth.ok) {
             try {
                 const { encontrados } = await syncFromDirectory();
                 if (encontrados) toast(`${encontrados} item(ns) encontrado(s) na pasta configurada e sincronizados automaticamente.`, 'ok');
@@ -821,7 +821,7 @@
         // Move os arquivos de Atividades livres da pasta antiga (99) p/ Registros pessoais (20)
         if (!cfg.pastaRegistrosPessoaisMigrada && Storage.hasDirectory()) {
             const destino = LattesTypes.categoryFolder('ATIVIDADES_LIVRES');
-            const idsRegistrosPessoais = state.items.filter(i => i.categoryKey === 'ATIVIDADES_LIVRES').map(i => i.id);
+            const idsRegistrosPessoais = state.catalogo.items.filter(i => i.categoryKey === 'ATIVIDADES_LIVRES').map(i => i.id);
             for (const id of idsRegistrosPessoais) {
                 try { await Storage.moveItemFiles(id, PASTA_ATIVIDADES_LIVRES_ANTIGA, destino); } catch (_) {}
             }
@@ -886,11 +886,11 @@
         // já estejam lá antes de tentar movê-los pra pasta plana.
         if (!cfg.perfilMescladoDadosGerais && Storage.hasDirectory()) {
             const destino = LattesTypes.categoryFolder('DADOS_GERAIS');
-            const idsFoto = state.items.filter(i => i.typeKey === 'FOTO_PERFIL').map(i => i.id);
+            const idsFoto = state.catalogo.items.filter(i => i.typeKey === 'FOTO_PERFIL').map(i => i.id);
             for (const id of idsFoto) {
                 try { await Storage.moveItemFiles(id, PASTA_FOTOS_PERFIL_ANTIGA, destino); } catch (_) {}
             }
-            const idsDocs = state.items.filter(i => ['DOCUMENTO_PESSOAL', 'DOC_IDENTIDADE', 'DOC_PASSAPORTE'].includes(i.typeKey)).map(i => i.id);
+            const idsDocs = state.catalogo.items.filter(i => ['DOCUMENTO_PESSOAL', 'DOC_IDENTIDADE', 'DOC_PASSAPORTE'].includes(i.typeKey)).map(i => i.id);
             for (const id of idsDocs) {
                 try { await Storage.moveItemFiles(id, PASTA_DOCUMENTOS_PESSOAIS_ANTIGA, destino); } catch (_) {}
             }

@@ -132,7 +132,7 @@ const { state, $, $$, esc, toast } = window.AppCore;
             return;
         }
         const sigMap = existingSignatureMap();
-        const isDup = (it) => (LattesTypes.isSingleton(it.typeKey) && state.items.some((x) => x.typeKey === it.typeKey)) || sigMap.has(itemSignature(it.typeKey, it.fields || {}));
+        const isDup = (it) => (LattesTypes.isSingleton(it.typeKey) && state.catalogo.items.some((x) => x.typeKey === it.typeKey)) || sigMap.has(itemSignature(it.typeKey, it.fields || {}));
         const novos = items.filter((it) => !isDup(it)).length;
 
         box.innerHTML = `
@@ -231,7 +231,7 @@ const { state, $, $$, esc, toast } = window.AppCore;
         };
     }
     function bibExportRecords() {
-        return state.items.map(itemToBibRecord).filter(Boolean);
+        return state.catalogo.items.map(itemToBibRecord).filter(Boolean);
     }
     function baixarArquivoTexto(nome, texto) {
         const blob = new Blob([texto], { type: 'text/plain;charset=utf-8' });

@@ -376,14 +376,14 @@ window.TabConfig = (function () {
         return `
             <section class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
                 <h2 class="text-lg font-bold mb-2 flex items-center gap-2">
-                    <i class="fa-solid fa-trash-can text-govbr-600 dark:text-unifesp-400"></i> Lixeira <span class="text-sm font-normal text-gray-500">(${state.trash.length})</span>
+                    <i class="fa-solid fa-trash-can text-govbr-600 dark:text-unifesp-400"></i> Lixeira <span class="text-sm font-normal text-gray-500">(${state.catalogo.trash.length})</span>
                 </h2>
                 <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">Itens excluídos ficam aqui por até ${window.AppCore.TRASH_RETENTION_DIAS} dias antes de serem removidos definitivamente. Os arquivos (quando há diretório configurado) vão para a pasta “${esc(LattesTypes.lixeiraFolder())}”, não são apagados na hora.</p>
-                ${state.trash.length ? `
+                ${state.catalogo.trash.length ? `
                 <div class="flex justify-end mb-2">
                     <button id="btnEsvaziarLixeira" class="px-3 py-1.5 rounded border border-red-300 dark:border-red-700 text-red-700 dark:text-red-400 text-xs"><i class="fa-solid fa-trash mr-1"></i> Esvaziar lixeira</button>
                 </div>
-                <ul class="space-y-2">${state.trash.map(trashItemRowHtml).join('')}</ul>` : `
+                <ul class="space-y-2">${state.catalogo.trash.map(trashItemRowHtml).join('')}</ul>` : `
                 <p class="text-sm text-gray-500 italic">A lixeira está vazia.</p>`}
             </section>`;
     }
@@ -395,7 +395,7 @@ window.TabConfig = (function () {
             render();
         }));
         $$('[data-purgar]').forEach(b => b.addEventListener('click', async () => {
-            const item = state.trash.find(i => i.id === b.dataset.purgar);
+            const item = state.catalogo.trash.find(i => i.id === b.dataset.purgar);
             if (item && !confirm(`Excluir definitivamente "${LattesTypes.itemTitle(item)}"? Esta ação não pode ser desfeita.`)) return;
             await window.AppCore.purgeTrashItem(b.dataset.purgar);
             toast('Item excluído definitivamente.', 'ok');
@@ -403,7 +403,7 @@ window.TabConfig = (function () {
         }));
         const btnEmpty = $('#btnEsvaziarLixeira');
         if (btnEmpty) btnEmpty.addEventListener('click', async () => {
-            if (!confirm(`Excluir definitivamente os ${state.trash.length} item(ns) da lixeira? Esta ação não pode ser desfeita.`)) return;
+            if (!confirm(`Excluir definitivamente os ${state.catalogo.trash.length} item(ns) da lixeira? Esta ação não pode ser desfeita.`)) return;
             await window.AppCore.emptyTrash();
             toast('Lixeira esvaziada.', 'ok');
             render();
@@ -804,14 +804,14 @@ window.TabConfig = (function () {
         $('#importJson').addEventListener('change', importCatalog);
         $('#btnClear').addEventListener('click', () => {
             if (!confirm('Isto apaga TODO o índice local no navegador — itens catalogados, rascunho, prévia de importação, listas de autocomplete e as configurações do RSC-PCCTAE e da Súmula FAPESP. Os arquivos no diretório NÃO são removidos. Continuar?')) return;
-            state.items = [];
+            state.catalogo.items = [];
             window.AppCore.saveCatalog();
             window.AppCore.clearDraft();                 // rascunho não salvo (lz_draft)
             state.importacoes.lattes = null;    // prévia de importação do XML
             state.importacoes.orcid = null;     // prévia de importação do ORCID
             state.importacoes.bib = null;       // prévia de importação de BibTeX/RIS
-            state.editingId = null;       // sai de qualquer edição em curso
-            state.evEditing = [];         // evidências em edição
+            state.catalogo.editingId = null;       // sai de qualquer edição em curso
+            state.catalogo.evEditing = [];         // evidências em edição
             state.vocab = {};             // listas de autocomplete (curadas)
             state.rsc.cfg = {};            // configuração do RSC-PCCTAE
             state.sumula.cfg = {};         // configuração da Súmula FAPESP
@@ -848,7 +848,7 @@ window.TabConfig = (function () {
     // Varre o catálogo procurando caracteres fora do ISO-8859-1
     function scanEncoding() {
         const problemas = [];
-        state.items.forEach(i => {
+        state.catalogo.items.forEach(i => {
             const chars = new Set();
             Object.values(i.fields || {}).forEach(v => {
                 LzEncoding.findNonLatin1(v).forEach(x => chars.add(x.ch));
@@ -862,7 +862,7 @@ window.TabConfig = (function () {
         const box = $('#encResult');
         const probs = scanEncoding();
         if (!probs.length) {
-            box.innerHTML = `<p class="text-green-700 dark:text-green-400"><i class="fa-solid fa-circle-check"></i> Todos os ${state.items.length} itens são 100% compatíveis com ISO-8859-1. Prontos para exportar ao Lattes.</p>`;
+            box.innerHTML = `<p class="text-green-700 dark:text-green-400"><i class="fa-solid fa-circle-check"></i> Todos os ${state.catalogo.items.length} itens são 100% compatíveis com ISO-8859-1. Prontos para exportar ao Lattes.</p>`;
             return;
         }
         box.innerHTML = `
@@ -878,7 +878,7 @@ window.TabConfig = (function () {
 
     async function normalizarPontuacao() {
         let alterados = 0;
-        state.items.forEach(i => {
+        state.catalogo.items.forEach(i => {
             let changed = false;
             Object.keys(i.fields || {}).forEach(k => {
                 const orig = i.fields[k];
@@ -893,7 +893,7 @@ window.TabConfig = (function () {
         window.AppCore.saveCatalog();
         // regrava os JSON no diretório, se configurado
         if (Storage.hasDirectory()) {
-            for (const i of state.items) {
+            for (const i of state.catalogo.items) {
                 try { await Storage.writeJson(i.id, i, LattesTypes.categoryFolder(i.categoryKey)); } catch (_) {}
             }
         }
@@ -906,7 +906,7 @@ window.TabConfig = (function () {
     // Nome-base do backup: latteszen-<Nome completo>-<timestamp>
     // O nome vem do item de Identificação (Dados gerais); se não houver, omite.
     function catalogBaseName() {
-        const id = state.items.find(i => i.typeKey === 'IDENTIFICACAO' && i.fields && i.fields.titulo);
+        const id = state.catalogo.items.find(i => i.typeKey === 'IDENTIFICACAO' && i.fields && i.fields.titulo);
         const nome = id ? String(id.fields.titulo) : '';
         const safe = nome.replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, ' ').trim();
         return safe ? `latteszen-${safe}-${fileStamp()}` : `latteszen-${fileStamp()}`;
@@ -915,7 +915,7 @@ window.TabConfig = (function () {
     async function exportCatalog() {
         const data = {
             app: 'lattesZen', version: APP_CONFIG.version, schemaVersion: window.AppCore.SCHEMA_VERSION, exportedAt: window.AppCore.nowISO(),
-            items: state.items,
+            items: state.catalogo.items,
             // Configurações do sistema (prefixo do identificador, listas de
             // autocomplete, RSC etc.) — sem isto, restaurar o backup num
             // navegador novo perde tudo que está em Configurações.
@@ -960,9 +960,9 @@ window.TabConfig = (function () {
             const data = JSON.parse(await file.text());
             const items = Array.isArray(data) ? data : data.items;
             if (!Array.isArray(items)) throw new Error('Formato inválido.');
-            const byId = new Map(state.items.map(i => [i.id, i]));
+            const byId = new Map(state.catalogo.items.map(i => [i.id, i]));
             items.forEach(i => { if (i && i.id) { sanitizeImportedItem(i); byId.set(i.id, i); } });
-            state.items = Array.from(byId.values());
+            state.catalogo.items = Array.from(byId.values());
             window.AppCore.saveCatalog();
             // Restaura as configurações do sistema, se presentes no backup (prefixo
             // do identificador, listas de autocomplete, RSC etc.) — essencial ao
@@ -973,8 +973,8 @@ window.TabConfig = (function () {
                 Storage.saveSettings(merged);
                 state.vocab = merged.vocab || {};
                 state.idPrefix = window.AppCore.sanitizePrefix(merged.idPrefix || 'lz');
-                state.lastCat = merged.lastCat || '';
-                state.lastType = merged.lastType || '';
+                state.catalogo.lastCat = merged.lastCat || '';
+                state.catalogo.lastType = merged.lastType || '';
                 state.rsc.enabled = !!merged.rscEnabled;
                 state.rsc.cfg = merged.rsc || {};
                 window.AppCore.applyRscVisibility();
@@ -982,7 +982,7 @@ window.TabConfig = (function () {
                 state.sumula.cfg = merged.sumula || {};
                 state.sumula.texto = merged.sumulaTexto || '';
                 window.AppCore.applySumulaVisibility();
-                state.pubWebEnabled = merged.pubWebEnabled !== undefined ? !!merged.pubWebEnabled : state.items.length > 0;
+                state.pubWebEnabled = merged.pubWebEnabled !== undefined ? !!merged.pubWebEnabled : state.catalogo.items.length > 0;
                 window.AppCore.applyPublicarVisibility();
                 restaurouConfig = true;
             }

@@ -77,7 +77,7 @@ test('Atuação profissional: Dedicação exclusiva é um checkbox (vazio = Não
     let salvo = await page.evaluate(() => JSON.parse(localStorage.getItem('lz_catalog') || '[]').find((i) => i.typeKey === 'VINCULO_PROFISSIONAL'));
     assertEqual(salvo.fields.dedicacaoExclusiva, 'Não', 'Checkbox desmarcado deveria salvar Dedicação exclusiva como Não');
 
-    await page.evaluate(() => window.AppCore.buildForm(window.AppCore.state.items.find((i) => i.id === window.AppCore.state.items.find((it) => it.typeKey === 'VINCULO_PROFISSIONAL').id)));
+    await page.evaluate(() => window.AppCore.buildForm(window.AppCore.state.catalogo.items.find((i) => i.id === window.AppCore.state.catalogo.items.find((it) => it.typeKey === 'VINCULO_PROFISSIONAL').id)));
     await page.waitForTimeout(200);
     await page.check('#dynFields input[name="dedicacaoExclusiva"]');
     await page.click('#camposPanel button[type="submit"]');

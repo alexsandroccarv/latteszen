@@ -72,7 +72,7 @@ const { state, $, $$, esc, toast } = window.AppCore;
     // Nome do arquivo XML exportado, com timestamp (evita sobrescrever
     // exportações anteriores e registra quando cada uma foi gerada).
     function xmlFileName() {
-        const nome = (state.items.find(i => i.typeKey === 'IDENTIFICACAO' && i.fields && i.fields.titulo) || {}).fields;
+        const nome = (state.catalogo.items.find(i => i.typeKey === 'IDENTIFICACAO' && i.fields && i.fields.titulo) || {}).fields;
         const safe = (nome && nome.titulo ? nome.titulo : 'curriculo').replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, '-').toLowerCase();
         return `curriculo-${safe}-${fileStamp()}.xml`;
     }
@@ -81,11 +81,11 @@ const { state, $, $$, esc, toast } = window.AppCore;
         const xmlStatus = (t) => { const el = $('#xmlStatus'); if (el) el.textContent = t; };
         function generateLattesXml() {
             const cfg = Storage.loadSettings() || {};
-            const xml = LattesXMLExport.build(state.items, { numeroIdentificador: cfg.lattesId || '' });
+            const xml = LattesXMLExport.build(state.catalogo.items, { numeroIdentificador: cfg.lattesId || '' });
             // Serializa em ISO-8859-1 (entidades numéricas para fora do Latin-1).
             return { xml, bytes: LzEncoding.encodeLatin1Xml(xml) };
         }
-        const xmlExportaveis = () => state.items.filter(i => {
+        const xmlExportaveis = () => state.catalogo.items.filter(i => {
             const def = LattesTypes.getType(i.typeKey);
             if (def && def.noExport) return false;
             if (i.visibilidade && i.visibilidade.exportarLattes === false) return false;
@@ -138,7 +138,7 @@ const { state, $, $$, esc, toast } = window.AppCore;
             return;
         }
         const sigMap = existingSignatureMap();
-        const isDup = (it) => (LattesTypes.isSingleton(it.typeKey) && state.items.some(x => x.typeKey === it.typeKey)) || sigMap.has(itemSignature(it.typeKey, it.fields || {}));
+        const isDup = (it) => (LattesTypes.isSingleton(it.typeKey) && state.catalogo.items.some(x => x.typeKey === it.typeKey)) || sigMap.has(itemSignature(it.typeKey, it.fields || {}));
         const novos = res.items.filter(it => !isDup(it)).length;
         const jaCat = res.items.length - novos;
         const resumo = Object.entries(res.summary)
@@ -207,7 +207,7 @@ const { state, $, $$, esc, toast } = window.AppCore;
                 // ver singletonBy) — cai na dedup por assinatura logo abaixo, que já
                 // separa os dois pelo texto do logradouro.
                 if (LattesTypes.isSingleton(src.typeKey)) {
-                    const ex = state.items.find(i => i.typeKey === src.typeKey);
+                    const ex = state.catalogo.items.find(i => i.typeKey === src.typeKey);
                     if (ex) {
                         ex.fields = src.fields; ex.categoryKey = src.categoryKey || ex.categoryKey;
                         ex.lattesRef = src.lattesRef; ex.updatedAt = window.AppCore.nowISO();

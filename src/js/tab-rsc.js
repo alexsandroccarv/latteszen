@@ -26,7 +26,7 @@ window.TabRsc = (function () {
 
     // Itens que contam para o RSC (elegíveis, marcados, com critério e não usados)
     function rscItensContados() {
-        return state.items.filter(i => i.rsc && i.rsc.conta && i.rsc.criterio && !i.rsc.jaUsado);
+        return state.catalogo.items.filter(i => i.rsc && i.rsc.conta && i.rsc.criterio && !i.rsc.jaUsado);
     }
 
     // Dados funcionais do servidor (cargo, SIAPE, contatos etc.) — antes em
@@ -320,7 +320,7 @@ window.TabRsc = (function () {
     // Nome do servidor cadastrado em "Identificação" (aba Perfil) — usado no
     // corpo do formulário e no nome do arquivo gerado.
     function nomeServidorAtual() {
-        const item = state.items.find(i => i.typeKey === 'IDENTIFICACAO' && i.fields && i.fields.titulo);
+        const item = state.catalogo.items.find(i => i.typeKey === 'IDENTIFICACAO' && i.fields && i.fields.titulo);
         return (item && item.fields.titulo) || '';
     }
 

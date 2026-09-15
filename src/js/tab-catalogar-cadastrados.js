@@ -38,7 +38,7 @@ const { state, $, $$, esc } = window.AppCore;
             if (!bloco) return;
             const ehIdiomas = !!(def && def.key === 'IDIOMAS');
             if (!ehIdiomas) { bloco.classList.add('hidden'); bloco.innerHTML = ''; return; }
-            const cadastrados = state.items
+            const cadastrados = state.catalogo.items
                 .filter(i => i.typeKey === 'IDIOMAS' && (!itemAtual || i.id !== itemAtual.id) && (i.fields || {}).titulo)
                 .slice().sort((a, b) => a.fields.titulo.localeCompare(b.fields.titulo, 'pt-BR'));
             if (!cadastrados.length) { bloco.classList.add('hidden'); bloco.innerHTML = ''; return; }
@@ -52,7 +52,7 @@ const { state, $, $$, esc } = window.AppCore;
             </div>`;
             $$('[data-editar-idioma]', bloco).forEach(btn => {
                 btn.addEventListener('click', () => {
-                    const alvo = state.items.find(i => i.id === btn.dataset.editarIdioma);
+                    const alvo = state.catalogo.items.find(i => i.id === btn.dataset.editarIdioma);
                     if (alvo) window.AppCore.buildForm(alvo, { focus: true });
                 });
             });
@@ -60,16 +60,16 @@ const { state, $, $$, esc } = window.AppCore;
 
         // Troca a posição de duas Áreas de atuação (mantém a ordem relativa
         // dos demais itens do catálogo — só troca os dois objetos de lugar).
-        // A ordem física em state.items é o que a exportação Lattes usa como
+        // A ordem física em state.catalogo.items é o que a exportação Lattes usa como
         // SEQUENCIA-AREA-DE-ATUACAO (ver lattes-xml-export.js) — por isso o
         // reordenamento manual (▲▼), não um sort automático.
         function moveAreaAtuacao(id, dir) {
-            const areas = state.items.filter(i => i.typeKey === 'AREA_ATUACAO');
+            const areas = state.catalogo.items.filter(i => i.typeKey === 'AREA_ATUACAO');
             const pos = areas.findIndex(i => i.id === id);
             const alvo = pos + dir;
             if (pos < 0 || alvo < 0 || alvo >= areas.length) return;
-            const idxA = state.items.indexOf(areas[pos]), idxB = state.items.indexOf(areas[alvo]);
-            const tmp = state.items[idxA]; state.items[idxA] = state.items[idxB]; state.items[idxB] = tmp;
+            const idxA = state.catalogo.items.indexOf(areas[pos]), idxB = state.catalogo.items.indexOf(areas[alvo]);
+            const tmp = state.catalogo.items[idxA]; state.catalogo.items[idxA] = state.catalogo.items[idxB]; state.catalogo.items[idxB] = tmp;
             window.AppCore.saveCatalog();
         }
         // Entre a seção de seleção do tipo e o formulário de cadastro da área
@@ -81,7 +81,7 @@ const { state, $, $$, esc } = window.AppCore;
             if (!bloco) return;
             const ehArea = !!(def && def.key === 'AREA_ATUACAO');
             if (!ehArea) { bloco.classList.add('hidden'); bloco.innerHTML = ''; return; }
-            const areas = state.items.filter(i => i.typeKey === 'AREA_ATUACAO');
+            const areas = state.catalogo.items.filter(i => i.typeKey === 'AREA_ATUACAO');
             if (!areas.length) { bloco.classList.add('hidden'); bloco.innerHTML = ''; return; }
             bloco.classList.remove('hidden');
             bloco.innerHTML = `<div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded p-3">
@@ -105,7 +105,7 @@ const { state, $, $$, esc } = window.AppCore;
             }));
             $$('[data-editar-area]', bloco).forEach(btn => {
                 btn.addEventListener('click', () => {
-                    const alvo = state.items.find(i => i.id === btn.dataset.editarArea);
+                    const alvo = state.catalogo.items.find(i => i.id === btn.dataset.editarArea);
                     if (alvo) window.AppCore.buildForm(alvo, { focus: true });
                 });
             });

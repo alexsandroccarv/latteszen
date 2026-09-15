@@ -17,7 +17,7 @@ import { test, assertEqual, seedCatalog, makeItem } from '../harness.mjs';
 
 test('Colar (Ctrl+V) uma única vez não duplica a evidência mesmo após várias edições na mesma sessão', async ({ page, baseUrl }) => {
     // "Cancelar" só aparece em modo de EDIÇÃO de um item já existente
-    // (state.editingId) — por isso semeia um item real e abre-o via
+    // (state.catalogo.editingId) — por isso semeia um item real e abre-o via
     // buildForm(item) direto (mesma chamada que o botão "Editar" da
     // Conformidade faz), em vez de tentar reproduzir isso pela tela.
     const item = makeItem('FORMACAO_COMPLEMENTAR', 'FORMACAO', { titulo: 'Curso Teste', instituicao: 'X', anoFim: '2024' });
@@ -27,7 +27,7 @@ test('Colar (Ctrl+V) uma única vez não duplica a evidência mesmo após vária
 
     async function abrirEdicao() {
         await page.evaluate((id) => {
-            const it = window.AppCore.state.items.find((i) => i.id === id);
+            const it = window.AppCore.state.catalogo.items.find((i) => i.id === id);
             window.AppCore.buildForm(it);
         }, item.id);
         await page.waitForTimeout(100);
