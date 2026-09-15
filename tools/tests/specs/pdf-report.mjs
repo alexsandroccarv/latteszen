@@ -94,7 +94,14 @@ test('Gerar relatório sem conseguir carregar o pdf-lib (rede bloqueada) mostra 
     await abrirExportar(page);
 
     await page.click('#btnPdfReportGerar');
-    await page.waitForTimeout(1500);
+    // Espera a rejeição do carregamento do pdf-lib (bloqueado pela rede) virar
+    // toast, em vez de um waitForTimeout fixo — sob contenção de CPU do
+    // runner de CI, um valor fixo curto demais fazia este teste falhar de
+    // forma intermitente mesmo com o comportamento correto.
+    await page.waitForFunction(
+        () => Array.from(document.querySelectorAll('#toasts > div')).some((d) => /falha ao gerar o relat[oó]rio/i.test(d.textContent)),
+        { timeout: 10000 },
+    );
 
     const toasts = await page.evaluate(() => Array.from(document.querySelectorAll('#toasts > div')).map((d) => d.textContent));
     assert(toasts.some((t) => /falha ao gerar o relat[oó]rio/i.test(t)), `Deveria mostrar um erro claro quando o pdf-lib não carrega — toasts: ${JSON.stringify(toasts)}`);
