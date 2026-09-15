@@ -87,6 +87,24 @@ test('Rodapé (index.html): ordem dos itens segue Termo/Privacidade/Ajuda/Sobre/
     ], `Ordem dos links do rodapé não confere — obtido: ${hrefs.join(', ')}`);
 });
 
+for (const pagina of PAGINAS) {
+    test(`Rodapé de ${pagina}: sem separador "|" entre a Versão e o ícone de Código-fonte`, async ({ page, baseUrl }) => {
+        await page.goto(baseUrl + '/' + pagina);
+        await page.waitForTimeout(300);
+        const consecutivos = await page.evaluate(() => {
+            const versao = document.querySelector('footer a[href="notas-de-versao.html"]');
+            const codigoFonte = document.querySelector('footer a[href="https://github.com/alexsandroccarv/latteszen"]');
+            if (!versao || !codigoFonte) return null;
+            // O grupo pai de "Versão" é o <span> com o ícone de tag; o irmão
+            // logo depois dele deveria já ser o link de Código-fonte, sem
+            // nenhum <span>"|"</span> entre os dois.
+            const grupoVersao = versao.closest('span');
+            return grupoVersao ? grupoVersao.nextElementSibling === codigoFonte : null;
+        });
+        assert(consecutivos, `${pagina}: o link de Código-fonte deveria vir logo depois do grupo da Versão, sem separador "|" entre eles`);
+    });
+}
+
 test('Rodapé: "Código-fonte" é só ícone (sem texto visível), na extrema direita', async ({ page, baseUrl }) => {
     await page.goto(baseUrl + '/index.html');
     await page.waitForTimeout(300);
