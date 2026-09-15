@@ -226,6 +226,15 @@
             desde o marco atual.
         </p>
 
+        <section class="card" id="v1-0-0">
+          <h2><span class="pill">v1.0.0</span> <span class="data">15/09/2026</span></h2>
+          <ul>
+            <li><strong>lattesZen chega à versão 1.0.0.</strong></li>
+            <li><strong>Configurações reorganizada</strong>: "Trazer e levar dados" virou duas páginas próprias no menu lateral, "Importar" e "Exportar"; "Outros recursos" voltou a se chamar "Recursos opcionais", e os 3 módulos ali dentro (RSC-PCCTAE, Súmula Curricular FAPESP, Publicar na Web) perderam o "(opcional)" redundante no título.</li>
+            <li><strong>Correção: número da versão não aparecia no rodapé das páginas de apoio</strong> (ajuda, privacidade, termo de uso, sobre etc.) — um script clássico rodava antes do módulo que carrega a configuração do app, sempre lendo um valor vazio.</li>
+          </ul>
+        </section>
+
         <section class="card" id="v0-8-07">
           <h2><span class="pill">v0.8.07</span> <span class="data">15/09/2026</span></h2>
           <ul>
@@ -1104,7 +1113,7 @@
     <script type="module" src="js/analytics.js"></script>
     <script type="module" src="js/cookie-consent.js"></script>
     <script type="module" src="js/pwa.js"></script>
-    <script>
+    <script type="module">
         (function () {
             var C = window.APP_CONFIG || {};
             // Título estático desta página (do <title>, ver issue de SEO #37) —

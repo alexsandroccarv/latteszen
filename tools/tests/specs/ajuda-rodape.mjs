@@ -73,6 +73,15 @@ for (const pagina of PAGINAS) {
         const info = await footerInfo(page);
         assert(info.versao, `${pagina}: deveria haver um link de versão apontando para notas-de-versao.html`);
         assertEqual(info.versao.title, 'Notas de versão', `${pagina}: link de versão deveria ter title="Notas de versão"`);
+        // Regressão: nas páginas de apoio, o script que preenche #appVersion
+        // era um <script> clássico (síncrono) DEPOIS de <script type="module"
+        // src="js/config.js"> — como scripts clássicos rodam imediatamente
+        // durante o parse e módulos só depois (adiados), o texto ficava
+        // sempre vazio (window.APP_CONFIG ainda não existia). Corrigido
+        // marcando esse script também como type="module" (mesma ordem de
+        // execução do config.js). Sem esse teste, um "existe o link" não
+        // pega a versão vazia — precisa checar o TEXTO mesmo.
+        assert(/^v\d/.test(info.versao.text), `${pagina}: o link de versão deveria mostrar o número da versão (ex.: "v1.0.0"), não ficar vazio — obtido: "${info.versao.text}"`);
     });
 }
 
