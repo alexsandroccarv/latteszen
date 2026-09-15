@@ -36,7 +36,9 @@ dados ficam **no seu navegador e numa pasta que você escolhe**.
   em `.docx`.
 - **Relatório completo (PDF)**: um único arquivo pronto para impressão/
   encadernação — capa, sumário paginado, Memorial descritivo, o currículo
-  completo e as evidências públicas mescladas de verdade dentro do PDF.
+  completo e as evidências públicas mescladas de verdade dentro do PDF. Além
+  do download, com um diretório configurado uma cópia também é salva na
+  pasta "Relatórios".
 
 **Fora do escopo (por ora):**
 

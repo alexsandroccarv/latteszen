@@ -91,17 +91,37 @@ window.AppCore = (function () {
     const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => (
         { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
+    // erro/aviso ficam na tela até serem fechados manualmente (botão "×")
+    // em vez de sumirem sozinhos em ~3,7s — uma mensagem de erro pode ser
+    // longa (ex.: "Falha ao gerar o relatório: " + e.message) e a pessoa
+    // precisa de tempo pra ler ou copiar, não só notar que algo deu errado.
+    // ok/info continuam confirmando e sumindo rápido, sem exigir uma ação.
     function toast(msg, type = 'info') {
         const colors = {
             info: 'bg-govbr-600 dark:bg-unifesp-700',
             ok: 'bg-green-600', erro: 'bg-red-600', aviso: 'bg-amber-600',
         };
+        const persiste = type === 'erro' || type === 'aviso';
         const el = document.createElement('div');
-        el.className = `${colors[type] || colors.info} text-white text-sm px-4 py-2 rounded shadow-lg max-w-xs`;
-        el.textContent = msg;
+        el.className = `${colors[type] || colors.info} text-white text-sm px-4 py-2 rounded shadow-lg max-w-xs flex items-start gap-2`;
+        const texto = document.createElement('span');
+        texto.className = 'flex-1 whitespace-pre-line';
+        texto.textContent = msg;
+        el.appendChild(texto);
+        if (persiste) {
+            const fechar = document.createElement('button');
+            fechar.type = 'button';
+            fechar.className = 'shrink-0 leading-none opacity-80 hover:opacity-100';
+            fechar.setAttribute('aria-label', 'Fechar aviso');
+            fechar.innerHTML = '<i class="fa-solid fa-xmark" aria-hidden="true"></i>';
+            fechar.addEventListener('click', () => el.remove());
+            el.appendChild(fechar);
+        }
         $('#toasts').appendChild(el);
-        setTimeout(() => { el.style.opacity = '0'; el.style.transition = 'opacity .4s'; }, 3200);
-        setTimeout(() => el.remove(), 3700);
+        if (!persiste) {
+            setTimeout(() => { el.style.opacity = '0'; el.style.transition = 'opacity .4s'; }, 3200);
+            setTimeout(() => el.remove(), 3700);
+        }
     }
 
     // Abre, numa nova aba, a pasta do Google Drive correspondente a um

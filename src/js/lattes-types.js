@@ -192,8 +192,9 @@ window.LattesTypes = (function () {
     const SUMULA_FAPESP_FOLDER = 'Exportação/Súmula Curricular FAPESP';
     const EXPORT_FOLDERS = [RSC_PCCTAE_FOLDER, 'Exportação/Progressão Docentes', SUMULA_FAPESP_FOLDER, LATTES_XML_FOLDER];
     const PUBLICACAO_FOLDER = 'Publicação para Web';
+    const RELATORIOS_FOLDER = 'Relatórios';
     const LIXEIRA_FOLDER = 'Lixeira';
-    const EXTRA_FOLDERS = [PUBLICACAO_FOLDER, 'Relatórios', LIXEIRA_FOLDER];
+    const EXTRA_FOLDERS = [PUBLICACAO_FOLDER, RELATORIOS_FOLDER, LIXEIRA_FOLDER];
 
     // Nome de pasta seguro para o sistema de arquivos, legível e ordenável
     // Padrão: "NN Nome" (número + espaço + nome, sem hífen)
@@ -231,6 +232,7 @@ window.LattesTypes = (function () {
         naoLattes: NAO_LATTES_TYPE,
         backupFolder() { return BACKUP_FOLDER; },
         publicacaoFolder() { return PUBLICACAO_FOLDER; },
+        relatoriosFolder() { return RELATORIOS_FOLDER; },
         lattesXmlFolder() { return LATTES_XML_FOLDER; },
         rscFolder() { return RSC_PCCTAE_FOLDER; },
         sumulaFapespFolder() { return SUMULA_FAPESP_FOLDER; },
@@ -267,9 +269,10 @@ window.LattesTypes = (function () {
         // Entrada e Cópia de segurança na raiz (a Caixa ganha a subpasta
         // "Processados" à parte, por Storage.ensureInbox); Exportação
         // (RSC-PCCTAE, Progressão Docentes, Súmula Curricular FAPESP e
-        // Lattes XML); Evidências (uma subpasta por categoria); e Publicação
-        // para Web e Relatórios — todas de uso manual (o app não grava nelas
-        // automaticamente).
+        // Lattes XML); Evidências (uma subpasta por categoria); Publicação
+        // para Web (uso manual, o app não grava nela automaticamente); e
+        // Relatórios, onde cada "Relatório completo (PDF)" gerado é salvo
+        // automaticamente (ver tab-config-pdf-report.js), além do download.
         allFolders() {
             return [INBOX_FOLDER, BACKUP_FOLDER, ...EXPORT_FOLDERS, ...LATTES_CATEGORIES.map(slugFolder), ...EXTRA_FOLDERS];
         },

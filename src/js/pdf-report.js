@@ -70,12 +70,53 @@ window.LzPdfReport = (function () {
     function corTexto(rgb) { return rgb(0.11, 0.11, 0.11); }
     function corMuted(rgb) { return rgb(0.42, 0.42, 0.42); }
 
+    // As fontes padrão do PDF (Helvetica) só sabem desenhar o alfabeto
+    // WinAnsi (basicamente Latin-1 + alguns símbolos) — QUALQUER caractere
+    // fora disso (grego, setas, CJK, cirílico, emoji...) faz pdf-lib
+    // lançar uma exceção ("WinAnsi cannot encode...") na hora de medir ou
+    // desenhar o texto, derrubando a geração do relatório inteiro por causa
+    // de UM caractere, em qualquer campo (título de produção, Memorial,
+    // nome de instituição...) — nada incomum num currículo acadêmico (ex.:
+    // "α-sinucleína" num título, um nome em script não-latino, "→" numa
+    // descrição). sanitizarTexto() troca o que dá por um equivalente
+    // legível e o resto por "?", pra nunca mais travar a geração inteira
+    // por causa de um caractere isolado.
+    const charSetCache = new WeakMap();
+    function charSetDe(fonte) {
+        // fontes de teste (tools/tests/specs/pdf-report.mjs) só implementam
+        // widthOfTextAtSize, pra testar a lógica pura sem depender do
+        // pdf-lib real (CDN bloqueado nos testes) — sem getCharacterSet(),
+        // não há como saber o que a fonte desenha, então não sanitiza nada.
+        if (typeof fonte.getCharacterSet !== 'function') return null;
+        let cs = charSetCache.get(fonte);
+        if (!cs) { cs = new Set(fonte.getCharacterSet()); charSetCache.set(fonte, cs); }
+        return cs;
+    }
+    const SUBSTITUICOES_TEXTO = {
+        'α': 'alfa', 'β': 'beta', 'γ': 'gama', 'δ': 'delta', 'Δ': 'Delta', 'ε': 'epsilon', 'ζ': 'zeta', 'η': 'eta',
+        'θ': 'teta', 'ι': 'iota', 'κ': 'capa', 'λ': 'lambda', 'μ': 'mi', 'µ': 'mi', 'ν': 'ni', 'ξ': 'csi', 'π': 'pi',
+        'ρ': 'rô', 'σ': 'sigma', 'Σ': 'Sigma', 'τ': 'tau', 'υ': 'ípsilon', 'φ': 'fi', 'χ': 'qui', 'ψ': 'psi', 'ω': 'ômega', 'Ω': 'Ômega',
+        '→': '->', '←': '<-', '↔': '<->', '⇒': '=>', '⇐': '<=',
+        '―': '—', '‑': '-', '‒': '-',
+    };
+    function sanitizarTexto(fonte, texto) {
+        const s = String(texto == null ? '' : texto);
+        if (!s) return s;
+        const cs = charSetDe(fonte);
+        if (!cs) return s;
+        let resultado = '';
+        for (const ch of s) {
+            resultado += cs.has(ch.codePointAt(0)) ? ch : (SUBSTITUICOES_TEXTO[ch] || '?');
+        }
+        return resultado;
+    }
+
     // Quebra um texto (pode ter várias linhas/parágrafos, separados por \n)
     // em linhas que cabem em `largura` pontos, na fonte/tamanho dados —
     // pdf-lib não faz isso sozinho (só mede largura de texto já pronto).
     function quebrarLinhas(texto, fonte, tamanho, largura) {
         const linhas = [];
-        String(texto == null ? '' : texto).split(/\r?\n/).forEach((paragrafo) => {
+        sanitizarTexto(fonte, texto).split(/\r?\n/).forEach((paragrafo) => {
             const palavras = paragrafo.split(/\s+/).filter(Boolean);
             if (!palavras.length) { linhas.push(''); return; }
             let atual = '';
@@ -115,7 +156,8 @@ window.LzPdfReport = (function () {
             const tamanho = opts.tamanho || 10;
             const leading = tamanho * (opts.leading || 1.4);
             garantirEspaco(leading);
-            if (texto) pagina.drawText(texto, { x: MARGIN + (opts.indent || 0), y, size: tamanho, font: fonte, color: opts.cor || fontes.corTexto });
+            const textoSeguro = sanitizarTexto(fonte, texto);
+            if (textoSeguro) pagina.drawText(textoSeguro, { x: MARGIN + (opts.indent || 0), y, size: tamanho, font: fonte, color: opts.cor || fontes.corTexto });
             y -= leading;
             return pdfDoc.getPageCount() - 1;
         }
@@ -151,8 +193,9 @@ window.LzPdfReport = (function () {
         const pagina = pdfDoc.addPage([PAGE_W, PAGE_H]);
         pagina.drawRectangle({ x: 0, y: PAGE_H / 2 - 60, width: PAGE_W, height: 3, color: fontes.corAccent });
         const tamanho = 28;
-        const largura = fontes.negrito.widthOfTextAtSize(titulo, tamanho);
-        pagina.drawText(titulo, { x: (PAGE_W - largura) / 2, y: PAGE_H / 2 - 20, size: tamanho, font: fontes.negrito, color: fontes.corTexto });
+        const textoSeguro = sanitizarTexto(fontes.negrito, titulo);
+        const largura = fontes.negrito.widthOfTextAtSize(textoSeguro, tamanho);
+        pagina.drawText(textoSeguro, { x: (PAGE_W - largura) / 2, y: PAGE_H / 2 - 20, size: tamanho, font: fontes.negrito, color: fontes.corTexto });
         return pagina;
     }
 
@@ -255,12 +298,14 @@ window.LzPdfReport = (function () {
             y -= h + 30;
         }
         const nomeTam = 24;
-        const nomeLargura = fontes.negrito.widthOfTextAtSize(model.nome, nomeTam);
-        pagina.drawText(model.nome, { x: (PAGE_W - nomeLargura) / 2, y, size: nomeTam, font: fontes.negrito, color: fontes.corTextoCapa });
+        const nomeSeguro = sanitizarTexto(fontes.negrito, model.nome);
+        const nomeLargura = fontes.negrito.widthOfTextAtSize(nomeSeguro, nomeTam);
+        pagina.drawText(nomeSeguro, { x: (PAGE_W - nomeLargura) / 2, y, size: nomeTam, font: fontes.negrito, color: fontes.corTextoCapa });
         y -= 34;
         const subTam = 14;
-        const subLargura = fontes.regular.widthOfTextAtSize(subtitulo, subTam);
-        pagina.drawText(subtitulo, { x: (PAGE_W - subLargura) / 2, y, size: subTam, font: fontes.regular, color: fontes.corTextoCapa });
+        const subSeguro = sanitizarTexto(fontes.regular, subtitulo);
+        const subLargura = fontes.regular.widthOfTextAtSize(subSeguro, subTam);
+        pagina.drawText(subSeguro, { x: (PAGE_W - subLargura) / 2, y, size: subTam, font: fontes.regular, color: fontes.corTextoCapa });
         if (model.orcid) {
             y -= 44;
             const orcidTxt = `ORCID: ${model.orcid}`;
@@ -281,8 +326,9 @@ window.LzPdfReport = (function () {
         linhas.forEach((l, i) => {
             const tamanho = i === 0 ? 16 : 10;
             const fonte = i === 0 ? fontes.negrito : fontes.regular;
-            const w = fonte.widthOfTextAtSize(l, tamanho);
-            pagina.drawText(l, { x: (PAGE_W - w) / 2, y, size: tamanho, font: fonte, color: i === 0 ? fontes.corTextoCapa : fontes.corTextoCapaMuted });
+            const seguro = sanitizarTexto(fonte, l);
+            const w = fonte.widthOfTextAtSize(seguro, tamanho);
+            pagina.drawText(seguro, { x: (PAGE_W - w) / 2, y, size: tamanho, font: fonte, color: i === 0 ? fontes.corTextoCapa : fontes.corTextoCapaMuted });
             y -= tamanho + 12;
         });
     }
@@ -311,7 +357,7 @@ window.LzPdfReport = (function () {
             const indent = e.nivel === 0 ? 0 : 18;
             const cor = e.nivel === 0 ? fontes.corTexto : fontes.corMuted;
             const numero = e.paginaIndex != null ? String(e.paginaIndex) : '';
-            pagina.drawText(e.titulo, { x: MARGIN + indent, y, size: tamanho, font: fonte, color: cor });
+            pagina.drawText(sanitizarTexto(fonte, e.titulo), { x: MARGIN + indent, y, size: tamanho, font: fonte, color: cor });
             const nw = fonte.widthOfTextAtSize(numero, tamanho);
             pagina.drawText(numero, { x: PAGE_W - MARGIN - nw, y, size: tamanho, font: fonte, color: cor });
             y -= ALTURA_ENTRADA_SUMARIO;
@@ -437,10 +483,10 @@ window.LzPdfReport = (function () {
         return pdfDoc.save();
     }
 
-    // quebrarLinhas/anexosDoModelo/calcularPaginasSumario expostos só para
-    // teste (tools/tests/specs/pdf-report.mjs) — nenhum dos três depende do
-    // pdf-lib estar carregado, então dá pra verificar a lógica pura mesmo
-    // com o CDN bloqueado (mesmo bloqueio de rede que a suíte já aplica a
-    // Tailwind/Font Awesome — ver harness.mjs).
-    return { gerar, quebrarLinhas, anexosDoModelo, calcularPaginasSumario };
+    // quebrarLinhas/anexosDoModelo/calcularPaginasSumario/sanitizarTexto
+    // expostos só para teste (tools/tests/specs/pdf-report.mjs) — nenhum dos
+    // quatro depende do pdf-lib estar carregado, então dá pra verificar a
+    // lógica pura mesmo com o CDN bloqueado (mesmo bloqueio de rede que a
+    // suíte já aplica a Tailwind/Font Awesome — ver harness.mjs).
+    return { gerar, quebrarLinhas, anexosDoModelo, calcularPaginasSumario, sanitizarTexto };
 })();
