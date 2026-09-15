@@ -114,9 +114,16 @@ window.TabPublicar = (function () {
     // do catálogo, não só os marcados "Publicar na Web") — usado pelo
     // "Relatório completo (PDF)" (ver pdf-report.js) quando a pessoa escolhe
     // "catálogo inteiro" em vez de "só os marcados para Publicar na Web".
+    // opts.categorias: Set (ou array) de categoryKey — quando presente,
+    // restringe o laço de categorias abaixo só às informadas (modo
+    // "Personalizado" do Relatório completo (PDF)). Filtra ANTES da mescla
+    // das categorias 12-19 numa única seção "Além do Currículo Lattes"
+    // (ver PUB_MERGE_ID abaixo) — por isso o filtro funciona corretamente
+    // mesmo escolhendo só uma dessas categorias mescladas.
     async function buildPublicModel(opts) {
         const external = !!(opts && opts.external);
         const incluirTodos = !!(opts && opts.incluirTodos);
+        const categorias = (opts && opts.categorias) ? new Set(opts.categorias) : null;
         const collect = opts && opts.collect;
         const anexosOpts = { external, collect };
         const items = state.catalogo.items;
@@ -170,6 +177,7 @@ window.TabPublicar = (function () {
         const publicItemsFlat = [];
         for (const cat of LattesTypes.categories) {
             if (cat.key === 'CONEXOES') continue;
+            if (categorias && !categorias.has(cat.key)) continue;
             const typeKeys = cat.groups ? cat.groups.flatMap(g => g.types) : (cat.types || []);
 
             // Atuação: agrupa todos os tipos (vínculo, direção, pesquisa,

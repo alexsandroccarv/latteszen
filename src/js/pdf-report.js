@@ -375,16 +375,30 @@ window.LzPdfReport = (function () {
         }
     }
 
-    // Ponto de entrada — opts.incluirTodos: catálogo inteiro (ignora
-    // "Publicar na Web") ou só os itens marcados para Publicar na Web
-    // (mesmo recorte da página pública). Devolve o PDF pronto (Uint8Array).
+    // Ponto de entrada.
+    // opts.incluirTodos: catálogo inteiro (ignora "Publicar na Web") ou só
+    // os itens marcados para Publicar na Web (mesmo recorte da página
+    // pública).
+    // opts.incluirCurriculo / opts.incluirEvidencias (default: true nos
+    // dois) — os 4 modos do cartão "O que incluir no relatório":
+    //   completo            → os dois true (padrão, comportamento de sempre)
+    //   apenas currículo     → incluirEvidencias: false
+    //   apenas evidências     → incluirCurriculo: false
+    //   personalizado         → os dois true, mas com opts.categorias restrito
+    // opts.categorias: array de categoryKey (ex.: ['DADOS_GERAIS', 'FORMACAO']) —
+    // repassado a buildPublicModel(); null/ausente = todas as categorias
+    // (mesmo comportamento de sempre).
+    // Devolve o PDF pronto (Uint8Array).
     async function gerar(opts) {
         const incluirTodos = !!(opts && opts.incluirTodos);
+        const incluirCurriculo = !(opts && opts.incluirCurriculo === false);
+        const incluirEvidencias = !(opts && opts.incluirEvidencias === false);
+        const categorias = (opts && opts.categorias) || null;
         const PDFLib = await carregarPdfLib();
         const { PDFDocument, StandardFonts, rgb } = PDFLib;
 
         const pdfDoc = await PDFDocument.create();
-        const model = await window.TabPublicar.buildPublicModel({ incluirTodos });
+        const model = await window.TabPublicar.buildPublicModel({ incluirTodos, categorias });
         pdfDoc.setTitle(`Relatório completo — ${model.nome}`);
         pdfDoc.setAuthor(model.nome);
         pdfDoc.setProducer('lattesZen');
@@ -397,10 +411,13 @@ window.LzPdfReport = (function () {
             corTextoCapa: rgb(1, 1, 1), corTextoCapaMuted: rgb(0.85, 0.88, 0.95), corCapaFundo: corPrincipal(rgb),
         };
 
+        // Memorial é conteúdo do CURRÍCULO — some junto com ele no modo
+        // "apenas evidências" (senão o texto do Memorial vazaria num
+        // relatório que deveria conter só os anexos).
         const memorialItem = (window.AppCore.state.catalogo.items || []).find((i) => i.typeKey === 'MEMORIAL');
-        const memorialTexto = String((memorialItem && memorialItem.fields && memorialItem.fields.descricao) || '').trim();
+        const memorialTexto = incluirCurriculo ? String((memorialItem && memorialItem.fields && memorialItem.fields.descricao) || '').trim() : '';
         const todosAnexos = anexosDoModelo(model);
-        const temAnexos = todosAnexos.length > 0;
+        const temAnexos = incluirEvidencias && todosAnexos.length > 0;
 
         let fotoImg = null;
         if (model.foto) {
@@ -412,20 +429,23 @@ window.LzPdfReport = (function () {
         }
 
         // 1) Capa
-        const subtituloCapa = memorialTexto ? 'Memorial e Currículo' : 'Currículo Completo';
+        const subtituloCapa = !incluirCurriculo ? 'Evidências'
+            : memorialTexto ? 'Memorial e Currículo' : 'Currículo Completo';
         desenharCapa(pdfDoc, fontes, model, subtituloCapa, fotoImg);
 
         // 2) Sumário — reserva as páginas agora (o texto entra por último,
         //    quando os índices de página de cada seção já são conhecidos).
         const entradasSumario = [];
         if (memorialTexto) entradasSumario.push({ titulo: 'Memorial', nivel: 0, paginaIndex: null });
-        entradasSumario.push({ titulo: 'Currículo completo', nivel: 0, paginaIndex: null });
+        if (incluirCurriculo) entradasSumario.push({ titulo: 'Currículo completo', nivel: 0, paginaIndex: null });
         const entradasPorSecao = new Map();
-        model.secoes.forEach((sec) => {
-            const entrada = { titulo: sec.num ? `${sec.num}. ${sec.label}` : sec.label, nivel: 1, paginaIndex: null };
-            entradasSumario.push(entrada);
-            entradasPorSecao.set(sec.id, entrada);
-        });
+        if (incluirCurriculo) {
+            model.secoes.forEach((sec) => {
+                const entrada = { titulo: sec.num ? `${sec.num}. ${sec.label}` : sec.label, nivel: 1, paginaIndex: null };
+                entradasSumario.push(entrada);
+                entradasPorSecao.set(sec.id, entrada);
+            });
+        }
         if (temAnexos) entradasSumario.push({ titulo: 'Anexos — Evidências', nivel: 0, paginaIndex: null });
 
         const numPaginasSumario = calcularPaginasSumario(entradasSumario);
@@ -434,7 +454,7 @@ window.LzPdfReport = (function () {
 
         const escritor = criarEscritor(pdfDoc, fontes);
 
-        // 3) Memorial (só existe se houver texto)
+        // 3) Memorial (só existe se houver texto e incluirCurriculo)
         if (memorialTexto) {
             desenharDivisoria(pdfDoc, fontes, 'Memorial');
             escritor.novaPagina();
@@ -442,28 +462,30 @@ window.LzPdfReport = (function () {
             escritor.paragrafo(memorialTexto, { tamanho: 11, leading: 1.6 });
         }
 
-        // 4) Currículo completo
-        desenharDivisoria(pdfDoc, fontes, 'Currículo Completo');
-        escritor.novaPagina();
-        entradasSumario.find((e) => e.titulo === 'Currículo completo').paginaIndex = pdfDoc.getPageCount() - 1;
-        if (!model.secoes.length) {
-            escritor.paragrafo('Nenhum item cadastrado ainda.', { cor: fontes.corMuted });
-        }
-        model.secoes.forEach((sec) => {
-            escritor.espaco(6);
-            const idx = escritor.linha(sec.num ? `${sec.num}. ${sec.label}` : sec.label, { negrito: true, tamanho: 13 });
-            entradasPorSecao.get(sec.id).paginaIndex = idx;
-            sec.tipos.forEach((tipo) => {
-                escritor.espaco(4);
-                escritor.linha(tipo.label, { negrito: true, tamanho: 11, indent: 12 });
-                tipo.itens.forEach((item) => {
-                    const anoTxt = item.ano ? ` (${item.ano})` : '';
-                    escritor.paragrafo(`${item.titulo}${anoTxt}`, { tamanho: 10, indent: 24 });
-                    if (item.linha) escritor.paragrafo(item.linha, { tamanho: 9, cor: fontes.corMuted, indent: 24 });
-                    escritor.espaco(3);
+        // 4) Currículo completo (pulado inteiro no modo "apenas evidências")
+        if (incluirCurriculo) {
+            desenharDivisoria(pdfDoc, fontes, 'Currículo Completo');
+            escritor.novaPagina();
+            entradasSumario.find((e) => e.titulo === 'Currículo completo').paginaIndex = pdfDoc.getPageCount() - 1;
+            if (!model.secoes.length) {
+                escritor.paragrafo('Nenhum item cadastrado ainda.', { cor: fontes.corMuted });
+            }
+            model.secoes.forEach((sec) => {
+                escritor.espaco(6);
+                const idx = escritor.linha(sec.num ? `${sec.num}. ${sec.label}` : sec.label, { negrito: true, tamanho: 13 });
+                entradasPorSecao.get(sec.id).paginaIndex = idx;
+                sec.tipos.forEach((tipo) => {
+                    escritor.espaco(4);
+                    escritor.linha(tipo.label, { negrito: true, tamanho: 11, indent: 12 });
+                    tipo.itens.forEach((item) => {
+                        const anoTxt = item.ano ? ` (${item.ano})` : '';
+                        escritor.paragrafo(`${item.titulo}${anoTxt}`, { tamanho: 10, indent: 24 });
+                        if (item.linha) escritor.paragrafo(item.linha, { tamanho: 9, cor: fontes.corMuted, indent: 24 });
+                        escritor.espaco(3);
+                    });
                 });
             });
-        });
+        }
 
         // 5) Anexos (evidências marcadas como "pública" — mescladas de verdade)
         if (temAnexos) {
