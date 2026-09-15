@@ -89,7 +89,10 @@ window.TabPublicar = (function () {
     }
     const PUB_ICON = { DADOS_GERAIS: '🪪', FORMACAO: '🎓', ATUACAO: '💼', PROJETOS: '🧩', PRODUCOES: '📚', PATENTES_REGISTROS: '📜', INOVACAO: '💡', EDUCACAO_CT: '📢', EVENTOS: '📅', ORIENTACOES: '👥', BANCAS: '⚖️',
         AL_DESENVOLVIMENTO: '🌱', AL_ENGAJAMENTO: '🤝', AL_SAUDE_ESPORTE: '🏃', AL_INTERESSES: '🎨', AL_CERTIFICACAO_CAT: '📜', AL_FILIACAO_CAT: '🪪', AL_CONCURSO_CAT: '📋', AL_IMPRENSA_CAT: '📰' };
-    const PUB_EXCLUDE_TYPES = new Set(['IDENTIFICACAO', 'FOTO_PERFIL', 'ENDERECO', 'RESUMO_CV', 'OUTRAS_INFO', 'DOCUMENTO_PESSOAL', 'DOC_IDENTIDADE', 'DOC_PASSAPORTE', 'AREA_ATUACAO']);
+    // MEMORIAL (Memorial descritivo) é exclusivo do "Relatório completo (PDF)"
+    // — ver tab-config-pdf-report.js/pdf-report.js — não aparece na página
+    // pública nem entra na lista normal de itens de nenhuma seção.
+    const PUB_EXCLUDE_TYPES = new Set(['IDENTIFICACAO', 'FOTO_PERFIL', 'ENDERECO', 'RESUMO_CV', 'MEMORIAL', 'OUTRAS_INFO', 'DOCUMENTO_PESSOAL', 'DOC_IDENTIDADE', 'DOC_PASSAPORTE', 'AREA_ATUACAO']);
     // Categorias 12–19 ("Além do Lattes": Desenvolvimento Pessoal, Engajamento,
     // Saúde/Esporte, Interesses, Certificações, Filiações, Concursos, Imprensa)
     // viram uma única seção mesclada na página pública. Fora do intervalo: a
@@ -107,8 +110,13 @@ window.TabPublicar = (function () {
     // faz sentido quando o HTML gerado vai ficar salvo NA MESMA pasta (senão
     // os links relativos quebram). Usado só pelo "Salvar na pasta"; a prévia
     // e o "Baixar" continuam sempre autossuficientes (embed).
+    // opts.incluirTodos: ignora o filtro publicarWebOk (inclui TODOS os itens
+    // do catálogo, não só os marcados "Publicar na Web") — usado pelo
+    // "Relatório completo (PDF)" (ver pdf-report.js) quando a pessoa escolhe
+    // "catálogo inteiro" em vez de "só os marcados para Publicar na Web".
     async function buildPublicModel(opts) {
         const external = !!(opts && opts.external);
+        const incluirTodos = !!(opts && opts.incluirTodos);
         const collect = opts && opts.collect;
         const anexosOpts = { external, collect };
         const items = state.items;
@@ -173,7 +181,7 @@ window.TabPublicar = (function () {
             if (cat.key === 'ATUACAO') {
                 const seus = typeKeys.filter(tk => !PUB_EXCLUDE_TYPES.has(tk));
                 const porInstituicao = new Map();
-                for (const it of items.filter(i => seus.includes(i.typeKey) && i.categoryKey === cat.key && publicarWebOk(i))) {
+                for (const it of items.filter(i => seus.includes(i.typeKey) && i.categoryKey === cat.key && (incluirTodos || publicarWebOk(i)))) {
                     const inst = String((it.fields && it.fields.instituicao) || '').trim() || '\0outras';
                     if (!porInstituicao.has(inst)) porInstituicao.set(inst, []);
                     porInstituicao.get(inst).push(it);
@@ -203,7 +211,7 @@ window.TabPublicar = (function () {
                 if (PUB_EXCLUDE_TYPES.has(tk)) continue;
                 // Casa tipo E categoria do item (um tipo pode figurar em mais de
                 // uma categoria; o item pertence só à sua categoria de origem)
-                const its = sortByYear(items.filter(i => i.typeKey === tk && i.categoryKey === cat.key && publicarWebOk(i)), false);
+                const its = sortByYear(items.filter(i => i.typeKey === tk && i.categoryKey === cat.key && (incluirTodos || publicarWebOk(i))), false);
                 if (!its.length) continue;
                 const itens = [];
                 for (const it of its) { itens.push({ titulo: LattesTypes.itemTitle(it), ano: itemAnoRange(it), linha: itemLinha(it), anexos: await itemAnexos(it, anexosOpts) }); publicItemsFlat.push(it); }
@@ -475,5 +483,8 @@ window.TabPublicar = (function () {
         });
     }
 
-    return { render };
+    // buildPublicModel também é usado pelo "Relatório completo (PDF)" (ver
+    // pdf-report.js) — mesma lógica de agrupamento por categoria/instituição
+    // e mesmo critério de evidências (ev.publica) que a página pública.
+    return { render, buildPublicModel };
 })();

@@ -55,7 +55,11 @@ dados ficam **no seu navegador e numa pasta que você escolhe**.
   índice local (localStorage) funcionam, mas a gravação na pasta fica indisponível.
 - Conexão à internet é **opcional**: recursos externos (Tailwind, ícones,
   fontes) são carregados de CDN de forma tolerante a falha — offline, a
-  aplicação continua funcional com estilos locais.
+  aplicação continua funcional com estilos locais. Exceção: gerar o
+  "Relatório completo (PDF)" (Configurações → Trazer e levar dados) carrega
+  a biblioteca pdf-lib sob demanda via CDN — sem conexão, só essa função
+  específica fica indisponível (com um aviso claro), o resto do app segue
+  funcionando normalmente.
 - Os dados ficam no navegador (localStorage) e na **pasta escolhida** por você;
   faça backups (a própria aplicação lembra periodicamente).
 

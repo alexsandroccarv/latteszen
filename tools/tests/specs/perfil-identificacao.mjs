@@ -77,7 +77,7 @@ test('Identificação, Endereço, Texto inicial, Outras informações, Foto de p
     await page.waitForTimeout(150);
 
     const opcoes = await page.$eval('#selTipo', (sel) => Array.from(sel.options).map((o) => o.value));
-    for (const tk of ['IDENTIFICACAO', 'ENDERECO', 'RESUMO_CV', 'OUTRAS_INFO', 'FOTO_PERFIL', 'DOCUMENTO_PESSOAL']) {
+    for (const tk of ['IDENTIFICACAO', 'ENDERECO', 'RESUMO_CV', 'MEMORIAL', 'OUTRAS_INFO', 'FOTO_PERFIL', 'DOCUMENTO_PESSOAL']) {
         assert(opcoes.includes(tk), `"${tk}" deveria aparecer no Tipo do item de "01. Dados gerais" — obtidas: ${JSON.stringify(opcoes)}`);
     }
     // Identidade (RG) e Passaporte saíram da lista principal (a pedido do
@@ -93,7 +93,7 @@ test('Identificação, Endereço, Texto inicial, Outras informações, Foto de p
     assert(opcoesAtuacao.includes('AREA_ATUACAO'), `"AREA_ATUACAO" deveria aparecer no Tipo do item de "03. Atuação" — obtidas: ${JSON.stringify(opcoesAtuacao)}`);
 });
 
-test('Dados gerais: Texto inicial e Outras informações ficam ao final da lista', async ({ page, baseUrl }) => {
+test('Dados gerais: Texto inicial, Memorial descritivo e Outras informações ficam ao final da lista', async ({ page, baseUrl }) => {
     await seedCatalog(page, baseUrl, []);
     await page.click('[data-tab="catalogar"]');
     await page.waitForTimeout(150);
@@ -101,8 +101,8 @@ test('Dados gerais: Texto inicial e Outras informações ficam ao final da lista
     await page.waitForTimeout(150);
 
     const opcoes = await page.$eval('#selTipo', (sel) => Array.from(sel.options).map((o) => o.value).filter(Boolean));
-    assert(opcoes[opcoes.length - 2] === 'RESUMO_CV' && opcoes[opcoes.length - 1] === 'OUTRAS_INFO',
-        `"Texto inicial do Currículo Lattes" e "Outras informações" deveriam ser os 2 últimos itens da lista — obtida: ${JSON.stringify(opcoes)}`);
+    assertEqual(opcoes.slice(-3), ['RESUMO_CV', 'MEMORIAL', 'OUTRAS_INFO'],
+        `"Texto inicial do Currículo Lattes", "Memorial descritivo" e "Outras informações" deveriam ser os 3 últimos itens da lista, nessa ordem — obtida: ${JSON.stringify(opcoes)}`);
 });
 
 test('Identificação: escolher o Tipo pela caixa de seleção (sem clicar em "Editar") mostra os dados já salvos, não em branco', async ({ page, baseUrl }) => {
