@@ -25,6 +25,11 @@ const MIME = {
     '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8',
     '.css': 'text/css; charset=utf-8', '.json': 'application/json; charset=utf-8',
     '.svg': 'image/svg+xml', '.png': 'image/png',
+    // .txt/.xml (robots.txt, sitemap.xml — ver issue de SEO #37): sem um
+    // Content-Type textual, o Chromium trata a navegação como download em
+    // vez de renderizar a resposta, e page.goto() trava com "Download is
+    // starting" em vez de retornar.
+    '.txt': 'text/plain; charset=utf-8', '.xml': 'application/xml; charset=utf-8',
 };
 
 function startServer() {

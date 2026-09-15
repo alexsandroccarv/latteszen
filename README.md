@@ -116,6 +116,28 @@ do projeto.
 
 ---
 
+## SEO
+
+Cada uma das 10 páginas públicas (`src/index.html` e as páginas estáticas de
+ajuda/institucionais) tem `<title>` e `<meta name="description">` próprios,
+`<link rel="canonical">`, tags Open Graph (`og:title`, `og:description`,
+`og:image` etc.) e Twitter Card (`summary_large_image`), todas apontando para
+o domínio publicado, `https://ccarvalho.net/labs/latteszen/`. A imagem de
+compartilhamento fica em `src/images/og-image.png` (1200×630px).
+
+Também há `src/robots.txt` (libera todos os agentes e aponta pro sitemap) e
+`src/sitemap.xml` (lista as 10 páginas públicas). Como o app é publicado num
+subcaminho (`/labs/latteszen/`) de um host compartilhado, esses dois arquivos
+só ficam acessíveis em `.../labs/latteszen/robots.txt` e
+`.../labs/latteszen/sitemap.xml` — não na raiz do domínio
+(`https://ccarvalho.net/robots.txt`), que está fora do controle deste
+repositório.
+
+`build.mjs` copia `src/` para `dist/` sem transformação, então esses arquivos
+(e a pasta `images/`) são publicados como estão.
+
+---
+
 ## Licença
 
 Distribuído sob a **GNU Affero General Public License v3.0 (AGPLv3)**, ou,

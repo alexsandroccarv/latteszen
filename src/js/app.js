@@ -21,6 +21,12 @@
 (function () {
     'use strict';
 
+    // Título estático da página (vem do <title> do index.html — ver issue de
+    // SEO #37) — usado como "padrão" em updateHeaderIdentity() abaixo, em vez
+    // de sempre reescrever pra "lattesZen" quando não há nome de perfil salvo
+    // (o que jogaria fora o título descritivo original).
+    const TITULO_PAGINA_BASE = document.title;
+
     // Versão do esquema dos itens (carimbada em cada item para migrações futuras)
     const SCHEMA_VERSION = 2;
     // Publicado em AppCore para tab-config.js — mesmo motivo de uid/nowISO.
@@ -664,7 +670,8 @@
     }
 
     // Nome no cabeçalho e título da aba: "lattesZen | Nome completo" (vem do
-    // item de Identificação). Sem nome preenchido, mostra só "lattesZen".
+    // item de Identificação). Sem nome preenchido, mantém o título estático
+    // da página (TITULO_PAGINA_BASE, acima).
     function updateHeaderIdentity() {
         const ident = state.items.find(i => i.typeKey === 'IDENTIFICACAO' && i.fields && i.fields.titulo);
         const nome = ident ? String(ident.fields.titulo).trim() : '';
@@ -672,7 +679,7 @@
         if (wrap) wrap.classList.toggle('hidden', !nome);
         const nomeEl = $('#headerNome');
         if (nomeEl) nomeEl.textContent = nome;
-        document.title = nome ? `${APP_CONFIG.name} | ${nome}` : APP_CONFIG.name;
+        document.title = nome ? `${APP_CONFIG.name} | ${nome}` : TITULO_PAGINA_BASE;
     }
     // Publicado em AppCore para tab-config.js — mesmo motivo de uid/nowISO.
     window.AppCore.updateHeaderIdentity = updateHeaderIdentity;

@@ -22,6 +22,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>lattesZen — Política de Privacidade</title>
+    <meta name="description" content="Como o lattesZen trata (ou não trata) seus dados pessoais, em conformidade com a LGPD (Lei nº 13.709/2018).">
+    <link rel="canonical" href="https://ccarvalho.net/labs/latteszen/privacidade.html">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="lattesZen">
+    <meta property="og:locale" content="pt_BR">
+    <meta property="og:title" content="lattesZen — Política de Privacidade">
+    <meta property="og:description" content="Como o lattesZen trata (ou não trata) seus dados pessoais, em conformidade com a LGPD (Lei nº 13.709/2018).">
+    <meta property="og:url" content="https://ccarvalho.net/labs/latteszen/privacidade.html">
+    <meta property="og:image" content="https://ccarvalho.net/labs/latteszen/images/og-image.png">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="lattesZen — Política de Privacidade">
+    <meta name="twitter:description" content="Como o lattesZen trata (ou não trata) seus dados pessoais, em conformidade com a LGPD (Lei nº 13.709/2018).">
+    <meta name="twitter:image" content="https://ccarvalho.net/labs/latteszen/images/og-image.png">
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#1351B4">
@@ -386,6 +399,10 @@
     <script>
         (function () {
             var C = window.APP_CONFIG || {};
+            // Título estático desta página (do <title>, ver issue de SEO #37) —
+            // usado como "padrão" abaixo em vez de sempre reescrever pra
+            // "lattesZen" quando não há nome de perfil salvo.
+            var tituloBase = document.title;
             var setTxt = function (id, v) { var el = document.getElementById(id); if (el && v != null) el.textContent = v; };
             setTxt('appVersion', C.version);
             // Nome completo do item de Identificação (mesma lógica do app): "lattesZen | Nome".
@@ -398,7 +415,7 @@
             var nomeWrap = document.getElementById('headerNomeWrap');
             if (nomeWrap) nomeWrap.classList.toggle('hidden', !nome);
             setTxt('headerNome', nome);
-            document.title = nome ? (C.name || 'lattesZen') + ' | ' + nome : (C.name || 'lattesZen');
+            document.title = nome ? (C.name || 'lattesZen') + ' | ' + nome : tituloBase;
 
             var htmlEl = document.documentElement;
 

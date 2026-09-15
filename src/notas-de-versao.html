@@ -22,6 +22,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>lattesZen — Notas de versão</title>
+    <meta name="description" content="Histórico de versões do lattesZen: o que mudou em cada atualização.">
+    <link rel="canonical" href="https://ccarvalho.net/labs/latteszen/notas-de-versao.html">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="lattesZen">
+    <meta property="og:locale" content="pt_BR">
+    <meta property="og:title" content="lattesZen — Notas de versão">
+    <meta property="og:description" content="Histórico de versões do lattesZen: o que mudou em cada atualização.">
+    <meta property="og:url" content="https://ccarvalho.net/labs/latteszen/notas-de-versao.html">
+    <meta property="og:image" content="https://ccarvalho.net/labs/latteszen/images/og-image.png">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="lattesZen — Notas de versão">
+    <meta name="twitter:description" content="Histórico de versões do lattesZen: o que mudou em cada atualização.">
+    <meta name="twitter:image" content="https://ccarvalho.net/labs/latteszen/images/og-image.png">
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#1351B4">
@@ -211,6 +224,13 @@
             <a href="https://github.com/alexsandroccarv/latteszen" target="_blank" rel="noopener">repositório</a>
             desde o marco atual.
         </p>
+
+        <section class="card" id="v0-8-04">
+          <h2><span class="pill">v0.8.04</span> <span class="data">15/09/2026</span></h2>
+          <ul>
+            <li><strong>SEO</strong>: título, descrição, <code>canonical</code>, tags Open Graph e Twitter Card próprios em cada uma das 10 páginas públicas, mais <code>robots.txt</code>, <code>sitemap.xml</code> e imagem de compartilhamento — e correção de um bug em que o título da aba era sempre reescrito para "lattesZen" genérico, descartando o título descritivo de cada página quando não havia nome de perfil salvo — <a href="https://github.com/alexsandroccarv/latteszen/issues/37" target="_blank" rel="noopener">issue #37</a>.</li>
+          </ul>
+        </section>
 
         <section class="card" id="v0-8-03">
           <h2><span class="pill">v0.8.03</span> <span class="data">15/09/2026</span></h2>
@@ -1065,6 +1085,10 @@
     <script>
         (function () {
             var C = window.APP_CONFIG || {};
+            // Título estático desta página (do <title>, ver issue de SEO #37) —
+            // usado como "padrão" abaixo em vez de sempre reescrever pra
+            // "lattesZen" quando não há nome de perfil salvo.
+            var tituloBase = document.title;
             var setTxt = function (id, v) { var el = document.getElementById(id); if (el && v != null) el.textContent = v; };
             setTxt('appVersion', C.version);
             // Nome completo do item de Identificação (mesma lógica do app): "lattesZen | Nome".
@@ -1077,7 +1101,7 @@
             var nomeWrap = document.getElementById('headerNomeWrap');
             if (nomeWrap) nomeWrap.classList.toggle('hidden', !nome);
             setTxt('headerNome', nome);
-            document.title = nome ? (C.name || 'lattesZen') + ' | ' + nome : (C.name || 'lattesZen');
+            document.title = nome ? (C.name || 'lattesZen') + ' | ' + nome : tituloBase;
 
             var htmlEl = document.documentElement;
 
