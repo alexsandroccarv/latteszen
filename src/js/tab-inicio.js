@@ -99,7 +99,7 @@ window.TabInicio = (function () {
                     <h2 class="text-lg font-bold mb-3 flex items-center gap-2"><i class="fa-solid fa-quote-left text-govbr-600 dark:text-unifesp-400"></i> Como citar</h2>
                     <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">Se o lattesZen te ajudou numa pesquisa ou trabalho acadêmico, considere citá-lo:</p>
                     <blockquote class="text-sm border-l-4 border-govbr-300 dark:border-unifesp-700 pl-3 py-1.5 bg-white dark:bg-gray-900 rounded-r">
-                        CARVALHO, Alexsandro Cardoso. <em>LattesZen: descomplicando o currículo Acadêmico</em>. Versão 0.7.02. Santos: Github, 2016. DOI: <a href="https://zenodo.org/records/22781288" target="_blank" rel="noopener" class="underline">https://zenodo.org/records/22781288</a>.
+                        CARVALHO, Alexsandro Cardoso. <em>LattesZen: descomplicando o currículo Acadêmico</em>. Versão 1.0.0. Santos: Github, 2016. DOI: <a href="https://zenodo.org/records/22781288" target="_blank" rel="noopener" class="underline">https://zenodo.org/records/22781288</a>.
                     </blockquote>
                     <button type="button" id="btnCopiarCitacao" class="mt-2 px-3 py-1.5 rounded border border-gray-300 dark:border-gray-600 text-xs hover:border-govbr-500 dark:hover:border-unifesp-400">
                         <i aria-hidden="true" class="fa-solid fa-copy mr-1"></i> Copiar citação
@@ -147,7 +147,7 @@ window.TabInicio = (function () {
 
         const btnCitacao = $('#btnCopiarCitacao');
         if (btnCitacao) btnCitacao.addEventListener('click', () => {
-            const texto = 'CARVALHO, Alexsandro Cardoso. LattesZen: descomplicando o currículo Acadêmico. Versão 0.7.02. Santos: Github, 2016. DOI: https://zenodo.org/records/22781288.';
+            const texto = 'CARVALHO, Alexsandro Cardoso. LattesZen: descomplicando o currículo Acadêmico. Versão 1.0.0. Santos: Github, 2016. DOI: https://zenodo.org/records/22781288.';
             navigator.clipboard.writeText(texto).then(() => {
                 const original = btnCitacao.innerHTML;
                 btnCitacao.innerHTML = '<i aria-hidden="true" class="fa-solid fa-check mr-1"></i> Copiado!';

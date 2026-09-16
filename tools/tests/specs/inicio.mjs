@@ -89,7 +89,7 @@ test('Seção "Como citar" mostra a referência completa e o botão de copiar fu
     const citacao = await page.$eval('#tab-inicio blockquote', (el) => el.textContent.replace(/\s+/g, ' ').trim());
     assert(citacao.includes('CARVALHO, Alexsandro Cardoso'), 'Citação deveria conter o autor');
     assert(citacao.includes('LattesZen: descomplicando o currículo Acadêmico'), 'Citação deveria conter o título');
-    assert(citacao.includes('Versão 0.7.02'), 'Citação deveria conter a versão citada');
+    assert(citacao.includes('Versão 1.0.0'), 'Citação deveria conter a versão citada');
     assert(citacao.includes('Santos: Github, 2016'), 'Citação deveria conter local/editora/ano');
     const hrefDoi = await page.$eval('#tab-inicio blockquote a', (el) => el.getAttribute('href'));
     assertEqual(hrefDoi, 'https://zenodo.org/records/22781288', 'Link do DOI deveria apontar para o Zenodo');
