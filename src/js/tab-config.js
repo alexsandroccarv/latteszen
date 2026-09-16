@@ -68,6 +68,81 @@ window.TabConfig = (function () {
         return `<span class="text-gray-500"><i aria-hidden="true" class="fa-solid fa-spinner fa-spin mr-1"></i> Sincronizando itens já existentes na pasta… (${n} encontrado${n === 1 ? '' : 's'} até agora)</span>`;
     }
 
+    // Junta os itens de uma lista em texto, cortando numa quantidade máxima
+    // ("a, b, c e mais 4") — pra um aviso de falha não virar um parágrafo
+    // ilegível quando muita coisa falhou de uma vez (ex.: internet caiu no
+    // meio de uma varredura grande).
+    function listarComLimite(itens, max) {
+        const visiveis = itens.slice(0, max);
+        const resto = itens.length - visiveis.length;
+        return visiveis.join(', ') + (resto > 0 ? ` e mais ${resto}` : '');
+    }
+
+    // Resume o `detalhes` de uma sincronização incompleta (pastas que não
+    // puderam ser LISTADAS + arquivos que não puderam ser LIDOS, ver
+    // Storage.scanDirectory/retentarFalhasSincronizacao) num texto legível —
+    // pedido do Alexsandro: um aviso genérico como "2 pasta(s) não puderam
+    // ser lidas" não dizia quais pastas nem quantos itens ficaram de fora.
+    // `esc` opcional: passa a função de escape (pra uso em innerHTML); sem
+    // isso, devolve texto puro (pra uso em toast, que já usa textContent).
+    function resumoFalhasSinc(detalhes, escapar) {
+        const seguro = escapar || ((s) => s);
+        const pastas = detalhes.filter((d) => d.tipo === 'pasta');
+        const arquivos = detalhes.filter((d) => d.tipo === 'arquivo');
+        const porPasta = new Map();
+        arquivos.forEach((d) => { const chave = d.pastaCaminho || '(raiz)'; porPasta.set(chave, (porPasta.get(chave) || 0) + 1); });
+        const partes = [];
+        if (pastas.length) {
+            partes.push(`${pastas.length} pasta(s) não puderam ser abertas: ${listarComLimite(pastas.map((p) => `"${seguro(p.caminho)}"`), 5)}`);
+        }
+        if (arquivos.length) {
+            const porPastaTxt = listarComLimite(Array.from(porPasta.entries()).map(([caminho, n]) => `"${seguro(caminho)}" (${n})`), 5);
+            partes.push(`${arquivos.length} arquivo(s) não puderam ser lidos, em: ${porPastaTxt}`);
+        }
+        return partes.join(' ');
+    }
+
+    // Mostra o aviso detalhado de sincronização incompleta num container
+    // (statusEl do Google Drive, ou o novo #syncStatus) COM um botão pra
+    // tentar de novo só o que falhou (Storage.retentarFalhasSincronizacao,
+    // via syncFromDirectory) — pedido do Alexsandro: "rotina que force
+    // apenas as indisponíveis", em vez de repetir a sincronização inteira.
+    // Ao tentar de novo, chama a si mesma com o resultado atualizado — se
+    // ainda sobrar falha, o aviso e o botão continuam lá, só com a lista
+    // menor; se resolver tudo, o container volta a ficar limpo.
+    function mostrarAvisoFalhasSync(container, detalhes) {
+        if (!container) return;
+        if (!detalhes || !detalhes.length) { container.innerHTML = ''; return; }
+        container.innerHTML = `<div class="text-amber-700 dark:text-amber-400">
+            <p>${resumoFalhasSinc(detalhes, esc)}</p>
+            <button type="button" id="btnRetentarFalhasSync" class="underline hover:no-underline mt-1">Tentar sincronizar de novo só o que falhou</button>
+        </div>`;
+        const btn = container.querySelector('#btnRetentarFalhasSync');
+        if (!btn) return;
+        btn.addEventListener('click', async () => {
+            btn.disabled = true;
+            const originalLabel = btn.textContent;
+            btn.textContent = 'Tentando de novo…';
+            try {
+                const resultado = await window.AppCore.syncFromDirectory((n) => {
+                    btn.textContent = `Tentando de novo… (${n} recuperado(s) até agora)`;
+                }, detalhes);
+                if (resultado.encontrados) window.AppCore.renderItemList();
+                if (resultado.falhas) {
+                    mostrarAvisoFalhasSync(container, resultado.detalhes);
+                    toast(`Ainda faltou sincronizar ${resultado.falhas} item(ns) — veja os detalhes na tela.`, 'aviso');
+                } else {
+                    container.innerHTML = '';
+                    toast('Tudo sincronizado agora.', 'ok');
+                }
+            } catch (e) {
+                btn.disabled = false;
+                btn.textContent = originalLabel;
+                toast('Falha ao tentar sincronizar de novo: ' + e.message, 'erro');
+            }
+        });
+    }
+
     // Assistente guiado de "Diretório de armazenamento", mostrado só enquanto
     // NENHUM diretório está configurado ainda (Storage.hasDirectory() falso)
     // — depois de configurado, a seção volta a mostrar o painel de estado
@@ -471,18 +546,20 @@ window.TabConfig = (function () {
             state.dirHealth = null; // acabou de trocar de armazenamento; revalidada no próximo render
             let msg = `Migração concluída: ${copiados} arquivo(s) copiado(s) para o Google Drive.`;
             let tipoToast = 'ok';
+            let detalhesFalha = null;
             try {
                 if (statusEl) statusEl.innerHTML = statusSincronizandoHtml(0);
-                const { encontrados, falhas } = await window.AppCore.syncFromDirectory((n) => {
+                const { encontrados, falhas, detalhes } = await window.AppCore.syncFromDirectory((n) => {
                     if (statusEl) statusEl.innerHTML = statusSincronizandoHtml(n);
                 });
                 if (encontrados) msg += ` ${encontrados} item(ns) sincronizado(s).`;
-                if (falhas) { msg += ` Atenção: ${falhas} pasta(s)/arquivo(s) não puderam ser lidos — clique em "Sincronizar" para tentar completar.`; tipoToast = 'aviso'; }
+                if (falhas) { msg += ` Atenção: ${falhas} item(ns) não puderam ser lidos — veja os detalhes na tela.`; tipoToast = 'aviso'; detalhesFalha = detalhes; }
             } catch (_) {}
             toast(msg, tipoToast);
             gdriveMigrationNotice = 'Migração concluída. A partir de agora, todas as atualizações do lattesZen ocorrem no Google Drive — a pasta local não será mais usada pelo app. Confira na pasta do Drive se os arquivos foram copiados corretamente; depois disso, a pasta local pode ser excluída com segurança.';
             window.AppCore.renderItemList();
-            render();
+            await render();
+            mostrarAvisoFalhasSync($('#syncStatus'), detalhesFalha);
         } catch (e) {
             Storage.discardGDriveConnection();
             toast('Falha na migração — a pasta local continua sendo usada normalmente. ' + e.message, 'erro');
@@ -604,7 +681,8 @@ window.TabConfig = (function () {
                     <button id="btnSync" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-rotate mr-1"></i> Sincronizar do diretório</button>
                     <button id="btnCheckDir" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-stethoscope mr-1"></i> Verificar pasta</button>
                     <button id="btnForget" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-link-slash mr-1"></i> Esquecer diretório de armazenamento</button>
-                </div>`;
+                </div>
+                <div id="syncStatus" class="text-sm mt-2"></div>`;
         }
 
         // Cada seção vira uma "página" independente — só a ativa
@@ -762,36 +840,39 @@ window.TabConfig = (function () {
                 let msg = 'Diretório configurado (estrutura de pastas criada).';
                 let tipoToast = 'ok';
                 const originalChooseDirLabel = btnChooseDir.innerHTML;
+                let detalhesFalha = null;
                 try {
-                    const { encontrados, configRestaurada, falhas } = await window.AppCore.syncFromDirectory((n) => {
+                    const { encontrados, configRestaurada, falhas, detalhes } = await window.AppCore.syncFromDirectory((n) => {
                         btnChooseDir.innerHTML = `<i aria-hidden="true" class="fa-solid fa-spinner fa-spin mr-1"></i> Sincronizando… (${n} até agora)`;
                     });
                     msg += encontrados
                         ? ` ${encontrados} item(ns) já cadastrado(s) na pasta foram sincronizados automaticamente.`
                         : ' Pasta vazia — pronta para uso.';
                     if (configRestaurada) msg += ' Configurações do sistema também restauradas.';
-                    if (falhas) { msg += ` Atenção: ${falhas} pasta(s)/arquivo(s) não puderam ser lidos — clique em "Sincronizar" para tentar completar.`; tipoToast = 'aviso'; }
+                    if (falhas) { msg += ` Atenção: ${falhas} item(ns) não puderam ser lidos.`; tipoToast = 'aviso'; detalhesFalha = detalhes; }
                 } catch (_) {
                 } finally {
                     btnChooseDir.innerHTML = originalChooseDirLabel;
                 }
                 toast(msg, tipoToast);
                 window.AppCore.renderItemList();
-                render();
+                await render();
+                mostrarAvisoFalhasSync($('#syncStatus'), detalhesFalha);
             } catch (e) { if (e.name !== 'AbortError') toast(e.message, 'erro'); }
         });
         const btnSync = $('#btnSync');
         if (btnSync) btnSync.addEventListener('click', async () => {
             const originalSyncLabel = btnSync.innerHTML;
             try {
-                const { encontrados, configRestaurada, falhas } = await window.AppCore.syncFromDirectory((n) => {
+                const { encontrados, configRestaurada, falhas, detalhes } = await window.AppCore.syncFromDirectory((n) => {
                     btnSync.innerHTML = `<i aria-hidden="true" class="fa-solid fa-spinner fa-spin mr-1"></i> Sincronizando… (${n} até agora)`;
                 });
                 let msg = `${encontrados} arquivo(s) .json lido(s) do diretório.${configRestaurada ? ' Configurações do sistema atualizadas.' : ''}`;
-                if (falhas) msg += ` Atenção: ${falhas} pasta(s)/arquivo(s) não puderam ser lidos (rede instável?) — clique em "Sincronizar" de novo para tentar completar.`;
+                if (falhas) msg += ` Atenção: ${falhas} item(ns) não puderam ser lidos — veja os detalhes na tela.`;
                 toast(msg, falhas ? 'aviso' : 'ok');
                 window.AppCore.renderItemList();
-                render();
+                await render();
+                mostrarAvisoFalhasSync($('#syncStatus'), detalhes);
             } catch (e) { toast(e.message, 'erro'); }
             finally { btnSync.innerHTML = originalSyncLabel; }
         });
@@ -844,19 +925,21 @@ window.TabConfig = (function () {
                 // está em andamento, com um contador — "Sincronizando…"
                 // parado não deixa claro se travou ou se está funcionando).
                 if (statusEl) statusEl.innerHTML = statusSincronizandoHtml(0);
+                let detalhesFalha = null;
                 try {
-                    const { encontrados, configRestaurada, falhas } = await window.AppCore.syncFromDirectory((n) => {
+                    const { encontrados, configRestaurada, falhas, detalhes } = await window.AppCore.syncFromDirectory((n) => {
                         if (statusEl) statusEl.innerHTML = statusSincronizandoHtml(n);
                     });
                     msg += encontrados
                         ? ` ${encontrados} item(ns) já cadastrado(s) na pasta foram sincronizados automaticamente.`
                         : ' Pasta vazia — pronta para uso.';
                     if (configRestaurada) msg += ' Configurações do sistema também restauradas.';
-                    if (falhas) { msg += ` Atenção: ${falhas} pasta(s)/arquivo(s) não puderam ser lidos — clique em "Sincronizar" para tentar completar.`; tipoToast = 'aviso'; }
+                    if (falhas) { msg += ` Atenção: ${falhas} item(ns) não puderam ser lidos — veja os detalhes na tela.`; tipoToast = 'aviso'; detalhesFalha = detalhes; }
                 } catch (_) {}
                 toast(msg, tipoToast);
                 window.AppCore.renderItemList();
-                render();
+                await render();
+                mostrarAvisoFalhasSync($('#syncStatus'), detalhesFalha);
             } catch (e) {
                 if (statusEl) statusEl.innerHTML = `<span class="text-red-700 dark:text-red-400"><i aria-hidden="true" class="fa-solid fa-triangle-exclamation mr-1"></i> ${esc(e.message)}</span>`;
                 toast('Falha ao conectar: ' + e.message, 'erro');

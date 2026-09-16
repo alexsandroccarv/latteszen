@@ -895,71 +895,112 @@ window.Storage = (function () {
         };
     }
 
-    // Reconstrói o catálogo a partir dos *.json (raiz e subdiretórios de
-    // categoria). Devolve { items, falhas } — falhas conta pastas/arquivos
-    // que não puderam ser lidos mesmo depois de tentar de novo, pra quem
-    // chama (syncFromDirectory, em app.js) avisar que a sincronização pode
-    // ter ficado incompleta, em vez de simplesmente mostrar uma lista
-    // truncada sem explicação nenhuma. onProgress(n) opcional — chamado a
-    // cada item encontrado, com a contagem corrente — pedido do Alexsandro
-    // pra dar um feedback melhor que "Sincronizando…" parado numa biblioteca
-    // grande do Google Drive no celular (mesmo padrão já usado por
-    // migrateLocalToGoogleDrive acima).
-    async function scanDirectory(onProgress) {
-        if (mode === 'gdrive') {
-            if (!gdriveCfg) return { items: [], falhas: 0 };
-            const items = [];
-            let falhas = 0;
-            // Varredura em PARALELO (até 6 requisições ao mesmo tempo, via
-            // limitador acima) — pedido do Alexsandro: no celular, uma
-            // biblioteca grande do Drive demorava demais porque cada pasta e
-            // cada arquivo era buscado em série, um de cada vez, pagando o
-            // round-trip da rede móvel centenas de vezes seguidas. Listar uma
-            // pasta, entrar nas subpastas e baixar os arquivos .json dela
-            // agora acontecem concorrentemente (Promise.all) — a ordem de
-            // chegada em `items` deixa de ser previsível, mas isso não importa
-            // (syncFromDirectory mescla por id, não por posição).
-            const limite = criarLimitador(6);
-            async function scanOne(folderId) {
-                let children;
-                try { children = await limite(() => comRetentativas(() => window.GDriveClient.listChildren(folderId))); }
-                catch (_) { falhas += 1; return; }
-                await Promise.all(children.map(async (child) => {
-                    if (child.isDir) {
-                        if (child.name === INBOX_FOLDER) return; // não indexa a bandeja de entrada
-                        await scanOne(child.id);
-                    } else if (child.name.toLowerCase().endsWith('.json') && child.name !== 'catalogo.json' && child.name !== SETTINGS_FILE && child.name.indexOf('latteszen-') !== 0) {
-                        try {
-                            const blob = await limite(() => comRetentativas(() => window.GDriveClient.getFileContent(child.id)));
-                            if (!blob) { falhas += 1; return; }
-                            const obj = JSON.parse(await blob.text());
-                            if (obj && obj.id) { items.push(obj); if (onProgress) onProgress(items.length); }
-                        } catch (_) { falhas += 1; /* rede ou JSON inválido */ }
-                    }
-                }));
-            }
-            await scanOne(gdriveCfg.rootFolderId);
-            return { items, falhas };
-        }
-        const dir = await ensureDirReady();
+    // Varre uma lista de "raízes" no Google Drive — cada raiz é
+    // { tipo: 'pasta', id, caminho } (varre a pasta inteira, recursivamente)
+    // ou { tipo: 'arquivo', id, caminho, pastaCaminho } (lê só ESSE arquivo,
+    // sem relistar a pasta-mãe). Mesma função serve pra varredura completa
+    // (raízes = [pasta raiz]) e pra "tentar de novo só o que falhou"
+    // (raízes = os `detalhes` de uma varredura anterior — ver
+    // retentarFalhasSincronizacao) — o formato de entrada e saída é o mesmo.
+    // `detalhes` no retorno é a lista do que NÃO deu certo desta vez, no
+    // mesmo formato de entrada, pronta pra alimentar uma nova tentativa.
+    async function varrerArvoreGDrive(raizes, onProgress) {
         const items = [];
         let falhas = 0;
-        async function scanOne(handle) {
-            for await (const [name, h] of handle.entries()) {
-                if (h.kind === 'file' && name.toLowerCase().endsWith('.json') && name !== 'catalogo.json' && name !== SETTINGS_FILE && name.indexOf('latteszen-') !== 0) {
-                    try {
-                        const file = await h.getFile();
-                        const obj = JSON.parse(await file.text());
-                        if (obj && obj.id) { items.push(obj); if (onProgress) onProgress(items.length); }
-                    } catch (_) { falhas += 1; /* arquivo inválido ou removido durante a varredura */ }
-                } else if (h.kind === 'directory') {
-                    if (name === INBOX_FOLDER) continue; // não indexa a bandeja de entrada
-                    try { await scanOne(h); } catch (_) { falhas += 1; }
+        const detalhes = [];
+        // Varredura em PARALELO (até 6 requisições ao mesmo tempo) — pedido
+        // do Alexsandro: no celular, uma biblioteca grande do Drive demorava
+        // demais porque cada pasta e cada arquivo era buscado em série, um
+        // de cada vez, pagando o round-trip da rede móvel centenas de vezes
+        // seguidas. A ordem de chegada em `items` deixa de ser previsível,
+        // mas isso não importa (syncFromDirectory mescla por id).
+        const limite = criarLimitador(6);
+        async function scanPasta(folderId, caminho) {
+            let children;
+            try { children = await limite(() => comRetentativas(() => window.GDriveClient.listChildren(folderId))); }
+            catch (_) { falhas += 1; detalhes.push({ tipo: 'pasta', id: folderId, caminho: caminho || '(raiz)' }); return; }
+            await Promise.all(children.map((child) => {
+                if (child.isDir) {
+                    if (child.name === INBOX_FOLDER) return Promise.resolve(); // não indexa a bandeja de entrada
+                    return scanPasta(child.id, caminho ? `${caminho}/${child.name}` : child.name);
                 }
-            }
+                if (child.name.toLowerCase().endsWith('.json') && child.name !== 'catalogo.json' && child.name !== SETTINGS_FILE && child.name.indexOf('latteszen-') !== 0) {
+                    return lerArquivo(child.id, caminho ? `${caminho}/${child.name}` : child.name, caminho);
+                }
+                return Promise.resolve();
+            }));
         }
-        await scanOne(dir);
-        return { items, falhas };
+        async function lerArquivo(fileId, caminhoArquivo, pastaCaminho) {
+            try {
+                const blob = await limite(() => comRetentativas(() => window.GDriveClient.getFileContent(fileId)));
+                if (!blob) { falhas += 1; detalhes.push({ tipo: 'arquivo', id: fileId, caminho: caminhoArquivo, pastaCaminho: pastaCaminho || '(raiz)' }); return; }
+                const obj = JSON.parse(await blob.text());
+                if (obj && obj.id) { items.push(obj); if (onProgress) onProgress(items.length); }
+            } catch (_) { falhas += 1; detalhes.push({ tipo: 'arquivo', id: fileId, caminho: caminhoArquivo, pastaCaminho: pastaCaminho || '(raiz)' }); }
+        }
+        await Promise.all(raizes.map((r) => (r.tipo === 'arquivo' ? lerArquivo(r.id, r.caminho, r.pastaCaminho) : scanPasta(r.id, r.caminho))));
+        return { items, falhas, detalhes };
+    }
+
+    // Mesma ideia de varrerArvoreGDrive(), pro back-end de pasta local (File
+    // System Access API) — `handle` no lugar de `id`.
+    async function varrerArvoreLocal(raizes, onProgress) {
+        const items = [];
+        let falhas = 0;
+        const detalhes = [];
+        async function scanPasta(handle, caminho) {
+            try {
+                for await (const [name, h] of handle.entries()) {
+                    if (h.kind === 'file' && name.toLowerCase().endsWith('.json') && name !== 'catalogo.json' && name !== SETTINGS_FILE && name.indexOf('latteszen-') !== 0) {
+                        await lerArquivo(h, caminho ? `${caminho}/${name}` : name, caminho);
+                    } else if (h.kind === 'directory') {
+                        if (name === INBOX_FOLDER) continue; // não indexa a bandeja de entrada
+                        await scanPasta(h, caminho ? `${caminho}/${name}` : name);
+                    }
+                }
+            } catch (_) { falhas += 1; detalhes.push({ tipo: 'pasta', handle, caminho: caminho || '(raiz)' }); }
+        }
+        async function lerArquivo(h, caminhoArquivo, pastaCaminho) {
+            try {
+                const file = await h.getFile();
+                const obj = JSON.parse(await file.text());
+                if (obj && obj.id) { items.push(obj); if (onProgress) onProgress(items.length); }
+            } catch (_) { falhas += 1; detalhes.push({ tipo: 'arquivo', handle: h, caminho: caminhoArquivo, pastaCaminho: pastaCaminho || '(raiz)' }); }
+        }
+        await Promise.all(raizes.map((r) => (r.tipo === 'arquivo' ? lerArquivo(r.handle, r.caminho, r.pastaCaminho) : scanPasta(r.handle, r.caminho))));
+        return { items, falhas, detalhes };
+    }
+
+    // Reconstrói o catálogo a partir dos *.json (raiz e subdiretórios de
+    // categoria). Devolve { items, falhas, detalhes } — falhas é a contagem
+    // total (pastas + arquivos que não puderam ser lidos mesmo depois de
+    // tentar de novo) e `detalhes` diz ONDE cada uma aconteceu (pedido do
+    // Alexsandro: um aviso genérico "2 pasta(s) não puderam ser lidas", sem
+    // dizer quais pastas nem quantos itens ficaram de fora, não ajudava a
+    // decidir o que fazer). Cada entrada de `detalhes` já vem pronta pra
+    // alimentar retentarFalhasSincronizacao() — "tentar de novo" só o que
+    // faltou, sem repetir a varredura inteira. onProgress(n) opcional —
+    // chamado a cada item encontrado, com a contagem corrente (feedback de
+    // progresso numa sincronização longa).
+    async function scanDirectory(onProgress) {
+        if (mode === 'gdrive') {
+            if (!gdriveCfg) return { items: [], falhas: 0, detalhes: [] };
+            return varrerArvoreGDrive([{ tipo: 'pasta', id: gdriveCfg.rootFolderId, caminho: '' }], onProgress);
+        }
+        const dir = await ensureDirReady();
+        return varrerArvoreLocal([{ tipo: 'pasta', handle: dir, caminho: '' }], onProgress);
+    }
+
+    // "Tentar de novo" só o que falhou numa sincronização anterior — recebe
+    // o `detalhes` devolvido por scanDirectory() (ou por uma tentativa
+    // anterior desta mesma função) e refaz SÓ aquelas pastas/arquivos, sem
+    // varrer a biblioteca inteira de novo. Mesmo formato de retorno de
+    // scanDirectory ({ items, falhas, detalhes }); quem chama (
+    // syncFromDirectory, em app.js) ainda precisa mesclar `items` no
+    // catálogo, igual faz com o resultado de scanDirectory.
+    async function retentarFalhasSincronizacao(detalhes, onProgress) {
+        if (!detalhes || !detalhes.length) return { items: [], falhas: 0, detalhes: [] };
+        return mode === 'gdrive' ? varrerArvoreGDrive(detalhes, onProgress) : varrerArvoreLocal(detalhes, onProgress);
     }
 
     /* ----------------------- Catálogo (localStorage) --------------------- */
@@ -1061,7 +1102,7 @@ window.Storage = (function () {
         resumeGDriveConnection, commitGDriveConnection, discardGDriveConnection,
         savePendingGDriveMigration, loadPendingGDriveMigration, clearPendingGDriveMigration,
         // arquivos
-        writeJson, writeFile, writeAttachment, deleteEntry, deleteItemFiles, moveItemFiles, removeSubdirIfEmpty, renameRootFolder, renameNestedFolder, readAttachmentUrl, readAttachmentFile, scanDirectory, ensureSubdirs,
+        writeJson, writeFile, writeAttachment, deleteEntry, deleteItemFiles, moveItemFiles, removeSubdirIfEmpty, renameRootFolder, renameNestedFolder, readAttachmentUrl, readAttachmentFile, scanDirectory, retentarFalhasSincronizacao, ensureSubdirs,
         // comRetentativas/criarLimitador expostas só para teste (tools/tests/specs/gdrive-sync-retry.mjs)
         comRetentativas, criarLimitador,
         // bandeja de entrada (inbox)

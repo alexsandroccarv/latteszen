@@ -213,8 +213,18 @@
     // pelo botão manual "Sincronizar do diretório" quanto pela sincronização
     // automática (ao escolher a pasta, e quando o índice local está vazio mas
     // já existe um diretório configurado — ver init()).
-    async function syncFromDirectory(onProgress) {
-        const { items: found, falhas } = await Storage.scanDirectory(onProgress);
+    // `detalhesParaRetentar` opcional: quando vem preenchido (o `detalhes` de
+    // uma sincronização anterior incompleta), refaz SÓ aquelas pastas/
+    // arquivos (Storage.retentarFalhasSincronizacao) em vez de varrer tudo de
+    // novo — pedido do Alexsandro: "tentar de novo" deveria forçar só o que
+    // ficou faltando, não a biblioteca inteira. Nesse caso não restaura
+    // configurações (não faz sentido reler configuracoes.json só porque 1-2
+    // pastas específicas foram retentadas).
+    async function syncFromDirectory(onProgress, detalhesParaRetentar) {
+        const retentativaAlvo = !!(detalhesParaRetentar && detalhesParaRetentar.length);
+        const { items: found, falhas, detalhes } = retentativaAlvo
+            ? await Storage.retentarFalhasSincronizacao(detalhesParaRetentar, onProgress)
+            : await Storage.scanDirectory(onProgress);
         const byId = new Map(state.catalogo.items.map(i => [i.id, i]));
         found.forEach(f => byId.set(f.id, f));
         state.catalogo.items = Array.from(byId.values());
@@ -228,32 +238,34 @@
         // configurações) num navegador/perfil novo só reescaneando o
         // diretório, sem depender de lembrar de exportar/importar um backup.
         let configRestaurada = false;
-        try {
-            const dirSettings = await Storage.readSettingsFromDirectory();
-            if (dirSettings && typeof dirSettings === 'object') {
-                const merged = Object.assign(Storage.loadSettings(), dirSettings);
-                Storage.saveSettings(merged);
-                state.vocab = merged.vocab || {};
-                state.idPrefix = sanitizePrefix(merged.idPrefix || 'lz');
-                state.catalogo.lastCat = merged.lastCat || '';
-                state.catalogo.lastType = merged.lastType || '';
-                state.rsc.enabled = !!merged.rscEnabled;
-                state.rsc.cfg = merged.rsc || {};
-                state.rsc.memorialTexto = merged.rscMemorialTexto || '';
-                applyRscVisibility();
-                state.sumula.enabled = !!merged.sumulaEnabled;
-                state.sumula.cfg = merged.sumula || {};
-                state.sumula.texto = merged.sumulaTexto || '';
-                applySumulaVisibility();
-                state.pubWebEnabled = merged.pubWebEnabled !== undefined ? !!merged.pubWebEnabled : state.catalogo.items.length > 0;
-                applyPublicarVisibility();
-                state.linhaTempo.nuvemExclusao = Array.isArray(merged.nuvemExclusao) ? merged.nuvemExclusao : [];
-                state.linhaTempo.nuvemCompostas = Array.isArray(merged.nuvemCompostas) ? merged.nuvemCompostas : [];
-                configRestaurada = true;
-            }
-        } catch (_) {}
+        if (!retentativaAlvo) {
+            try {
+                const dirSettings = await Storage.readSettingsFromDirectory();
+                if (dirSettings && typeof dirSettings === 'object') {
+                    const merged = Object.assign(Storage.loadSettings(), dirSettings);
+                    Storage.saveSettings(merged);
+                    state.vocab = merged.vocab || {};
+                    state.idPrefix = sanitizePrefix(merged.idPrefix || 'lz');
+                    state.catalogo.lastCat = merged.lastCat || '';
+                    state.catalogo.lastType = merged.lastType || '';
+                    state.rsc.enabled = !!merged.rscEnabled;
+                    state.rsc.cfg = merged.rsc || {};
+                    state.rsc.memorialTexto = merged.rscMemorialTexto || '';
+                    applyRscVisibility();
+                    state.sumula.enabled = !!merged.sumulaEnabled;
+                    state.sumula.cfg = merged.sumula || {};
+                    state.sumula.texto = merged.sumulaTexto || '';
+                    applySumulaVisibility();
+                    state.pubWebEnabled = merged.pubWebEnabled !== undefined ? !!merged.pubWebEnabled : state.catalogo.items.length > 0;
+                    applyPublicarVisibility();
+                    state.linhaTempo.nuvemExclusao = Array.isArray(merged.nuvemExclusao) ? merged.nuvemExclusao : [];
+                    state.linhaTempo.nuvemCompostas = Array.isArray(merged.nuvemCompostas) ? merged.nuvemCompostas : [];
+                    configRestaurada = true;
+                }
+            } catch (_) {}
+        }
 
-        return { encontrados: found.length, configRestaurada, falhas };
+        return { encontrados: found.length, configRestaurada, falhas, detalhes };
     }
     // Publicado em AppCore para tab-config.js — mesmo motivo de uid/nowISO.
     window.AppCore.syncFromDirectory = syncFromDirectory;
