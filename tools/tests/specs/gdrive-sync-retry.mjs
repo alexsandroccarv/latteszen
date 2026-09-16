@@ -56,3 +56,38 @@ test('Storage.comRetentativas(): sem falha nenhuma, chama a função só 1 vez',
     });
     assertEqual(chamadas, 1, 'Sem falha, não deveria tentar de novo à toa');
 });
+
+/* ==========================================================================
+   Regressão: varredura do Google Drive em paralelo (issue relatada pelo
+   Alexsandro: sincronizar pelo celular era lento demais numa biblioteca
+   grande, porque cada pasta e cada arquivo eram buscados em série, um de
+   cada vez, pagando o round-trip da rede móvel centenas de vezes seguidas).
+   Storage.criarLimitador() é o semáforo que deixa scanDirectory() disparar
+   várias requisições ao mesmo tempo sem estourar um limite de concorrência.
+   ========================================================================== */
+test('Storage.criarLimitador(): nunca deixa mais que "max" tarefas rodando ao mesmo tempo', async ({ page, baseUrl }) => {
+    await seedCatalog(page, baseUrl, []);
+    const resultado = await page.evaluate(async () => {
+        const limite = window.Storage.criarLimitador(2);
+        let ativos = 0, picoAtivos = 0;
+        const tarefa = (n) => limite(() => new Promise((resolve) => {
+            ativos += 1;
+            picoAtivos = Math.max(picoAtivos, ativos);
+            setTimeout(() => { ativos -= 1; resolve(n); }, 30);
+        }));
+        const resultados = await Promise.all([1, 2, 3, 4, 5].map(tarefa));
+        return { resultados, picoAtivos };
+    });
+    assertEqual(resultado.resultados, [1, 2, 3, 4, 5], 'Deveria devolver o resultado de cada tarefa (a Promise.all preserva a ordem, mesmo com execução concorrente)');
+    assert(resultado.picoAtivos <= 2, `Não deveria rodar mais de 2 tarefas ao mesmo tempo (limite) — pico observado: ${resultado.picoAtivos}`);
+    assertEqual(resultado.picoAtivos, 2, 'Com 5 tarefas e limite 2, o pico deveria mesmo chegar em 2 (a paralelização está de fato acontecendo, não caiu pra sequencial à toa)');
+});
+
+test('Storage.criarLimitador(): sem nenhuma tarefa em fila, executa direto (sem atraso artificial)', async ({ page, baseUrl }) => {
+    await seedCatalog(page, baseUrl, []);
+    const valor = await page.evaluate(async () => {
+        const limite = window.Storage.criarLimitador(6);
+        return limite(() => Promise.resolve('valor-direto'));
+    });
+    assertEqual(valor, 'valor-direto', 'Uma única tarefa, bem abaixo do limite, deveria só repassar o valor resolvido');
+});

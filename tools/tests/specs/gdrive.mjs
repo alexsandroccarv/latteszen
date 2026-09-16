@@ -357,6 +357,37 @@ test('writeJson + scanDirectory fazem round-trip via Google Drive', async ({ pag
     assertEqual(items[0].titulo, 'Item gravado via Google Drive', 'O item reconstruído deveria ter os mesmos campos gravados');
 });
 
+// Regressão: scanDirectory() passou a varrer pastas/arquivos em PARALELO
+// (limitador de concorrência, ver Storage.criarLimitador) em vez de um de
+// cada vez — pedido do Alexsandro pra acelerar a sincronização de uma
+// biblioteca grande do Drive pelo celular. Vários itens espalhados por
+// VÁRIAS pastas de categoria de propósito, pra exercitar de verdade a
+// recursão concorrente (não só 1 arquivo em 1 pasta).
+test('scanDirectory() reconstrói todos os itens de várias pastas de categoria, mesmo varrendo em paralelo', async ({ page, baseUrl }) => {
+    const mock = createMockDrive();
+    await mock.install(page);
+    await mockGis(page);
+    await abrirConfig(page, baseUrl);
+    await conectar(page, 'lattesZen');
+
+    const pastas = ['Produções', 'Formação', 'Atuação', 'Projetos'];
+    await page.evaluate(async (pastas) => {
+        for (const pasta of pastas) {
+            for (let i = 0; i < 3; i++) {
+                const id = `it-${pasta}-${i}`;
+                await window.Storage.writeJson(id, { id, titulo: `Item ${i} de ${pasta}` }, pasta);
+            }
+        }
+    }, pastas);
+
+    const { items, falhas } = await page.evaluate(() => window.Storage.scanDirectory());
+    assertEqual(items.length, pastas.length * 3, `scanDirectory deveria reconstruir todos os ${pastas.length * 3} itens, espalhados pelas ${pastas.length} pastas`);
+    assertEqual(falhas, 0, 'Sem nenhuma falha de rede simulada, "falhas" deveria vir zerado');
+    const ids = items.map((it) => it.id).sort();
+    const idsEsperados = pastas.flatMap((pasta) => [0, 1, 2].map((i) => `it-${pasta}-${i}`)).sort();
+    assertEqual(ids, idsEsperados, 'Todos os ids gravados deveriam vir de volta, um por um, sem perder nem duplicar nenhum');
+});
+
 // Regressão: o botão "Abrir no Google Drive" (Catalogar/Configurações) usava
 // gdriveFolderUrl(subdir), que retornava null sempre que a subpasta exata
 // ainda não existia (nenhum arquivo enviado ali) OU quando qualquer erro de

@@ -872,6 +872,29 @@ window.Storage = (function () {
         throw ultimoErro;
     }
 
+    // Limita quantas chamadas de `fn` rodam ao mesmo tempo (semáforo simples)
+    // — usado pra paralelizar a varredura do Google Drive sem disparar
+    // centenas de requisições simultâneas de uma vez (esbarraria em rate
+    // limit do Drive e sobrecarregaria uma conexão móvel fraca). max=6
+    // acompanha o limite de conexões simultâneas por origem que os
+    // navegadores já aplicam sozinhos — não adianta pedir mais que isso.
+    function criarLimitador(max) {
+        let ativos = 0;
+        const fila = [];
+        function proximo() {
+            if (ativos >= max || !fila.length) return;
+            ativos += 1;
+            const { fn, resolve, reject } = fila.shift();
+            fn().then(
+                (v) => { ativos -= 1; resolve(v); proximo(); },
+                (e) => { ativos -= 1; reject(e); proximo(); },
+            );
+        }
+        return function executar(fn) {
+            return new Promise((resolve, reject) => { fila.push({ fn, resolve, reject }); proximo(); });
+        };
+    }
+
     // Reconstrói o catálogo a partir dos *.json (raiz e subdiretórios de
     // categoria). Devolve { items, falhas } — falhas conta pastas/arquivos
     // que não puderam ser lidos mesmo depois de tentar de novo, pra quem
@@ -887,23 +910,33 @@ window.Storage = (function () {
             if (!gdriveCfg) return { items: [], falhas: 0 };
             const items = [];
             let falhas = 0;
+            // Varredura em PARALELO (até 6 requisições ao mesmo tempo, via
+            // limitador acima) — pedido do Alexsandro: no celular, uma
+            // biblioteca grande do Drive demorava demais porque cada pasta e
+            // cada arquivo era buscado em série, um de cada vez, pagando o
+            // round-trip da rede móvel centenas de vezes seguidas. Listar uma
+            // pasta, entrar nas subpastas e baixar os arquivos .json dela
+            // agora acontecem concorrentemente (Promise.all) — a ordem de
+            // chegada em `items` deixa de ser previsível, mas isso não importa
+            // (syncFromDirectory mescla por id, não por posição).
+            const limite = criarLimitador(6);
             async function scanOne(folderId) {
                 let children;
-                try { children = await comRetentativas(() => window.GDriveClient.listChildren(folderId)); }
+                try { children = await limite(() => comRetentativas(() => window.GDriveClient.listChildren(folderId))); }
                 catch (_) { falhas += 1; return; }
-                for (const child of children) {
+                await Promise.all(children.map(async (child) => {
                     if (child.isDir) {
-                        if (child.name === INBOX_FOLDER) continue; // não indexa a bandeja de entrada
+                        if (child.name === INBOX_FOLDER) return; // não indexa a bandeja de entrada
                         await scanOne(child.id);
                     } else if (child.name.toLowerCase().endsWith('.json') && child.name !== 'catalogo.json' && child.name !== SETTINGS_FILE && child.name.indexOf('latteszen-') !== 0) {
                         try {
-                            const blob = await comRetentativas(() => window.GDriveClient.getFileContent(child.id));
-                            if (!blob) { falhas += 1; continue; }
+                            const blob = await limite(() => comRetentativas(() => window.GDriveClient.getFileContent(child.id)));
+                            if (!blob) { falhas += 1; return; }
                             const obj = JSON.parse(await blob.text());
                             if (obj && obj.id) { items.push(obj); if (onProgress) onProgress(items.length); }
                         } catch (_) { falhas += 1; /* rede ou JSON inválido */ }
                     }
-                }
+                }));
             }
             await scanOne(gdriveCfg.rootFolderId);
             return { items, falhas };
@@ -1029,8 +1062,8 @@ window.Storage = (function () {
         savePendingGDriveMigration, loadPendingGDriveMigration, clearPendingGDriveMigration,
         // arquivos
         writeJson, writeFile, writeAttachment, deleteEntry, deleteItemFiles, moveItemFiles, removeSubdirIfEmpty, renameRootFolder, renameNestedFolder, readAttachmentUrl, readAttachmentFile, scanDirectory, ensureSubdirs,
-        // comRetentativas exposta só para teste (tools/tests/specs/gdrive-sync-retry.mjs)
-        comRetentativas,
+        // comRetentativas/criarLimitador expostas só para teste (tools/tests/specs/gdrive-sync-retry.mjs)
+        comRetentativas, criarLimitador,
         // bandeja de entrada (inbox)
         ensureInbox, listInbox, readInboxFile, moveInboxToProcessed,
         // catálogo + lixeira + settings
