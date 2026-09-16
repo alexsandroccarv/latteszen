@@ -213,8 +213,8 @@
     // pelo botão manual "Sincronizar do diretório" quanto pela sincronização
     // automática (ao escolher a pasta, e quando o índice local está vazio mas
     // já existe um diretório configurado — ver init()).
-    async function syncFromDirectory() {
-        const { items: found, falhas } = await Storage.scanDirectory();
+    async function syncFromDirectory(onProgress) {
+        const { items: found, falhas } = await Storage.scanDirectory(onProgress);
         const byId = new Map(state.catalogo.items.map(i => [i.id, i]));
         found.forEach(f => byId.set(f.id, f));
         state.catalogo.items = Array.from(byId.values());

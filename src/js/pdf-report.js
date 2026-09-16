@@ -259,9 +259,13 @@ window.LzPdfReport = (function () {
     function desenharDivisoria(pdfDoc, fontes, titulo) {
         const pagina = pdfDoc.addPage([PAGE_W, PAGE_H]);
         pagina.drawRectangle({ x: 0, y: PAGE_H / 2 - 60, width: PAGE_W, height: 3, color: fontes.corAccent });
-        const tamanho = 28;
         const fonte = fontes.tituloFonte;
         const textoSeguro = sanitizarTexto(fonte, titulo);
+        // Título de categoria ("Anexo <romano> — <categoria>") pode ser bem
+        // mais comprido que "Memorial"/"Anexos" — encolhe a fonte até caber
+        // na largura útil da página em vez de deixar vazar pelas bordas.
+        let tamanho = 28;
+        while (tamanho > 14 && fonte.widthOfTextAtSize(textoSeguro, tamanho) > CONTENT_W) tamanho -= 1;
         const largura = fonte.widthOfTextAtSize(textoSeguro, tamanho);
         pagina.drawText(textoSeguro, { x: (PAGE_W - largura) / 2, y: PAGE_H / 2 - 20, size: tamanho, font: fonte, color: fontes.corTexto });
         return pagina;
@@ -285,9 +289,16 @@ window.LzPdfReport = (function () {
             const numW = fontes.negrito.widthOfTextAtSize(numSeguro, numTam);
             pagina.drawText(numSeguro, { x: (SIDEBAR_W - numW) / 2, y: PAGE_H - 90, size: numTam, font: fontes.negrito, color: corTexto });
         }
+        // Rótulo da categoria (texto rotacionado) com o dobro do tamanho
+        // original (pedido do Alexsandro — só este, não o número grande
+        // acima, pra não estourar a largura da barra em categorias de 2
+        // dígitos) — o deslocamento a partir da borda direita da barra
+        // escala junto, pra manter o texto centralizado na largura da
+        // barra como estava antes.
         const lbl = sanitizarTexto(fontes.negrito, (contexto.label || '').toUpperCase());
         if (lbl) {
-            pagina.drawText(lbl, { x: SIDEBAR_W - 16, y: 90, size: 7.5, font: fontes.negrito, color: corTexto, rotate: fontes.degrees(90) });
+            const lblTam = 15;
+            pagina.drawText(lbl, { x: SIDEBAR_W - (16 / 7.5) * lblTam, y: 90, size: lblTam, font: fontes.negrito, color: corTexto, rotate: fontes.degrees(90) });
         }
     }
 
@@ -606,6 +617,31 @@ window.LzPdfReport = (function () {
         return lista;
     }
 
+    // Mesmo percurso de anexosDoModelo(), mas escopado a UMA seção/categoria
+    // e só evidências de ARQUIVO (não link — ver anexo.ext === 'url') — usado
+    // pra organizar os Anexos por categoria ("Anexo I", "Anexo II"...), já
+    // que evidências em link não geram página própria (continuam juntas, ao
+    // final, em "Evidências em link").
+    function anexosDaSecaoSemLink(sec) {
+        const lista = [];
+        const registrar = (item) => (item.anexos || []).forEach((anexo) => { if (anexo.ext !== 'url') lista.push({ item, anexo }); });
+        sec.tipos.forEach((tipo) => {
+            if (tipo.subgrupos) tipo.subgrupos.forEach((sub) => sub.itens.forEach(registrar));
+            else tipo.itens.forEach(registrar);
+        });
+        return lista;
+    }
+
+    // Numeral romano (I, II, III...) pros títulos "Anexo <romano> —
+    // <categoria>" no sumário/relatório — nunca passa de ~20 (nº de
+    // categorias), então não precisa lidar com milhares.
+    function numeroRomano(n) {
+        const valores = [[1000, 'M'], [900, 'CM'], [500, 'D'], [400, 'CD'], [100, 'C'], [90, 'XC'], [50, 'L'], [40, 'XL'], [10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I']];
+        let resto = n, out = '';
+        valores.forEach(([v, s]) => { while (resto >= v) { out += s; resto -= v; } });
+        return out;
+    }
+
     // Uma página de evidência: cabeçalho com o número da página do
     // relatório (canto superior direito — mesmo número que numerarPaginas()
     // vai desenhar no rodapé/topo) e a IDENTIFICAÇÃO DO ITEM — reaproveita
@@ -648,10 +684,18 @@ window.LzPdfReport = (function () {
 
         const rodape = desenharRodapeEvidencia(pagina, fontes, escritor, anexo);
 
-        const areaW = CONTENT_W - escritor.margemExtra, areaH = Math.max(60, escritor.y - MARGIN - rodape.altura);
+        // A EVIDÊNCIA em si (imagem/PDF) ganha uma margem bem mais estreita
+        // que o resto da página (1cm em vez dos ~2cm de MARGIN) — pedido do
+        // Alexsandro pra ampliar a exibição (~10-20% a mais de área) sem
+        // mexer na identificação do item nem no rodapé, que continuam na
+        // margem normal do relatório. No Modelo B, a barra lateral (largura
+        // fixa, não é "margem") continua sendo o limite à esquerda.
+        const xEvid = modelo === 'B' ? SIDEBAR_W + UM_CM : UM_CM;
+        const xEvidFim = PAGE_W - UM_CM;
+        const areaW = xEvidFim - xEvid, areaH = Math.max(60, escritor.y - MARGIN - rodape.altura);
         const escala = Math.min(areaW / larguraNatural, areaH / alturaNatural, 1);
         const w = larguraNatural * escala, h = alturaNatural * escala;
-        const x = xBase + (areaW - w) / 2, y = MARGIN + rodape.altura + (areaH - h) / 2;
+        const x = xEvid + (areaW - w) / 2, y = MARGIN + rodape.altura + (areaH - h) / 2;
         desenhar(pagina, { x, y, w, h });
     }
 
@@ -692,51 +736,70 @@ window.LzPdfReport = (function () {
     // Anexa de fato os arquivos de evidência: cada página de PDF (uma ou
     // várias) e cada imagem viram sua PRÓPRIA página no relatório, com
     // cabeçalho (nome do item + nº da página) e reduzidas proporcionalmente
-    // pra caber no espaço abaixo dele — ver desenharPaginaEvidencia(). Links
-    // e tipos não suportados (vídeo/zip) viram uma nota em texto; nada é
-    // descartado silenciosamente.
-    async function anexarEvidencias(pdfDoc, PDFLib, escritor, fontes, modelo, model) {
+    // pra caber no espaço abaixo dele — ver desenharPaginaEvidencia(). Tipos
+    // não suportados (vídeo/zip) e erros ao anexar viram uma nota em texto;
+    // nada é descartado silenciosamente. Organizadas por CATEGORIA — cada
+    // categoria com evidência de arquivo é um grupo em `grupos` (ver gerar():
+    // gruposAnexo, montado ANTES, junto do sumário, pra já saber os títulos
+    // "Anexo <romano> — <categoria>"). Evidências em LINK entram à parte, ao
+    // final (linksNota), já que não geram página própria pra "pertencer" a
+    // uma categoria. `paginasDivisao` (opção escolhida por quem gera o
+    // relatório): com uma página de divisão dedicada por categoria (mesmo
+    // estilo do Memorial) ou sem nenhuma, direto pro primeiro item — nos
+    // dois casos, o número de página da 1ª página de cada categoria é
+    // gravado na entrada do sumário correspondente (grupo.entrada).
+    async function anexarEvidencias(pdfDoc, PDFLib, escritor, fontes, modelo, grupos, linksNota, entradaLinks, paginasDivisao) {
         const { PDFDocument } = PDFLib;
-        const anexos = anexosDoModelo(model);
-        const linksNota = [];
-        for (const { item, anexo } of anexos) {
-            if (anexo.ext === 'url') { linksNota.push({ item, anexo }); continue; }
-            try {
-                if (anexo.ext === 'pdf') {
-                    const bytes = dataUriParaBytes(anexo.dataUri);
-                    const origem = await PDFDocument.load(bytes, { ignoreEncryption: true });
-                    const paginasEmbutidas = await pdfDoc.embedPdf(origem, origem.getPageIndices());
-                    paginasEmbutidas.forEach((embutida) => {
-                        desenharPaginaEvidencia(escritor, fontes, modelo, item, anexo, embutida.width, embutida.height, (pagina, area) => {
-                            pagina.drawPage(embutida, { x: area.x, y: area.y, width: area.w, height: area.h });
+        for (const grupo of grupos) {
+            if (paginasDivisao) desenharDivisoria(pdfDoc, fontes, grupo.entrada.titulo);
+            let primeiraPaginaRegistrada = false;
+            const registrarPrimeiraPagina = () => {
+                if (!primeiraPaginaRegistrada) { grupo.entrada.paginaIndex = escritor.numeroPagina; primeiraPaginaRegistrada = true; }
+            };
+            for (const { item, anexo } of grupo.itens) {
+                try {
+                    if (anexo.ext === 'pdf') {
+                        const bytes = dataUriParaBytes(anexo.dataUri);
+                        const origem = await PDFDocument.load(bytes, { ignoreEncryption: true });
+                        const paginasEmbutidas = await pdfDoc.embedPdf(origem, origem.getPageIndices());
+                        paginasEmbutidas.forEach((embutida) => {
+                            desenharPaginaEvidencia(escritor, fontes, modelo, item, anexo, embutida.width, embutida.height, (pagina, area) => {
+                                pagina.drawPage(embutida, { x: area.x, y: area.y, width: area.w, height: area.h });
+                            });
+                            registrarPrimeiraPagina();
                         });
-                    });
-                } else if (window.AppCore.isImageExt(anexo.ext)) {
-                    let dataUri = anexo.dataUri;
-                    let ehPng = /^(png)$/i.test(anexo.ext);
-                    if (/^(gif|webp)$/i.test(anexo.ext)) { dataUri = await converterParaPng(dataUri); ehPng = true; }
-                    const bytes = dataUriParaBytes(dataUri);
-                    const imagem = ehPng ? await pdfDoc.embedPng(bytes) : await pdfDoc.embedJpg(bytes);
-                    desenharPaginaEvidencia(escritor, fontes, modelo, item, anexo, imagem.width, imagem.height, (pagina, area) => {
-                        pagina.drawImage(imagem, { x: area.x, y: area.y, width: area.w, height: area.h });
-                    });
-                } else {
+                    } else if (window.AppCore.isImageExt(anexo.ext)) {
+                        let dataUri = anexo.dataUri;
+                        let ehPng = /^(png)$/i.test(anexo.ext);
+                        if (/^(gif|webp)$/i.test(anexo.ext)) { dataUri = await converterParaPng(dataUri); ehPng = true; }
+                        const bytes = dataUriParaBytes(dataUri);
+                        const imagem = ehPng ? await pdfDoc.embedPng(bytes) : await pdfDoc.embedJpg(bytes);
+                        desenharPaginaEvidencia(escritor, fontes, modelo, item, anexo, imagem.width, imagem.height, (pagina, area) => {
+                            pagina.drawImage(imagem, { x: area.x, y: area.y, width: area.w, height: area.h });
+                        });
+                        registrarPrimeiraPagina();
+                    } else {
+                        escritor.novaPagina();
+                        desenharIdentificacaoItem(escritor, fontes, modelo, item);
+                        escritor.espaco(8);
+                        escritor.paragrafo(`Arquivo do tipo ".${anexo.ext}" não pode ser incluído dentro do PDF — consulte a pasta/Google Drive configurado para abri-lo.`, { cor: fontes.corMuted });
+                        desenharRodapeEvidencia(escritor.pagina, fontes, escritor, anexo);
+                        registrarPrimeiraPagina();
+                    }
+                } catch (e) {
                     escritor.novaPagina();
                     desenharIdentificacaoItem(escritor, fontes, modelo, item);
                     escritor.espaco(8);
-                    escritor.paragrafo(`Arquivo do tipo ".${anexo.ext}" não pode ser incluído dentro do PDF — consulte a pasta/Google Drive configurado para abri-lo.`, { cor: fontes.corMuted });
+                    escritor.paragrafo(`Não foi possível incluir este arquivo automaticamente (${e.message || 'formato inválido'}).`, { cor: fontes.corMuted });
                     desenharRodapeEvidencia(escritor.pagina, fontes, escritor, anexo);
+                    registrarPrimeiraPagina();
                 }
-            } catch (e) {
-                escritor.novaPagina();
-                desenharIdentificacaoItem(escritor, fontes, modelo, item);
-                escritor.espaco(8);
-                escritor.paragrafo(`Não foi possível incluir este arquivo automaticamente (${e.message || 'formato inválido'}).`, { cor: fontes.corMuted });
-                desenharRodapeEvidencia(escritor.pagina, fontes, escritor, anexo);
             }
         }
         if (linksNota.length) {
+            if (paginasDivisao) desenharDivisoria(pdfDoc, fontes, entradaLinks.titulo);
             escritor.novaPagina();
+            if (entradaLinks) entradaLinks.paginaIndex = escritor.numeroPagina;
             escritor.linha('Evidências em link (endereço na web, sem arquivo para anexar)', { negrito: true, tamanho: 12 });
             escritor.espaco(6);
             linksNota.forEach(({ item, anexo }) => {
@@ -763,14 +826,17 @@ window.LzPdfReport = (function () {
     // Motivo decorativo "tijolos empilhados" no canto inferior direito da
     // capa do Modelo B (pedido do Alexsandro, entre as 3 propostas de
     // mockup) — pirâmide de fileiras (4-3-2-1), cada tijolo numa cor
-    // diferente da paleta de categorias, centralizada em xCentro.
-    function desenharTijolosCapa(pagina, fontes, xCentro, yBase) {
+    // diferente da paleta de categorias. Alinhada pela DIREITA (a borda
+    // direita de cada fileira encosta em xDireita, em vez de centralizada),
+    // com o dobro do tamanho original, começando exatamente na margem
+    // inferior (pedido do Alexsandro, depois de ver a primeira versão).
+    function desenharTijolosCapa(pagina, fontes, xDireita, yBase) {
         const cores = [2, 4, 6, 9, 0, 7].map((i) => PALETA_CATEGORIAS[i]);
-        const bw = 20, bh = 12, gap = 3;
+        const bw = 40, bh = 24, gap = 6;
         let corIdx = 0, y = yBase;
         [4, 3, 2, 1].forEach((n) => {
             const rowW = n * bw + (n - 1) * gap;
-            const xIni = xCentro - rowW / 2;
+            const xIni = xDireita - rowW;
             for (let i = 0; i < n; i++) {
                 const c = cores[corIdx % cores.length]; corIdx += 1;
                 pagina.drawRectangle({ x: xIni + i * (bw + gap), y, width: bw, height: bh, color: fontes.rgb(c[0], c[1], c[2]) });
@@ -822,7 +888,7 @@ window.LzPdfReport = (function () {
             });
         }
 
-        desenharTijolosCapa(pagina, fontes, PAGE_W - MARGIN - 40, MARGIN + 6);
+        desenharTijolosCapa(pagina, fontes, PAGE_W - MARGIN, MARGIN);
     }
 
     // Nome/foto/ORCID do Ego (Identificação) — mesmos dados já resolvidos
@@ -922,7 +988,7 @@ window.LzPdfReport = (function () {
             } else {
                 const cor = e.nivel === 0 ? fontes.corTexto : fontes.corMuted;
                 pagina.drawText(tituloSeguro, { x: MARGIN + indent, y, size: tamanho, font: fonte, color: cor });
-                if (modelo === 'A') {
+                if (modelo === 'A' && numero) {
                     const tituloLargura = fonte.widthOfTextAtSize(tituloSeguro, tamanho);
                     const numLargura = fonte.widthOfTextAtSize(numero, tamanho);
                     const inicioX = MARGIN + indent + tituloLargura + 4;
@@ -999,6 +1065,12 @@ window.LzPdfReport = (function () {
         const categorias = (opts && opts.categorias) || null;
         const ordemAsc = !!(opts && opts.ordemAsc);
         const modelo = (opts && opts.modelo === 'B') ? 'B' : 'A';
+        // Página de divisão dedicada por categoria de evidência, nos Anexos
+        // (opcional — pedido do Alexsandro: deixar a pessoa escolher, em vez
+        // de decidir por ela). Sem isto (padrão), os Anexos vão direto pro
+        // primeiro item de cada categoria, sem página extra nenhuma — só o
+        // sumário aponta certo pra onde cada categoria começa.
+        const paginasDivisao = !!(opts && opts.paginasDivisao);
         const PDFLib = await carregarPdfLib();
         const { PDFDocument, StandardFonts, rgb, degrees, PDFName, PDFString } = PDFLib;
 
@@ -1038,6 +1110,18 @@ window.LzPdfReport = (function () {
         const memorialTexto = incluirCurriculo ? String((memorialItem && memorialItem.fields && memorialItem.fields.descricao) || '').trim() : '';
         const todosAnexos = anexosDoModelo(model);
         const temAnexos = incluirEvidencias && todosAnexos.length > 0;
+        // Anexos organizados por categoria — cada categoria com evidência de
+        // ARQUIVO vira um grupo (as evidências em link ficam à parte, em
+        // linksNota, já que não geram página própria — ver anexarEvidencias).
+        // Calculado aqui, ANTES do sumário, pra já saber os títulos "Anexo
+        // <romano> — <categoria>" e reservar a entrada certa (o número da
+        // página de cada uma só é preenchido depois, quando o conteúdo é
+        // desenhado de verdade — mesmo padrão de entradasPorSecao abaixo).
+        const gruposAnexo = incluirEvidencias
+            ? model.secoes.map((sec) => ({ sec, itens: anexosDaSecaoSemLink(sec), entrada: null })).filter((g) => g.itens.length)
+            : [];
+        const linksNota = incluirEvidencias ? todosAnexos.filter(({ anexo }) => anexo.ext === 'url').map(({ item, anexo }) => ({ item, anexo })) : [];
+        let entradaLinks = null;
 
         let fotoImg = null;
         if (model.foto) {
@@ -1055,8 +1139,13 @@ window.LzPdfReport = (function () {
         // 2) Sumário — reserva as páginas agora (o texto entra por último,
         //    quando os índices de página de cada seção já são conhecidos).
         const entradasSumario = [];
-        if (memorialTexto) entradasSumario.push({ titulo: 'Memorial', nivel: 0, paginaIndex: null });
-        if (incluirCurriculo) entradasSumario.push({ titulo: 'Currículo completo', nivel: 0, paginaIndex: null });
+        let entradaMemorial = null;
+        if (memorialTexto) { entradaMemorial = { titulo: 'Memorial', nivel: 0, paginaIndex: null }; entradasSumario.push(entradaMemorial); }
+        // "Currículo completo" virou "Curriculum Vitae" SÓ no sumário (pedido
+        // do Alexsandro) — sem número de página (o Currículo ocupa páginas
+        // demais pra um número só fazer sentido; as categorias logo abaixo,
+        // uma por uma, já apontam pro lugar certo de cada uma).
+        if (incluirCurriculo) entradasSumario.push({ titulo: 'Curriculum Vitae', nivel: 0, paginaIndex: null });
         const entradasPorSecao = new Map();
         if (incluirCurriculo) {
             model.secoes.forEach((sec) => {
@@ -1065,7 +1154,25 @@ window.LzPdfReport = (function () {
                 entradasPorSecao.set(sec.id, entrada);
             });
         }
-        if (temAnexos) entradasSumario.push({ titulo: 'Anexos — Evidências', nivel: 0, paginaIndex: null });
+        // "Anexos — Evidências" virou "Anexos" (sem número de página, mesmo
+        // motivo do Currículo) com uma entrada "Anexo <romano> — <categoria>"
+        // por categoria abaixo — cada uma com o número certo da página onde
+        // aquela categoria começa (preenchido lá na frente, junto do
+        // conteúdo — ver anexarEvidencias()).
+        if (temAnexos) {
+            entradasSumario.push({ titulo: 'Anexos', nivel: 0, paginaIndex: null });
+            let romanoIdx = 0;
+            gruposAnexo.forEach((g) => {
+                romanoIdx += 1;
+                g.entrada = { titulo: `Anexo ${numeroRomano(romanoIdx)} — ${g.sec.label}`, nivel: 1, paginaIndex: null, num: g.sec.num };
+                entradasSumario.push(g.entrada);
+            });
+            if (linksNota.length) {
+                romanoIdx += 1;
+                entradaLinks = { titulo: `Anexo ${numeroRomano(romanoIdx)} — Evidências em link`, nivel: 1, paginaIndex: null, num: null };
+                entradasSumario.push(entradaLinks);
+            }
+        }
 
         const numPaginasSumario = calcularPaginasSumario(entradasSumario);
         const paginasSumario = [];
@@ -1093,18 +1200,19 @@ window.LzPdfReport = (function () {
             contextoA.secao = 'Memorial';
             Object.assign(contextoB, { cor: CINZA_NEUTRO, num: null, label: 'Memorial' });
             escritor.novaPagina();
-            entradasSumario[0].paginaIndex = escritor.numeroPagina;
+            entradaMemorial.paginaIndex = escritor.numeroPagina;
             escritor.paragrafo(memorialTexto, { tamanho: 11, leading: 1.6 });
         }
 
         // 4) Currículo completo (pulado inteiro no modo "apenas evidências")
         // Sem página divisória própria (pedido do Alexsandro) — vai direto
-        // pro conteúdo, só numa página nova (limpa) depois do Memorial.
+        // pro conteúdo, só numa página nova (limpa) depois do Memorial. Sem
+        // número de página no sumário (ver entradasSumario acima), então não
+        // há entrada pra atualizar aqui — só a página em si precisa existir.
         if (incluirCurriculo) {
             contextoA.secao = 'Currículo completo';
             Object.assign(contextoB, { cor: CINZA_NEUTRO, num: null, label: 'Currículo' });
             escritor.novaPagina();
-            entradasSumario.find((e) => e.titulo === 'Currículo completo').paginaIndex = escritor.numeroPagina;
             if (!model.secoes.length) {
                 escritor.paragrafo('Nenhum item cadastrado ainda.', { cor: fontes.corMuted });
             }
@@ -1142,14 +1250,17 @@ window.LzPdfReport = (function () {
             if (model.secoes.length) desenharCreditos(pdfDoc, PDFName, PDFString, escritor, fontes);
         }
 
-        // 5) Anexos (evidências marcadas como "pública" — mescladas de verdade)
+        // 5) Anexos (evidências marcadas como "pública" — mescladas de
+        // verdade), organizadas por categoria — sem página de divisão nem
+        // página em branco antes do 1º item (pedido do Alexsandro: eram 2
+        // páginas "perdidas" antes de qualquer evidência de verdade
+        // aparecer). Com opts.paginasDivisao, cada categoria ganha sua
+        // própria página de divisão (ver anexarEvidencias); sem, vai direto
+        // pro primeiro item de cada categoria.
         if (temAnexos) {
-            desenharDivisoria(pdfDoc, fontes, 'Anexos — Evidências');
             contextoA.secao = 'Anexos — Evidências';
             Object.assign(contextoB, { cor: CINZA_CLARO_ANEXOS, num: null, label: 'Anexos', corTexto: TEXTO_ESCURO_ANEXOS });
-            escritor.novaPagina();
-            entradasSumario.find((e) => e.titulo === 'Anexos — Evidências').paginaIndex = escritor.numeroPagina;
-            await anexarEvidencias(pdfDoc, PDFLib, escritor, fontes, modelo, model);
+            await anexarEvidencias(pdfDoc, PDFLib, escritor, fontes, modelo, gruposAnexo, linksNota, entradaLinks, paginasDivisao);
         }
 
         // 6) Contracapa
@@ -1163,13 +1274,14 @@ window.LzPdfReport = (function () {
     }
 
     // quebrarLinhas/anexosDoModelo/calcularPaginasSumario/sanitizarTexto/
-    // tituloParaLinha/corDaCategoria/misturarComBranco/sufixoCargaHoraria
-    // expostos só para teste (tools/tests/specs/pdf-report.mjs) — nenhum
-    // deles depende do pdf-lib estar carregado, então dá pra verificar a
-    // lógica pura mesmo com o CDN bloqueado (mesmo bloqueio de rede que a
-    // suíte já aplica a Tailwind/Font Awesome — ver harness.mjs).
+    // tituloParaLinha/corDaCategoria/misturarComBranco/sufixoCargaHoraria/
+    // numeroRomano/anexosDaSecaoSemLink expostos só para teste
+    // (tools/tests/specs/pdf-report.mjs) — nenhum deles depende do pdf-lib
+    // estar carregado, então dá pra verificar a lógica pura mesmo com o CDN
+    // bloqueado (mesmo bloqueio de rede que a suíte já aplica a
+    // Tailwind/Font Awesome — ver harness.mjs).
     return {
         gerar, quebrarLinhas, anexosDoModelo, calcularPaginasSumario, sanitizarTexto, tituloParaLinha, linhaDoItem,
-        corDaCategoria, misturarComBranco, sufixoCargaHoraria,
+        corDaCategoria, misturarComBranco, sufixoCargaHoraria, numeroRomano, anexosDaSecaoSemLink,
     };
 })();

@@ -99,6 +99,14 @@ export function pdfReportExportItemHtml() {
                 </label>
             </fieldset>
             <fieldset class="text-sm mb-2">
+                <legend class="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Anexos — evidências</legend>
+                <label class="flex items-center gap-2">
+                    <input type="checkbox" id="pdfReportPaginasDivisao">
+                    Incluir uma página de divisão para cada categoria de evidências
+                </label>
+                <span class="block text-xs text-gray-500 dark:text-gray-400 mt-0.5">Sem marcar, as evidências de cada categoria vão direto pro primeiro item — só o sumário aponta certo pra onde cada uma começa.</span>
+            </fieldset>
+            <fieldset class="text-sm mb-2">
                 <legend class="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Modelo de diagramação</legend>
                 <label class="flex items-start gap-2 mb-1.5">
                     <input type="radio" name="pdfReportModelo" id="pdfReportModeloA" value="A" checked class="mt-0.5">
@@ -154,6 +162,7 @@ export function wirePdfReportExport() {
         const incluirTodos = $('#pdfReportEscopoTodos').checked;
         const ordemAsc = $('#pdfReportOrdemAsc').checked;
         const modelo = $('#pdfReportModeloB').checked ? 'B' : 'A';
+        const paginasDivisao = $('#pdfReportPaginasDivisao').checked;
         const conteudo = ($$('input[name="pdfReportConteudo"]').find((r) => r.checked) || {}).value || 'completo';
         const incluirCurriculo = conteudo !== 'apenas-evidencias';
         const incluirEvidencias = conteudo !== 'sem-evidencias';
@@ -179,7 +188,7 @@ export function wirePdfReportExport() {
             if (!window.LzPdfReport) {
                 throw new Error('O gerador de PDF não carregou (js/pdf-report.js). Verifique sua conexão e se alguma extensão do navegador (bloqueador de anúncios/rastreadores) não está bloqueando o arquivo, depois recarregue a página.');
             }
-            const bytes = await window.LzPdfReport.gerar({ incluirTodos, incluirCurriculo, incluirEvidencias, categorias, ordemAsc, modelo });
+            const bytes = await window.LzPdfReport.gerar({ incluirTodos, incluirCurriculo, incluirEvidencias, categorias, ordemAsc, modelo, paginasDivisao });
             const nomeItem = state.catalogo.items.find((i) => i.typeKey === 'IDENTIFICACAO' && i.fields && i.fields.titulo);
             const safe = (nomeItem && nomeItem.fields.titulo ? nomeItem.fields.titulo : 'curriculo').replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, '-').toLowerCase();
             const nomeArquivo = `relatorio-completo-${safe}-${fileStamp()}.pdf`;
