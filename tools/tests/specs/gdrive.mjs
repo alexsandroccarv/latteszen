@@ -80,6 +80,13 @@ function createMockDrive() {
     files.set('root', { id: 'root', name: '', parentId: null, isDir: true, content: null });
     let offline = false;
     let forbidden = false;
+    // Falha seletiva (em vez de offline/forbidden globais) — pra testar
+    // detalhes de falha (Storage.scanDirectory) e "tentar de novo só o que
+    // falhou" (retentarFalhasSincronizacao): só as pastas/arquivos cujo id
+    // está nestes sets falham (abortam a conexão), o resto do Drive
+    // simulado continua respondendo normalmente.
+    let failFolderIds = new Set();
+    let failFileIds = new Set();
 
     function newId() { return 'f' + (nextId++); }
     function childrenOf(parentId) { return Array.from(files.values()).filter((f) => f.parentId === parentId); }
@@ -99,6 +106,7 @@ function createMockDrive() {
             const q = url.searchParams.get('q') || '';
             const parentMatch = q.match(/'([^']*)' in parents/);
             const parentId = parentMatch ? parentMatch[1] : null;
+            if (parentId && failFolderIds.has(parentId)) { await route.abort('failed'); return; }
             const nameMatch = q.match(/name = '((?:[^'\\]|\\.)*)'/);
             const name = nameMatch ? nameMatch[1].replace(/\\'/g, "'").replace(/\\\\/g, '\\') : null;
             const foldersOnly = /mimeType = 'application\/vnd\.google-apps\.folder'/.test(q);
@@ -156,6 +164,7 @@ function createMockDrive() {
             const id = fileIdMatch[1];
             const f = files.get(id);
             if (method === 'GET') {
+                if (url.searchParams.get('alt') === 'media' && failFileIds.has(id)) { await route.abort('failed'); return; }
                 if (!f) { await route.fulfill({ status: 404, contentType: 'application/json', body: '{}' }); return; }
                 if (url.searchParams.get('alt') === 'media') await route.fulfill({ status: 200, body: f.content || '' });
                 else await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ id: f.id, name: f.name, parents: f.parentId ? [f.parentId] : [] }) });
@@ -184,6 +193,8 @@ function createMockDrive() {
         files,
         setOffline(v) { offline = v; },
         setForbidden(v) { forbidden = v; },
+        setFailFolderIds(ids) { failFolderIds = new Set(ids || []); },
+        setFailFileIds(ids) { failFileIds = new Set(ids || []); },
         async install(page) { await page.route('https://www.googleapis.com/**', handle); },
     };
 }
@@ -355,6 +366,145 @@ test('writeJson + scanDirectory fazem round-trip via Google Drive', async ({ pag
     assertEqual(falhas, 0, 'Sem nenhuma falha de rede simulada, "falhas" deveria vir zerado');
     assertEqual(items[0].id, 'it-gdrive1', 'O item reconstruído deveria ter o mesmo id gravado');
     assertEqual(items[0].titulo, 'Item gravado via Google Drive', 'O item reconstruído deveria ter os mesmos campos gravados');
+});
+
+// Regressão: scanDirectory() passou a varrer pastas/arquivos em PARALELO
+// (limitador de concorrência, ver Storage.criarLimitador) em vez de um de
+// cada vez — pedido do Alexsandro pra acelerar a sincronização de uma
+// biblioteca grande do Drive pelo celular. Vários itens espalhados por
+// VÁRIAS pastas de categoria de propósito, pra exercitar de verdade a
+// recursão concorrente (não só 1 arquivo em 1 pasta).
+test('scanDirectory() reconstrói todos os itens de várias pastas de categoria, mesmo varrendo em paralelo', async ({ page, baseUrl }) => {
+    const mock = createMockDrive();
+    await mock.install(page);
+    await mockGis(page);
+    await abrirConfig(page, baseUrl);
+    await conectar(page, 'lattesZen');
+
+    const pastas = ['Produções', 'Formação', 'Atuação', 'Projetos'];
+    await page.evaluate(async (pastas) => {
+        for (const pasta of pastas) {
+            for (let i = 0; i < 3; i++) {
+                const id = `it-${pasta}-${i}`;
+                await window.Storage.writeJson(id, { id, titulo: `Item ${i} de ${pasta}` }, pasta);
+            }
+        }
+    }, pastas);
+
+    const { items, falhas } = await page.evaluate(() => window.Storage.scanDirectory());
+    assertEqual(items.length, pastas.length * 3, `scanDirectory deveria reconstruir todos os ${pastas.length * 3} itens, espalhados pelas ${pastas.length} pastas`);
+    assertEqual(falhas, 0, 'Sem nenhuma falha de rede simulada, "falhas" deveria vir zerado');
+    const ids = items.map((it) => it.id).sort();
+    const idsEsperados = pastas.flatMap((pasta) => [0, 1, 2].map((i) => `it-${pasta}-${i}`)).sort();
+    assertEqual(ids, idsEsperados, 'Todos os ids gravados deveriam vir de volta, um por um, sem perder nem duplicar nenhum');
+});
+
+/* ==========================================================================
+   Regressão: mensagens de falha mais claras + "tentar de novo só o que
+   falhou" (issue relatada pelo Alexsandro: depois de uma sincronização
+   incompleta pelo celular, o aviso genérico "2 pasta(s) não puderam ser
+   lidas" não dizia QUAIS pastas nem quantos itens ficaram de fora, e não
+   havia como forçar uma nova tentativa só daquilo que faltou).
+   ========================================================================== */
+test('scanDirectory(): um arquivo que falha vira um "detalhes" com tipo/caminho/pasta certos, e retentarFalhasSincronizacao() recupera ele sozinho', async ({ page, baseUrl }) => {
+    const mock = createMockDrive();
+    await mock.install(page);
+    await mockGis(page);
+    await abrirConfig(page, baseUrl);
+    await conectar(page, 'lattesZen');
+
+    await page.evaluate(async () => {
+        await window.Storage.writeJson('it-ok', { id: 'it-ok', titulo: 'Este vai dar certo' }, 'Atuação');
+        await window.Storage.writeJson('it-falha', { id: 'it-falha', titulo: 'Este vai falhar' }, 'Atuação');
+    });
+    const arquivoFalha = Array.from(mock.files.values()).find((f) => f.name === 'it-falha.json');
+    assert(arquivoFalha, 'O JSON "it-falha" deveria ter sido criado no mock');
+    mock.setFailFileIds([arquivoFalha.id]);
+
+    const primeiraVarredura = await page.evaluate(() => window.Storage.scanDirectory());
+    assertEqual(primeiraVarredura.items.length, 1, 'Só o item sem falha deveria ter sido lido na 1ª varredura');
+    assertEqual(primeiraVarredura.items[0].id, 'it-ok', 'O item recuperado deveria ser o que não falhou');
+    assertEqual(primeiraVarredura.falhas, 1, 'Deveria contar exatamente 1 falha');
+    assertEqual(primeiraVarredura.detalhes.length, 1, 'detalhes deveria ter exatamente 1 entrada');
+    assertEqual(primeiraVarredura.detalhes[0].tipo, 'arquivo', 'A falha é de um ARQUIVO específico, não da pasta inteira');
+    assertEqual(primeiraVarredura.detalhes[0].caminho, 'Atuação/it-falha.json', 'O caminho deveria identificar a pasta E o arquivo que falhou');
+    assertEqual(primeiraVarredura.detalhes[0].pastaCaminho, 'Atuação', 'pastaCaminho deveria ser só a pasta (pra agrupar várias falhas da mesma pasta)');
+
+    // "Rede se recupera" — limpa a falha simulada e tenta de novo SÓ o que
+    // o detalhes aponta, sem revarrer a pasta inteira.
+    mock.setFailFileIds([]);
+    const retentativa = await page.evaluate((detalhes) => window.Storage.retentarFalhasSincronizacao(detalhes), primeiraVarredura.detalhes);
+    assertEqual(retentativa.items.length, 1, 'A retentativa deveria recuperar exatamente o item que tinha falhado');
+    assertEqual(retentativa.items[0].id, 'it-falha', 'O item recuperado na retentativa deveria ser o "it-falha"');
+    assertEqual(retentativa.falhas, 0, 'Sem falha simulada mais, a retentativa não deveria falhar');
+    assertEqual(retentativa.detalhes.length, 0, 'Sem mais nada faltando, detalhes deveria voltar vazio');
+});
+
+test('scanDirectory(): uma pasta inteira que falha ao LISTAR vira um "detalhes" tipo "pasta", e retentarFalhasSincronizacao() recupera tudo que tinha dentro', async ({ page, baseUrl }) => {
+    const mock = createMockDrive();
+    await mock.install(page);
+    await mockGis(page);
+    await abrirConfig(page, baseUrl);
+    await conectar(page, 'lattesZen');
+
+    await page.evaluate(async () => {
+        await window.Storage.writeJson('it-formacao-1', { id: 'it-formacao-1', titulo: 'Formação 1' }, 'Formação');
+        await window.Storage.writeJson('it-atuacao-1', { id: 'it-atuacao-1', titulo: 'Atuação 1' }, 'Atuação');
+        await window.Storage.writeJson('it-atuacao-2', { id: 'it-atuacao-2', titulo: 'Atuação 2' }, 'Atuação');
+    });
+    const pastaAtuacao = Array.from(mock.files.values()).find((f) => f.name === 'Atuação' && f.isDir);
+    assert(pastaAtuacao, 'A pasta "Atuação" deveria ter sido criada no mock');
+    mock.setFailFolderIds([pastaAtuacao.id]);
+
+    const primeiraVarredura = await page.evaluate(() => window.Storage.scanDirectory());
+    assertEqual(primeiraVarredura.items.length, 1, 'Só o item de "Formação" deveria ter sido lido (a listagem de "Atuação" falhou inteira)');
+    assertEqual(primeiraVarredura.items[0].id, 'it-formacao-1', 'O item recuperado deveria ser o de "Formação"');
+    assert(primeiraVarredura.falhas >= 1, 'Deveria contar ao menos 1 falha (a pasta "Atuação")');
+    const falhaPasta = primeiraVarredura.detalhes.find((d) => d.tipo === 'pasta');
+    assert(falhaPasta, 'detalhes deveria ter uma entrada do tipo "pasta"');
+    assertEqual(falhaPasta.caminho, 'Atuação', 'A falha de pasta deveria identificar "Atuação" pelo caminho');
+
+    mock.setFailFolderIds([]);
+    const retentativa = await page.evaluate((detalhes) => window.Storage.retentarFalhasSincronizacao(detalhes), primeiraVarredura.detalhes);
+    assertEqual(retentativa.items.length, 2, 'A retentativa deveria recuperar os 2 itens que estavam dentro de "Atuação"');
+    assertEqual(retentativa.items.map((i) => i.id).sort(), ['it-atuacao-1', 'it-atuacao-2'], 'Deveria recuperar exatamente os 2 itens de "Atuação", sem repetir o de "Formação"');
+    assertEqual(retentativa.falhas, 0, 'Sem falha simulada mais, a retentativa não deveria falhar');
+});
+
+test('UI: depois de "Sincronizar do diretório" com falhas, aparece o resumo com o caminho certo e um botão "tentar de novo" que recupera o restante', async ({ page, baseUrl }) => {
+    const mock = createMockDrive();
+    await mock.install(page);
+    await mockGis(page);
+    await abrirConfig(page, baseUrl);
+    await conectar(page, 'lattesZen');
+
+    await page.evaluate(async () => {
+        await window.Storage.writeJson('it-falha-ui', { id: 'it-falha-ui', titulo: 'Vai falhar na 1ª tentativa' }, 'Atuação');
+    });
+    const arquivoFalha = Array.from(mock.files.values()).find((f) => f.name === 'it-falha-ui.json');
+    mock.setFailFileIds([arquivoFalha.id]);
+
+    await page.click('#btnSync');
+    await page.waitForFunction(() => {
+        const el = document.querySelector('#syncStatus');
+        return el && /Atuação/.test(el.textContent);
+    }, { timeout: 10000 });
+
+    const textoAviso = await page.$eval('#syncStatus', (el) => el.textContent);
+    assert(/1 arquivo\(s\) não puderam ser lidos/.test(textoAviso), `O aviso deveria mencionar 1 arquivo não lido — obtido: "${textoAviso}"`);
+    assert(/Atuação/.test(textoAviso), `O aviso deveria mencionar a pasta "Atuação" — obtido: "${textoAviso}"`);
+    assertEqual(await page.locator('#btnRetentarFalhasSync').count(), 1, 'O botão "tentar sincronizar de novo" deveria aparecer');
+
+    // Rede "se recupera" antes de clicar em tentar de novo.
+    mock.setFailFileIds([]);
+    await page.click('#btnRetentarFalhasSync');
+    await page.waitForFunction(() => {
+        const el = document.querySelector('#syncStatus');
+        return el && el.textContent.trim() === '';
+    }, { timeout: 10000 });
+
+    const catalogo = await page.evaluate(() => JSON.parse(localStorage.getItem('lz_catalog') || '[]').map((i) => i.id));
+    assert(catalogo.includes('it-falha-ui'), 'O item que tinha falhado deveria estar no catálogo depois de "tentar de novo"');
 });
 
 // Regressão: o botão "Abrir no Google Drive" (Catalogar/Configurações) usava
