@@ -30,9 +30,10 @@ const { state, $, $$, esc, toast } = window.AppCore;
 
 // Uma checkbox por categoria (01-21) — mesma trava rscOnly já usada em
 // Catalogar (tab-catalogar.js: `.filter(c => !c.rscOnly || state.rsc.enabled)`),
-// pra não oferecer as categorias do módulo RSC (Grupos de Pesquisa, Atuação
-// em Crise de Saúde Pública) a quem não tem o módulo ligado — sempre
-// ficariam vazias. Marcadas por padrão (Personalizado começa com "tudo").
+// pra não oferecer a categoria exclusiva do RSC (Atuação em Crise de Saúde
+// Pública) a quem não tem o módulo ligado — sempre ficaria vazia. Grupos de
+// Pesquisa não é mais rscOnly (aparece sempre). Marcadas por padrão
+// (Personalizado começa com "tudo").
 function categoriasCheckboxesHtml() {
     return LattesTypes.categories
         .filter((c) => !c.rscOnly || state.rsc.enabled)

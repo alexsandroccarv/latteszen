@@ -613,11 +613,13 @@ window.LzPdfReport = (function () {
     // secundária/cores já usados pra esse item lá no Currículo completo
     // (ver atribuirNumeracaoItens), pedido do Alexsandro pra bater
     // exatamente com o que a pessoa já viu antes, folheando o relatório —
-    // depois uma linha fina, e a evidência reduzida de forma SEMPRE
-    // proporcional (nunca estica um eixo mais que o outro) pra caber na
-    // área reservada abaixo do cabeçalho. `desenhar(pagina, area)` faz o
-    // drawImage/drawPage de verdade — este helper só cuida do layout comum
-    // entre os dois casos (ver anexarEvidencias).
+    // depois uma linha fina, a evidência reduzida de forma SEMPRE
+    // proporcional (nunca estica um eixo mais que o outro) pra caber no
+    // espaço disponível, e "Evidência disponível em: ..." no rodapé da
+    // página (ver linhaEvidenciaDisponivelEm) — pedido do Alexsandro: antes
+    // essa linha ficava colada no cabeçalho, junto do nome do arquivo.
+    // `desenhar(pagina, area)` faz o drawImage/drawPage de verdade — este
+    // helper só cuida do layout comum entre os dois casos (anexarEvidencias).
     function desenharPaginaEvidencia(escritor, fontes, modelo, item, anexo, larguraNatural, alturaNatural, desenhar) {
         escritor.novaPagina();
         const pagina = escritor.pagina;
@@ -640,28 +642,42 @@ window.LzPdfReport = (function () {
 
         desenharIdentificacaoItem(escritor, fontes, modelo, item);
 
-        escritor.paragrafo(linhaTagCaminho(anexo), { tamanho: 9, cor: fontes.corMuted });
         escritor.espaco(6);
         pagina.drawLine({ start: { x: xBase, y: escritor.y + 3 }, end: { x: xFim, y: escritor.y + 3 }, thickness: 0.5, color: fontes.corRule });
         escritor.espaco(6);
 
-        const areaW = CONTENT_W - escritor.margemExtra, areaH = Math.max(60, escritor.y - MARGIN);
+        const rodape = desenharRodapeEvidencia(pagina, fontes, escritor, anexo);
+
+        const areaW = CONTENT_W - escritor.margemExtra, areaH = Math.max(60, escritor.y - MARGIN - rodape.altura);
         const escala = Math.min(areaW / larguraNatural, areaH / alturaNatural, 1);
         const w = larguraNatural * escala, h = alturaNatural * escala;
-        const x = xBase + (areaW - w) / 2, y = MARGIN + (areaH - h) / 2;
+        const x = xBase + (areaW - w) / 2, y = MARGIN + rodape.altura + (areaH - h) / 2;
         desenhar(pagina, { x, y, w, h });
     }
 
-    // Segunda linha de identificação da evidência — "tag | caminho" (tag
-    // omitida se a evidência não tiver uma) — pedido do Alexsandro, no
-    // lugar do nome de arquivo cru ("Evidência: NOME_CONFUSO_DO_ARQUIVO.
-    // pdf"). anexo.tag/anexo.caminho já vêm prontos de itemAnexos()
-    // (tab-publicar.js): caminho = /pasta raiz/Evidências/NN Categoria/
-    // id-evidencia.ext. Evidências em link (sem arquivo/caminho local)
-    // caem no fallback anexo.name.
-    function linhaTagCaminho(anexo) {
-        const caminho = anexo.caminho || anexo.name;
-        return anexo.tag ? `${anexo.tag} | ${caminho}` : caminho;
+    // "Evidência disponível em: ..." no rodapé da página (canto inferior
+    // esquerdo, acima do número de página que numerarPaginas() desenha por
+    // último) — pedido do Alexsandro. anexo.caminho já vem pronto de
+    // itemAnexos() (tab-publicar.js): "/Modo: ~/pasta raiz/Evidências/NN
+    // Categoria/id-evidencia.ext". Evidências em link (sem caminho local)
+    // caem no fallback anexo.name. Devolve a altura reservada, pra quem
+    // chama encolher a área da evidência (imagem/PDF) por essa mesma
+    // medida em vez de desenhar por cima.
+    function linhaEvidenciaDisponivelEm(anexo) {
+        return `Evidência disponível em: ${anexo.caminho || anexo.name}`;
+    }
+    function desenharRodapeEvidencia(pagina, fontes, escritor, anexo) {
+        const xBase = MARGIN + escritor.margemExtra + escritor.deslocamentoX;
+        const largura = CONTENT_W - escritor.margemExtra;
+        const tamanho = 8.5, leading = tamanho * 1.35;
+        const linhas = quebrarLinhas(linhaEvidenciaDisponivelEm(anexo), fontes.regular, tamanho, largura);
+        const altura = linhas.length * leading + 4;
+        let y = MARGIN + altura - leading + 2;
+        linhas.forEach((linha) => {
+            pagina.drawText(sanitizarTexto(fontes.regular, linha), { x: xBase, y, size: tamanho, font: fontes.regular, color: fontes.corMuted });
+            y -= leading;
+        });
+        return { altura };
     }
 
     // Mesma identificação de item usada em desenharPaginaEvidencia() e nos
@@ -707,16 +723,16 @@ window.LzPdfReport = (function () {
                 } else {
                     escritor.novaPagina();
                     desenharIdentificacaoItem(escritor, fontes, modelo, item);
-                    escritor.paragrafo(linhaTagCaminho(anexo), { tamanho: 9, cor: fontes.corMuted });
                     escritor.espaco(8);
                     escritor.paragrafo(`Arquivo do tipo ".${anexo.ext}" não pode ser incluído dentro do PDF — consulte a pasta/Google Drive configurado para abri-lo.`, { cor: fontes.corMuted });
+                    desenharRodapeEvidencia(escritor.pagina, fontes, escritor, anexo);
                 }
             } catch (e) {
                 escritor.novaPagina();
                 desenharIdentificacaoItem(escritor, fontes, modelo, item);
-                escritor.paragrafo(linhaTagCaminho(anexo), { tamanho: 9, cor: fontes.corMuted });
                 escritor.espaco(8);
                 escritor.paragrafo(`Não foi possível incluir este arquivo automaticamente (${e.message || 'formato inválido'}).`, { cor: fontes.corMuted });
+                desenharRodapeEvidencia(escritor.pagina, fontes, escritor, anexo);
             }
         }
         if (linksNota.length) {

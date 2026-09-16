@@ -2,8 +2,10 @@
    Regressão: categoria "Grupos de Pesquisa" (issues #32 e #33) — os itens 6 e
    7 do Requisito VI (liderança/vice-liderança e participação em grupo de
    pesquisa/extensão registrado) não tinham nenhum tipo de item onde entrar.
-   Cobre: a categoria só aparece com o módulo RSC habilitado, e um item desse
-   tipo pode ser contabilizado no RSC com o critério 6.6.
+   Cobre: a categoria aparece sempre no seletor (perdeu o rscOnly — pedido
+   do Alexsandro: faz sentido como credencial acadêmica geral, não só como
+   critério do RSC), e um item desse tipo pode ser contabilizado no RSC
+   (módulo habilitado + "usar para RSC" no item) com o critério 6.6.
    ========================================================================== */
 import { test, assert, assertEqual, seedCatalog } from '../harness.mjs';
 
@@ -17,18 +19,18 @@ async function habilitarRsc(page) {
     await page.waitForTimeout(500);
 }
 
-test('Categoria "Grupos de Pesquisa" só aparece no seletor com o módulo RSC habilitado', async ({ page, baseUrl }) => {
+test('Categoria "Grupos de Pesquisa" aparece no seletor com ou sem o módulo RSC habilitado', async ({ page, baseUrl }) => {
     await seedCatalog(page, baseUrl, []);
     await page.click('[data-tab="catalogar"]');
     await page.waitForTimeout(200);
     const semRsc = await page.$$eval('#selCategoria option', (opts) => opts.map((o) => o.value));
-    assert(!semRsc.includes('RSC_GRUPO'), 'Sem o módulo RSC habilitado, "Grupos de Pesquisa" não deveria aparecer no seletor de categoria');
+    assert(semRsc.includes('RSC_GRUPO'), 'Sem o módulo RSC habilitado, "Grupos de Pesquisa" ainda deveria aparecer no seletor de categoria (não é mais exclusiva do RSC)');
 
     await habilitarRsc(page);
     await page.click('[data-tab="catalogar"]');
     await page.waitForTimeout(200);
     const comRsc = await page.$$eval('#selCategoria option', (opts) => opts.map((o) => o.value));
-    assert(comRsc.includes('RSC_GRUPO'), 'Com o módulo RSC habilitado, "Grupos de Pesquisa" deveria aparecer no seletor de categoria');
+    assert(comRsc.includes('RSC_GRUPO'), 'Com o módulo RSC habilitado, "Grupos de Pesquisa" deveria continuar aparecendo no seletor de categoria');
 
     const rotulo = await page.$eval('#selCategoria', (sel, key) => {
         const opt = Array.from(sel.options).find((o) => o.value === key);

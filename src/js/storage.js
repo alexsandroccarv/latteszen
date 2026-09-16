@@ -361,6 +361,14 @@ window.Storage = (function () {
         if (mode === 'gdrive') return gdriveCfg ? `Google Drive — /${gdriveCfg.pasta}` : null;
         return dirHandle ? dirHandle.name : null;
     }
+    // Só o nome "puro" da pasta raiz (sem o prefixo "Google Drive — /" que
+    // directoryName() acrescenta pra exibição) — usado no rodapé "Evidência
+    // disponível em:" do Relatório (PDF), que já traz o rótulo do modo de
+    // armazenamento separado (ver linhaEvidenciaDisponivelEm em pdf-report.js).
+    async function rootFolderName() {
+        if (mode === 'gdrive') return gdriveCfg ? gdriveCfg.pasta : null;
+        return dirHandle ? dirHandle.name : null;
+    }
 
     // Verifica se a pasta configurada ainda está acessível de verdade — não
     // só se HÁ um handle guardado, mas se a permissão continua concedida e se
@@ -1006,7 +1014,7 @@ window.Storage = (function () {
         supportsFS,
         // diretório
         chooseDirectory, restoreDirectory, ensureDirReady, hasDirectory,
-        directoryName, forgetDirectory, verifyPermission, checkHealth,
+        directoryName, rootFolderName, forgetDirectory, verifyPermission, checkHealth,
         // Google Drive
         storageMode, connectGoogleDrive, migrateLocalToGoogleDrive, gdriveFolderUrl,
         pickDriveEvidenceFile,
