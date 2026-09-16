@@ -94,15 +94,21 @@ window.LATTES_CATEGORIES = [
     { num: '10', key: 'ORIENTACOES', label: 'Orientações', icon: 'fa-user-group', types: ['ORIENTACAO_CONCLUIDA', 'ORIENTACAO_ANDAMENTO'] },
     { num: '11', key: 'BANCAS', label: 'Bancas', icon: 'fa-gavel', types: ['BANCA_CONCLUSAO', 'BANCA_JULGADORA'] },
     // Categorias 12-21 reordenadas e renumeradas (pedido do Alexsandro):
-    // as 2 categorias exclusivas do RSC (Grupos de Pesquisa/Atuação em
-    // Crise de Saúde Pública, rscOnly) e as 8 categorias de "Outras
+    // Grupos de Pesquisa/Atuação em Crise de Saúde Pública (antes as 2
+    // categorias exclusivas do RSC) e as 8 categorias de "Outras
     // atividades" (naoLattes) passam a intercalar por ordem alfabética de
     // rótulo em vez da ordem histórica de criação — só num/posição no
     // array mudam aqui; key/types/ícone de cada categoria continuam os
     // mesmos (ver migração de pastas de evidências em app.js, que move os
     // arquivos já existentes pra bater com os novos números).
-    { num: '12', key: 'RSC_GRUPO', label: 'Grupos de Pesquisa', icon: 'fa-microscope', naoLattes: true, rscOnly: true,
-      types: ['RSC_GRUPO_PESQUISA'] },
+    // "Grupos de Pesquisa" perdeu o rscOnly (pedido do Alexsandro): passa a
+    // aparecer sempre, com ou sem o módulo RSC habilitado — faz sentido
+    // como credencial acadêmica geral, não só como critério do RSC-PCCTAE
+    // (itens dela continuam podendo ser contabilizados no RSC, via
+    // "usar para RSC" no item, igual a qualquer outra categoria). "Atuação
+    // em Crise de Saúde Pública" (21, abaixo) CONTINUA exclusiva do RSC.
+    { num: '12', key: 'RSC_GRUPO', label: 'Grupos de Pesquisa', icon: 'fa-microscope', naoLattes: true,
+      note: AL_NOTE, types: ['RSC_GRUPO_PESQUISA'] },
     { num: '13', key: 'AL_CERTIFICACAO_CAT', label: 'Certificações', icon: 'fa-certificate', naoLattes: true,
       note: AL_NOTE, types: ['AL_CERT_PROF_GESTAO', 'AL_CERT_TI', 'AL_CERT_FINANCEIRA', 'AL_CERT_OUTRA'] },
     { num: '14', key: 'AL_FILIACAO_CAT', label: 'Filiações', icon: 'fa-id-badge', naoLattes: true,

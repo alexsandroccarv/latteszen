@@ -33,16 +33,19 @@ test('Sincronização manual mescla por id (mantém locais, atualiza/soma da pas
         window.Storage.hasDirectory = () => true;
         window.Storage.directoryName = async () => 'PastaFake';
         window.Storage.checkHealth = async () => ({ ok: true, hasDir: true });
-        window.Storage.scanDirectory = async () => ([
-            Object.assign({}, JSON.parse(JSON.stringify({
-                id: idA, createdAt: '2020-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z', source: 'local', lattesItem: false,
-                typeKey: 'FORMACAO_COMPLEMENTAR', categoryKey: 'FORMACAO', fields: { titulo: 'Item A (da pasta, atualizado)', instituicao: 'X' },
-                evidencias: [], hasPdf: false, pdfName: null, fileExt: null, lattesRef: null,
-            }))),
-            { id: 'it-dir-b', createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z', source: 'local', lattesItem: false,
-              typeKey: 'FORMACAO_COMPLEMENTAR', categoryKey: 'FORMACAO', fields: { titulo: 'Item B (só na pasta)', instituicao: 'Y' },
-              evidencias: [], hasPdf: false, pdfName: null, fileExt: null, lattesRef: null },
-        ]);
+        window.Storage.scanDirectory = async () => ({
+            items: [
+                Object.assign({}, JSON.parse(JSON.stringify({
+                    id: idA, createdAt: '2020-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z', source: 'local', lattesItem: false,
+                    typeKey: 'FORMACAO_COMPLEMENTAR', categoryKey: 'FORMACAO', fields: { titulo: 'Item A (da pasta, atualizado)', instituicao: 'X' },
+                    evidencias: [], hasPdf: false, pdfName: null, fileExt: null, lattesRef: null,
+                }))),
+                { id: 'it-dir-b', createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z', source: 'local', lattesItem: false,
+                  typeKey: 'FORMACAO_COMPLEMENTAR', categoryKey: 'FORMACAO', fields: { titulo: 'Item B (só na pasta)', instituicao: 'Y' },
+                  evidencias: [], hasPdf: false, pdfName: null, fileExt: null, lattesRef: null },
+            ],
+            falhas: 0,
+        });
     }, local.id);
 
     await page.click('[data-tab="config"]');
@@ -70,7 +73,7 @@ test('Catálogo vazio + diretório já configurado e saudável: sincroniza sozin
                 real.hasDirectory = () => true;
                 real.directoryName = async () => 'PastaFake';
                 real.checkHealth = async () => ({ ok: true, hasDir: true });
-                real.scanDirectory = async () => ([itemX, itemY]);
+                real.scanDirectory = async () => ({ items: [itemX, itemY], falhas: 0 });
                 Object.defineProperty(window, 'Storage', { value: real, writable: true, configurable: true });
             },
             get() { return undefined; },

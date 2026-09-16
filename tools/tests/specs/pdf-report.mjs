@@ -106,9 +106,11 @@ test('Cartão "Relatório completo (PDF)": escolher "Personalizado" revela as 21
     await page.check('#pdfReportConteudoPersonalizado');
     assert(!(await page.locator('#pdfReportCategoriasWrap').evaluate((el) => el.classList.contains('hidden'))), 'O bloco de categorias deveria aparecer ao escolher "Personalizado"');
     const numCategorias = await page.locator('.pdfReportCategoria').count();
-    // 21 categorias no total (01-21), menos as 2 do módulo RSC (rscOnly),
-    // que ficam de fora enquanto o módulo estiver desligado (padrão do seed).
-    assertEqual(numCategorias, 19, `Deveria haver 19 checkboxes (21 categorias - 2 do RSC, desligado por padrão) — obtido: ${numCategorias}`);
+    // 21 categorias no total (01-21), menos a única categoria exclusiva do
+    // módulo RSC (Atuação em Crise de Saúde Pública, rscOnly), que fica de
+    // fora enquanto o módulo estiver desligado (padrão do seed) — Grupos de
+    // Pesquisa não é mais rscOnly, aparece sempre.
+    assertEqual(numCategorias, 20, `Deveria haver 20 checkboxes (21 categorias - 1 exclusiva do RSC, desligado por padrão) — obtido: ${numCategorias}`);
     const todasMarcadas = await page.locator('.pdfReportCategoria').evaluateAll((els) => els.every((el) => el.checked));
     assert(todasMarcadas, 'Todas as categorias deveriam vir marcadas por padrão ao abrir "Personalizado"');
 
@@ -127,7 +129,7 @@ test('Cartão "Relatório completo (PDF)": "Selecionar todas"/"Limpar seleção"
 
     await page.click('#pdfReportCategoriasTodas');
     marcadas = await page.locator('.pdfReportCategoria:checked').count();
-    assertEqual(marcadas, 19, '"Selecionar todas" deveria marcar todas as categorias de novo (19, com o RSC desligado)');
+    assertEqual(marcadas, 20, '"Selecionar todas" deveria marcar todas as categorias de novo (20, com o RSC desligado)');
 });
 
 test('Gerar em "Personalizado" sem nenhuma categoria marcada mostra aviso e não tenta gerar', async ({ page, baseUrl }) => {

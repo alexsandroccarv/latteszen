@@ -84,7 +84,7 @@ window.TabPublicar = (function () {
     // precisa dos bytes em memória, não só do link relativo gravado na pasta.
     async function itemAnexos(it, opts) {
         opts = opts || {};
-        const { external, collect, rootName } = opts;
+        const { external, collect, rootName, storageModo } = opts;
         const anexos = [];
         if (Array.isArray(it.evidencias)) {
             const pastaBase = LattesTypes.categoryFolder(it.categoryKey);
@@ -97,11 +97,13 @@ window.TabPublicar = (function () {
                     const f = await Storage.readAttachmentFile(ev.basename, pastaBase, ev.ext);
                     if (!f) continue;
                     const nome = ev.name || `${ev.basename}.${ev.ext}`;
-                    // Caminho "de onde a evidência mora" (pasta raiz + Evidências/
-                    // categoria + arquivo) — mostrado no Relatório (PDF) no lugar
-                    // do nome de arquivo cru, pedido do Alexsandro: "tag da
-                    // evidência | /caminho relativo/id-evidencia.ext".
-                    const caminho = `/${rootName ? rootName + '/' : ''}${pastaBase}/${ev.basename}.${ev.ext}`;
+                    // Caminho "de onde a evidência mora" — modo de armazenamento +
+                    // pasta raiz + Evidências/categoria + arquivo — mostrado no
+                    // rodapé da página de evidência do Relatório (PDF), pedido do
+                    // Alexsandro: "Evidência disponível em: /Google Drive: ~/pasta/
+                    // Evidências/categoria/id-evidencia.ext".
+                    const modoLabel = storageModo === 'gdrive' ? 'Google Drive' : 'Pasta local';
+                    const caminho = `/${modoLabel}: ~/${rootName ? rootName + '/' : ''}${pastaBase}/${ev.basename}.${ev.ext}`;
                     if (external && isImageExt(ev.ext)) {
                         const relPath = `${PUB_IMG_SUBDIR}/${ev.basename}.${ev.ext}`;
                         await Storage.writeFile(`${ev.basename}.${ev.ext}`, f, `${LattesTypes.publicacaoFolder()}/${PUB_IMG_SUBDIR}`);
@@ -159,12 +161,13 @@ window.TabPublicar = (function () {
         const categorias = (opts && opts.categorias) ? new Set(opts.categorias) : null;
         const ordemAsc = !!(opts && opts.ordemAsc);
         const collect = opts && opts.collect;
-        // Nome da pasta raiz configurada (local: nome da pasta escolhida;
-        // Google Drive: "Google Drive — /Nome") — usado só pra montar o
-        // "caminho" de cada evidência (ver itemAnexos), exibido no Relatório
-        // (PDF) no lugar do nome de arquivo cru.
-        const rootName = Storage.hasDirectory() ? await Storage.directoryName() : null;
-        const anexosOpts = { external, collect, rootName };
+        // Nome "puro" da pasta raiz configurada + modo de armazenamento —
+        // usados só pra montar o "caminho" de cada evidência (ver
+        // itemAnexos), mostrado no rodapé da página de evidência do
+        // Relatório (PDF) no lugar do nome de arquivo cru.
+        const rootName = Storage.hasDirectory() ? await Storage.rootFolderName() : null;
+        const storageModo = Storage.storageMode();
+        const anexosOpts = { external, collect, rootName, storageModo };
         const items = state.catalogo.items;
         const first = tk => items.find(i => i.typeKey === tk);
         const byType = tk => items.filter(i => i.typeKey === tk);

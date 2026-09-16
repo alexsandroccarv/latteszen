@@ -37,7 +37,7 @@ async function simularDiretorioConfigurado(page, { esqueciveis = false } = {}) {
                 real.hasDirectory = () => !esquecida;
                 real.directoryName = async () => 'PastaFake';
                 real.checkHealth = async () => ({ ok: true, hasDir: true });
-                real.scanDirectory = async () => [];
+                real.scanDirectory = async () => ({ items: [], falhas: 0 });
                 real.readSettingsFromDirectory = async () => null;
                 if (esqueciveis) real.forgetDirectory = async () => { esquecida = true; };
                 Object.defineProperty(window, 'Storage', { value: real, writable: true, configurable: true });

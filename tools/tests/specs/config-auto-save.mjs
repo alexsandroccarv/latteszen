@@ -37,7 +37,7 @@ test('Sincronizar do diretório também restaura as configurações do sistema (
     await abrirConfigComDiretorio(page, baseUrl);
 
     await page.evaluate(() => {
-        window.Storage.scanDirectory = async () => [];
+        window.Storage.scanDirectory = async () => ({ items: [], falhas: 0 });
         window.Storage.readSettingsFromDirectory = async () => ({
             idPrefix: 'xyz',
             rscEnabled: true,
@@ -72,7 +72,7 @@ test('Sem configuracoes.json no diretório, sincronizar não altera as configura
     await page.waitForTimeout(300);
 
     await page.evaluate(() => {
-        window.Storage.scanDirectory = async () => [];
+        window.Storage.scanDirectory = async () => ({ items: [], falhas: 0 });
         window.Storage.readSettingsFromDirectory = async () => null;
     });
 
@@ -91,7 +91,7 @@ test('Com diretório configurado, o card de status "Backup" mostra sincronizaç�
                 real.hasDirectory = () => true;
                 real.directoryName = async () => 'PastaFake';
                 real.checkHealth = async () => ({ ok: true, hasDir: true });
-                real.scanDirectory = async () => [];
+                real.scanDirectory = async () => ({ items: [], falhas: 0 });
                 real.readSettingsFromDirectory = async () => null;
                 Object.defineProperty(window, 'Storage', { value: real, writable: true, configurable: true });
             },

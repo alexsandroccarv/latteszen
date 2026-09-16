@@ -20,6 +20,28 @@
    lattesZen — estilos de apoio (complementam o Tailwind via CDN)
    ========================================================================== */
 
+/* ---- Feedback ao toque (mobile) ----
+   :active sozinho não é suficiente em iOS Safari/Chrome (WebKit): esses
+   navegadores só disparam :active no toque quando algum ancestral tem um
+   listener de touchstart vinculado (peculiaridade antiga do WebKit) — ver
+   o listener "no-op" registrado em a11y.js. Com isso, esta regra cobre
+   tanto toque quanto clique/mouse (botão pressionado). Reportado pelo
+   Alexsandro: nenhuma reação visual ao tocar em botões no celular. */
+button:not(:disabled):active,
+[role="button"]:not([aria-disabled="true"]):active,
+input[type="submit"]:not(:disabled):active,
+input[type="button"]:not(:disabled):active {
+    transform: scale(0.96);
+    opacity: 0.85;
+}
+button, [role="button"], input[type="submit"], input[type="button"] {
+    transition: transform 80ms ease, opacity 80ms ease;
+}
+@media (prefers-reduced-motion: reduce) {
+    button, [role="button"], input[type="submit"], input[type="button"] { transition: none; }
+    button:active, [role="button"]:active, input[type="submit"]:active, input[type="button"]:active { transform: none; }
+}
+
 /* ---- Alto contraste ---- */
 html.high-contrast body * {
     background-color: #000000 !important;
