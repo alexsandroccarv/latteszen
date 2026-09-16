@@ -42,6 +42,11 @@ export const TYPES_01_DADOS_GERAIS = {
         { key: 'dataNascimento', label: 'Data de nascimento', type: 'datebr' },
         { key: 'orcid', label: 'ORCID', type: 'text' },
         F_URL,
+        // Usados na capa do Relatório completo (PDF) — Configurações →
+        // Exportar — só aparecem lá quando preenchidos; opcionais aqui
+        // também (não fazem parte do XML do Lattes).
+        { key: 'telefone', label: 'Telefone', type: 'text', placeholder: '(11) 1234-5678' },
+        { key: 'email', label: 'E-mail', type: 'text', placeholder: 'nome@email.com' },
         { key: 'pcd', label: 'Você é uma pessoa com Deficiência?', type: 'select', options: ['Não', 'Sim'] },
         { key: 'deficiencias', label: 'Deficiência(s)', type: 'checkboxes', disabledWhen: { field: 'pcd', in: ['', 'Não'] }, options: ['Auditiva', 'Física', 'Intelectual', 'Visual', 'Transtorno do Espectro Autista (TEA)', 'Múltipla'], descriptions: {
             'Auditiva': 'Perda bilateral, parcial ou total, de quarenta e um decibéis (dB) ou mais, aferida por audiograma nas frequências de 500Hz, 1.000Hz, 2.000Hz e 3.000Hz (Decreto nº 3.298/1999); limitação de longo prazo da audição, uni ou bilateral, que, em interação com uma ou mais barreiras, obstrui a participação plena e efetiva da pessoa na sociedade em igualdade de condições com as demais pessoas (Lei nº 14.768/2023).',
