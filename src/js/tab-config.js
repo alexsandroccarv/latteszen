@@ -460,11 +460,13 @@ window.TabConfig = (function () {
             Storage.commitGDriveConnection(); // só agora o Drive vira o back-end ativo de verdade (persistido)
             state.dirHealth = null; // acabou de trocar de armazenamento; revalidada no próximo render
             let msg = `Migração concluída: ${copiados} arquivo(s) copiado(s) para o Google Drive.`;
+            let tipoToast = 'ok';
             try {
-                const { encontrados } = await window.AppCore.syncFromDirectory();
+                const { encontrados, falhas } = await window.AppCore.syncFromDirectory();
                 if (encontrados) msg += ` ${encontrados} item(ns) sincronizado(s).`;
+                if (falhas) { msg += ` Atenção: ${falhas} pasta(s)/arquivo(s) não puderam ser lidos — clique em "Sincronizar" para tentar completar.`; tipoToast = 'aviso'; }
             } catch (_) {}
-            toast(msg, 'ok');
+            toast(msg, tipoToast);
             gdriveMigrationNotice = 'Migração concluída. A partir de agora, todas as atualizações do lattesZen ocorrem no Google Drive — a pasta local não será mais usada pelo app. Confira na pasta do Drive se os arquivos foram copiados corretamente; depois disso, a pasta local pode ser excluída com segurança.';
             window.AppCore.renderItemList();
             render();
@@ -745,14 +747,16 @@ window.TabConfig = (function () {
                 // o catálogo local não precisa esperar um clique extra em
                 // "Sincronizar do diretório" pra aparecer.
                 let msg = 'Diretório configurado (estrutura de pastas criada).';
+                let tipoToast = 'ok';
                 try {
-                    const { encontrados, configRestaurada } = await window.AppCore.syncFromDirectory();
+                    const { encontrados, configRestaurada, falhas } = await window.AppCore.syncFromDirectory();
                     msg += encontrados
                         ? ` ${encontrados} item(ns) já cadastrado(s) na pasta foram sincronizados automaticamente.`
                         : ' Pasta vazia — pronta para uso.';
                     if (configRestaurada) msg += ' Configurações do sistema também restauradas.';
+                    if (falhas) { msg += ` Atenção: ${falhas} pasta(s)/arquivo(s) não puderam ser lidos — clique em "Sincronizar" para tentar completar.`; tipoToast = 'aviso'; }
                 } catch (_) {}
-                toast(msg, 'ok');
+                toast(msg, tipoToast);
                 window.AppCore.renderItemList();
                 render();
             } catch (e) { if (e.name !== 'AbortError') toast(e.message, 'erro'); }
@@ -760,8 +764,10 @@ window.TabConfig = (function () {
         const btnSync = $('#btnSync');
         if (btnSync) btnSync.addEventListener('click', async () => {
             try {
-                const { encontrados, configRestaurada } = await window.AppCore.syncFromDirectory();
-                toast(`${encontrados} arquivo(s) .json lido(s) do diretório.${configRestaurada ? ' Configurações do sistema atualizadas.' : ''}`, 'ok');
+                const { encontrados, configRestaurada, falhas } = await window.AppCore.syncFromDirectory();
+                let msg = `${encontrados} arquivo(s) .json lido(s) do diretório.${configRestaurada ? ' Configurações do sistema atualizadas.' : ''}`;
+                if (falhas) msg += ` Atenção: ${falhas} pasta(s)/arquivo(s) não puderam ser lidos (rede instável?) — clique em "Sincronizar" de novo para tentar completar.`;
+                toast(msg, falhas ? 'aviso' : 'ok');
                 window.AppCore.renderItemList();
                 render();
             } catch (e) { toast(e.message, 'erro'); }
@@ -807,14 +813,22 @@ window.TabConfig = (function () {
                 try { await Storage.ensureInbox(); } catch (_) {}      // garante a subpasta "Processados" da Caixa de Entrada
                 state.dirHealth = null; // acabou de conectar; revalidada no próximo render
                 let msg = existente ? `Conectado à pasta "${resultado.pasta}" no Google Drive.` : 'Conectado ao Google Drive (estrutura de pastas criada).';
+                let tipoToast = 'ok';
+                // Biblioteca grande + celular pode levar um tempo real pra
+                // sincronizar (uma requisição por pasta/arquivo) — sem isto,
+                // a tela ficava parada sem nenhum indício de que algo estava
+                // acontecendo (pedido do Alexsandro: feedback de que a ação
+                // está em andamento).
+                if (statusEl) statusEl.innerHTML = '<span class="text-gray-500">Sincronizando itens já existentes na pasta…</span>';
                 try {
-                    const { encontrados, configRestaurada } = await window.AppCore.syncFromDirectory();
+                    const { encontrados, configRestaurada, falhas } = await window.AppCore.syncFromDirectory();
                     msg += encontrados
                         ? ` ${encontrados} item(ns) já cadastrado(s) na pasta foram sincronizados automaticamente.`
                         : ' Pasta vazia — pronta para uso.';
                     if (configRestaurada) msg += ' Configurações do sistema também restauradas.';
+                    if (falhas) { msg += ` Atenção: ${falhas} pasta(s)/arquivo(s) não puderam ser lidos — clique em "Sincronizar" para tentar completar.`; tipoToast = 'aviso'; }
                 } catch (_) {}
-                toast(msg, 'ok');
+                toast(msg, tipoToast);
                 window.AppCore.renderItemList();
                 render();
             } catch (e) {

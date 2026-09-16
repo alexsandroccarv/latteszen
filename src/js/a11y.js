@@ -71,5 +71,14 @@ window.LzA11y = (function () {
         };
     }
 
+    // Habilita :active no toque em iOS Safari/Chrome (WebKit): sem NENHUM
+    // listener de touchstart vinculado em algum ancestral, esses
+    // navegadores simplesmente não aplicam :active ao tocar (peculiaridade
+    // antiga do WebKit) — então o feedback visual de "botão pressionado"
+    // (ver styles.css) nunca aparecia no celular. O listener em si não faz
+    // nada; só precisa existir. Roda em todas as páginas (a11y.js é
+    // carregado em todas, não só index.html).
+    document.addEventListener('touchstart', function () {}, { passive: true });
+
     return { trapFocus };
 })();

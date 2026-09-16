@@ -843,32 +843,62 @@ window.Storage = (function () {
         return null;
     }
 
-    // Reconstrói o catálogo a partir dos *.json (raiz e subdiretórios de categoria)
+    // Tenta de novo em caso de falha transitória (rede instável, comum em
+    // celular) antes de desistir — usado na varredura do Google Drive
+    // (scanDirectory), onde uma biblioteca grande dispara centenas de
+    // requisições sequenciais (uma por pasta + uma por arquivo .json, sem
+    // lote nenhum) e uma falha isolada não deveria descartar o resto da
+    // árvore em silêncio (bug relatado pelo Alexsandro: sincronizar ~400
+    // itens de uma pasta do Drive pelo celular mostrava só ~70 — a
+    // varredura recursiva desistia da 1ª pasta que engasgasse, sem avisar).
+    async function comRetentativas(fn, tentativas) {
+        tentativas = tentativas || 3;
+        let ultimoErro;
+        for (let i = 0; i < tentativas; i++) {
+            try { return await fn(); }
+            catch (e) {
+                ultimoErro = e;
+                if (i < tentativas - 1) await new Promise((r) => setTimeout(r, 400 * Math.pow(2, i)));
+            }
+        }
+        throw ultimoErro;
+    }
+
+    // Reconstrói o catálogo a partir dos *.json (raiz e subdiretórios de
+    // categoria). Devolve { items, falhas } — falhas conta pastas/arquivos
+    // que não puderam ser lidos mesmo depois de tentar de novo, pra quem
+    // chama (syncFromDirectory, em app.js) avisar que a sincronização pode
+    // ter ficado incompleta, em vez de simplesmente mostrar uma lista
+    // truncada sem explicação nenhuma.
     async function scanDirectory() {
         if (mode === 'gdrive') {
-            if (!gdriveCfg) return [];
+            if (!gdriveCfg) return { items: [], falhas: 0 };
             const items = [];
+            let falhas = 0;
             async function scanOne(folderId) {
-                let children; try { children = await window.GDriveClient.listChildren(folderId); } catch (_) { return; }
+                let children;
+                try { children = await comRetentativas(() => window.GDriveClient.listChildren(folderId)); }
+                catch (_) { falhas += 1; return; }
                 for (const child of children) {
                     if (child.isDir) {
                         if (child.name === INBOX_FOLDER) continue; // não indexa a bandeja de entrada
                         await scanOne(child.id);
                     } else if (child.name.toLowerCase().endsWith('.json') && child.name !== 'catalogo.json' && child.name !== SETTINGS_FILE && child.name.indexOf('latteszen-') !== 0) {
                         try {
-                            const blob = await window.GDriveClient.getFileContent(child.id);
-                            if (!blob) continue;
+                            const blob = await comRetentativas(() => window.GDriveClient.getFileContent(child.id));
+                            if (!blob) { falhas += 1; continue; }
                             const obj = JSON.parse(await blob.text());
                             if (obj && obj.id) items.push(obj);
-                        } catch (_) { /* ignora inválidos */ }
+                        } catch (_) { falhas += 1; /* rede ou JSON inválido */ }
                     }
                 }
             }
             await scanOne(gdriveCfg.rootFolderId);
-            return items;
+            return { items, falhas };
         }
         const dir = await ensureDirReady();
         const items = [];
+        let falhas = 0;
         async function scanOne(handle) {
             for await (const [name, h] of handle.entries()) {
                 if (h.kind === 'file' && name.toLowerCase().endsWith('.json') && name !== 'catalogo.json' && name !== SETTINGS_FILE && name.indexOf('latteszen-') !== 0) {
@@ -876,15 +906,15 @@ window.Storage = (function () {
                         const file = await h.getFile();
                         const obj = JSON.parse(await file.text());
                         if (obj && obj.id) items.push(obj);
-                    } catch (_) { /* ignora inválidos */ }
+                    } catch (_) { falhas += 1; /* arquivo inválido ou removido durante a varredura */ }
                 } else if (h.kind === 'directory') {
                     if (name === INBOX_FOLDER) continue; // não indexa a bandeja de entrada
-                    try { await scanOne(h); } catch (_) {}
+                    try { await scanOne(h); } catch (_) { falhas += 1; }
                 }
             }
         }
         await scanOne(dir);
-        return items;
+        return { items, falhas };
     }
 
     /* ----------------------- Catálogo (localStorage) --------------------- */
@@ -987,6 +1017,8 @@ window.Storage = (function () {
         savePendingGDriveMigration, loadPendingGDriveMigration, clearPendingGDriveMigration,
         // arquivos
         writeJson, writeFile, writeAttachment, deleteEntry, deleteItemFiles, moveItemFiles, removeSubdirIfEmpty, renameRootFolder, renameNestedFolder, readAttachmentUrl, readAttachmentFile, scanDirectory, ensureSubdirs,
+        // comRetentativas exposta só para teste (tools/tests/specs/gdrive-sync-retry.mjs)
+        comRetentativas,
         // bandeja de entrada (inbox)
         ensureInbox, listInbox, readInboxFile, moveInboxToProcessed,
         // catálogo + lixeira + settings

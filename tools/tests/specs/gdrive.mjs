@@ -350,8 +350,9 @@ test('writeJson + scanDirectory fazem round-trip via Google Drive', async ({ pag
     const arquivo = Array.from(mock.files.values()).find((f) => f.name === 'it-gdrive1.json');
     assert(arquivo, 'O JSON deveria ter sido criado no Drive dentro da pasta "Produções"');
 
-    const items = await page.evaluate(() => window.Storage.scanDirectory());
+    const { items, falhas } = await page.evaluate(() => window.Storage.scanDirectory());
     assertEqual(items.length, 1, 'scanDirectory deveria reconstruir exatamente o item gravado');
+    assertEqual(falhas, 0, 'Sem nenhuma falha de rede simulada, "falhas" deveria vir zerado');
     assertEqual(items[0].id, 'it-gdrive1', 'O item reconstruído deveria ter o mesmo id gravado');
     assertEqual(items[0].titulo, 'Item gravado via Google Drive', 'O item reconstruído deveria ter os mesmos campos gravados');
 });

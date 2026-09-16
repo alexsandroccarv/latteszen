@@ -214,7 +214,7 @@
     // automática (ao escolher a pasta, e quando o índice local está vazio mas
     // já existe um diretório configurado — ver init()).
     async function syncFromDirectory() {
-        const found = await Storage.scanDirectory();
+        const { items: found, falhas } = await Storage.scanDirectory();
         const byId = new Map(state.catalogo.items.map(i => [i.id, i]));
         found.forEach(f => byId.set(f.id, f));
         state.catalogo.items = Array.from(byId.values());
@@ -253,7 +253,7 @@
             }
         } catch (_) {}
 
-        return { encontrados: found.length, configRestaurada };
+        return { encontrados: found.length, configRestaurada, falhas };
     }
     // Publicado em AppCore para tab-config.js — mesmo motivo de uid/nowISO.
     window.AppCore.syncFromDirectory = syncFromDirectory;
@@ -950,8 +950,11 @@
         // "Sincronizar do diretório".
         if (state.catalogo.items.length === 0 && Storage.hasDirectory() && state.dirHealth && state.dirHealth.ok) {
             try {
-                const { encontrados } = await syncFromDirectory();
-                if (encontrados) toast(`${encontrados} item(ns) encontrado(s) na pasta configurada e sincronizados automaticamente.`, 'ok');
+                const { encontrados, falhas } = await syncFromDirectory();
+                if (encontrados) {
+                    const aviso = falhas ? ` Atenção: ${falhas} pasta(s)/arquivo(s) não puderam ser lidos (rede instável?) — vá em Configurações e clique em "Sincronizar" para tentar completar.` : '';
+                    toast(`${encontrados} item(ns) encontrado(s) na pasta configurada e sincronizados automaticamente.${aviso}`, falhas ? 'aviso' : 'ok');
+                }
             } catch (_) {}
         }
         try { await purgeOldTrash(); } catch (_) {}
