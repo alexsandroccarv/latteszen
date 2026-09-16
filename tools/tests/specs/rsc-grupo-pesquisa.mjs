@@ -34,10 +34,10 @@ test('Categoria "Grupos de Pesquisa" só aparece no seletor com o módulo RSC ha
         const opt = Array.from(sel.options).find((o) => o.value === key);
         return opt ? opt.textContent : null;
     }, 'RSC_GRUPO');
-    assertEqual(rotulo, '20. Grupos de Pesquisa', 'O rótulo da categoria deveria ser "20. Grupos de Pesquisa"');
+    assertEqual(rotulo, '12. Grupos de Pesquisa', 'O rótulo da categoria deveria ser "12. Grupos de Pesquisa"');
 });
 
-test('Categorias aparecem em ordem numérica no seletor, com "20. Grupos de Pesquisa" após a 19 (issue #36)', async ({ page, baseUrl }) => {
+test('Categorias aparecem em ordem numérica no seletor, com "12. Grupos de Pesquisa" logo após a 11 (issue #36; renumerada — antes 20)', async ({ page, baseUrl }) => {
     await seedCatalog(page, baseUrl, []);
     await habilitarRsc(page);
     await page.click('[data-tab="catalogar"]');
@@ -51,8 +51,8 @@ test('Categorias aparecem em ordem numérica no seletor, com "20. Grupos de Pesq
     assertEqual(numeros, ordenado, `As categorias deveriam aparecer em ordem numérica crescente — obtido [${numeros.join(', ')}]`);
 
     const idxBancas = numeros.indexOf(11);
-    const idxGrupos = numeros.indexOf(20);
-    assert(idxBancas >= 0 && idxGrupos > idxBancas, '"20. Grupos de Pesquisa" deveria aparecer depois da categoria 11 (Bancas), não entre 11 e 12');
+    const idxGrupos = numeros.indexOf(12);
+    assertEqual(idxGrupos, idxBancas + 1, '"12. Grupos de Pesquisa" deveria aparecer logo depois da categoria 11 (Bancas)');
 });
 
 test('Categoria "RSC — Atividades administrativas" (97) foi removida (issue #34)', async ({ page, baseUrl }) => {

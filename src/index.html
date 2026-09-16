@@ -53,10 +53,8 @@
             // Tema (paletas prontas, escolhidas em Configurações): aplicar cedo
             // para evitar "flash" — mesma lógica de dark/altoContraste acima.
             const temaPreset = localStorage.getItem('lz_tema_preset') || 'govbr';
-            if (temaPreset !== 'padrao') {
-                htmlEl.classList.add('lz-theme');
-                htmlEl.setAttribute('data-lz-theme', temaPreset);
-            }
+            htmlEl.classList.add('lz-theme');
+            htmlEl.setAttribute('data-lz-theme', temaPreset);
             // Escala de fonte (acessibilidade): aplica cedo p/ evitar "flash".
             const fs = parseInt(localStorage.getItem('fontScale') || '100', 10);
             if (fs && fs !== 100) htmlEl.style.fontSize = fs + '%';
@@ -124,7 +122,7 @@
                 m.setAttribute('content', c || '#1351B4');
             };
             var temaAtivo = localStorage.getItem('lz_tema_preset') || 'govbr';
-            if (temaAtivo !== 'padrao') window.__loadThemeFont(temaAtivo);
+            window.__loadThemeFont(temaAtivo);
             window.__setThemeColor();
         })();
     </script>

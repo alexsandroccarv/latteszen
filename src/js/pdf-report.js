@@ -618,7 +618,7 @@ window.LzPdfReport = (function () {
     // área reservada abaixo do cabeçalho. `desenhar(pagina, area)` faz o
     // drawImage/drawPage de verdade — este helper só cuida do layout comum
     // entre os dois casos (ver anexarEvidencias).
-    function desenharPaginaEvidencia(escritor, fontes, modelo, item, anexoNome, larguraNatural, alturaNatural, desenhar) {
+    function desenharPaginaEvidencia(escritor, fontes, modelo, item, anexo, larguraNatural, alturaNatural, desenhar) {
         escritor.novaPagina();
         const pagina = escritor.pagina;
         const xBase = MARGIN + escritor.margemExtra + escritor.deslocamentoX;
@@ -640,7 +640,7 @@ window.LzPdfReport = (function () {
 
         desenharIdentificacaoItem(escritor, fontes, modelo, item);
 
-        escritor.linha(`Evidência: ${anexoNome}`, { tamanho: 9, cor: fontes.corMuted });
+        escritor.paragrafo(linhaTagCaminho(anexo), { tamanho: 9, cor: fontes.corMuted });
         escritor.espaco(6);
         pagina.drawLine({ start: { x: xBase, y: escritor.y + 3 }, end: { x: xFim, y: escritor.y + 3 }, thickness: 0.5, color: fontes.corRule });
         escritor.espaco(6);
@@ -650,6 +650,18 @@ window.LzPdfReport = (function () {
         const w = larguraNatural * escala, h = alturaNatural * escala;
         const x = xBase + (areaW - w) / 2, y = MARGIN + (areaH - h) / 2;
         desenhar(pagina, { x, y, w, h });
+    }
+
+    // Segunda linha de identificação da evidência — "tag | caminho" (tag
+    // omitida se a evidência não tiver uma) — pedido do Alexsandro, no
+    // lugar do nome de arquivo cru ("Evidência: NOME_CONFUSO_DO_ARQUIVO.
+    // pdf"). anexo.tag/anexo.caminho já vêm prontos de itemAnexos()
+    // (tab-publicar.js): caminho = /pasta raiz/Evidências/NN Categoria/
+    // id-evidencia.ext. Evidências em link (sem arquivo/caminho local)
+    // caem no fallback anexo.name.
+    function linhaTagCaminho(anexo) {
+        const caminho = anexo.caminho || anexo.name;
+        return anexo.tag ? `${anexo.tag} | ${caminho}` : caminho;
     }
 
     // Mesma identificação de item usada em desenharPaginaEvidencia() e nos
@@ -679,7 +691,7 @@ window.LzPdfReport = (function () {
                     const origem = await PDFDocument.load(bytes, { ignoreEncryption: true });
                     const paginasEmbutidas = await pdfDoc.embedPdf(origem, origem.getPageIndices());
                     paginasEmbutidas.forEach((embutida) => {
-                        desenharPaginaEvidencia(escritor, fontes, modelo, item, anexo.name, embutida.width, embutida.height, (pagina, area) => {
+                        desenharPaginaEvidencia(escritor, fontes, modelo, item, anexo, embutida.width, embutida.height, (pagina, area) => {
                             pagina.drawPage(embutida, { x: area.x, y: area.y, width: area.w, height: area.h });
                         });
                     });
@@ -689,20 +701,20 @@ window.LzPdfReport = (function () {
                     if (/^(gif|webp)$/i.test(anexo.ext)) { dataUri = await converterParaPng(dataUri); ehPng = true; }
                     const bytes = dataUriParaBytes(dataUri);
                     const imagem = ehPng ? await pdfDoc.embedPng(bytes) : await pdfDoc.embedJpg(bytes);
-                    desenharPaginaEvidencia(escritor, fontes, modelo, item, anexo.name, imagem.width, imagem.height, (pagina, area) => {
+                    desenharPaginaEvidencia(escritor, fontes, modelo, item, anexo, imagem.width, imagem.height, (pagina, area) => {
                         pagina.drawImage(imagem, { x: area.x, y: area.y, width: area.w, height: area.h });
                     });
                 } else {
                     escritor.novaPagina();
                     desenharIdentificacaoItem(escritor, fontes, modelo, item);
-                    escritor.linha(`Evidência: ${anexo.name}`, { tamanho: 9, cor: fontes.corMuted });
+                    escritor.paragrafo(linhaTagCaminho(anexo), { tamanho: 9, cor: fontes.corMuted });
                     escritor.espaco(8);
                     escritor.paragrafo(`Arquivo do tipo ".${anexo.ext}" não pode ser incluído dentro do PDF — consulte a pasta/Google Drive configurado para abri-lo.`, { cor: fontes.corMuted });
                 }
             } catch (e) {
                 escritor.novaPagina();
                 desenharIdentificacaoItem(escritor, fontes, modelo, item);
-                escritor.linha(`Evidência: ${anexo.name}`, { tamanho: 9, cor: fontes.corMuted });
+                escritor.paragrafo(linhaTagCaminho(anexo), { tamanho: 9, cor: fontes.corMuted });
                 escritor.espaco(8);
                 escritor.paragrafo(`Não foi possível incluir este arquivo automaticamente (${e.message || 'formato inválido'}).`, { cor: fontes.corMuted });
             }
@@ -713,7 +725,8 @@ window.LzPdfReport = (function () {
             escritor.espaco(6);
             linksNota.forEach(({ item, anexo }) => {
                 desenharIdentificacaoItem(escritor, fontes, modelo, item);
-                escritor.paragrafo(`${anexo.name}: ${anexo.url}`, { tamanho: 9, cor: fontes.corMuted, indent: 10 });
+                const rotulo = anexo.tag ? `${anexo.tag} | ${anexo.name}` : anexo.name;
+                escritor.paragrafo(`${rotulo}: ${anexo.url}`, { tamanho: 9, cor: fontes.corMuted, indent: 10 });
                 escritor.espaco(4);
             });
         }

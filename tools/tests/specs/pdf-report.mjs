@@ -476,8 +476,9 @@ test('buildPublicModel(): em Produções, sem autoresLista cai no campo legado "
 /* ==========================================================================
    Regressão: buildPublicModel({ categorias }) — base do modo "Personalizado"
    do Relatório completo (PDF). O filtro precisa acontecer ANTES da mescla
-   das categorias 12-19 numa seção só ("Outras atividades"), senão escolher
-   uma categoria mesclada isoladamente não funcionaria.
+   das categorias "Outras atividades" (naoLattes, exceto as exclusivas do
+   RSC) numa seção só, senão escolher uma categoria mesclada isoladamente
+   não funcionaria.
    ========================================================================== */
 test('buildPublicModel({ categorias }): restringe o modelo só às categorias informadas', async ({ page, baseUrl }) => {
     const items = [
@@ -497,11 +498,11 @@ test('buildPublicModel({ categorias }): restringe o modelo só às categorias in
     assert(titulosSemFiltro.includes('Artigo de Produções') && titulosSemFiltro.some((t) => /Doutorado/.test(t)), 'Sem opts.categorias, o comportamento de sempre (todas as categorias) deveria continuar');
 });
 
-test('buildPublicModel({ categorias }): filtra corretamente mesmo dentro da seção mesclada "Outras atividades" (categorias 12-19); a categoria principal (subgrupos) continua aparecendo', async ({ page, baseUrl }) => {
+test('buildPublicModel({ categorias }): filtra corretamente mesmo dentro da seção mesclada "Outras atividades"; a categoria principal (subgrupos) continua aparecendo', async ({ page, baseUrl }) => {
     const items = [
         makeItem('IDENTIFICACAO', 'DADOS_GERAIS', { titulo: 'Fulano de Tal' }),
-        makeItem('AL_HOBBY', 'AL_INTERESSES', { titulo: 'Fotografia analógica' }),      // categoria 15
-        makeItem('AL_VOLUNTARIADO', 'AL_ENGAJAMENTO', { titulo: 'ONG de leitura' }),    // categoria 13
+        makeItem('AL_HOBBY', 'AL_INTERESSES', { titulo: 'Fotografia analógica' }),      // categoria 20
+        makeItem('AL_VOLUNTARIADO', 'AL_ENGAJAMENTO', { titulo: 'ONG de leitura' }),    // categoria 18
     ];
     await seedCatalog(page, baseUrl, items);
 
@@ -510,10 +511,10 @@ test('buildPublicModel({ categorias }): filtra corretamente mesmo dentro da seç
     assert(secExtras, 'Deveria existir a seção mesclada "Outras atividades"');
     assertEqual(secExtras.label, 'Outras atividades', `A seção mesclada deveria se chamar "Outras atividades" — obtido: "${secExtras.label}"`);
     assert(Array.isArray(secExtras.tipos[0].subgrupos), 'Cada entrada da seção mesclada deveria ter subgrupos (categoria principal > subcategoria), não itens direto');
-    assert(/^15\./.test(secExtras.tipos[0].label), `A categoria principal (com número) deveria aparecer — obtido: "${secExtras.tipos[0].label}"`);
+    assert(/^20\./.test(secExtras.tipos[0].label), `A categoria principal (com número) deveria aparecer — obtido: "${secExtras.tipos[0].label}"`);
     const titulos = secExtras.tipos.flatMap((t) => t.subgrupos.flatMap((g) => g.itens.map((i) => i.titulo)));
-    assert(titulos.some((t) => /Fotografia anal[oó]gica/.test(t)), 'AL_INTERESSES (categoria 15) deveria aparecer quando selecionada');
-    assert(!titulos.some((t) => /ONG de leitura/.test(t)), 'AL_ENGAJAMENTO (categoria 13, não selecionada) NÃO deveria vazar pra dentro da seção mesclada');
+    assert(titulos.some((t) => /Fotografia anal[oó]gica/.test(t)), 'AL_INTERESSES (categoria 20) deveria aparecer quando selecionada');
+    assert(!titulos.some((t) => /ONG de leitura/.test(t)), 'AL_ENGAJAMENTO (categoria 18, não selecionada) NÃO deveria vazar pra dentro da seção mesclada');
 });
 
 test('Gerar relatório sem conseguir carregar o pdf-lib (rede bloqueada) mostra um erro claro e não deixa o botão travado', async ({ page, baseUrl }) => {

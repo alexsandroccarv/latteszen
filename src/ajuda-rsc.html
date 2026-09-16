@@ -53,10 +53,8 @@
             // Tema (paletas prontas, escolhidas em Configurações): aplicar cedo
             // para evitar "flash" — mesma lógica de dark/altoContraste acima.
             const temaPreset = localStorage.getItem('lz_tema_preset') || 'govbr';
-            if (temaPreset !== 'padrao') {
-                htmlEl.classList.add('lz-theme');
-                htmlEl.setAttribute('data-lz-theme', temaPreset);
-            }
+            htmlEl.classList.add('lz-theme');
+            htmlEl.setAttribute('data-lz-theme', temaPreset);
             const fs = parseInt(localStorage.getItem('fontScale') || '100', 10);
             if (fs && fs !== 100) htmlEl.style.fontSize = fs + '%';
         })();
@@ -116,7 +114,7 @@
                 m.setAttribute('content', c || '#1351B4');
             };
             var temaAtivo = localStorage.getItem('lz_tema_preset') || 'govbr';
-            if (temaAtivo !== 'padrao') window.__loadThemeFont(temaAtivo);
+            window.__loadThemeFont(temaAtivo);
             window.__setThemeColor();
         })();
     </script>
@@ -274,7 +272,7 @@
           <h2><span class="step-num">3</span> Itens que não existem no Lattes — categorias 20 e 21</h2>
           <p>Alguns critérios do RSC não têm nenhum elemento correspondente no Currículo Lattes. Para esses casos existem categorias próprias, <strong>não vinculadas ao Lattes</strong>, que só aparecem no catálogo <em>quando o módulo RSC está habilitado</em>:</p>
           <ul>
-            <li><strong>20 — Grupos de Pesquisa</strong>: liderança/vice-liderança ou participação como membro de grupo de pesquisa/extensão registrado (o Lattes não tem isso — o registro oficial é no Diretório dos Grupos de Pesquisa do CNPq).</li>
+            <li><strong>12 — Grupos de Pesquisa</strong>: liderança/vice-liderança ou participação como membro de grupo de pesquisa/extensão registrado (o Lattes não tem isso — o registro oficial é no Diretório dos Grupos de Pesquisa do CNPq).</li>
             <li><strong>21 — Atuação em Crise de Saúde Pública</strong>: atuação institucional no enfrentamento de surto, epidemia ou pandemia.</li>
           </ul>
           <p>Use-as para registrar essas atividades com justificativa e evidências. Elas contam para o simulador do RSC, mas <strong>não são exportadas no XML do Lattes</strong>. Para as demais atividades administrativas sem elemento dedicado no Lattes (gestão de contratos, licitação, cargo de direção/função gratificada, responsabilidade por setor etc.), use os campos de texto livre já existentes em <strong>Atuação</strong> — veja a correspondência completa, critério a critério, em <a href="relacionando-lattes-rsc.html">Relacionando Lattes e RSC</a>.</p>

@@ -93,25 +93,33 @@ window.LATTES_CATEGORIES = [
     { num: '09', key: 'EVENTOS', label: 'Eventos', icon: 'fa-calendar-days', types: ['PARTICIPACAO_EVENTO', 'ORGANIZACAO_EVENTO'] },
     { num: '10', key: 'ORIENTACOES', label: 'Orientações', icon: 'fa-user-group', types: ['ORIENTACAO_CONCLUIDA', 'ORIENTACAO_ANDAMENTO'] },
     { num: '11', key: 'BANCAS', label: 'Bancas', icon: 'fa-gavel', types: ['BANCA_CONCLUSAO', 'BANCA_JULGADORA'] },
-    { num: '12', key: 'AL_DESENVOLVIMENTO', label: 'Desenvolvimento Pessoal e Habilidades', icon: 'fa-seedling', naoLattes: true,
+    // Categorias 12-21 reordenadas e renumeradas (pedido do Alexsandro):
+    // as 2 categorias exclusivas do RSC (Grupos de Pesquisa/Atuação em
+    // Crise de Saúde Pública, rscOnly) e as 8 categorias de "Outras
+    // atividades" (naoLattes) passam a intercalar por ordem alfabética de
+    // rótulo em vez da ordem histórica de criação — só num/posição no
+    // array mudam aqui; key/types/ícone de cada categoria continuam os
+    // mesmos (ver migração de pastas de evidências em app.js, que move os
+    // arquivos já existentes pra bater com os novos números).
+    { num: '12', key: 'RSC_GRUPO', label: 'Grupos de Pesquisa', icon: 'fa-microscope', naoLattes: true, rscOnly: true,
+      types: ['RSC_GRUPO_PESQUISA'] },
+    { num: '13', key: 'AL_CERTIFICACAO_CAT', label: 'Certificações', icon: 'fa-certificate', naoLattes: true,
+      note: AL_NOTE, types: ['AL_CERT_PROF_GESTAO', 'AL_CERT_TI', 'AL_CERT_FINANCEIRA', 'AL_CERT_OUTRA'] },
+    { num: '14', key: 'AL_FILIACAO_CAT', label: 'Filiações', icon: 'fa-id-badge', naoLattes: true,
+      note: AL_NOTE, types: ['AL_FILIACAO_CONSELHO', 'AL_FILIACAO_CIENTIFICA', 'AL_FILIACAO_ASSOC_PROF', 'AL_FILIACAO_SINDICATO', 'AL_FILIACAO_OUTRA'] },
+    { num: '15', key: 'AL_IMPRENSA_CAT', label: 'Imprensa', icon: 'fa-newspaper', naoLattes: true,
+      note: AL_NOTE, types: ['AL_IMPRENSA_CITACAO', 'AL_IMPRENSA_ENTREVISTADO', 'AL_IMPRENSA_OUTRA'] },
+    { num: '16', key: 'AL_CONCURSO_CAT', label: 'Concursos e Processos seletivos', icon: 'fa-list-check', naoLattes: true,
+      note: AL_NOTE, types: ['AL_CONCURSO_PUBLICO', 'AL_CONCURSO_PSS', 'AL_CONCURSO_ACADEMICO', 'AL_CONCURSO_CULTURAL', 'AL_CONCURSO_CHAMADA_PUBLICA', 'AL_CONCURSO_HACKATHON', 'AL_CONCURSO_INTERNA'] },
+    { num: '17', key: 'AL_DESENVOLVIMENTO', label: 'Desenvolvimento Pessoal e Habilidades', icon: 'fa-seedling', naoLattes: true,
       note: AL_NOTE, types: ['AL_CURSO_LIVRE', 'AL_MENTORIA', 'AL_PROJETO_PESSOAL'] },
-    { num: '13', key: 'AL_ENGAJAMENTO', label: 'Engajamento Comunitário e Cidadania', icon: 'fa-people-group', naoLattes: true,
+    { num: '18', key: 'AL_ENGAJAMENTO', label: 'Engajamento Comunitário e Cidadania', icon: 'fa-people-group', naoLattes: true,
       note: AL_NOTE, types: ['AL_ATIVISMO', 'AL_LIDERANCA', 'AL_ORG_EVENTO_COM', 'AL_VOLUNTARIADO'] },
-    { num: '14', key: 'AL_SAUDE_ESPORTE', label: 'Saúde, Esporte e Bem-Estar', icon: 'fa-heart-pulse', naoLattes: true,
+    { num: '19', key: 'AL_SAUDE_ESPORTE', label: 'Saúde, Esporte e Bem-Estar', icon: 'fa-heart-pulse', naoLattes: true,
       note: AL_NOTE, types: ['AL_EXPEDICAO', 'AL_COMPETICAO', 'AL_ESPORTE', 'AL_BEMESTAR'] },
-    { num: '15', key: 'AL_INTERESSES', label: 'Interesses, Cultura e Lazer', icon: 'fa-palette', naoLattes: true,
+    { num: '20', key: 'AL_INTERESSES', label: 'Interesses, Cultura e Lazer', icon: 'fa-palette', naoLattes: true,
       note: AL_NOTE, types: ['AL_ESPECTADOR_ESPORTE', 'AL_CINEMA', 'AL_COLECIONISMO', 'AL_ARTES_CENICAS', 'AL_GASTRONOMIA',
           'AL_EXPOSICOES', 'AL_FEIRAS_CULTURAIS', 'AL_HOBBY', 'AL_JOGOS', 'AL_LEITURA', 'AL_MUSICA', 'AL_VIAGENS'] },
-    { num: '16', key: 'AL_CERTIFICACAO_CAT', label: 'Certificações', icon: 'fa-certificate', naoLattes: true,
-      note: AL_NOTE, types: ['AL_CERT_PROF_GESTAO', 'AL_CERT_TI', 'AL_CERT_FINANCEIRA', 'AL_CERT_OUTRA'] },
-    { num: '17', key: 'AL_FILIACAO_CAT', label: 'Filiações', icon: 'fa-id-badge', naoLattes: true,
-      note: AL_NOTE, types: ['AL_FILIACAO_CONSELHO', 'AL_FILIACAO_CIENTIFICA', 'AL_FILIACAO_ASSOC_PROF', 'AL_FILIACAO_SINDICATO', 'AL_FILIACAO_OUTRA'] },
-    { num: '18', key: 'AL_CONCURSO_CAT', label: 'Concursos e Processos seletivos', icon: 'fa-list-check', naoLattes: true,
-      note: AL_NOTE, types: ['AL_CONCURSO_PUBLICO', 'AL_CONCURSO_PSS', 'AL_CONCURSO_ACADEMICO', 'AL_CONCURSO_CULTURAL', 'AL_CONCURSO_CHAMADA_PUBLICA', 'AL_CONCURSO_HACKATHON', 'AL_CONCURSO_INTERNA'] },
-    { num: '19', key: 'AL_IMPRENSA_CAT', label: 'Imprensa', icon: 'fa-newspaper', naoLattes: true,
-      note: AL_NOTE, types: ['AL_IMPRENSA_CITACAO', 'AL_IMPRENSA_ENTREVISTADO', 'AL_IMPRENSA_OUTRA'] },
-    { num: '20', key: 'RSC_GRUPO', label: 'Grupos de Pesquisa', icon: 'fa-microscope', naoLattes: true, rscOnly: true,
-      types: ['RSC_GRUPO_PESQUISA'] },
     { num: '21', key: 'RSC_CRISE_SAUDE', label: 'Atuação em Crise de Saúde Pública', icon: 'fa-virus', naoLattes: true, rscOnly: true,
       types: ['RSC_CRISE_SAUDE_ATUACAO'] },
 ];

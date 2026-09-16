@@ -3,15 +3,15 @@
    --------------------------------------------------------------------------
    - "lattesZen dia" (govbr) é o tema padrão — aplicado mesmo sem nada
      escolhido ainda (data-lz-theme="govbr" + classe lz-theme).
-   - "lattesZen noite" (padrao) é a única opção que não aplica nenhuma
-     classe/atributo de tema (só o CSS-base) — "gov.br" e "Padrão (gov.br)"
-     eram dois nomes conflitantes pro mesmo visual gov.br, agora viraram
-     esse par "dia"/"noite".
+   - "lattesZen noite" (padrao) é uma paleta ESCURA própria (data-lz-theme=
+     "padrao" + classe lz-theme, igual a qualquer outro tema) — "gov.br" e
+     "Padrão (gov.br)" eram dois nomes conflitantes pro mesmo visual claro,
+     viraram esse par "dia"/"noite", com "noite" escura de verdade (pedido
+     do Alexsandro: o nome tem que bater com o visual).
    - Escolher um tema aplica a classe .lz-theme + data-lz-theme no <html> e
      persiste no localStorage (lz_tema_preset).
    - O tema persiste entre reloads e entre páginas diferentes (a lógica de
      aplicação cedo roda em qualquer página, não só index.html).
-   - Voltar para "lattesZen noite" (padrao) remove a classe/atributo.
    ========================================================================== */
 import { test, assert, assertEqual } from '../harness.mjs';
 
@@ -107,19 +107,37 @@ for (const [pagina, prefixo] of PAGINAS_COM_CONTEUDO_TEMATIZADO) {
     });
 }
 
-test('Voltar para "lattesZen noite" (padrao) remove a classe/atributo de tema', async ({ page, baseUrl }) => {
+test('Escolher "lattesZen noite" (padrao) aplica data-lz-theme="padrao" + classe lz-theme, igual a qualquer outro tema', async ({ page, baseUrl }) => {
     await abrirConfig(page, baseUrl);
     await page.selectOption('#themeSelect', 'catppuccin-mocha');
     await page.waitForTimeout(150);
     await page.selectOption('#themeSelect', 'padrao');
     await page.waitForTimeout(150);
 
-    const temAtributo = await page.$eval('html', (el) => el.hasAttribute('data-lz-theme'));
-    assert(!temAtributo, 'data-lz-theme não deveria mais existir ao voltar para "lattesZen noite"');
+    const atributo = await page.$eval('html', (el) => el.getAttribute('data-lz-theme'));
+    assertEqual(atributo, 'padrao', 'data-lz-theme deveria ser "padrao" ao escolher "lattesZen noite"');
     const temClasse = await page.$eval('html', (el) => el.classList.contains('lz-theme'));
-    assert(!temClasse, 'A classe lz-theme não deveria mais existir ao voltar para "lattesZen noite"');
+    assert(temClasse, 'A classe lz-theme deveria continuar aplicada com "lattesZen noite" (paleta escura própria)');
     const salvo = await page.evaluate(() => localStorage.getItem('lz_tema_preset'));
     assertEqual(salvo, 'padrao', 'O valor salvo deveria refletir "padrao"');
+});
+
+test('"lattesZen noite" é de fato um tema escuro (pedido do Alexsandro — o nome tem que bater com o visual)', async ({ page, baseUrl }) => {
+    await abrirConfig(page, baseUrl);
+    await page.selectOption('#themeSelect', 'padrao');
+    await page.waitForTimeout(150);
+
+    const cores = await page.evaluate(() => {
+        const cs = getComputedStyle(document.documentElement);
+        return { bg: cs.getPropertyValue('--lz-bg').trim(), text: cs.getPropertyValue('--lz-text').trim() };
+    });
+    const luminancia = (hex) => {
+        const m = hex.replace('#', '');
+        const r = parseInt(m.slice(0, 2), 16), g = parseInt(m.slice(2, 4), 16), b = parseInt(m.slice(4, 6), 16);
+        return (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+    };
+    assert(luminancia(cores.bg) < 0.3, `"lattesZen noite" deveria ter um fundo escuro (--lz-bg) — obtido: ${cores.bg}`);
+    assert(luminancia(cores.text) > 0.6, `"lattesZen noite" deveria ter texto claro sobre o fundo escuro (--lz-text) — obtido: ${cores.text}`);
 });
 
 test('Todos os temas definem de fato as variáveis --lz-* (regressão: comentário CSS mal fechado zerava tudo)', async ({ page, baseUrl }) => {
@@ -132,7 +150,7 @@ test('Todos os temas definem de fato as variáveis --lz-* (regressão: comentár
     // com data-lz-theme e .lz-theme corretamente aplicados pelo JS — só
     // pegável checando se as variáveis realmente resolvem, não só a classe.
     await abrirConfig(page, baseUrl);
-    const valores = await page.$$eval('#themeSelect option', (opts) => opts.map((o) => o.value).filter((v) => v !== 'padrao'));
+    const valores = await page.$$eval('#themeSelect option', (opts) => opts.map((o) => o.value));
     for (const tema of valores) {
         await page.selectOption('#themeSelect', tema);
         await page.waitForTimeout(80);
