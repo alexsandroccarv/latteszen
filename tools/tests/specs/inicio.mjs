@@ -92,7 +92,7 @@ test('Seção "Como citar" mostra a referência completa e o botão de copiar fu
     assert(citacao.includes('Versão 0.7.02'), 'Citação deveria conter a versão citada');
     assert(citacao.includes('Santos: Github, 2016'), 'Citação deveria conter local/editora/ano');
     const hrefDoi = await page.$eval('#tab-inicio blockquote a', (el) => el.getAttribute('href'));
-    assertEqual(hrefDoi, 'https://zenodo.org/records/22346453', 'Link do DOI deveria apontar para o Zenodo');
+    assertEqual(hrefDoi, 'https://zenodo.org/records/22781288', 'Link do DOI deveria apontar para o Zenodo');
 
     await page.context().grantPermissions(['clipboard-write', 'clipboard-read'], { origin: baseUrl });
     await page.click('#btnCopiarCitacao');
