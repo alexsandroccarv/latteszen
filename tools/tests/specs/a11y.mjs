@@ -141,19 +141,19 @@ test('Configurações: cartão "Relatório completo (PDF)" — ícone de ajuda �
     await seedCatalog(page, baseUrl, []);
     await page.click('[data-tab="config"]');
     await page.waitForTimeout(200);
-    await page.click('[data-cfg-page-link="grp-fontes"]');
+    await page.click('[data-cfg-page-link="grp-exportar"]');
     await page.waitForTimeout(200);
 
     const info = await page.evaluate(() => {
-        const btn = document.querySelector('.lz-help-btn');
+        const btn = document.querySelector('[data-cfg-page="grp-exportar"] .lz-help-btn');
         return btn && { tag: btn.tagName, ariaLabel: btn.getAttribute('aria-label'), temTitle: !!btn.getAttribute('title') };
     });
-    assert(info, 'Deveria existir pelo menos um botão de ajuda (.lz-help-btn) na seção Trazer e levar dados');
+    assert(info, 'Deveria existir pelo menos um botão de ajuda (.lz-help-btn) na página Exportar');
     assertEqual(info.tag, 'BUTTON', 'O ícone de ajuda deveria ser um <button> de verdade, não um <i> solto');
     assertEqual(info.ariaLabel, 'Ajuda', 'Deveria ter aria-label="Ajuda"');
     assert(info.temTitle, 'Deveria manter o title (tooltip no hover) além do aria-label');
 
-    const btn = await page.$('.lz-help-btn');
+    const btn = await page.$('[data-cfg-page="grp-exportar"] .lz-help-btn');
     await btn.click();
     await page.waitForTimeout(150);
     const toasts = await page.evaluate(() => Array.from(document.querySelectorAll('#toasts > div')).map((d) => d.textContent));

@@ -39,7 +39,7 @@ window.AppCore = (function () {
             lastCat: '', lastType: '',
         },
         // Prévias de importação (issue #140) — um resultado por
-        // fonte, todas mutuamente exclusivas na tela (Trazer e levar dados):
+        // fonte, todas mutuamente exclusivas na tela (Importar):
         // lattes = parse do XML; orcid = busca de publicações no ORCID;
         // bib = parse de um arquivo BibTeX/RIS.
         importacoes: { lattes: null, orcid: null, bib: null },

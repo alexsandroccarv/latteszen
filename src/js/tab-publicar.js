@@ -35,6 +35,28 @@ window.TabPublicar = (function () {
         ['periodico', 'evento', 'instituicao', 'orgao', 'entidade', 'editora', 'cargo', 'tipo', 'financiador', 'autores'].forEach(k => add(f[k]));
         return parts.slice(0, 4).join(' · ');
     }
+    // Nomes dos autores/inventores/melhoristas de um item — prioriza o
+    // repeater "autoresLista" (nomeCompleto), com fallback pro campo antigo
+    // "autores" (texto livre, separado por ";") — mesma prioridade já usada
+    // na exportação XML (ver autoresArg() em lattes-xml-export.js).
+    function autoriaTexto(f) {
+        const lista = (Array.isArray(f.autoresLista) && f.autoresLista.length)
+            ? f.autoresLista.map(a => a && a.nomeCompleto).filter(Boolean)
+            : String(f.autores || '').split(';').map(s => s.trim()).filter(Boolean);
+        return lista.join('; ');
+    }
+    // Linha-resumo específica de Produções (categoria 05): título, depois a
+    // AUTORIA, depois o periódico/evento — nessa ordem (pedido do
+    // Alexsandro). itemLinha() genérica não serve aqui porque prioriza
+    // periódico/evento ANTES de autores.
+    function itemLinhaProducoes(it) {
+        const f = it.fields || {}, parts = [];
+        const autoria = autoriaTexto(f);
+        if (autoria) parts.push(autoria);
+        const eventoOuPeriodico = String(f.periodico || f.evento || '').trim();
+        if (eventoOuPeriodico) parts.push(eventoOuPeriodico);
+        return parts.join(' · ');
+    }
     // "ano - ano" quando o item tem início/fim diferentes (ex.: Atuação,
     // Formação); um único ano (ou o fallback ano/anoFim/anoInicio de
     // itemYear) quando não há período.
@@ -102,7 +124,7 @@ window.TabPublicar = (function () {
     // Identidade, Passaporte, Área de atuação) moram na categoria 01 mas são
     // excluídos do laço abaixo via PUB_EXCLUDE_TYPES — já renderizados à
     // parte, no cabeçalho da página.
-    const PUB_MERGE_LABEL = 'Além do Currículo Lattes';
+    const PUB_MERGE_LABEL = 'Outras atividades';
     const PUB_MERGE_ID = 'sec-extras';
 
     // opts.external: grava as imagens (foto + evidências) como arquivos à
@@ -117,7 +139,7 @@ window.TabPublicar = (function () {
     // opts.categorias: Set (ou array) de categoryKey — quando presente,
     // restringe o laço de categorias abaixo só às informadas (modo
     // "Personalizado" do Relatório completo (PDF)). Filtra ANTES da mescla
-    // das categorias 12-19 numa única seção "Além do Currículo Lattes"
+    // das categorias 12-19 numa única seção "Outras atividades"
     // (ver PUB_MERGE_ID abaixo) — por isso o filtro funciona corretamente
     // mesmo escolhendo só uma dessas categorias mescladas.
     // opts.ordemAsc: ordena os itens DENTRO de cada categoria/instituição
@@ -174,7 +196,14 @@ window.TabPublicar = (function () {
         }));
 
         const secoes = [];
-        const extrasTipos = []; // categorias 12–19, mescladas numa única seção
+        // categorias 12-19, mescladas numa única seção ("Outras atividades")
+        // — cada entrada é {label: "12. Categoria", subgrupos: tipos} pra
+        // preservar a categoria principal de origem (antes virava um "tipos"
+        // achatado, perdendo essa informação — bug relatado pelo Alexsandro:
+        // "atualmente não está mostrando a categoria principal"). Reaproveita
+        // o mesmo formato subgrupos já usado em Atuação — nenhum renderizador
+        // (pdf-report.js/publish.js) precisa de código novo pra isso.
+        const extrasCategorias = [];
         // Espelha exatamente os itens que entram nas seções abaixo (mesmo
         // filtro publicarWebOk) — base para a nuvem de palavras e a linha do
         // tempo da página pública, pra nunca vazar nada que não esteja
@@ -243,14 +272,14 @@ window.TabPublicar = (function () {
                 const its = sortByYear(items.filter(i => i.typeKey === tk && i.categoryKey === cat.key && (incluirTodos || publicarWebOk(i))), ordemAsc);
                 if (!its.length) continue;
                 const itens = [];
-                for (const it of its) { itens.push({ titulo: LattesTypes.itemTitle(it), ano: itemAnoRange(it), linha: itemLinha(it), typeKey: it.typeKey, cargaHoraria: (it.fields && it.fields.cargaHoraria) || '', anexos: await itemAnexos(it, anexosOpts) }); publicItemsFlat.push(it); }
+                for (const it of its) { itens.push({ titulo: LattesTypes.itemTitle(it), ano: itemAnoRange(it), linha: cat.key === 'PRODUCOES' ? itemLinhaProducoes(it) : itemLinha(it), typeKey: it.typeKey, cargaHoraria: (it.fields && it.fields.cargaHoraria) || '', anexos: await itemAnexos(it, anexosOpts) }); publicItemsFlat.push(it); }
                 tipos.push({ label: LattesTypes.label(tk), itens });
             }
             const catNum = parseInt(cat.num, 10);
-            if (catNum >= 12 && catNum <= 19) extrasTipos.push(...tipos);
+            if (catNum >= 12 && catNum <= 19) { if (tipos.length) extrasCategorias.push({ label: cat.num ? `${cat.num}. ${cat.label}` : cat.label, subgrupos: tipos }); }
             else if (tipos.length) secoes.push({ id: 'sec-' + cat.key.toLowerCase(), num: cat.num, label: cat.label, icon: PUB_ICON[cat.key] || '▣', tipos });
         }
-        if (extrasTipos.length) secoes.push({ id: PUB_MERGE_ID, num: null, label: PUB_MERGE_LABEL, icon: '✦', tipos: extrasTipos });
+        if (extrasCategorias.length) secoes.push({ id: PUB_MERGE_ID, num: null, label: PUB_MERGE_LABEL, icon: '✦', tipos: extrasCategorias });
         // Nome em citações agora é uma lista (repeater); junta as variações
         // para exibir como subtítulo. Aceita também o formato antigo (string)
         // para itens salvos antes da mudança.

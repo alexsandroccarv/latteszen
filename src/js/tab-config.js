@@ -145,7 +145,7 @@ window.TabConfig = (function () {
     // refatoração), importados de volta no topo deste arquivo.
 
     // Backup completo (catálogo + configurações) em JSON — itens "lattesZen
-    // (JSON)" das colunas Importar/Exportar de "Trazer e levar dados".
+    // (JSON)" das páginas "Importar"/"Exportar".
     function jsonImportItemHtml() {
         return dadosItemHtml('fa-solid fa-file-code', 'lattesZen (JSON)',
             'Importa um arquivo JSON gerado pelo "Exportar catálogo" — restaura todo o catálogo (metadados) e as configurações do sistema (prefixo do identificador, listas de autocomplete, RSC-PCCTAE) num navegador novo.', `
@@ -168,12 +168,14 @@ window.TabConfig = (function () {
                 <p id="backupStatusHint" class="text-xs text-gray-500 dark:text-gray-400 mt-1.5">${esc(backupDetail)}</p>`);
     }
 
-    // "Trazer e levar dados": 2 colunas (Importar / Exportar) reunindo Lattes
-    // (XML), ORCID, BibTeX/RIS e lattesZen (JSON) — cada um num card próprio,
-    // com as explicações que antes ficavam em parágrafos soltos agora num
-    // ícone de ajuda "(?)" (title, aparece ao passar o mouse). `id="backupSection"`
-    // fica na coluna Exportar pra manter o atalho do card de status "Backup".
-    function dadosImportExportHtml(dirName) {
+    // "Importar" e "Exportar" — 2 páginas próprias no menu lateral (antes
+    // eram 2 colunas dentro de uma única página "Trazer e levar dados"),
+    // reunindo Lattes (XML), ORCID, BibTeX/RIS e lattesZen (JSON) — cada um
+    // num card próprio, com as explicações que antes ficavam em parágrafos
+    // soltos agora num ícone de ajuda "(?)" (title, aparece ao passar o
+    // mouse). `id="backupSection"` fica em Exportar, pra manter o atalho do
+    // card de status "Backup".
+    function importarSectionHtml() {
         return `
             <section id="importXmlSection" class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
                 <h2 class="text-lg font-bold mb-3 flex items-center gap-2"><i aria-hidden="true" class="fa-solid fa-file-import text-govbr-600 dark:text-unifesp-400"></i> Importar</h2>
@@ -183,7 +185,10 @@ window.TabConfig = (function () {
                     ${bibImportItemHtml()}
                     ${jsonImportItemHtml()}
                 </div>
-            </section>
+            </section>`;
+    }
+    function exportarSectionHtml(dirName) {
+        return `
             <section id="backupSection" class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
                 <h2 class="text-lg font-bold mb-3 flex items-center gap-2"><i aria-hidden="true" class="fa-solid fa-file-export text-govbr-600 dark:text-unifesp-400"></i> Exportar</h2>
                 <div class="space-y-3">
@@ -204,7 +209,7 @@ window.TabConfig = (function () {
     // módulo, pra não duplicar formulário em dois lugares diferentes.
     function rscSectionHtml() {
         return `<section id="rscSection" class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-            <h2 class="text-lg font-bold mb-2 flex items-center gap-2"><i class="fa-solid fa-award text-govbr-600 dark:text-unifesp-400"></i> RSC-PCCTAE (opcional)</h2>
+            <h2 class="text-lg font-bold mb-2 flex items-center gap-2"><i class="fa-solid fa-award text-govbr-600 dark:text-unifesp-400"></i> RSC-PCCTAE</h2>
             <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">Reconhecimento de Saberes e Competências (Decreto nº 13.048/2026). Quando habilitado, cada item elegível ganha uma camada com os dados do RSC, e surge a aba <strong>RSC</strong> (simulador) — os dados da pessoa servidora (cargo, SIAPE, contatos etc.) são preenchidos lá. Uso individual.</p>
             <label class="flex items-center gap-2 text-sm">
                 <input type="checkbox" id="rscEnable" ${state.rsc.enabled ? 'checked' : ''}>
@@ -228,7 +233,7 @@ window.TabConfig = (function () {
     // texto da súmula ficam na própria aba Súmula FAPESP (ver tab-sumula.js).
     function sumulaSectionHtml() {
         return `<section id="sumulaSection" class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-            <h2 class="text-lg font-bold mb-2 flex items-center gap-2"><i class="fa-solid fa-file-lines text-govbr-600 dark:text-unifesp-400"></i> Súmula Curricular FAPESP (opcional)</h2>
+            <h2 class="text-lg font-bold mb-2 flex items-center gap-2"><i class="fa-solid fa-file-lines text-govbr-600 dark:text-unifesp-400"></i> Súmula Curricular FAPESP</h2>
             <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">Gera, a partir do catálogo, uma base de texto organizada no modelo de Súmula Curricular exigido pela FAPESP em processos de bolsas/auxílios (não é um documento oficial pronto para submissão — é um ponto de partida a revisar e ajustar). Quando habilitado, surge a aba <strong>Súmula FAPESP</strong>.</p>
             <label class="flex items-center gap-2 text-sm">
                 <input type="checkbox" id="sumulaEnable" ${state.sumula.enabled ? 'checked' : ''}>
@@ -252,7 +257,7 @@ window.TabConfig = (function () {
     // app-core.js/state.pubWebEnabled).
     function pubWebSectionHtml() {
         return `<section id="pubWebSection" class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-            <h2 class="text-lg font-bold mb-2 flex items-center gap-2"><i class="fa-solid fa-globe text-govbr-600 dark:text-unifesp-400"></i> Publicar na Web (opcional)</h2>
+            <h2 class="text-lg font-bold mb-2 flex items-center gap-2"><i class="fa-solid fa-globe text-govbr-600 dark:text-unifesp-400"></i> Publicar na Web</h2>
             <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">Gera uma página pública do currículo (com o que estiver marcado como "pública") e permite publicá-la num site. Desabilitar aqui só esconde a aba <strong>Publicar</strong> — nada é apagado.</p>
             <label class="flex items-center gap-2 text-sm">
                 <input type="checkbox" id="pubWebEnable" ${state.pubWebEnabled ? 'checked' : ''}>
@@ -315,8 +320,9 @@ window.TabConfig = (function () {
     // os dois sempre em sincronia (mesma ordem, mesmo ícone, mesmo id).
     const CFG_GROUPS = [
         { id: 'grp-armazenamento', icon: 'fa-folder-tree', label: 'Armazenamento' },
-        { id: 'grp-fontes', icon: 'fa-arrow-right-arrow-left', label: 'Trazer e levar dados' },
-        { id: 'grp-opcionais', icon: 'fa-puzzle-piece', label: 'Outros recursos' },
+        { id: 'grp-importar', icon: 'fa-file-import', label: 'Importar' },
+        { id: 'grp-exportar', icon: 'fa-file-export', label: 'Exportar' },
+        { id: 'grp-opcionais', icon: 'fa-puzzle-piece', label: 'Recursos opcionais' },
         { id: 'grp-risco', icon: 'fa-triangle-exclamation', label: 'Zona de risco' },
     ];
     // Cabeçalho de grupo das Configurações (título dentro da própria página) —
@@ -620,13 +626,18 @@ window.TabConfig = (function () {
                 </section>
                 </div>
 
-                <div data-cfg-page="${CFG_GROUPS[1].id}" class="grid grid-cols-1 lg:grid-cols-2 gap-6 ${cfgAtiva === CFG_GROUPS[1].id ? '' : 'hidden'}">
+                <div data-cfg-page="${CFG_GROUPS[1].id}" class="grid grid-cols-1 gap-6 ${cfgAtiva === CFG_GROUPS[1].id ? '' : 'hidden'}">
                 ${cfgGroup(CFG_GROUPS[1])}
-                ${dadosImportExportHtml(dirName)}
+                ${importarSectionHtml()}
                 </div>
 
-                <div data-cfg-page="${CFG_GROUPS[2].id}" class="grid grid-cols-1 lg:grid-cols-2 gap-6 ${cfgAtiva === CFG_GROUPS[2].id ? '' : 'hidden'}">
+                <div data-cfg-page="${CFG_GROUPS[2].id}" class="grid grid-cols-1 gap-6 ${cfgAtiva === CFG_GROUPS[2].id ? '' : 'hidden'}">
                 ${cfgGroup(CFG_GROUPS[2])}
+                ${exportarSectionHtml(dirName)}
+                </div>
+
+                <div data-cfg-page="${CFG_GROUPS[3].id}" class="grid grid-cols-1 lg:grid-cols-2 gap-6 ${cfgAtiva === CFG_GROUPS[3].id ? '' : 'hidden'}">
+                ${cfgGroup(CFG_GROUPS[3])}
                 ${rscSectionHtml()}
                 ${sumulaSectionHtml()}
                 ${pubWebSectionHtml()}
@@ -680,8 +691,8 @@ window.TabConfig = (function () {
                 ${themeSectionHtml()}
                 </div>
 
-                <div data-cfg-page="${CFG_GROUPS[3].id}" class="grid grid-cols-1 lg:grid-cols-2 gap-6 ${cfgAtiva === CFG_GROUPS[3].id ? '' : 'hidden'}">
-                ${cfgGroup(CFG_GROUPS[3])}
+                <div data-cfg-page="${CFG_GROUPS[4].id}" class="grid grid-cols-1 lg:grid-cols-2 gap-6 ${cfgAtiva === CFG_GROUPS[4].id ? '' : 'hidden'}">
+                ${cfgGroup(CFG_GROUPS[4])}
                 ${lixeiraSectionHtml()}
                 <section class="bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800 p-4">
                     <button id="btnClear" class="px-3 py-2 rounded bg-red-600 text-white text-sm"><i class="fa-solid fa-trash mr-1"></i> Limpar catálogo (índice local)</button>

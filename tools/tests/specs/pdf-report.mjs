@@ -21,7 +21,7 @@ import { test, assert, assertEqual, makeItem, seedCatalog } from '../harness.mjs
 async function abrirExportar(page) {
     await page.click('[data-tab="config"]');
     await page.waitForTimeout(200);
-    await page.click('[data-cfg-page-link="grp-fontes"]');
+    await page.click('[data-cfg-page-link="grp-exportar"]');
     await page.waitForTimeout(150);
 }
 
@@ -80,7 +80,7 @@ test('buildPublicModel({ incluirTodos }): "catálogo inteiro" ignora o filtro Pu
     assert(titulosCompleto.includes('Publicado na web') && titulosCompleto.includes('Não publicado na web'), `Com incluirTodos, os dois itens deveriam aparecer — obtido: ${JSON.stringify(titulosCompleto)}`);
 });
 
-test('Configurações → Trazer e levar dados → Exportar: cartão "Relatório completo (PDF)" com as 2 opções de escopo', async ({ page, baseUrl }) => {
+test('Configurações → Exportar: cartão "Relatório completo (PDF)" com as 2 opções de escopo', async ({ page, baseUrl }) => {
     await seedCatalog(page, baseUrl, []);
     await abrirExportar(page);
     assertEqual(await page.locator('#btnPdfReportGerar').count(), 1, 'O botão "Gerar relatório (PDF)" deveria existir');
@@ -428,10 +428,40 @@ test('buildPublicModel(): instituições diferentes em Atuação continuam sendo
 });
 
 /* ==========================================================================
+   Regressão: em Produções (categoria 05), a linha-resumo do item mostra a
+   AUTORIA primeiro, depois o periódico/evento — pedido do Alexsandro
+   ("após o item vem a autoria e depois o evento ou periódico"). Fora de
+   Produções, itemLinha() genérica continua igual (periódico/evento antes).
+   ========================================================================== */
+test('buildPublicModel(): em Produções, a linha do item mostra autoria antes do periódico/evento', async ({ page, baseUrl }) => {
+    const items = [
+        makeItem('ARTIGO_PERIODICO', 'PRODUCOES', {
+            titulo: 'Artigo sobre X', ano: '2023', periodico: 'Revista Brasileira de Y',
+            autoresLista: [{ nomeCompleto: 'Fulana de Tal' }, { nomeCompleto: 'Beltrano Silva' }],
+        }),
+    ];
+    await seedCatalog(page, baseUrl, items);
+    const model = await page.evaluate(() => window.TabPublicar.buildPublicModel({ incluirTodos: true }));
+    const item = model.secoes.flatMap((s) => s.tipos.flatMap((t) => t.itens)).find((i) => i.titulo === 'Artigo sobre X');
+    assert(item, 'O item de Produções deveria existir no modelo');
+    assertEqual(item.linha, 'Fulana de Tal; Beltrano Silva · Revista Brasileira de Y', `A linha deveria trazer a autoria ANTES do periódico — obtido: "${item.linha}"`);
+});
+
+test('buildPublicModel(): em Produções, sem autoresLista cai no campo legado "autores" (separado por ";")', async ({ page, baseUrl }) => {
+    const items = [
+        makeItem('ARTIGO_PERIODICO', 'PRODUCOES', { titulo: 'Artigo antigo', ano: '2018', periodico: 'Revista Z', autores: 'Fulana de Tal; Beltrano Silva' }),
+    ];
+    await seedCatalog(page, baseUrl, items);
+    const model = await page.evaluate(() => window.TabPublicar.buildPublicModel({ incluirTodos: true }));
+    const item = model.secoes.flatMap((s) => s.tipos.flatMap((t) => t.itens)).find((i) => i.titulo === 'Artigo antigo');
+    assertEqual(item.linha, 'Fulana de Tal; Beltrano Silva · Revista Z', `Deveria usar o campo legado "autores" quando não há autoresLista — obtido: "${item.linha}"`);
+});
+
+/* ==========================================================================
    Regressão: buildPublicModel({ categorias }) — base do modo "Personalizado"
    do Relatório completo (PDF). O filtro precisa acontecer ANTES da mescla
-   das categorias 12-19 numa seção só ("Além do Currículo Lattes"), senão
-   escolher uma categoria mesclada isoladamente não funcionaria.
+   das categorias 12-19 numa seção só ("Outras atividades"), senão escolher
+   uma categoria mesclada isoladamente não funcionaria.
    ========================================================================== */
 test('buildPublicModel({ categorias }): restringe o modelo só às categorias informadas', async ({ page, baseUrl }) => {
     const items = [
@@ -451,7 +481,7 @@ test('buildPublicModel({ categorias }): restringe o modelo só às categorias in
     assert(titulosSemFiltro.includes('Artigo de Produções') && titulosSemFiltro.some((t) => /Doutorado/.test(t)), 'Sem opts.categorias, o comportamento de sempre (todas as categorias) deveria continuar');
 });
 
-test('buildPublicModel({ categorias }): filtra corretamente mesmo dentro da seção mesclada "Além do Currículo Lattes" (categorias 12-19)', async ({ page, baseUrl }) => {
+test('buildPublicModel({ categorias }): filtra corretamente mesmo dentro da seção mesclada "Outras atividades" (categorias 12-19); a categoria principal (subgrupos) continua aparecendo', async ({ page, baseUrl }) => {
     const items = [
         makeItem('IDENTIFICACAO', 'DADOS_GERAIS', { titulo: 'Fulano de Tal' }),
         makeItem('AL_HOBBY', 'AL_INTERESSES', { titulo: 'Fotografia analógica' }),      // categoria 15
@@ -460,7 +490,12 @@ test('buildPublicModel({ categorias }): filtra corretamente mesmo dentro da seç
     await seedCatalog(page, baseUrl, items);
 
     const soInteresses = await page.evaluate(() => window.TabPublicar.buildPublicModel({ incluirTodos: true, categorias: ['AL_INTERESSES'] }));
-    const titulos = soInteresses.secoes.flatMap((s) => s.tipos.flatMap((t) => t.itens.map((i) => i.titulo)));
+    const secExtras = soInteresses.secoes.find((s) => s.id === 'sec-extras');
+    assert(secExtras, 'Deveria existir a seção mesclada "Outras atividades"');
+    assertEqual(secExtras.label, 'Outras atividades', `A seção mesclada deveria se chamar "Outras atividades" — obtido: "${secExtras.label}"`);
+    assert(Array.isArray(secExtras.tipos[0].subgrupos), 'Cada entrada da seção mesclada deveria ter subgrupos (categoria principal > subcategoria), não itens direto');
+    assert(/^15\./.test(secExtras.tipos[0].label), `A categoria principal (com número) deveria aparecer — obtido: "${secExtras.tipos[0].label}"`);
+    const titulos = secExtras.tipos.flatMap((t) => t.subgrupos.flatMap((g) => g.itens.map((i) => i.titulo)));
     assert(titulos.some((t) => /Fotografia anal[oó]gica/.test(t)), 'AL_INTERESSES (categoria 15) deveria aparecer quando selecionada');
     assert(!titulos.some((t) => /ONG de leitura/.test(t)), 'AL_ENGAJAMENTO (categoria 13, não selecionada) NÃO deveria vazar pra dentro da seção mesclada');
 });

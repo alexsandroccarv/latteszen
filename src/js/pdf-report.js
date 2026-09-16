@@ -80,7 +80,7 @@ window.LzPdfReport = (function () {
     // cor fixa, ciclando por esta paleta na ORDEM em que as categorias
     // aparecem em LattesTypes.categories — determinístico (a mesma categoria
     // sempre cai na mesma cor entre execuções). Sem número de categoria
-    // (seção mesclada "Além do Currículo Lattes", Memorial, Anexos), cai num
+    // (seção mesclada "Outras atividades", Memorial, Anexos), cai num
     // cinza neutro em vez de tentar "inventar" uma cor.
     const PALETA_CATEGORIAS = [
         [0.357, 0.247, 0.851], [0.318, 0.216, 0.706], [0.075, 0.318, 0.706], [0.055, 0.486, 0.400],
@@ -330,6 +330,93 @@ window.LzPdfReport = (function () {
         escritor.y -= alturaDestaque + 4;
     }
 
+    // Anexa uma anotação de link (URI) de verdade a um retângulo da página —
+    // pdf-lib não tem um "drawLink()" pronto, então monta o dicionário PDF
+    // de baixo nível (mesma receita documentada pelo próprio pdf-lib). Fica
+    // clicável em qualquer leitor de PDF, não é só texto azul sublinhado.
+    function adicionarLink(pdfDoc, PDFName, PDFString, pagina, x, y, w, h, url) {
+        const linkAnnot = pdfDoc.context.obj({
+            Type: 'Annot', Subtype: 'Link',
+            Rect: [x, y, x + w, y + h],
+            Border: [0, 0, 0],
+            A: { Type: 'Action', S: 'URI', URI: PDFString.of(url) },
+        });
+        const linkRef = pdfDoc.context.register(linkAnnot);
+        const existentes = pagina.node.lookup(PDFName.of('Annots'));
+        if (existentes) existentes.push(linkRef);
+        else pagina.node.set(PDFName.of('Annots'), pdfDoc.context.obj([linkRef]));
+    }
+
+    // Créditos discretos, logo abaixo do último item do Currículo completo
+    // (pedido do Alexsandro — tirou o "Documento gerado em..." da capa e
+    // pediu pra virar isto aqui): linha fina 50% centralizada, o texto
+    // (com "lattesZen" e o nome do autor como links de verdade, clicáveis),
+    // e outra linha fina 50% centralizada embaixo. Fonte regular (não
+    // negrito) tamanho 10, cor discreta — não usa o negrito do resto do
+    // documento de propósito, pedido "fonte suave".
+    function desenharCreditos(pdfDoc, PDFName, PDFString, escritor, fontes) {
+        const tamanho = 10, leading = tamanho * 1.5;
+        const fonte = fontes.regular;
+        const areaW = CONTENT_W - escritor.margemExtra;
+        const xCentro = MARGIN + escritor.margemExtra + escritor.deslocamentoX + areaW / 2;
+        const larguraLinhaFina = areaW * 0.5;
+
+        const desenharLinhaFina = () => {
+            escritor.garantirEspaco(14);
+            escritor.pagina.drawLine({
+                start: { x: xCentro - larguraLinhaFina / 2, y: escritor.y + 4 },
+                end: { x: xCentro + larguraLinhaFina / 2, y: escritor.y + 4 },
+                thickness: 0.5, color: fontes.corRule,
+            });
+            escritor.espaco(14);
+        };
+
+        escritor.espaco(10);
+        desenharLinhaFina();
+
+        const dataTxt = new Date().toLocaleDateString('pt-BR');
+        const segmentos = [
+            { texto: `Curriculum Vitae gerado em ${dataTxt} com apoio do software livre ` },
+            { texto: 'lattesZen', url: 'https://github.com/alexsandroccarv/latteszen' },
+            { texto: ' desenvolvido por ' },
+            { texto: 'Alexsandro Cardoso Carvalho', url: 'https://ccarvalho.net' },
+            { texto: '.' },
+        ];
+        const palavras = [];
+        segmentos.forEach((seg) => {
+            sanitizarTexto(fonte, seg.texto).split(/(\s+)/).forEach((tok) => { if (tok !== '') palavras.push({ tok, url: seg.url }); });
+        });
+        const larguraMax = areaW * 0.72;
+        const linhas = [];
+        let atual = [], larguraAtual = 0;
+        palavras.forEach((p) => {
+            const w = fonte.widthOfTextAtSize(p.tok, tamanho);
+            if (atual.length && larguraAtual + w > larguraMax) { linhas.push(atual); atual = []; larguraAtual = 0; }
+            if (atual.length === 0 && p.tok.trim() === '') return; // não inicia linha com espaço
+            atual.push(p); larguraAtual += w;
+        });
+        if (atual.length) linhas.push(atual);
+
+        linhas.forEach((linha) => {
+            escritor.garantirEspaco(leading);
+            const pagina = escritor.pagina;
+            const larguraLinha = linha.reduce((s, p) => s + fonte.widthOfTextAtSize(p.tok, tamanho), 0);
+            let x = xCentro - larguraLinha / 2;
+            linha.forEach((p) => {
+                const w = fonte.widthOfTextAtSize(p.tok, tamanho);
+                if (p.tok.trim() !== '') {
+                    pagina.drawText(p.tok, { x, y: escritor.y, size: tamanho, font: fonte, color: p.url ? fontes.corAccent : fontes.corMuted });
+                    if (p.url) adicionarLink(pdfDoc, PDFName, PDFString, pagina, x, escritor.y - 2, w, tamanho + 3, p.url);
+                }
+                x += w;
+            });
+            escritor.espaco(leading);
+        });
+
+        escritor.espaco(4);
+        desenharLinhaFina();
+    }
+
     // Item do Modelo A: desenha o contador (NNN) na cor de destaque, em
     // separado do resto da linha (que continua pelo escritor.paragrafo() de
     // sempre, com recuo suspenso — linhas quebradas alinham com o TEXTO, não
@@ -453,17 +540,25 @@ window.LzPdfReport = (function () {
         return `${num} ${anoPrefixo}${item.titulo}${chSufixo}`;
     }
 
-    // Escreve uma lista de itens (já ordenada) com o contador reiniciando
-    // em 1 — usada tanto para tipo.itens "normais" (2 níveis: seção > tipo)
-    // quanto para tipo.subgrupos.itens de Atuação (3 níveis: seção >
-    // instituição > subtipo), sempre reiniciando no começo de CADA lista.
+    // Escreve uma lista de itens (já ordenada), com o contador começando em
+    // `contadorInicial` (padrão 1) — usada tanto para tipo.itens "normais"
+    // (2 níveis: seção > tipo, contador sempre reiniciado em 1, uma lista
+    // por chamada) quanto para tipo.subgrupos.itens de Atuação (3 níveis:
+    // seção > instituição > subtipo). Em Atuação, o contador é ÚNICO por
+    // instituição — continua de um subtipo para o outro, em vez de
+    // reiniciar (pedido do Alexsandro: "mantenha a divisão por subitens mas
+    // use uma única numeração") — por isso devolve o PRÓXIMO contador livre,
+    // pro chamador encadear entre chamadas sucessivas na mesma instituição.
     // modelo/cor selecionam entre desenharItemA (contador colorido, linha
     // corrida) e desenharItemB (selo + chip de data + título) — ver gerar().
-    function escreverItens(escritor, fontes, itens, indent, modelo, cor) {
-        itens.forEach((item, i) => {
-            if (modelo === 'B') desenharItemB(escritor, fontes, cor, item, i + 1, indent);
-            else desenharItemA(escritor, fontes, item, i + 1, indent);
+    function escreverItens(escritor, fontes, itens, indent, modelo, cor, contadorInicial) {
+        let contador = contadorInicial || 1;
+        itens.forEach((item) => {
+            if (modelo === 'B') desenharItemB(escritor, fontes, cor, item, contador, indent);
+            else desenharItemA(escritor, fontes, item, contador, indent);
+            contador += 1;
         });
+        return contador;
     }
 
     // Percorre o modelo (mesmas seções/tipos/itens da página pública) e
@@ -609,9 +704,6 @@ window.LzPdfReport = (function () {
             const w = fontes.regular.widthOfTextAtSize(orcidTxt, 10);
             pagina.drawText(orcidTxt, { x: (PAGE_W - w) / 2, y, size: 10, font: fontes.regular, color: fontes.corTextoCapaMuted });
         }
-        const dataTxt = `Documento gerado em ${new Date().toLocaleDateString('pt-BR')}`;
-        const dw = fontes.regular.widthOfTextAtSize(dataTxt, 10);
-        pagina.drawText(dataTxt, { x: (PAGE_W - dw) / 2, y: MARGIN, size: 10, font: fontes.regular, color: fontes.corTextoCapaMuted });
         return pagina;
     }
 
@@ -743,7 +835,7 @@ window.LzPdfReport = (function () {
         const ordemAsc = !!(opts && opts.ordemAsc);
         const modelo = (opts && opts.modelo === 'B') ? 'B' : 'A';
         const PDFLib = await carregarPdfLib();
-        const { PDFDocument, StandardFonts, rgb, degrees } = PDFLib;
+        const { PDFDocument, StandardFonts, rgb, degrees, PDFName, PDFString } = PDFLib;
 
         const pdfDoc = await PDFDocument.create();
         const model = await window.TabPublicar.buildPublicModel({ incluirTodos, categorias, ordemAsc });
@@ -831,8 +923,9 @@ window.LzPdfReport = (function () {
         }
 
         // 4) Currículo completo (pulado inteiro no modo "apenas evidências")
+        // Sem página divisória própria (pedido do Alexsandro) — vai direto
+        // pro conteúdo, só numa página nova (limpa) depois do Memorial.
         if (incluirCurriculo) {
-            desenharDivisoria(pdfDoc, fontes, 'Currículo Completo');
             contextoA.secao = 'Currículo completo';
             Object.assign(contextoB, { cor: CINZA_NEUTRO, num: null, label: 'Currículo' });
             escritor.novaPagina();
@@ -861,17 +954,19 @@ window.LzPdfReport = (function () {
                     // buildPublicModel em tab-publicar.js) — um nível a mais
                     // que os demais tipos, que continuam com tipo.itens direto.
                     if (tipo.subgrupos) {
+                        let contadorInst = 1;
                         tipo.subgrupos.forEach((sub) => {
                             escritor.espaco(2);
                             if (modelo === 'B') desenharDestaqueSubtipo(escritor, fontes, sub.label, contextoB.cor, 20);
                             else escritor.linha(sub.label, { negrito: true, tamanho: 10, indent: 20, cor: fontes.corMuted });
-                            escreverItens(escritor, fontes, sub.itens, 28, modelo, contextoB.cor);
+                            contadorInst = escreverItens(escritor, fontes, sub.itens, 28, modelo, contextoB.cor, contadorInst);
                         });
                     } else {
                         escreverItens(escritor, fontes, tipo.itens, 24, modelo, contextoB.cor);
                     }
                 });
             });
+            if (model.secoes.length) desenharCreditos(pdfDoc, PDFName, PDFString, escritor, fontes);
         }
 
         // 5) Anexos (evidências marcadas como "pública" — mescladas de verdade)

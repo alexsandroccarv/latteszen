@@ -25,7 +25,7 @@ const { esc, toast } = window.AppCore;
 
     // Ícone de ajuda "(?)" — mostra a explicação num tooltip nativo ao passar
     // o mouse (atributo title), em vez de texto solto ocupando espaço na
-    // tela (a pedido do usuário, pra seção "Trazer e levar dados"). Um
+    // tela (a pedido do usuário, pras páginas "Importar"/"Exportar"). Um
     // <button> de verdade (não um <i aria-hidden> solto, issue de
     // acessibilidade #17): alcançável por teclado, com nome acessível via
     // aria-label, e clicável — o clique mostra a mesma explicação num toast,
@@ -46,7 +46,7 @@ const { esc, toast } = window.AppCore;
             if (btn) toast(btn.dataset.help, 'info');
         });
     }
-    // Um item das colunas Importar/Exportar de "Trazer e levar dados":
+    // Um item das páginas "Importar"/"Exportar":
     // ícone + rótulo + ajuda (?) no cabeçalho, corpo (inputs/botões) embaixo.
     // `icon` inclui o prefixo do estilo (ex.: "fa-solid fa-file-import" ou
     // "fa-brands fa-orcid" — ORCID usa o conjunto "brands", não "solid").

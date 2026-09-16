@@ -6,7 +6,7 @@
 import { test, assert, assertEqual, seedCatalog } from '../harness.mjs';
 
 // O checkbox "Habilitar módulo Súmula Curricular FAPESP" mora na página
-// "Outros recursos" do menu lateral de Configurações — não é a página ativa
+// "Recursos opcionais" do menu lateral de Configurações — não é a página ativa
 // por padrão (Armazenamento é).
 async function abrirOutrosRecursos(page) {
     await page.click('[data-tab="config"]');

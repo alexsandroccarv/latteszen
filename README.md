@@ -64,7 +64,7 @@ dados ficam **no seu navegador e numa pasta que você escolhe**.
 - Conexão à internet é **opcional**: recursos externos (Tailwind, ícones,
   fontes) são carregados de CDN de forma tolerante a falha — offline, a
   aplicação continua funcional com estilos locais. Exceção: gerar o
-  "Relatório completo (PDF)" (Configurações → Trazer e levar dados) carrega
+  "Relatório completo (PDF)" (Configurações → Exportar) carrega
   a biblioteca pdf-lib sob demanda via CDN — sem conexão, só essa função
   específica fica indisponível (com um aviso claro), o resto do app segue
   funcionando normalmente.

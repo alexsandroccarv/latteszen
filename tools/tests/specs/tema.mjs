@@ -20,7 +20,7 @@ async function abrirConfig(page, baseUrl) {
     await page.waitForTimeout(400);
     await page.click('[data-tab="config"]');
     await page.waitForTimeout(200);
-    // O seletor de tema mora na página "Outros recursos" do menu lateral de
+    // O seletor de tema mora na página "Recursos opcionais" do menu lateral de
     // Configurações — não é a página ativa por padrão (Armazenamento é).
     await page.click('[data-cfg-page-link="grp-opcionais"]');
     await page.waitForTimeout(150);
