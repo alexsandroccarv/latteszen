@@ -699,3 +699,51 @@ test('pdf-report.js: calcularPaginasSumario() cresce com o número de entradas',
     assertEqual(poucas, 1, `Com poucas entradas, 1 página de sumário deveria bastar — obtido: ${poucas}`);
     assert(muitas > 1, `Com 200 entradas, deveria precisar de mais de 1 página de sumário — obtido: ${muitas}`);
 });
+
+/* ==========================================================================
+   Regressão: Anexos organizados por categoria ("Anexo I — <categoria>",
+   "Anexo II — ..."), com página de divisão opcional (checkbox) — pedido do
+   Alexsandro pra corrigir a página de divisão + página em branco "perdidas"
+   antes da 1ª evidência de verdade, e apontar o sumário certo pra onde cada
+   categoria de evidência começa.
+   ========================================================================== */
+test('pdf-report.js: numeroRomano() converte 1-21 (nº de categorias) corretamente', async ({ page, baseUrl }) => {
+    await seedCatalog(page, baseUrl, []);
+    const r = await page.evaluate(() => [1, 2, 3, 4, 5, 9, 14, 19, 21].map((n) => window.LzPdfReport.numeroRomano(n)));
+    assertEqual(r, ['I', 'II', 'III', 'IV', 'V', 'IX', 'XIV', 'XIX', 'XXI'], `Conversão pra romano incorreta — obtido: ${JSON.stringify(r)}`);
+});
+
+test('pdf-report.js: anexosDaSecaoSemLink() só traz evidências de arquivo (exclui as em link, ext "url")', async ({ page, baseUrl }) => {
+    await seedCatalog(page, baseUrl, []);
+    const resultado = await page.evaluate(() => {
+        const secaoFalsa = {
+            tipos: [
+                { label: 'Tipo 1', itens: [{ titulo: 'Item 1', anexos: [{ ext: 'pdf', name: 'a.pdf' }, { ext: 'url', name: 'link', url: 'https://x' }] }] },
+                { label: 'Instituição', subgrupos: [{ label: 'Sub', itens: [{ titulo: 'Item 2', anexos: [{ ext: 'jpg', name: 'b.jpg' }] }] }] },
+            ],
+        };
+        return window.LzPdfReport.anexosDaSecaoSemLink(secaoFalsa).map((a) => a.anexo.ext);
+    });
+    assertEqual(resultado, ['pdf', 'jpg'], `Deveria trazer só os anexos de arquivo (pdf/jpg), sem o "url" — obtido: ${JSON.stringify(resultado)}`);
+});
+
+test('Cartão "Relatório completo (PDF)": checkbox "página de divisão por categoria" existe, desmarcada por padrão, e passa paginasDivisao para LzPdfReport.gerar()', async ({ page, baseUrl }) => {
+    await seedCatalog(page, baseUrl, [makeItem('IDENTIFICACAO', 'DADOS_GERAIS', { titulo: 'Fulano de Tal' })]);
+    await abrirExportar(page);
+    assertEqual(await page.locator('#pdfReportPaginasDivisao').count(), 1, 'A checkbox de página de divisão por categoria deveria existir');
+    assert(!(await page.isChecked('#pdfReportPaginasDivisao')), 'Deveria vir desmarcada por padrão (sem página de divisão)');
+
+    await page.evaluate(() => {
+        window.__chamadasGerar = [];
+        window.LzPdfReport = { gerar: async (opts) => { window.__chamadasGerar.push(opts); return new Uint8Array([1]); } };
+    });
+    await page.click('#btnPdfReportGerar');
+    await page.waitForFunction(() => !document.querySelector('#btnPdfReportGerar').disabled, undefined, { timeout: 10000 });
+    await page.check('#pdfReportPaginasDivisao');
+    await page.click('#btnPdfReportGerar');
+    await page.waitForFunction(() => !document.querySelector('#btnPdfReportGerar').disabled, undefined, { timeout: 10000 });
+
+    const chamadas = await page.evaluate(() => window.__chamadasGerar);
+    assertEqual(chamadas[0].paginasDivisao, false, 'Desmarcada, paginasDivisao deveria ser false');
+    assertEqual(chamadas[1].paginasDivisao, true, 'Marcada, paginasDivisao deveria ser true');
+});

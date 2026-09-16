@@ -877,8 +877,12 @@ window.Storage = (function () {
     // que não puderam ser lidos mesmo depois de tentar de novo, pra quem
     // chama (syncFromDirectory, em app.js) avisar que a sincronização pode
     // ter ficado incompleta, em vez de simplesmente mostrar uma lista
-    // truncada sem explicação nenhuma.
-    async function scanDirectory() {
+    // truncada sem explicação nenhuma. onProgress(n) opcional — chamado a
+    // cada item encontrado, com a contagem corrente — pedido do Alexsandro
+    // pra dar um feedback melhor que "Sincronizando…" parado numa biblioteca
+    // grande do Google Drive no celular (mesmo padrão já usado por
+    // migrateLocalToGoogleDrive acima).
+    async function scanDirectory(onProgress) {
         if (mode === 'gdrive') {
             if (!gdriveCfg) return { items: [], falhas: 0 };
             const items = [];
@@ -896,7 +900,7 @@ window.Storage = (function () {
                             const blob = await comRetentativas(() => window.GDriveClient.getFileContent(child.id));
                             if (!blob) { falhas += 1; continue; }
                             const obj = JSON.parse(await blob.text());
-                            if (obj && obj.id) items.push(obj);
+                            if (obj && obj.id) { items.push(obj); if (onProgress) onProgress(items.length); }
                         } catch (_) { falhas += 1; /* rede ou JSON inválido */ }
                     }
                 }
@@ -913,7 +917,7 @@ window.Storage = (function () {
                     try {
                         const file = await h.getFile();
                         const obj = JSON.parse(await file.text());
-                        if (obj && obj.id) items.push(obj);
+                        if (obj && obj.id) { items.push(obj); if (onProgress) onProgress(items.length); }
                     } catch (_) { falhas += 1; /* arquivo inválido ou removido durante a varredura */ }
                 } else if (h.kind === 'directory') {
                     if (name === INBOX_FOLDER) continue; // não indexa a bandeja de entrada

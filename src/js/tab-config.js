@@ -58,6 +58,16 @@ window.TabConfig = (function () {
     // recarregar a página.
     let gdriveMigrationNotice = null;
 
+    // Feedback de sincronização com contador corrente (pedido do Alexsandro:
+    // "Sincronizando itens já existentes na pasta…" parado, sem indício
+    // nenhum de progresso ou travamento, numa biblioteca grande do Google
+    // Drive no celular). O total real só se sabe no fim (a varredura é
+    // recursiva, pasta por pasta) — por isso um contador corrente, não uma
+    // barra de "n de total", mesmo padrão já usado em migrateLocalToGoogleDrive.
+    function statusSincronizandoHtml(n) {
+        return `<span class="text-gray-500"><i aria-hidden="true" class="fa-solid fa-spinner fa-spin mr-1"></i> Sincronizando itens já existentes na pasta… (${n} encontrado${n === 1 ? '' : 's'} até agora)</span>`;
+    }
+
     // Assistente guiado de "Diretório de armazenamento", mostrado só enquanto
     // NENHUM diretório está configurado ainda (Storage.hasDirectory() falso)
     // — depois de configurado, a seção volta a mostrar o painel de estado
@@ -462,7 +472,10 @@ window.TabConfig = (function () {
             let msg = `Migração concluída: ${copiados} arquivo(s) copiado(s) para o Google Drive.`;
             let tipoToast = 'ok';
             try {
-                const { encontrados, falhas } = await window.AppCore.syncFromDirectory();
+                if (statusEl) statusEl.innerHTML = statusSincronizandoHtml(0);
+                const { encontrados, falhas } = await window.AppCore.syncFromDirectory((n) => {
+                    if (statusEl) statusEl.innerHTML = statusSincronizandoHtml(n);
+                });
                 if (encontrados) msg += ` ${encontrados} item(ns) sincronizado(s).`;
                 if (falhas) { msg += ` Atenção: ${falhas} pasta(s)/arquivo(s) não puderam ser lidos — clique em "Sincronizar" para tentar completar.`; tipoToast = 'aviso'; }
             } catch (_) {}
@@ -748,14 +761,20 @@ window.TabConfig = (function () {
                 // "Sincronizar do diretório" pra aparecer.
                 let msg = 'Diretório configurado (estrutura de pastas criada).';
                 let tipoToast = 'ok';
+                const originalChooseDirLabel = btnChooseDir.innerHTML;
                 try {
-                    const { encontrados, configRestaurada, falhas } = await window.AppCore.syncFromDirectory();
+                    const { encontrados, configRestaurada, falhas } = await window.AppCore.syncFromDirectory((n) => {
+                        btnChooseDir.innerHTML = `<i aria-hidden="true" class="fa-solid fa-spinner fa-spin mr-1"></i> Sincronizando… (${n} até agora)`;
+                    });
                     msg += encontrados
                         ? ` ${encontrados} item(ns) já cadastrado(s) na pasta foram sincronizados automaticamente.`
                         : ' Pasta vazia — pronta para uso.';
                     if (configRestaurada) msg += ' Configurações do sistema também restauradas.';
                     if (falhas) { msg += ` Atenção: ${falhas} pasta(s)/arquivo(s) não puderam ser lidos — clique em "Sincronizar" para tentar completar.`; tipoToast = 'aviso'; }
-                } catch (_) {}
+                } catch (_) {
+                } finally {
+                    btnChooseDir.innerHTML = originalChooseDirLabel;
+                }
                 toast(msg, tipoToast);
                 window.AppCore.renderItemList();
                 render();
@@ -763,14 +782,18 @@ window.TabConfig = (function () {
         });
         const btnSync = $('#btnSync');
         if (btnSync) btnSync.addEventListener('click', async () => {
+            const originalSyncLabel = btnSync.innerHTML;
             try {
-                const { encontrados, configRestaurada, falhas } = await window.AppCore.syncFromDirectory();
+                const { encontrados, configRestaurada, falhas } = await window.AppCore.syncFromDirectory((n) => {
+                    btnSync.innerHTML = `<i aria-hidden="true" class="fa-solid fa-spinner fa-spin mr-1"></i> Sincronizando… (${n} até agora)`;
+                });
                 let msg = `${encontrados} arquivo(s) .json lido(s) do diretório.${configRestaurada ? ' Configurações do sistema atualizadas.' : ''}`;
                 if (falhas) msg += ` Atenção: ${falhas} pasta(s)/arquivo(s) não puderam ser lidos (rede instável?) — clique em "Sincronizar" de novo para tentar completar.`;
                 toast(msg, falhas ? 'aviso' : 'ok');
                 window.AppCore.renderItemList();
                 render();
             } catch (e) { toast(e.message, 'erro'); }
+            finally { btnSync.innerHTML = originalSyncLabel; }
         });
         // "Esquecer diretório de armazenamento" só existe com um diretório já
         // configurado (dirSectionHtml do ramo `else` acima) — sem diretório
@@ -818,10 +841,13 @@ window.TabConfig = (function () {
                 // sincronizar (uma requisição por pasta/arquivo) — sem isto,
                 // a tela ficava parada sem nenhum indício de que algo estava
                 // acontecendo (pedido do Alexsandro: feedback de que a ação
-                // está em andamento).
-                if (statusEl) statusEl.innerHTML = '<span class="text-gray-500">Sincronizando itens já existentes na pasta…</span>';
+                // está em andamento, com um contador — "Sincronizando…"
+                // parado não deixa claro se travou ou se está funcionando).
+                if (statusEl) statusEl.innerHTML = statusSincronizandoHtml(0);
                 try {
-                    const { encontrados, configRestaurada, falhas } = await window.AppCore.syncFromDirectory();
+                    const { encontrados, configRestaurada, falhas } = await window.AppCore.syncFromDirectory((n) => {
+                        if (statusEl) statusEl.innerHTML = statusSincronizandoHtml(n);
+                    });
                     msg += encontrados
                         ? ` ${encontrados} item(ns) já cadastrado(s) na pasta foram sincronizados automaticamente.`
                         : ' Pasta vazia — pronta para uso.';
