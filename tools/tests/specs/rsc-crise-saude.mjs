@@ -3,7 +3,7 @@
    critério 6.19 do RSC ("Atuação institucional no enfrentamento de surto,
    epidemia ou pandemia", por mês, 1 ponto) não tinha nenhum tipo de item
    onde entrar. Cobre: a categoria só aparece com o módulo RSC habilitado, na
-   posição numérica correta (21, logo após "20. Grupos de Pesquisa"), e um
+   posição numérica correta (21, a última categoria), e um
    item desse tipo é contabilizado no RSC com o critério 6.19, calculando os
    pontos a partir do período informado (por mês).
    ========================================================================== */

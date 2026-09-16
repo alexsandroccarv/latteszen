@@ -76,10 +76,12 @@ window.TabConfig = (function () {
        data-lz-theme no <html>; as cores em si vivem em styles.css (paletas
        por data-lz-theme, valendo pro app inteiro — não só cabeçalho/rodapé).
        ===================================================================== */
-    // "govbr" (paleta explícita, data-lz-theme="govbr") e "padrao" (nenhuma
-    // paleta aplicada — só o CSS-base, que também é um visual gov.br) eram
-    // dois temas de nome conflitante ("gov.br" e "Padrão (gov.br)"). Viraram
-    // "lattesZen dia" (govbr, o padrão) e "lattesZen noite" (padrao).
+    // "govbr" e "padrao" eram dois temas de nome conflitante ("gov.br" e
+    // "Padrão (gov.br)"), ambos claros. Viraram "lattesZen dia" (govbr, o
+    // padrão do app) e "lattesZen noite" (padrao) — esta última com paleta
+    // própria ESCURA (ver data-lz-theme="padrao" em styles.css), pedido do
+    // Alexsandro pra bater com o nome ("noite" tem que ser escuro de
+    // verdade, não só herdar o alternador de claro/escuro).
     const THEME_DEFAULT = 'govbr';
     const THEME_PRESETS = [
         { value: 'govbr', label: 'lattesZen dia', font: "'Rawline',system-ui,sans-serif" },
@@ -113,7 +115,7 @@ window.TabConfig = (function () {
     // — a aplicação em si já ocorreu cedo, no script inline de cada página).
     function aplicarTema(preset) {
         const html = document.documentElement;
-        if (preset && preset !== 'padrao') {
+        if (preset) {
             html.setAttribute('data-lz-theme', preset);
             html.classList.add('lz-theme');
             if (typeof window.__loadThemeFont === 'function') window.__loadThemeFont(preset);

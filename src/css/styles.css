@@ -149,8 +149,10 @@ main { padding: 16px; }
    lugares que o templateZen (botões e ícones em todas as abas, não só o
    cabeçalho) — também nas classes utilitárias govbr-* / unifesp-* usadas
    pelo resto do app, pra o tema valer no app inteiro, não só no "chrome".
-   Sem tema escolhido (padrão), nada disto se aplica — visual atual
-   preservado integralmente.
+   "lattesZen noite" (data-lz-theme="padrao") é o único tema sempre ESCURO
+   por definição (nome/expectativa do usuário), independente do alternador
+   de claro/escuro — os demais continuam claros ou escuros conforme a
+   própria paleta (ex.: Drácula, GitHub Dark, Solarized Dark).
    ========================================================================== */
 html[data-lz-theme="catppuccin-latte"]{--lz-bg:#eff1f5;--lz-surface:#e6e9ef;--lz-text:#4c4f69;--lz-muted:#6c6f85;--lz-border:#ccd0da;--lz-header:#1e66f5;--lz-header-text:#ffffff;--lz-nav:#e6e9ef;--lz-nav-text:#4c4f69;--lz-footer:#dce0e8;--lz-footer-text:#4c4f69;--lz-accent:#8538ea}
 html[data-lz-theme="catppuccin-mocha"]{--lz-bg:#1e1e2e;--lz-surface:#313244;--lz-text:#cdd6f4;--lz-muted:#a6adc8;--lz-border:#313244;--lz-header:#181825;--lz-header-text:#cdd6f4;--lz-nav:#181825;--lz-nav-text:#cdd6f4;--lz-footer:#11111b;--lz-footer-text:#cdd6f4;--lz-accent:#cba6f7}
@@ -158,6 +160,7 @@ html[data-lz-theme="dracula"]{--lz-bg:#282a36;--lz-surface:#44475a;--lz-text:#f8
 html[data-lz-theme="github-light"]{--lz-bg:#ffffff;--lz-surface:#f6f8fa;--lz-text:#24292f;--lz-muted:#57606a;--lz-border:#d0d7de;--lz-header:#24292f;--lz-header-text:#ffffff;--lz-nav:#f6f8fa;--lz-nav-text:#24292f;--lz-footer:#24292f;--lz-footer-text:#ffffff;--lz-accent:#0969da}
 html[data-lz-theme="github-dark"]{--lz-bg:#0d1117;--lz-surface:#161b22;--lz-text:#c9d1d9;--lz-muted:#8b949e;--lz-border:#30363d;--lz-header:#161b22;--lz-header-text:#e6edf3;--lz-nav:#0d1117;--lz-nav-text:#c9d1d9;--lz-footer:#010409;--lz-footer-text:#c9d1d9;--lz-accent:#58a6ff}
 html[data-lz-theme="govbr"]{--lz-bg:#f8f9fa;--lz-surface:#ffffff;--lz-text:#1c1c1c;--lz-muted:#555555;--lz-border:#cccccc;--lz-header:#1351b4;--lz-header-text:#ffffff;--lz-nav:#ffffff;--lz-nav-text:#1351b4;--lz-footer:#071d41;--lz-footer-text:#ffffff;--lz-accent:#1351b4}
+html[data-lz-theme="padrao"]{--lz-bg:#0f1620;--lz-surface:#182233;--lz-text:#e6ebf3;--lz-muted:#98a3b8;--lz-border:#2b3548;--lz-header:#0c2a63;--lz-header-text:#ffffff;--lz-nav:#182233;--lz-nav-text:#7fb0ff;--lz-footer:#070d18;--lz-footer-text:#d7e0ee;--lz-accent:#4f9eff}
 html[data-lz-theme="rose-pine-dawn"]{--lz-bg:#faf4ed;--lz-surface:#fffaf3;--lz-text:#464261;--lz-muted:#797593;--lz-border:#f2e9e1;--lz-header:#286983;--lz-header-text:#faf4ed;--lz-nav:#fffaf3;--lz-nav-text:#464261;--lz-footer:#f2e9e1;--lz-footer-text:#464261;--lz-accent:#286983}
 html[data-lz-theme="solarized-light"]{--lz-bg:#fdf6e3;--lz-surface:#eee8d5;--lz-text:#4a5d63;--lz-muted:#5e7377;--lz-border:#d9d2b8;--lz-header:#1a6aa8;--lz-header-text:#ffffff;--lz-nav:#eee8d5;--lz-nav-text:#4a5d63;--lz-footer:#073642;--lz-footer-text:#eee8d5;--lz-accent:#0f5a94}
 html[data-lz-theme="solarized-dark"]{--lz-bg:#002b36;--lz-surface:#073642;--lz-text:#93a1a1;--lz-muted:#93a1a1;--lz-border:#0d4552;--lz-header:#073642;--lz-header-text:#eee8d5;--lz-nav:#002b36;--lz-nav-text:#93a1a1;--lz-footer:#073642;--lz-footer-text:#93a1a1;--lz-accent:#4aa3dd}
@@ -169,13 +172,14 @@ html[data-lz-theme="dracula"]{--lz-accent-2:#50fa7b}
 html[data-lz-theme="github-light"]{--lz-accent-2:#1a7f37}
 html[data-lz-theme="github-dark"]{--lz-accent-2:#3fb950}
 html[data-lz-theme="govbr"]{--lz-accent-2:#168821}
+html[data-lz-theme="padrao"]{--lz-accent-2:#33d17a}
 html[data-lz-theme="rose-pine-dawn"]{--lz-accent-2:#56949f}
 html[data-lz-theme="solarized-light"]{--lz-accent-2:#6c7a00}
 html[data-lz-theme="solarized-dark"]{--lz-accent-2:#859900}
 
 /* Fonte por tema (Google Fonts, carregadas sob demanda pelo script inline
-   de cada página — GitHub Light/Dark e lattesZen dia (govbr) usam fonte do
-   sistema/já carregada, sem CDN extra). */
+   de cada página — GitHub Light/Dark, lattesZen dia (govbr) e lattesZen
+   noite (padrao) usam fonte do sistema/já carregada, sem CDN extra). */
 html[data-lz-theme="catppuccin-latte"]{--lz-font:'Nunito',system-ui,sans-serif}
 html[data-lz-theme="catppuccin-mocha"]{--lz-font:'Nunito',system-ui,sans-serif}
 html[data-lz-theme="dracula"]{--lz-font:'Fira Sans',system-ui,sans-serif}

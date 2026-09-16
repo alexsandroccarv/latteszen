@@ -84,25 +84,32 @@ window.TabPublicar = (function () {
     // precisa dos bytes em memória, não só do link relativo gravado na pasta.
     async function itemAnexos(it, opts) {
         opts = opts || {};
-        const { external, collect } = opts;
+        const { external, collect, rootName } = opts;
         const anexos = [];
         if (Array.isArray(it.evidencias)) {
+            const pastaBase = LattesTypes.categoryFolder(it.categoryKey);
             for (const ev of it.evidencias) {
                 if (!ev.publica) continue;
-                if (ev.kind === 'link') { anexos.push({ name: ev.name || ev.url, ext: 'url', url: ev.url }); continue; }
+                const tag = String(ev.tag || '').trim();
+                if (ev.kind === 'link') { anexos.push({ name: ev.name || ev.url, ext: 'url', url: ev.url, tag }); continue; }
                 if (!Storage.hasDirectory()) continue;
                 try {
-                    const f = await Storage.readAttachmentFile(ev.basename, LattesTypes.categoryFolder(it.categoryKey), ev.ext);
+                    const f = await Storage.readAttachmentFile(ev.basename, pastaBase, ev.ext);
                     if (!f) continue;
                     const nome = ev.name || `${ev.basename}.${ev.ext}`;
+                    // Caminho "de onde a evidência mora" (pasta raiz + Evidências/
+                    // categoria + arquivo) — mostrado no Relatório (PDF) no lugar
+                    // do nome de arquivo cru, pedido do Alexsandro: "tag da
+                    // evidência | /caminho relativo/id-evidencia.ext".
+                    const caminho = `/${rootName ? rootName + '/' : ''}${pastaBase}/${ev.basename}.${ev.ext}`;
                     if (external && isImageExt(ev.ext)) {
                         const relPath = `${PUB_IMG_SUBDIR}/${ev.basename}.${ev.ext}`;
                         await Storage.writeFile(`${ev.basename}.${ev.ext}`, f, `${LattesTypes.publicacaoFolder()}/${PUB_IMG_SUBDIR}`);
                         if (collect) collect.push({ path: relPath, content: f });
-                        anexos.push({ name: nome, ext: ev.ext, url: relPath });
+                        anexos.push({ name: nome, ext: ev.ext, url: relPath, tag, caminho });
                     } else {
                         const du = await fileToDataUrl(f);
-                        if (du) anexos.push({ name: nome, ext: ev.ext, dataUri: du });
+                        if (du) anexos.push({ name: nome, ext: ev.ext, dataUri: du, tag, caminho });
                     }
                 } catch (_) {}
             }
@@ -152,7 +159,12 @@ window.TabPublicar = (function () {
         const categorias = (opts && opts.categorias) ? new Set(opts.categorias) : null;
         const ordemAsc = !!(opts && opts.ordemAsc);
         const collect = opts && opts.collect;
-        const anexosOpts = { external, collect };
+        // Nome da pasta raiz configurada (local: nome da pasta escolhida;
+        // Google Drive: "Google Drive — /Nome") — usado só pra montar o
+        // "caminho" de cada evidência (ver itemAnexos), exibido no Relatório
+        // (PDF) no lugar do nome de arquivo cru.
+        const rootName = Storage.hasDirectory() ? await Storage.directoryName() : null;
+        const anexosOpts = { external, collect, rootName };
         const items = state.catalogo.items;
         const first = tk => items.find(i => i.typeKey === tk);
         const byType = tk => items.filter(i => i.typeKey === tk);
@@ -279,8 +291,13 @@ window.TabPublicar = (function () {
                 for (const it of its) { itens.push({ titulo: LattesTypes.itemTitle(it), ano: itemAnoRange(it), linha: cat.key === 'PRODUCOES' ? itemLinhaProducoes(it) : itemLinha(it), typeKey: it.typeKey, cargaHoraria: (it.fields && it.fields.cargaHoraria) || '', anexos: await itemAnexos(it, anexosOpts) }); publicItemsFlat.push(it); }
                 tipos.push({ label: LattesTypes.label(tk), itens });
             }
-            const catNum = parseInt(cat.num, 10);
-            if (catNum >= 12 && catNum <= 19) { if (tipos.length) extrasCategorias.push({ label: cat.num ? `${cat.num}. ${cat.label}` : cat.label, subgrupos: tipos }); }
+            // "Outras atividades": categorias naoLattes, MAS não as exclusivas
+            // do RSC (rscOnly) — essas continuam com seção própria (ver
+            // else abaixo). Antes um intervalo numérico fixo (12-19); virou
+            // flag porque a reordenação de categorias (pedido do
+            // Alexsandro) colocou "Grupos de Pesquisa" (rscOnly) no meio
+            // desse intervalo (num 12).
+            if (cat.naoLattes && !cat.rscOnly) { if (tipos.length) extrasCategorias.push({ label: cat.num ? `${cat.num}. ${cat.label}` : cat.label, subgrupos: tipos }); }
             else if (tipos.length) secoes.push({ id: 'sec-' + cat.key.toLowerCase(), num: cat.num, label: cat.label, icon: PUB_ICON[cat.key] || '▣', tipos });
         }
         if (extrasCategorias.length) secoes.push({ id: PUB_MERGE_ID, num: null, label: PUB_MERGE_LABEL, icon: '✦', tipos: extrasCategorias });

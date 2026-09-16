@@ -1051,6 +1051,33 @@
             Storage.saveSettings(cfg);
         }
 
+        // Categorias 12-21 reordenadas/renumeradas (pedido do Alexsandro —
+        // ver LATTES_CATEGORIES em lattes-types.js): "Grupos de Pesquisa"
+        // (RSC) sai de 20 pra 12; Certificações/Filiações/Imprensa/
+        // Concursos saem de 16-19 pra 13-16; Desenvolvimento Pessoal/
+        // Engajamento/Saúde-Esporte/Interesses saem de 12-15 pra 17-20.
+        // Só o número muda (mesmo rótulo/conteúdo) — renomeia a pasta de
+        // cada categoria pro novo número; "Atuação em Crise de Saúde
+        // Pública" continua 21, sem pasta pra mover.
+        if (!cfg.categorias12a21Renumeradas && Storage.hasDirectory()) {
+            const RENOMEACOES_CATEGORIAS_2026_09 = [
+                ['Evidências/20 Grupos de Pesquisa', 'Evidências/12 Grupos de Pesquisa'],
+                ['Evidências/16 Certificações', 'Evidências/13 Certificações'],
+                ['Evidências/17 Filiações', 'Evidências/14 Filiações'],
+                ['Evidências/19 Imprensa', 'Evidências/15 Imprensa'],
+                ['Evidências/18 Concursos e Processos seletivos', 'Evidências/16 Concursos e Processos seletivos'],
+                ['Evidências/12 Desenvolvimento Pessoal e Habilidades', 'Evidências/17 Desenvolvimento Pessoal e Habilidades'],
+                ['Evidências/13 Engajamento Comunitário e Cidadania', 'Evidências/18 Engajamento Comunitário e Cidadania'],
+                ['Evidências/14 Saúde, Esporte e Bem-Estar', 'Evidências/19 Saúde, Esporte e Bem-Estar'],
+                ['Evidências/15 Interesses, Cultura e Lazer', 'Evidências/20 Interesses, Cultura e Lazer'],
+            ];
+            for (const [de, para] of RENOMEACOES_CATEGORIAS_2026_09) {
+                try { await Storage.renameRootFolder(de, para); } catch (_) {}
+            }
+            cfg.categorias12a21Renumeradas = true;
+            Storage.saveSettings(cfg);
+        }
+
         // Aviso ao fechar/recarregar com edições não salvas
         window.addEventListener('beforeunload', (e) => { if (state.ui.formDirty) { e.preventDefault(); e.returnValue = ''; } });
 
