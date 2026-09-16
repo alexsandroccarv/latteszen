@@ -379,6 +379,22 @@ test('buildPublicModel(): o item achatado leva a carga horária (fields.cargaHor
     assertEqual(conselhoItem.cargaHoraria, '4', 'O item de Atuação (dentro de subgrupos) também deveria carregar cargaHoraria');
 });
 
+test('buildPublicModel(): telefone e e-mail de Identificação aparecem no modelo (capa do Relatório PDF)', async ({ page, baseUrl }) => {
+    const items = [makeItem('IDENTIFICACAO', 'DADOS_GERAIS', { titulo: 'Fulana de Tal', telefone: '(11) 1234-5678', email: 'fulana@exemplo.com' })];
+    await seedCatalog(page, baseUrl, items);
+    const model = await page.evaluate(() => window.TabPublicar.buildPublicModel({}));
+    assertEqual(model.telefone, '(11) 1234-5678', 'model.telefone deveria vir do campo telefone de Identificação');
+    assertEqual(model.email, 'fulana@exemplo.com', 'model.email deveria vir do campo email de Identificação');
+});
+
+test('buildPublicModel(): sem telefone/e-mail preenchidos, os campos vêm vazios (capa não mostra essas linhas)', async ({ page, baseUrl }) => {
+    const items = [makeItem('IDENTIFICACAO', 'DADOS_GERAIS', { titulo: 'Fulana de Tal' })];
+    await seedCatalog(page, baseUrl, items);
+    const model = await page.evaluate(() => window.TabPublicar.buildPublicModel({}));
+    assertEqual(model.telefone, '', 'Sem telefone preenchido, deveria vir string vazia');
+    assertEqual(model.email, '', 'Sem e-mail preenchido, deveria vir string vazia');
+});
+
 /* ==========================================================================
    Regressão: em Atuação, dentro de cada instituição os itens passam a ser
    agrupados por subtipo (Vínculo, Direção e assessoramento, Conselhos e

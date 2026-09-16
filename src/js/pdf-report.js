@@ -88,6 +88,12 @@ window.LzPdfReport = (function () {
         [0.231, 0.431, 0.561], [0.549, 0.416, 0.184], [0.698, 0.227, 0.420], [0.102, 0.541, 0.620],
     ];
     const CINZA_NEUTRO = [0.42, 0.42, 0.42];
+    // Faixa lateral da seção de Anexos (Modelo B): cinza bem mais claro que
+    // o neutro acima (pedido do Alexsandro — "ao invés de cinza forte") —
+    // com texto escuro (ver desenharSidebarB/contexto.corTexto), já que
+    // texto branco não teria contraste sobre um cinza tão claro.
+    const CINZA_CLARO_ANEXOS = [0.87, 0.87, 0.85];
+    const TEXTO_ESCURO_ANEXOS = [0.15, 0.15, 0.14];
     function corDaCategoria(num) {
         if (!num) return CINZA_NEUTRO;
         const cats = (window.LattesTypes && window.LattesTypes.categories) || [];
@@ -169,7 +175,7 @@ window.LzPdfReport = (function () {
     // conforme o conteúdo enche a página atual (mesma ideia de um editor de
     // texto fluindo por várias páginas) — usado pelo Memorial, pelo
     // Currículo completo e pelos Anexos.
-    function criarEscritor(pdfDoc, fontes) {
+    function criarEscritor(pdfDoc, fontes, paginasSemNumero) {
         let pagina = null, y = 0, margemExtra = 0, deslocamentoX = 0;
         // decorador(pagina): redesenhado em TODA página nova, inclusive as
         // criadas automaticamente por garantirEspaco() no meio de uma seção
@@ -235,12 +241,15 @@ window.LzPdfReport = (function () {
             get deslocamentoX() { return deslocamentoX; },
             set deslocamentoX(v) { deslocamentoX = v; },
             set decorador(fn) { decorador = fn; },
-            // Mesmo número que numerarPaginas() vai desenhar no rodapé desta
-            // página (capa não numerada; 1ª página depois dela vira "1") —
-            // usado pelo cabeçalho de cada página de evidência, pra dar
+            // Mesmo número que numerarPaginas() vai desenhar no rodapé/topo
+            // desta página (capa E sumário ficam sem número; a numeração
+            // visível começa em "1" na 1ª página de conteúdo depois do
+            // sumário — paginasSemNumero conta quantas páginas vêm antes
+            // dela) — usado pelo cabeçalho de cada página de evidência e
+            // pelo sumário (entradasSumario[...].paginaIndex), pra dar
             // contexto de posição sem esperar numerarPaginas() rodar (só no
             // fim, depois que o documento inteiro já foi montado).
-            get numeroPagina() { return pdfDoc.getPageCount() - 1; },
+            get numeroPagina() { return pdfDoc.getPageCount() - paginasSemNumero; },
         };
     }
 
@@ -263,18 +272,22 @@ window.LzPdfReport = (function () {
     // dedo (thumb index): a cor + número da categoria dão pra achar a seção
     // certa folheando o PDF impresso, sem abrir o sumário. contexto = { cor,
     // num, label }, atualizado pelo chamador antes de cada seção/divisória.
+    // corTexto opcional em contexto — RGB [0-1] pra usar no lugar do branco
+    // padrão (necessário na seção de Anexos, cujo cinza claro não teria
+    // contraste com texto branco — ver CINZA_CLARO_ANEXOS/gerar()).
     function desenharSidebarB(pagina, fontes, contexto) {
         const cor = fontes.rgb(contexto.cor[0], contexto.cor[1], contexto.cor[2]);
         pagina.drawRectangle({ x: 0, y: 0, width: SIDEBAR_W, height: PAGE_H, color: cor });
+        const corTexto = contexto.corTexto ? fontes.rgb(contexto.corTexto[0], contexto.corTexto[1], contexto.corTexto[2]) : fontes.rgb(1, 1, 1);
         if (contexto.num) {
             const numTam = 20;
             const numSeguro = sanitizarTexto(fontes.negrito, contexto.num);
             const numW = fontes.negrito.widthOfTextAtSize(numSeguro, numTam);
-            pagina.drawText(numSeguro, { x: (SIDEBAR_W - numW) / 2, y: PAGE_H - 90, size: numTam, font: fontes.negrito, color: fontes.rgb(1, 1, 1) });
+            pagina.drawText(numSeguro, { x: (SIDEBAR_W - numW) / 2, y: PAGE_H - 90, size: numTam, font: fontes.negrito, color: corTexto });
         }
         const lbl = sanitizarTexto(fontes.negrito, (contexto.label || '').toUpperCase());
         if (lbl) {
-            pagina.drawText(lbl, { x: SIDEBAR_W - 16, y: 90, size: 7.5, font: fontes.negrito, color: fontes.rgb(1, 1, 1), rotate: fontes.degrees(90) });
+            pagina.drawText(lbl, { x: SIDEBAR_W - 16, y: 90, size: 7.5, font: fontes.negrito, color: corTexto, rotate: fontes.degrees(90) });
         }
     }
 
@@ -540,33 +553,49 @@ window.LzPdfReport = (function () {
         return `${num} ${anoPrefixo}${item.titulo}${chSufixo}`;
     }
 
-    // Escreve uma lista de itens (já ordenada), com o contador começando em
-    // `contadorInicial` (padrão 1) — usada tanto para tipo.itens "normais"
-    // (2 níveis: seção > tipo, contador sempre reiniciado em 1, uma lista
-    // por chamada) quanto para tipo.subgrupos.itens de Atuação (3 níveis:
-    // seção > instituição > subtipo). Em Atuação, o contador é ÚNICO por
-    // instituição — continua de um subtipo para o outro, em vez de
-    // reiniciar (pedido do Alexsandro: "mantenha a divisão por subitens mas
-    // use uma única numeração") — por isso devolve o PRÓXIMO contador livre,
-    // pro chamador encadear entre chamadas sucessivas na mesma instituição.
-    // modelo/cor selecionam entre desenharItemA (contador colorido, linha
-    // corrida) e desenharItemB (selo + chip de data + título) — ver gerar().
-    function escreverItens(escritor, fontes, itens, indent, modelo, cor, contadorInicial) {
-        let contador = contadorInicial || 1;
-        itens.forEach((item) => {
-            if (modelo === 'B') desenharItemB(escritor, fontes, cor, item, contador, indent);
-            else desenharItemA(escritor, fontes, item, contador, indent);
-            contador += 1;
+    // Atribui a cada item do modelo o contador (NNN) e a cor de categoria
+    // que ele vai exibir no Currículo completo — ANTES de qualquer
+    // renderização (chamado uma vez, logo no início de gerar()). Única fonte
+    // de verdade pros dois lugares que mostram essa numeração/cor sempre
+    // baterem: a lista de itens (escreverItens, abaixo) e o cabeçalho da
+    // página de evidência do mesmo item (ver desenharPaginaEvidencia) —
+    // inclusive no modo "apenas evidências", onde o Currículo nem chega a
+    // ser desenhado. Contador reinicia a cada tipo, EXCETO em Atuação
+    // (tipo.subgrupos), onde é único por instituição — continua de um
+    // subtipo para o outro (pedido do Alexsandro: "mantenha a divisão por
+    // subitens mas use uma única numeração").
+    function atribuirNumeracaoItens(model) {
+        model.secoes.forEach((sec) => {
+            const cor = corDaCategoria(sec.num);
+            sec.tipos.forEach((tipo) => {
+                let contador = 1;
+                const marcar = (item) => { item._pdfContador = contador; item._pdfCor = cor; contador += 1; };
+                if (tipo.subgrupos) tipo.subgrupos.forEach((sub) => sub.itens.forEach(marcar));
+                else tipo.itens.forEach(marcar);
+            });
         });
-        return contador;
+    }
+
+    // Escreve uma lista de itens (já ordenada) — contador/cor de cada item
+    // já vêm atribuídos por atribuirNumeracaoItens() (ver gerar()). modelo
+    // seleciona entre desenharItemA (contador na cor de destaque fixa,
+    // linha corrida) e desenharItemB (selo + chip de data na cor da
+    // categoria).
+    function escreverItens(escritor, fontes, itens, indent, modelo) {
+        itens.forEach((item) => {
+            if (modelo === 'B') desenharItemB(escritor, fontes, item._pdfCor, item, item._pdfContador, indent);
+            else desenharItemA(escritor, fontes, item, item._pdfContador, indent);
+        });
     }
 
     // Percorre o modelo (mesmas seções/tipos/itens da página pública) e
     // devolve a lista achatada de {item, anexo} — só evidências realmente
     // marcadas "pública" chegam aqui (buildPublicModel/itemAnexos já filtra).
+    // itemTitulo fica mantido à parte (não só dentro de item) por
+    // conveniência de quem só precisa do texto.
     function anexosDoModelo(model) {
         const lista = [];
-        const registrar = (item) => (item.anexos || []).forEach((anexo) => lista.push({ itemTitulo: item.titulo, anexo }));
+        const registrar = (item) => (item.anexos || []).forEach((anexo) => lista.push({ itemTitulo: item.titulo, item, anexo }));
         model.secoes.forEach((sec) => sec.tipos.forEach((tipo) => {
             // Atuação: "tipo" é uma instituição, com os itens agrupados por
             // subtipo em tipo.subgrupos em vez de tipo.itens direto (ver
@@ -577,33 +606,40 @@ window.LzPdfReport = (function () {
         return lista;
     }
 
-    // Uma página de evidência: cabeçalho com o nome do item (à esquerda,
-    // truncado com reticências se não couber) e o número da página do
-    // relatório (à direita — mesmo número que numerarPaginas() vai
-    // desenhar no rodapé), uma linha fina, e a evidência reduzida de forma
-    // SEMPRE proporcional (nunca estica um eixo mais que o outro) pra caber
-    // na área reservada abaixo do cabeçalho. `desenhar(pagina, area)` faz o
+    // Uma página de evidência: cabeçalho com o número da página do
+    // relatório (canto superior direito — mesmo número que numerarPaginas()
+    // vai desenhar no rodapé/topo) e a IDENTIFICAÇÃO DO ITEM — reaproveita
+    // desenharItemA/desenharItemB, o MESMO contador/título/linha
+    // secundária/cores já usados pra esse item lá no Currículo completo
+    // (ver atribuirNumeracaoItens), pedido do Alexsandro pra bater
+    // exatamente com o que a pessoa já viu antes, folheando o relatório —
+    // depois uma linha fina, e a evidência reduzida de forma SEMPRE
+    // proporcional (nunca estica um eixo mais que o outro) pra caber na
+    // área reservada abaixo do cabeçalho. `desenhar(pagina, area)` faz o
     // drawImage/drawPage de verdade — este helper só cuida do layout comum
     // entre os dois casos (ver anexarEvidencias).
-    function desenharPaginaEvidencia(escritor, fontes, itemTitulo, anexoNome, larguraNatural, alturaNatural, desenhar) {
+    function desenharPaginaEvidencia(escritor, fontes, modelo, item, anexoNome, larguraNatural, alturaNatural, desenhar) {
         escritor.novaPagina();
         const pagina = escritor.pagina;
         const xBase = MARGIN + escritor.margemExtra + escritor.deslocamentoX;
         const xFim = PAGE_W - MARGIN + escritor.deslocamentoX;
-        const tam = 11;
-        const numero = String(escritor.numeroPagina);
-        const numLargura = fontes.regular.widthOfTextAtSize(numero, 9);
-        const tituloLarguraMax = (xFim - xBase) - numLargura - 10;
-        let tituloSeguro = sanitizarTexto(fontes.negrito, itemTitulo);
-        if (fontes.negrito.widthOfTextAtSize(tituloSeguro, tam) > tituloLarguraMax) {
-            while (tituloSeguro.length > 1 && fontes.negrito.widthOfTextAtSize(tituloSeguro + '…', tam) > tituloLarguraMax) {
-                tituloSeguro = tituloSeguro.slice(0, -1);
-            }
-            tituloSeguro += '…';
+
+        // Modelo A: número também aqui no topo (o rodapé, onde
+        // numerarPaginas() desenha o de verdade, fica no centro — longe —
+        // então este funciona como um preview). Modelo B: dispensa —
+        // numerarPaginas() já estampa esse mesmo número no canto superior
+        // direito de TODA página de conteúdo (mesmo canto), desenhar de
+        // novo aqui duplicaria o número na página.
+        if (modelo !== 'B') {
+            const numTam = 9;
+            const numero = String(escritor.numeroPagina);
+            const numLargura = fontes.regular.widthOfTextAtSize(numero, numTam);
+            pagina.drawText(numero, { x: xFim - numLargura, y: escritor.y, size: numTam, font: fontes.regular, color: fontes.corMuted });
+            escritor.espaco(numTam * 1.5);
         }
-        pagina.drawText(tituloSeguro, { x: xBase, y: escritor.y, size: tam, font: fontes.negrito, color: fontes.corTexto });
-        pagina.drawText(numero, { x: xFim - numLargura, y: escritor.y + 1, size: 9, font: fontes.regular, color: fontes.corMuted });
-        escritor.y -= tam * 1.4;
+
+        desenharIdentificacaoItem(escritor, fontes, modelo, item);
+
         escritor.linha(`Evidência: ${anexoNome}`, { tamanho: 9, cor: fontes.corMuted });
         escritor.espaco(6);
         pagina.drawLine({ start: { x: xBase, y: escritor.y + 3 }, end: { x: xFim, y: escritor.y + 3 }, thickness: 0.5, color: fontes.corRule });
@@ -616,25 +652,34 @@ window.LzPdfReport = (function () {
         desenhar(pagina, { x, y, w, h });
     }
 
+    // Mesma identificação de item usada em desenharPaginaEvidencia() e nos
+    // 3 casos de anexarEvidencias() que não têm arquivo pra desenhar (link,
+    // extensão não suportada, erro ao anexar) — extraído pra não repetir o
+    // if(modelo === 'B') três vezes.
+    function desenharIdentificacaoItem(escritor, fontes, modelo, item) {
+        if (modelo === 'B') desenharItemB(escritor, fontes, item._pdfCor, item, item._pdfContador, 0);
+        else desenharItemA(escritor, fontes, item, item._pdfContador, 0);
+    }
+
     // Anexa de fato os arquivos de evidência: cada página de PDF (uma ou
     // várias) e cada imagem viram sua PRÓPRIA página no relatório, com
     // cabeçalho (nome do item + nº da página) e reduzidas proporcionalmente
     // pra caber no espaço abaixo dele — ver desenharPaginaEvidencia(). Links
     // e tipos não suportados (vídeo/zip) viram uma nota em texto; nada é
     // descartado silenciosamente.
-    async function anexarEvidencias(pdfDoc, PDFLib, escritor, fontes, model) {
+    async function anexarEvidencias(pdfDoc, PDFLib, escritor, fontes, modelo, model) {
         const { PDFDocument } = PDFLib;
         const anexos = anexosDoModelo(model);
         const linksNota = [];
-        for (const { itemTitulo, anexo } of anexos) {
-            if (anexo.ext === 'url') { linksNota.push({ itemTitulo, anexo }); continue; }
+        for (const { item, anexo } of anexos) {
+            if (anexo.ext === 'url') { linksNota.push({ item, anexo }); continue; }
             try {
                 if (anexo.ext === 'pdf') {
                     const bytes = dataUriParaBytes(anexo.dataUri);
                     const origem = await PDFDocument.load(bytes, { ignoreEncryption: true });
                     const paginasEmbutidas = await pdfDoc.embedPdf(origem, origem.getPageIndices());
                     paginasEmbutidas.forEach((embutida) => {
-                        desenharPaginaEvidencia(escritor, fontes, itemTitulo, anexo.name, embutida.width, embutida.height, (pagina, area) => {
+                        desenharPaginaEvidencia(escritor, fontes, modelo, item, anexo.name, embutida.width, embutida.height, (pagina, area) => {
                             pagina.drawPage(embutida, { x: area.x, y: area.y, width: area.w, height: area.h });
                         });
                     });
@@ -644,19 +689,19 @@ window.LzPdfReport = (function () {
                     if (/^(gif|webp)$/i.test(anexo.ext)) { dataUri = await converterParaPng(dataUri); ehPng = true; }
                     const bytes = dataUriParaBytes(dataUri);
                     const imagem = ehPng ? await pdfDoc.embedPng(bytes) : await pdfDoc.embedJpg(bytes);
-                    desenharPaginaEvidencia(escritor, fontes, itemTitulo, anexo.name, imagem.width, imagem.height, (pagina, area) => {
+                    desenharPaginaEvidencia(escritor, fontes, modelo, item, anexo.name, imagem.width, imagem.height, (pagina, area) => {
                         pagina.drawImage(imagem, { x: area.x, y: area.y, width: area.w, height: area.h });
                     });
                 } else {
                     escritor.novaPagina();
-                    escritor.linha(itemTitulo, { negrito: true, tamanho: 11 });
+                    desenharIdentificacaoItem(escritor, fontes, modelo, item);
                     escritor.linha(`Evidência: ${anexo.name}`, { tamanho: 9, cor: fontes.corMuted });
                     escritor.espaco(8);
                     escritor.paragrafo(`Arquivo do tipo ".${anexo.ext}" não pode ser incluído dentro do PDF — consulte a pasta/Google Drive configurado para abri-lo.`, { cor: fontes.corMuted });
                 }
             } catch (e) {
                 escritor.novaPagina();
-                escritor.linha(itemTitulo, { negrito: true, tamanho: 11 });
+                desenharIdentificacaoItem(escritor, fontes, modelo, item);
                 escritor.linha(`Evidência: ${anexo.name}`, { tamanho: 9, cor: fontes.corMuted });
                 escritor.espaco(8);
                 escritor.paragrafo(`Não foi possível incluir este arquivo automaticamente (${e.message || 'formato inválido'}).`, { cor: fontes.corMuted });
@@ -666,19 +711,103 @@ window.LzPdfReport = (function () {
             escritor.novaPagina();
             escritor.linha('Evidências em link (endereço na web, sem arquivo para anexar)', { negrito: true, tamanho: 12 });
             escritor.espaco(6);
-            linksNota.forEach(({ itemTitulo, anexo }) => {
-                escritor.linha(itemTitulo, { negrito: true, tamanho: 10 });
+            linksNota.forEach(({ item, anexo }) => {
+                desenharIdentificacaoItem(escritor, fontes, modelo, item);
                 escritor.paragrafo(`${anexo.name}: ${anexo.url}`, { tamanho: 9, cor: fontes.corMuted, indent: 10 });
                 escritor.espaco(4);
             });
         }
     }
 
+    // Linhas de contato mostradas na capa — ORCID, telefone e e-mail, cada
+    // uma só quando preenchida (pedido do Alexsandro: "prever... telefone e
+    // email para contato"). Campos telefone/email vêm de Identificação
+    // (Catalogar → Dados gerais), repassados por buildPublicModel.
+    function linhasContatoCapa(model) {
+        const linhas = [];
+        if (model.orcid) linhas.push(`ORCID: ${model.orcid}`);
+        if (model.telefone) linhas.push(model.telefone);
+        if (model.email) linhas.push(model.email);
+        return linhas;
+    }
+
+    // Motivo decorativo "tijolos empilhados" no canto inferior direito da
+    // capa do Modelo B (pedido do Alexsandro, entre as 3 propostas de
+    // mockup) — pirâmide de fileiras (4-3-2-1), cada tijolo numa cor
+    // diferente da paleta de categorias, centralizada em xCentro.
+    function desenharTijolosCapa(pagina, fontes, xCentro, yBase) {
+        const cores = [2, 4, 6, 9, 0, 7].map((i) => PALETA_CATEGORIAS[i]);
+        const bw = 20, bh = 12, gap = 3;
+        let corIdx = 0, y = yBase;
+        [4, 3, 2, 1].forEach((n) => {
+            const rowW = n * bw + (n - 1) * gap;
+            const xIni = xCentro - rowW / 2;
+            for (let i = 0; i < n; i++) {
+                const c = cores[corIdx % cores.length]; corIdx += 1;
+                pagina.drawRectangle({ x: xIni + i * (bw + gap), y, width: bw, height: bh, color: fontes.rgb(c[0], c[1], c[2]) });
+            }
+            y += bh + gap;
+        });
+    }
+
+    // Capa do Modelo B: "faixa lateral estendida" — a mesma faixa colorida
+    // das páginas de conteúdo (desenharSidebarB) cobre a capa inteira,
+    // como uma sequência das 12 cores de categoria (um "código de barras"
+    // que já anuncia a linguagem visual do resto do documento). Texto bem
+    // afastado da faixa, nome e subtítulo maiores que no Modelo A, contato
+    // logo abaixo do subtítulo — ajustes pedidos pelo Alexsandro depois de
+    // ver 3 propostas de mockup.
+    function desenharCapaB(pagina, fontes, model, subtitulo, fotoImg, linhasContato) {
+        const faixaH = PAGE_H / PALETA_CATEGORIAS.length;
+        PALETA_CATEGORIAS.forEach((cor, i) => {
+            pagina.drawRectangle({ x: 0, y: PAGE_H - (i + 1) * faixaH - 0.5, width: SIDEBAR_W, height: faixaH + 1, color: fontes.rgb(cor[0], cor[1], cor[2]) });
+        });
+
+        const xTexto = SIDEBAR_W + 54;
+        const larguraTexto = PAGE_W - xTexto - MARGIN;
+        let y = PAGE_H - 140;
+
+        if (fotoImg) {
+            const lado = 108;
+            const escala = Math.min(lado / fotoImg.width, lado / fotoImg.height);
+            const w = fotoImg.width * escala, h = fotoImg.height * escala;
+            pagina.drawImage(fotoImg, { x: xTexto, y: y - h, width: w, height: h });
+            y -= h + 28;
+        }
+
+        const nomeTam = 30;
+        quebrarLinhas(model.nome, fontes.nomeFonte, nomeTam, larguraTexto).forEach((linha) => {
+            pagina.drawText(sanitizarTexto(fontes.nomeFonte, linha), { x: xTexto, y, size: nomeTam, font: fontes.nomeFonte, color: fontes.corTextoCapa });
+            y -= nomeTam * 1.12;
+        });
+        y -= 6;
+
+        const subTam = 17;
+        pagina.drawText(sanitizarTexto(fontes.negrito, subtitulo.toUpperCase()), { x: xTexto, y, size: subTam, font: fontes.negrito, color: fontes.corAccent });
+
+        if (linhasContato.length) {
+            y -= 26;
+            linhasContato.forEach((txt) => {
+                pagina.drawText(sanitizarTexto(fontes.regular, txt), { x: xTexto, y, size: 10.5, font: fontes.regular, color: fontes.corTextoCapaMuted });
+                y -= 16;
+            });
+        }
+
+        desenharTijolosCapa(pagina, fontes, PAGE_W - MARGIN - 40, MARGIN + 6);
+    }
+
     // Nome/foto/ORCID do Ego (Identificação) — mesmos dados já resolvidos
     // pelo modelo da página pública (buildPublicModel), sem reler o catálogo.
-    function desenharCapa(pdfDoc, fontes, model, subtitulo, fotoImg) {
+    function desenharCapa(pdfDoc, fontes, modelo, model, subtitulo, fotoImg) {
         const pagina = pdfDoc.addPage([PAGE_W, PAGE_H]);
         pagina.drawRectangle({ x: 0, y: 0, width: PAGE_W, height: PAGE_H, color: fontes.corCapaFundo });
+        const linhasContato = linhasContatoCapa(model);
+
+        if (modelo === 'B') {
+            desenharCapaB(pagina, fontes, model, subtitulo, fotoImg, linhasContato);
+            return pagina;
+        }
+
         pagina.drawRectangle({ x: PAGE_W / 2 - 20, y: PAGE_H - 64, width: 40, height: 2, color: fontes.corAccent });
         pagina.drawRectangle({ x: PAGE_W / 2 - 20, y: 62, width: 40, height: 2, color: fontes.corAccent });
         let y = PAGE_H - 220;
@@ -698,11 +827,14 @@ window.LzPdfReport = (function () {
         const subSeguro = sanitizarTexto(fontes.negrito, subtitulo.toUpperCase());
         const subLargura = fontes.negrito.widthOfTextAtSize(subSeguro, subTam);
         pagina.drawText(subSeguro, { x: (PAGE_W - subLargura) / 2, y, size: subTam, font: fontes.negrito, color: fontes.corAccent });
-        if (model.orcid) {
-            y -= 44;
-            const orcidTxt = `ORCID: ${model.orcid}`;
-            const w = fontes.regular.widthOfTextAtSize(orcidTxt, 10);
-            pagina.drawText(orcidTxt, { x: (PAGE_W - w) / 2, y, size: 10, font: fontes.regular, color: fontes.corTextoCapaMuted });
+        if (linhasContato.length) {
+            y -= 40;
+            linhasContato.forEach((txt) => {
+                const txtSeguro = sanitizarTexto(fontes.regular, txt);
+                const w = fontes.regular.widthOfTextAtSize(txtSeguro, 10);
+                pagina.drawText(txtSeguro, { x: (PAGE_W - w) / 2, y, size: 10, font: fontes.regular, color: fontes.corTextoCapaMuted });
+                y -= 16;
+            });
         }
         return pagina;
     }
@@ -780,14 +912,18 @@ window.LzPdfReport = (function () {
         });
     }
 
-    // Numera todas as páginas, EXCETO a capa (1ª) e a contracapa (última) —
-    // "1" cai na 1ª página do sumário, como de costume em relatórios impressos.
-    // modelo === 'B': número sobe pro canto superior direito (pedido do
-    // Alexsandro), em vez do rodapé central de sempre.
-    function numerarPaginas(pdfDoc, fontes, modelo) {
+    // Numera as páginas de CONTEÚDO — nem a capa nem o sumário entram na
+    // contagem (pedido do Alexsandro): "1" cai na 1ª página depois do
+    // sumário (Memorial/Currículo/Anexos, o que vier primeiro), não mais na
+    // 1ª página do próprio sumário. paginasSemNumero (capa + nº de páginas
+    // do sumário, já resolvido antes de chamar isto — ver gerar()) marca
+    // onde a contagem visível começa. modelo === 'B': número sobe pro canto
+    // superior direito (pedido do Alexsandro), em vez do rodapé central de
+    // sempre.
+    function numerarPaginas(pdfDoc, fontes, modelo, paginasSemNumero) {
         const paginas = pdfDoc.getPages();
-        for (let i = 1; i < paginas.length - 1; i++) {
-            const numero = String(i);
+        for (let i = paginasSemNumero; i < paginas.length - 1; i++) {
+            const numero = String(i - paginasSemNumero + 1);
             const w = fontes.regular.widthOfTextAtSize(numero, 9);
             if (modelo === 'B') {
                 paginas[i].drawText(numero, { x: PAGE_W - MARGIN - w, y: PAGE_H - MARGIN + 16, size: 9, font: fontes.regular, color: fontes.corMuted });
@@ -839,6 +975,12 @@ window.LzPdfReport = (function () {
 
         const pdfDoc = await PDFDocument.create();
         const model = await window.TabPublicar.buildPublicModel({ incluirTodos, categorias, ordemAsc });
+        // Contador/cor de cada item, atribuídos ANTES de qualquer
+        // renderização — única fonte de verdade reaproveitada tanto pelo
+        // Currículo completo quanto pelo cabeçalho da página de evidência
+        // correspondente (ver atribuirNumeracaoItens acima), mesmo no modo
+        // "apenas evidências" (onde o Currículo nem chega a ser desenhado).
+        atribuirNumeracaoItens(model);
         pdfDoc.setTitle(`Relatório completo — ${model.nome}`);
         pdfDoc.setAuthor(model.nome);
         pdfDoc.setProducer('lattesZen');
@@ -878,9 +1020,8 @@ window.LzPdfReport = (function () {
         }
 
         // 1) Capa
-        const subtituloCapa = !incluirCurriculo ? 'Evidências'
-            : memorialTexto ? 'Memorial e Currículo' : 'Currículo Completo';
-        desenharCapa(pdfDoc, fontes, model, subtituloCapa, fotoImg);
+        const subtituloCapa = incluirCurriculo ? 'Curriculum Vitae' : 'Evidências';
+        desenharCapa(pdfDoc, fontes, modelo, model, subtituloCapa, fotoImg);
 
         // 2) Sumário — reserva as páginas agora (o texto entra por último,
         //    quando os índices de página de cada seção já são conhecidos).
@@ -901,7 +1042,12 @@ window.LzPdfReport = (function () {
         const paginasSumario = [];
         for (let i = 0; i < numPaginasSumario; i++) paginasSumario.push(pdfDoc.addPage([PAGE_W, PAGE_H]));
 
-        const escritor = criarEscritor(pdfDoc, fontes);
+        // Capa + sumário não entram na numeração visível (pedido do
+        // Alexsandro) — pdfDoc já tem exatamente essas páginas nesse ponto
+        // (nenhum conteúdo foi desenhado ainda), então isto é literalmente
+        // "quantas páginas vêm antes da 1ª página numerada como '1'".
+        const paginasSemNumero = pdfDoc.getPageCount();
+        const escritor = criarEscritor(pdfDoc, fontes, paginasSemNumero);
         // contextoA/contextoB alimentam o decorador (cabeçalho corrido do
         // Modelo A / faixa lateral do Modelo B), atualizados ANTES de cada
         // novaPagina()/seção — ver criarEscritor() e desenharCabecalhoA/
@@ -918,7 +1064,7 @@ window.LzPdfReport = (function () {
             contextoA.secao = 'Memorial';
             Object.assign(contextoB, { cor: CINZA_NEUTRO, num: null, label: 'Memorial' });
             escritor.novaPagina();
-            entradasSumario[0].paginaIndex = pdfDoc.getPageCount() - 1;
+            entradasSumario[0].paginaIndex = escritor.numeroPagina;
             escritor.paragrafo(memorialTexto, { tamanho: 11, leading: 1.6 });
         }
 
@@ -929,7 +1075,7 @@ window.LzPdfReport = (function () {
             contextoA.secao = 'Currículo completo';
             Object.assign(contextoB, { cor: CINZA_NEUTRO, num: null, label: 'Currículo' });
             escritor.novaPagina();
-            entradasSumario.find((e) => e.titulo === 'Currículo completo').paginaIndex = pdfDoc.getPageCount() - 1;
+            entradasSumario.find((e) => e.titulo === 'Currículo completo').paginaIndex = escritor.numeroPagina;
             if (!model.secoes.length) {
                 escritor.paragrafo('Nenhum item cadastrado ainda.', { cor: fontes.corMuted });
             }
@@ -944,8 +1090,7 @@ window.LzPdfReport = (function () {
                 const tituloSec = sec.num ? `${sec.num}  ${sec.label}` : sec.label;
                 if (modelo === 'B') desenharFaixaCategoria(escritor, fontes, tituloSec, contextoB.cor);
                 else escritor.linha(sec.num ? `${sec.num}. ${sec.label}` : sec.label, { negrito: true, tamanho: 13 });
-                const idx = pdfDoc.getPageCount() - 1;
-                entradasPorSecao.get(sec.id).paginaIndex = idx;
+                entradasPorSecao.get(sec.id).paginaIndex = escritor.numeroPagina;
                 sec.tipos.forEach((tipo) => {
                     escritor.espaco(4);
                     escritor.linha(tipo.label, { negrito: true, tamanho: 11, indent: 12 });
@@ -954,15 +1099,14 @@ window.LzPdfReport = (function () {
                     // buildPublicModel em tab-publicar.js) — um nível a mais
                     // que os demais tipos, que continuam com tipo.itens direto.
                     if (tipo.subgrupos) {
-                        let contadorInst = 1;
                         tipo.subgrupos.forEach((sub) => {
                             escritor.espaco(2);
                             if (modelo === 'B') desenharDestaqueSubtipo(escritor, fontes, sub.label, contextoB.cor, 20);
                             else escritor.linha(sub.label, { negrito: true, tamanho: 10, indent: 20, cor: fontes.corMuted });
-                            contadorInst = escreverItens(escritor, fontes, sub.itens, 28, modelo, contextoB.cor, contadorInst);
+                            escreverItens(escritor, fontes, sub.itens, 28, modelo);
                         });
                     } else {
-                        escreverItens(escritor, fontes, tipo.itens, 24, modelo, contextoB.cor);
+                        escreverItens(escritor, fontes, tipo.itens, 24, modelo);
                     }
                 });
             });
@@ -973,10 +1117,10 @@ window.LzPdfReport = (function () {
         if (temAnexos) {
             desenharDivisoria(pdfDoc, fontes, 'Anexos — Evidências');
             contextoA.secao = 'Anexos — Evidências';
-            Object.assign(contextoB, { cor: CINZA_NEUTRO, num: null, label: 'Anexos' });
+            Object.assign(contextoB, { cor: CINZA_CLARO_ANEXOS, num: null, label: 'Anexos', corTexto: TEXTO_ESCURO_ANEXOS });
             escritor.novaPagina();
-            entradasSumario.find((e) => e.titulo === 'Anexos — Evidências').paginaIndex = pdfDoc.getPageCount() - 1;
-            await anexarEvidencias(pdfDoc, PDFLib, escritor, fontes, model);
+            entradasSumario.find((e) => e.titulo === 'Anexos — Evidências').paginaIndex = escritor.numeroPagina;
+            await anexarEvidencias(pdfDoc, PDFLib, escritor, fontes, modelo, model);
         }
 
         // 6) Contracapa
@@ -984,7 +1128,7 @@ window.LzPdfReport = (function () {
 
         // 7) Sumário (agora com os índices de página resolvidos) e paginação.
         desenharSumario(paginasSumario, fontes, entradasSumario, modelo);
-        numerarPaginas(pdfDoc, fontes, modelo);
+        numerarPaginas(pdfDoc, fontes, modelo, paginasSemNumero);
 
         return pdfDoc.save();
     }

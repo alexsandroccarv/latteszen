@@ -161,6 +161,10 @@ window.TabPublicar = (function () {
         const iniciais = nome.split(/\s+/).filter(Boolean).slice(0, 2).map(s => s[0]).join('').toUpperCase();
         const orcid = (ident && ident.fields.orcid || '').trim();
         const lattesUrl = (ident && ident.fields.url || '').trim();
+        // Usados hoje só na capa do Relatório completo (PDF) — ver
+        // desenharCapa() em pdf-report.js.
+        const telefone = (ident && ident.fields.telefone || '').trim();
+        const email = (ident && ident.fields.email || '').trim();
         const local = endereco ? [endereco.fields.cidade, endereco.fields.uf].filter(Boolean).join(' / ') : '';
         // Áreas de atuação: excluídas de PUB_EXCLUDE_TYPES do laço de
         // categorias abaixo (senão apareceriam duas vezes) — entram direto
@@ -301,7 +305,7 @@ window.TabPublicar = (function () {
 
         return {
             nome, iniciais, tagline, bio: (resumo && resumo.fields.descricao) || '',
-            foto, local, areasAtuacao, orcid, lattesUrl, contatos, outras: (outrasI && outrasI.fields.descricao) || '',
+            foto, local, areasAtuacao, orcid, lattesUrl, telefone, email, contatos, outras: (outrasI && outrasI.fields.descricao) || '',
             nuvemPalavras, linhaTempo,
             secoes, geradoEm: new Date().toLocaleString('pt-BR'), totalItens: items.length,
         };
