@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
 # Deploy da pasta dist/ para o servidor via rsync sobre SSH.
-# Variáveis vêm dos secrets do GitHub Environment correspondente:
-#   SSH_HOST     (obrigatório)  ex.: servidor.unifesp.br
-#   SSH_USER     (obrigatório)  ex.: deploy
-#   SSH_KEY      (obrigatório)  chave PRIVADA SSH dedicada ao deploy
-#   DEPLOY_PATH  (obrigatório)  ex.: /var/www/latteszen-dev
-#   SSH_PORT     (opcional, padrão 22)
+#   SSH_HOST     (obrigatório, secret)  ex.: servidor.unifesp.br
+#   SSH_USER     (obrigatório, secret)  ex.: deploy
+#   SSH_KEY      (obrigatório, secret)  chave PRIVADA SSH dedicada ao deploy
+#   SSH_PORT     (opcional, secret, padrão 22)
+#   DEPLOY_PATH  (obrigatório) — NÃO é secret: calculado pelo workflow
+#                (deploy.yml, passo "Definir destino conforme a branch")
+#                conforme a branch publicada (principal vs. desenvolvimento).
 set -euo pipefail
 
 if [ -z "${SSH_HOST:-}" ] || [ -z "${SSH_USER:-}" ] || [ -z "${SSH_KEY:-}" ] || [ -z "${DEPLOY_PATH:-}" ]; then

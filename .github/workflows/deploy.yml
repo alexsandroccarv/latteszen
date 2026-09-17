@@ -1,19 +1,25 @@
 name: Publicar lattesZen
 
 # Quando roda:
-#  - a cada push na branch padrão do projeto;
-#  - quando você clica em "Run workflow" na aba Actions (execução manual).
+#  - a cada push em "principal" (produção) ou na branch de desenvolvimento
+#    "latteszen-devel-alexsandroccarv" (staging/labs) — cada uma publica num
+#    destino diferente no servidor (ver passo "Definir destino" abaixo);
+#  - quando você clica em "Run workflow" na aba Actions (execução manual, na
+#    branch escolhida no seletor).
 on:
   push:
-    branches: ['principal']
+    branches: ['principal', 'latteszen-devel-alexsandroccarv']
   workflow_dispatch: {}
 
 permissions:
   contents: read
 
-# Evita dois deploys simultâneos pisando um no outro.
+# Evita dois deploys simultâneos pisando um no outro — agrupado por branch,
+# pra um push em "principal" não cancelar um deploy em andamento da branch de
+# desenvolvimento (e vice-versa); ainda serializa pushes seguidos na MESMA
+# branch, que era a intenção original.
 concurrency:
-  group: publicar
+  group: publicar-${{ github.ref_name }}
   cancel-in-progress: true
 
 jobs:
@@ -67,9 +73,22 @@ jobs:
           test -f dist/js/app.js    || { echo "ERRO: dist/js/ ausente.";        exit 1; }
           test -f dist/css/styles.css || { echo "ERRO: dist/css/ ausente.";      exit 1; }
 
+      # Destino no servidor varia por branch: "principal" (produção) publica
+      # em public_html/zen/lattesZen; a branch de desenvolvimento publica no
+      # caminho de sempre, public_html/labs/latteszen (staging).
+      - name: Definir destino conforme a branch
+        id: destino
+        run: |
+          if [ "${{ github.ref_name }}" = "principal" ]; then
+            echo "path=/home1/ccarv978/public_html/zen/lattesZen" >> "$GITHUB_OUTPUT"
+          else
+            echo "path=/home1/ccarv978/public_html/labs/latteszen" >> "$GITHUB_OUTPUT"
+          fi
+
       # Publica no servidor via rsync sobre SSH. O script PULA automaticamente
-      # (sem falhar) se os secrets ainda não estiverem configurados — então o
-      # CI fica verde mesmo antes de você cadastrar os dados do servidor.
+      # (sem falhar) se os secrets de acesso ainda não estiverem configurados
+      # — então o CI fica verde mesmo antes de você cadastrar os dados do
+      # servidor.
       - name: Publicar no servidor (rsync/SSH)
         run: bash .github/scripts/deploy.sh
         env:
@@ -77,4 +96,4 @@ jobs:
           SSH_PORT: ${{ secrets.SSH_PORT }}
           SSH_USER: ${{ secrets.SSH_USER }}
           SSH_KEY: ${{ secrets.SSH_KEY }}
-          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+          DEPLOY_PATH: ${{ steps.destino.outputs.path }}
