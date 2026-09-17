@@ -583,21 +583,36 @@ ${statsHtml}
       }
       caixas.push(caixa||{x:cx-largura/2,y:cy-altura/2,w:largura,h:altura});
     });
+    // Tamanho NATURAL da nuvem (fonte no tamanho normal) — numa tela
+    // estreita de celular podia ficar mais larga que a área disponível e
+    // vazar pra fora dela; encolhe a nuvem inteira (como uma foto, via CSS
+    // transform) até caber, em vez de deixar vazar.
     var minX=Math.min.apply(null,[0].concat(caixas.map(function(c){return c.x;})));
-    var maxX=Math.max.apply(null,[larguraArea].concat(caixas.map(function(c){return c.x+c.w;})));
+    var maxX=Math.max.apply(null,caixas.map(function(c){return c.x+c.w;}));
     var minY=Math.min.apply(null,[0].concat(caixas.map(function(c){return c.y;})));
     var maxY=Math.max.apply(null,caixas.map(function(c){return c.y+c.h;}));
-    var larguraFinal=maxX-minX;
-    var deslocX=larguraArea>larguraFinal?(larguraArea-larguraFinal)/2-minX:-minX;
-    var deslocY=-minY;
+    var larguraNatural=maxX-minX, alturaNatural=maxY-minY;
+    var deslocX=-minX, deslocY=-minY;
+    var encolhe=larguraNatural>larguraArea;
+    var escala=encolhe?larguraArea/larguraNatural:1;
+    var wrapper=document.createElement('div');
+    wrapper.style.position='absolute';
+    wrapper.style.top='0';
+    wrapper.style.left=encolhe?'0':((larguraArea-larguraNatural)/2)+'px';
+    wrapper.style.width=larguraNatural+'px';
+    wrapper.style.height=alturaNatural+'px';
+    if(encolhe){wrapper.style.transformOrigin='left top';wrapper.style.transform='scale('+escala+')';}
     spans.forEach(function(span,i){
       var c=caixas[i];
       span.style.position='absolute';
       span.style.left=(c.x+PAD+deslocX)+'px';
       span.style.top=(c.y+PAD+deslocY)+'px';
+      wrapper.appendChild(span);
     });
+    nuvemArea.appendChild(wrapper);
     nuvemArea.style.position='relative';
-    nuvemArea.style.height=((maxY-minY)+10)+'px';
+    nuvemArea.style.overflow='hidden';
+    nuvemArea.style.height=(alturaNatural*escala+10)+'px';
   }
 
   // Impressão: as seções ficam recolhidas por padrão, então força todas

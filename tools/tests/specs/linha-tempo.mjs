@@ -175,6 +175,60 @@ test('Nuvem de palavras: palavras posicionadas em formato de nuvem (espiral), n�
     assert(!emOrdemCrescente, `As posições horizontais não deveriam crescer em sequência estrita (isso indicaria linhas, não uma nuvem) — obtidas: ${esquerdas.join(', ')}`);
 });
 
+// Regressão: numa tela estreita (celular), o tamanho das palavras não
+// encolhe sozinho — a nuvem "natural" (com fonte no tamanho normal) podia
+// ficar mais larga que a área reservada e vazar pra fora dela, ocupando bem
+// mais espaço que o determinado (relatado pelo Alexsandro). Agora a nuvem
+// inteira encolhe (palavras + espaçamento juntos, via CSS transform) até
+// caber exatamente na largura disponível.
+test('Nuvem de palavras: numa tela estreita (celular), a nuvem encolhe pra caber em vez de vazar da área', async ({ page, baseUrl }) => {
+    await page.setViewportSize({ width: 360, height: 800 });
+    // Palavras compridas o bastante pra, na fonte normal, somarem mais que
+    // 360px de largura mesmo espalhadas em espiral — força o caso de
+    // encolhimento de forma determinística (não depende de sorte).
+    const palavrasLongas = Array.from({ length: 20 }, (_, i) => `palavratermolongo${i}`);
+    const items = [
+        makeItem('ARTIGO_PERIODICO', 'PRODUCOES', {
+            titulo: palavrasLongas.slice(0, 10).join(' '),
+            palavrasChave: palavrasLongas.slice(10).join('; '),
+            ano: '2020',
+        }),
+    ];
+    await seedCatalog(page, baseUrl, items);
+    await page.click('[data-tab="linhatempo"]');
+    await page.waitForTimeout(300);
+
+    const info = await page.evaluate(() => {
+        const area = document.querySelector('#nuvemPalavrasArea');
+        const wrapper = area ? area.firstElementChild : null;
+        const spans = Array.from(document.querySelectorAll('#tab-linhatempo [data-palavra]'));
+        const areaRect = area ? area.getBoundingClientRect() : null;
+        return {
+            overflow: area ? area.style.overflow : null,
+            transform: wrapper ? wrapper.style.transform : null,
+            areaLeft: areaRect ? areaRect.left : null,
+            areaRight: areaRect ? areaRect.right : null,
+            spanEdges: spans.map((s) => { const r = s.getBoundingClientRect(); return { left: r.left, right: r.right }; }),
+        };
+    });
+
+    assert(info.spanEdges.length >= 10, `Teste precisa de várias palavras pra ser conclusivo — obtidas: ${info.spanEdges.length}`);
+    assertEqual(info.overflow, 'hidden', 'A área da nuvem deveria ter overflow:hidden, como garantia extra contra vazamento');
+    assert(info.transform && /scale\(/.test(info.transform), `Com palavras suficientes pra não caber na tela estreita, deveria ter aplicado um scale() de encolhimento — obtido: "${info.transform}"`);
+    const escala = parseFloat((info.transform.match(/scale\(([\d.]+)\)/) || [])[1]);
+    assert(escala > 0 && escala < 1, `A escala aplicada deveria ser menor que 1 (encolhendo) e maior que 0 — obtida: ${escala}`);
+
+    // A verificação de verdade: nenhuma palavra pode vaza pra fora da área
+    // renderizada de verdade (getBoundingClientRect reflete a posição já
+    // com o scale aplicado, então detecta erro de cálculo mesmo que o
+    // overflow:hidden acabe escondendo visualmente o vazamento).
+    const TOLERANCIA = 2; // subpixels de arredondamento
+    info.spanEdges.forEach((edge, i) => {
+        assert(edge.left >= info.areaLeft - TOLERANCIA, `Palavra ${i} vazou pela esquerda da área (${edge.left} < ${info.areaLeft})`);
+        assert(edge.right <= info.areaRight + TOLERANCIA, `Palavra ${i} vazou pela direita da área (${edge.right} > ${info.areaRight}) — a nuvem deveria ter encolhido pra caber`);
+    });
+});
+
 test('Configurações: lista de exclusão e lista de termos compostos da nuvem de palavras', async ({ page, baseUrl }) => {
     const items = [
         makeItem('ARTIGO_PERIODICO', 'PRODUCOES', {
