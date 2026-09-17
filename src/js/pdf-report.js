@@ -1034,6 +1034,52 @@ window.LzPdfReport = (function () {
         return yTopo - diametro;
     }
 
+    // Desenha uma imagem com os 4 cantos arredondados — pdf-lib não tem
+    // "borderRadius" pronto pra drawImage, então recorta a região com um
+    // caminho de bordas arredondadas (curvas de Bézier, constante k das 4
+    // curvas que aproximam um círculo) antes de desenhar a imagem por
+    // dentro, restaurando o estado gráfico (sem recorte) logo depois —
+    // técnica padrão do pdf-lib pra isso (validada num script à parte,
+    // renderizado e conferido visualmente, antes de entrar aqui).
+    function desenharImagemArredondada(pagina, fontes, image, x, y, width, height, raio) {
+        const k = 0.5522847498;
+        const r = Math.min(raio, width / 2, height / 2);
+        pagina.pushOperators(
+            fontes.pushGraphicsState(),
+            fontes.moveTo(x + r, y),
+            fontes.lineTo(x + width - r, y),
+            fontes.appendBezierCurve(x + width - r + k * r, y, x + width, y + r - k * r, x + width, y + r),
+            fontes.lineTo(x + width, y + height - r),
+            fontes.appendBezierCurve(x + width, y + height - r + k * r, x + width - r + k * r, y + height, x + width - r, y + height),
+            fontes.lineTo(x + r, y + height),
+            fontes.appendBezierCurve(x + r - k * r, y + height, x, y + height - r + k * r, x, y + height - r),
+            fontes.lineTo(x, y + r),
+            fontes.appendBezierCurve(x, y + r - k * r, x + r - k * r, y, x + r, y),
+            fontes.closePath(),
+            fontes.clip(),
+            fontes.endPath(),
+        );
+        pagina.drawImage(image, { x, y, width, height });
+        pagina.pushOperators(fontes.popGraphicsState());
+    }
+
+    // Ícones de telefone/e-mail do bloco de contato da Capa B — caminhos SVG
+    // do Material Symbols (24×24, só M/L/C — sem arcos, que o parser de SVG
+    // do pdf-lib nem sempre cobre), validados num script à parte e
+    // conferidos visualmente antes de entrar aqui.
+    const ICONE_TELEFONE = 'M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z';
+    const ICONE_EMAIL = 'M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4-8 5-8-5V6l8 5 8-5v2z';
+
+    // Faixa lateral de 12 cores (uma por categoria) — mesma da Capa B,
+    // reaproveitada no Sumário do modelo colorido (pedido do Alexsandro:
+    // manter a identidade visual da capa também ali).
+    function desenharFaixaLateralCapa(pagina, fontes) {
+        const faixaH = PAGE_H / PALETA_CATEGORIAS.length;
+        PALETA_CATEGORIAS.forEach((cor, i) => {
+            pagina.drawRectangle({ x: 0, y: PAGE_H - (i + 1) * faixaH - 0.5, width: SIDEBAR_W, height: faixaH + 1, color: fontes.rgb(cor[0], cor[1], cor[2]) });
+        });
+    }
+
     // Capa do Modelo B — "nuvem em destaque": cabeçalho compacto (foto,
     // nome, ORCID), nuvem de palavras (termos mais frequentes do catálogo)
     // como elemento central da capa, e o texto inicial do Currículo Lattes
@@ -1046,10 +1092,7 @@ window.LzPdfReport = (function () {
     // cor à capa) — mas com informação de verdade, no espírito já usado na
     // faixa lateral colorida do resto do Modelo B.
     function desenharCapaB(pagina, fontes, model, subtitulo, fotoImg) {
-        const faixaH = PAGE_H / PALETA_CATEGORIAS.length;
-        PALETA_CATEGORIAS.forEach((cor, i) => {
-            pagina.drawRectangle({ x: 0, y: PAGE_H - (i + 1) * faixaH - 0.5, width: SIDEBAR_W, height: faixaH + 1, color: fontes.rgb(cor[0], cor[1], cor[2]) });
-        });
+        desenharFaixaLateralCapa(pagina, fontes);
 
         const xTexto = SIDEBAR_W + 54;
         const larguraTexto = PAGE_W - xTexto - MARGIN;
@@ -1067,11 +1110,15 @@ window.LzPdfReport = (function () {
 
         let y = PAGE_H - 100;
         if (fotoImg) {
-            const lado = 76;
+            // 50% maior que antes (76 → 114) e com cantos arredondados
+            // (pedido do Alexsandro).
+            const lado = 114;
             const escala = Math.min(lado / fotoImg.width, lado / fotoImg.height);
             const w = fotoImg.width * escala, h = fotoImg.height * escala;
-            pagina.drawImage(fotoImg, { x: cxTexto - w / 2, y: y - h, width: w, height: h });
-            y -= h + 16;
+            desenharImagemArredondada(pagina, fontes, fotoImg, cxTexto - w / 2, y - h, w, h, 14);
+            // Nome 1cm abaixo da foto (pedido do Alexsandro), em vez do
+            // respiro fixo de 16pt de antes.
+            y -= h + UM_CM;
         }
 
         const nomeTam = 20;
@@ -1094,10 +1141,11 @@ window.LzPdfReport = (function () {
         pagina.drawRectangle({ x: xTexto, y, width: larguraTexto, height: 0.75, color: fontes.corRule });
         y -= 24;
 
-        // Nuvem de palavras — limitada aos ~18 termos mais frequentes, pra
-        // caber com folga numa capa (página única, sem overflow pra
-        // próxima página).
-        const nuvemPalavras = (model.nuvemPalavras || []).slice(0, 18);
+        // Nuvem de palavras — a mesma que já consta no lattesZen (aba Linha
+        // do tempo/página pública), sem recorte próprio do PDF (pedido do
+        // Alexsandro): model.nuvemPalavras já vem limitada a 50 termos por
+        // TabLinhaTempo.contarPalavras().
+        const nuvemPalavras = model.nuvemPalavras || [];
         if (nuvemPalavras.length) {
             const nuvem = layoutNuvemFlow(nuvemPalavras, fontes.regular, fontes.negrito, {
                 larguraMax: larguraBloco, tamMin: 8, tamMax: 22, nDestaque: 3, gapX: 5, gapY: 3,
@@ -1127,13 +1175,19 @@ window.LzPdfReport = (function () {
         // direita da coluna de texto, ancorado perto do rodapé (posição
         // fixa, não encadeado ao fim da nuvem/bio acima — evita colidir com
         // conteúdo variável, capa é página única sem "próxima página").
-        const contatos = [model.telefone, model.email].filter(Boolean);
+        const contatos = [
+            model.telefone ? { txt: model.telefone, icone: ICONE_TELEFONE } : null,
+            model.email ? { txt: model.email, icone: ICONE_EMAIL } : null,
+        ].filter(Boolean);
         if (contatos.length) {
             let yContato = 108;
-            contatos.forEach((txt) => {
+            const iconTam = 9, iconGap = 5;
+            contatos.forEach(({ txt, icone }) => {
                 const seguro = sanitizarTexto(fontes.regular, txt);
                 const w = fontes.regular.widthOfTextAtSize(seguro, 9);
-                pagina.drawText(seguro, { x: PAGE_W - MARGIN - w, y: yContato, size: 9, font: fontes.regular, color: fontes.corTextoCapaMuted });
+                const xTxt = PAGE_W - MARGIN - w;
+                pagina.drawSvgPath(icone, { x: xTxt - iconGap - iconTam, y: yContato + iconTam * 0.78, scale: iconTam / 24, color: fontes.corTextoCapaMuted });
+                pagina.drawText(seguro, { x: xTxt, y: yContato, size: 9, font: fontes.regular, color: fontes.corTextoCapaMuted });
                 yContato -= 15;
             });
         }
@@ -1220,9 +1274,13 @@ window.LzPdfReport = (function () {
     // ganham um ponto colorido na cor da própria categoria, funcionando como
     // legenda da faixa lateral colorida que aparece nas páginas de conteúdo.
     function desenharSumario(paginasReservadas, fontes, entradas, modelo) {
+        // Modelo colorido: mesma faixa lateral de 12 cores da capa, também
+        // no Sumário (pedido do Alexsandro) — texto desloca pra depois dela.
+        if (modelo === 'B') paginasReservadas.forEach((p) => desenharFaixaLateralCapa(p, fontes));
+        const xBase = modelo === 'B' ? SIDEBAR_W + 46 : MARGIN;
         let paginaIdx = 0, pagina = paginasReservadas[0], y = PAGE_H - MARGIN;
         const tituloFonte = fontes.tituloFonte;
-        pagina.drawText(sanitizarTexto(tituloFonte, 'Sumário'), { x: MARGIN, y, size: 20, font: tituloFonte, color: fontes.corTexto });
+        pagina.drawText(sanitizarTexto(tituloFonte, 'Sumário'), { x: xBase, y, size: 20, font: tituloFonte, color: fontes.corTexto });
         y -= 40;
         entradas.forEach((e) => {
             if (y < MARGIN + ALTURA_ENTRADA_SUMARIO) {
@@ -1237,17 +1295,17 @@ window.LzPdfReport = (function () {
             const tituloSeguro = sanitizarTexto(fonte, e.titulo);
             if (modelo === 'B' && e.nivel === 1) {
                 const cor = fontes.rgb(...corDaCategoria(e.num));
-                pagina.drawCircle({ x: MARGIN + indent + 4, y: y + 3, size: 3.5, color: cor });
-                pagina.drawText(tituloSeguro, { x: MARGIN + indent + 14, y, size: tamanho, font: fonte, color: fontes.corTexto });
+                pagina.drawCircle({ x: xBase + indent + 4, y: y + 3, size: 3.5, color: cor });
+                pagina.drawText(tituloSeguro, { x: xBase + indent + 14, y, size: tamanho, font: fonte, color: fontes.corTexto });
                 const nw = fonte.widthOfTextAtSize(numero, tamanho);
                 pagina.drawText(numero, { x: PAGE_W - MARGIN - nw, y, size: tamanho, font: fonte, color: fontes.corMuted });
             } else {
                 const cor = e.nivel === 0 ? fontes.corTexto : fontes.corMuted;
-                pagina.drawText(tituloSeguro, { x: MARGIN + indent, y, size: tamanho, font: fonte, color: cor });
+                pagina.drawText(tituloSeguro, { x: xBase + indent, y, size: tamanho, font: fonte, color: cor });
                 if (modelo === 'A' && numero) {
                     const tituloLargura = fonte.widthOfTextAtSize(tituloSeguro, tamanho);
                     const numLargura = fonte.widthOfTextAtSize(numero, tamanho);
-                    const inicioX = MARGIN + indent + tituloLargura + 4;
+                    const inicioX = xBase + indent + tituloLargura + 4;
                     const fimX = PAGE_W - MARGIN - numLargura - 4;
                     if (fimX > inicioX) {
                         const passo = fonte.widthOfTextAtSize('.', tamanho) * 2.2;
@@ -1350,7 +1408,8 @@ window.LzPdfReport = (function () {
         // sumário aponta certo pra onde cada categoria começa.
         const paginasDivisao = !!(opts && opts.paginasDivisao);
         const PDFLib = await carregarPdfLib();
-        const { PDFDocument, StandardFonts, rgb, degrees, PDFName, PDFString } = PDFLib;
+        const { PDFDocument, StandardFonts, rgb, degrees, PDFName, PDFString,
+            pushGraphicsState, popGraphicsState, moveTo, lineTo, appendBezierCurve, closePath, clip, endPath } = PDFLib;
 
         const pdfDoc = await PDFDocument.create();
         const model = await window.TabPublicar.buildPublicModel({ incluirTodos, categorias, ordemAsc });
@@ -1374,6 +1433,7 @@ window.LzPdfReport = (function () {
         const serifNegrito = modelo === 'A' ? await pdfDoc.embedFont(StandardFonts.TimesRomanBold) : negrito;
         const fontes = {
             regular, negrito, serifNegrito, rgb, degrees,
+            pushGraphicsState, popGraphicsState, moveTo, lineTo, appendBezierCurve, closePath, clip, endPath,
             nomeFonte: modelo === 'A' ? serifNegrito : negrito,
             tituloFonte: modelo === 'A' ? serifNegrito : negrito,
             corTexto: corTexto(rgb), corMuted: corMuted(rgb), corAccent: corPrincipal(rgb),
@@ -1559,7 +1619,12 @@ window.LzPdfReport = (function () {
         desenharSumario(paginasSumario, fontes, entradasSumario, modelo);
         numerarPaginas(pdfDoc, fontes, modelo, paginasSemNumero, indicesDivisoria);
 
-        return pdfDoc.save();
+        // useObjectStreams: false — pula a compressão de "object streams" do
+        // pdf-lib (ligada por padrão), que é bem lenta em relatórios com
+        // muitas páginas/evidências; troca um PDF final um pouco maior por
+        // geração bem mais rápida (pedido do Alexsandro: "gerar o PDF mais
+        // rápido").
+        return pdfDoc.save({ useObjectStreams: false });
     }
 
     // quebrarLinhas/anexosDoModelo/calcularPaginasSumario/sanitizarTexto/
