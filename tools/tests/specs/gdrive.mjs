@@ -400,6 +400,58 @@ test('scanDirectory() reconstrói todos os itens de várias pastas de categoria,
 });
 
 /* ==========================================================================
+   Regressão: scanDirectory() ignora arquivos "ocultos" que o sistema
+   operacional cria sozinho numa pasta (nunca escritos pelo próprio app) —
+   relatado pelo Alexsandro: sincronizar pelo celular mostrava "N pasta(s)
+   não sincronizadas" por causa de arquivos "._nomedoarquivo" (o
+   "AppleDouble" que o macOS cria ao copiar/sincronizar arquivos fora de um
+   disco formatado como APFS/HFS+ — guarda metadados de recurso, não é JSON
+   de verdade, e mantém a extensão original, então batia com o filtro de
+   ".json"). Como o sistema operacional os recria sozinho, a falha nunca se
+   resolvia sozinha — precisou apagar os arquivos manualmente.
+   ========================================================================== */
+test('scanDirectory() (Google Drive) ignora arquivos ocultos (ex.: "._nome.json") em vez de tentar lê-los como item', async ({ page, baseUrl }) => {
+    const mock = createMockDrive();
+    await mock.install(page);
+    await mockGis(page);
+    await abrirConfig(page, baseUrl);
+    await conectar(page, 'lattesZen');
+
+    await page.evaluate(async () => {
+        await window.Storage.writeJson('it-normal', { id: 'it-normal', titulo: 'Item normal' }, 'Atuação');
+    });
+    const pastaAtuacao = Array.from(mock.files.values()).find((f) => f.name === 'Atuação' && f.isDir);
+    assert(pastaAtuacao, 'A pasta "Atuação" deveria ter sido criada no mock');
+    // Simula o arquivo "sombra" que o macOS cria sozinho — mesmo nome do
+    // item real + ".json", mas sem JSON válido nenhum dentro (na vida
+    // real, é dado binário de recurso).
+    mock.files.set('fake-shadow', { id: 'fake-shadow', name: '._it-normal.json', parentId: pastaAtuacao.id, isDir: false, content: 'não é json de verdade' });
+
+    const { items, falhas, detalhes } = await page.evaluate(() => window.Storage.scanDirectory());
+    assertEqual(items.length, 1, 'Só o item de verdade deveria ter sido lido, ignorando o arquivo "._" oculto');
+    assertEqual(items[0].id, 'it-normal', 'O item lido deveria ser o real, não o arquivo sombra');
+    assertEqual(falhas, 0, 'O arquivo oculto não deveria contar como falha — ele é ignorado, nem chega a ser lido');
+    assertEqual(detalhes.length, 0, 'Sem nenhuma falha, detalhes deveria vir vazio');
+});
+
+test('scanDirectory() (pasta local) também ignora arquivos ocultos (ex.: "._nome.json")', async ({ page, baseUrl }) => {
+    await mockLocalDir(page, [
+        { name: 'it-normal.json', kind: 'file', content: '{"id":"it-normal","titulo":"Item normal"}' },
+        { name: '._it-normal.json', kind: 'file', content: 'não é json de verdade' },
+        { name: '.DS_Store', kind: 'file', content: 'lixo binário do macOS' },
+    ]);
+    await page.goto(baseUrl + '/index.html');
+    await page.waitForTimeout(300);
+    await page.evaluate(() => window.Storage.chooseDirectory());
+
+    const { items, falhas, detalhes } = await page.evaluate(() => window.Storage.scanDirectory());
+    assertEqual(items.length, 1, 'Só o item de verdade deveria ter sido lido, ignorando os arquivos ocultos');
+    assertEqual(items[0].id, 'it-normal', 'O item lido deveria ser o real');
+    assertEqual(falhas, 0, 'Os arquivos ocultos não deveriam contar como falha');
+    assertEqual(detalhes.length, 0, 'Sem nenhuma falha, detalhes deveria vir vazio');
+});
+
+/* ==========================================================================
    Regressão: mensagens de falha mais claras + "tentar de novo só o que
    falhou" (issue relatada pelo Alexsandro: depois de uma sincronização
    incompleta pelo celular, o aviso genérico "2 pasta(s) não puderam ser
@@ -852,4 +904,146 @@ test('Reabrir o app com uma migração pendente avisa por toast, apontando pra C
     await page.waitForTimeout(600);
     const toasts = await page.evaluate(() => Array.from(document.querySelectorAll('#toasts > div')).map((d) => d.textContent));
     assert(toasts.some((t) => /migra[çc][ãa]o para o google drive ficou incompleta/i.test(t)), 'Deveria avisar, ao reabrir, que há uma migração pendente');
+});
+
+/* ==========================================================================
+   Regressão: configurações modulares — cada módulo (nuvem de palavras, RSC,
+   Súmula, geral, Publicar na Web, acessibilidade) no seu próprio JSON na
+   raiz do diretório, em vez de um único "configuracoes.json" genérico —
+   pedido do Alexsandro: ao conectar um dispositivo novo numa biblioteca já
+   existente, essas configurações não estavam voltando, porque a escrita só
+   acontecia de forma oportunista (clicar "Salvar" DEPOIS de já haver
+   diretório) — conectar/sincronizar em si nunca "semeava" o que o
+   dispositivo já tinha. "Exportar catálogo" deixa de ser necessário só pra
+   levar configurações a um dispositivo novo — reconectar já basta.
+   ========================================================================== */
+test('Configurações modulares: RSC/Súmula/Publicar na Web/nuvem de palavras/tema gravam seu próprio JSON e voltam num "cache local vazio" (dispositivo novo)', async ({ page, baseUrl }) => {
+    const mock = createMockDrive();
+    await mock.install(page);
+    await mockGis(page);
+    await abrirConfig(page, baseUrl);
+    await conectar(page, 'lattesZen');
+
+    await page.click('[data-cfg-page-link="grp-opcionais"]');
+    await page.waitForTimeout(150);
+
+    await page.check('#rscEnable');
+    await page.waitForTimeout(150);
+    await page.check('#sumulaEnable');
+    await page.waitForTimeout(150);
+    await page.check('#pubWebEnable');
+    await page.waitForTimeout(150);
+    await page.fill('#nuvemExclusaoInput', 'palavraExcluidaTeste');
+    await page.fill('#nuvemCompostasInput', 'termo composto teste');
+    await page.click('#btnSalvarNuvemListas');
+    await page.waitForTimeout(150);
+    await page.selectOption('#themeSelect', 'dracula');
+    await page.waitForTimeout(150);
+
+    // pubStyle mora na aba Publicar (só apareceu agora que pubWebEnable foi marcado).
+    await page.click('[data-tab="publicar"]');
+    await page.waitForTimeout(200);
+    await page.selectOption('#pubStyleSelect', 'moderno');
+    await page.waitForTimeout(150);
+
+    // Aguarda os debounces de 800ms de cada módulo.
+    await page.waitForTimeout(1200);
+
+    const nomesArquivos = Array.from(mock.files.values()).map((f) => f.name);
+    ['rsc.json', 'sumula.json', 'geral.json', 'nuvem-palavras.json', 'acessibilidade.json', 'publicar.json'].forEach((nome) => {
+        assert(nomesArquivos.includes(nome), `Deveria ter gravado "${nome}" na raiz do diretório — arquivos encontrados: ${nomesArquivos.join(', ')}`);
+    });
+
+    // Simula um "dispositivo novo" (ou este mesmo, com o localStorage
+    // limpo/perdido) — mantém a conexão com o Drive (mesma pasta), só
+    // esvazia o que seria o cache local rápido, e sincroniza de novo.
+    await page.evaluate(() => { localStorage.removeItem('lz_settings'); });
+    const restaurado = await page.evaluate(async () => {
+        window.AppCore.state.rsc.enabled = false; window.AppCore.state.rsc.cfg = {}; window.AppCore.state.rsc.memorialTexto = '';
+        window.AppCore.state.sumula.enabled = false;
+        window.AppCore.state.pubWebEnabled = false;
+        window.AppCore.state.linhaTempo.nuvemExclusao = []; window.AppCore.state.linhaTempo.nuvemCompostas = [];
+        const r = await window.AppCore.syncFromDirectory();
+        return {
+            configRestaurada: r.configRestaurada,
+            rscEnabled: window.AppCore.state.rsc.enabled,
+            sumulaEnabled: window.AppCore.state.sumula.enabled,
+            pubWebEnabled: window.AppCore.state.pubWebEnabled,
+            nuvemExclusao: window.AppCore.state.linhaTempo.nuvemExclusao,
+            nuvemCompostas: window.AppCore.state.linhaTempo.nuvemCompostas,
+            temaPreset: localStorage.getItem('lz_tema_preset'),
+        };
+    });
+    assert(restaurado.configRestaurada, 'configRestaurada deveria vir true (dados vieram de fato do diretório)');
+    assert(restaurado.rscEnabled, 'RSC habilitado deveria ter voltado do diretório');
+    assert(restaurado.sumulaEnabled, 'Súmula habilitada deveria ter voltado do diretório');
+    assert(restaurado.pubWebEnabled, 'Publicar na Web habilitado deveria ter voltado do diretório');
+    assertEqual(restaurado.nuvemExclusao, ['palavraExcluidaTeste'], 'Lista de exclusão da nuvem deveria ter voltado do diretório');
+    assertEqual(restaurado.nuvemCompostas, ['termo composto teste'], 'Lista de termos compostos da nuvem deveria ter voltado do diretório');
+    assertEqual(restaurado.temaPreset, 'dracula', 'O tema escolhido deveria ter voltado do diretório');
+
+    const pubStyleArquivo = Array.from(mock.files.values()).find((f) => f.name === 'publicar.json');
+    assert(pubStyleArquivo, 'publicar.json deveria existir');
+    const pubStyleConteudo = JSON.parse(pubStyleArquivo.content);
+    assertEqual(pubStyleConteudo.pubStyle, 'moderno', 'O tema da página pública escolhido deveria estar gravado em publicar.json');
+});
+
+test('Configurações modulares: biblioteca antiga (só configuracoes.json, sem os módulos novos) migra sozinha ao sincronizar', async ({ page, baseUrl }) => {
+    const mock = createMockDrive();
+    await mock.install(page);
+    await mockGis(page);
+    await abrirConfig(page, baseUrl);
+    await conectar(page, 'lattesZen');
+
+    const rootFolderId = await page.evaluate(() => window.Storage.loadSettings().gdrive.rootFolderId);
+    // Simula uma biblioteca de ANTES da modularização: só configuracoes.json,
+    // com os campos todos juntos no formato antigo — nenhum "rsc.json"/
+    // "nuvem-palavras.json" etc. existe ainda.
+    mock.files.set('config-antiga', {
+        id: 'config-antiga', name: 'configuracoes.json', parentId: rootFolderId, isDir: false,
+        content: JSON.stringify({ rscEnabled: true, rsc: { cargo: 'Analista' }, nuvemExclusao: ['antiga'], nuvemCompostas: [] }),
+    });
+
+    const restaurado = await page.evaluate(async () => {
+        window.AppCore.state.rsc.enabled = false; window.AppCore.state.rsc.cfg = {};
+        window.AppCore.state.linhaTempo.nuvemExclusao = [];
+        const r = await window.AppCore.syncFromDirectory();
+        return { configRestaurada: r.configRestaurada, rscEnabled: window.AppCore.state.rsc.enabled, rscCfg: window.AppCore.state.rsc.cfg, nuvemExclusao: window.AppCore.state.linhaTempo.nuvemExclusao };
+    });
+    await page.waitForTimeout(1000); // debounce da escrita dos arquivos migrados
+    assert(restaurado.configRestaurada, 'configRestaurada deveria vir true (veio do configuracoes.json antigo)');
+    assert(restaurado.rscEnabled, 'RSC habilitado deveria ter sido extraído do configuracoes.json antigo');
+    assertEqual(restaurado.rscCfg, { cargo: 'Analista' }, 'A configuração do RSC deveria ter sido extraída do configuracoes.json antigo');
+    assertEqual(restaurado.nuvemExclusao, ['antiga'], 'A lista de exclusão deveria ter sido extraída do configuracoes.json antigo');
+
+    // A migração deveria ter gravado os arquivos NOVOS, pra não depender do
+    // antigo nas próximas sincronizações.
+    const nomesArquivos = Array.from(mock.files.values()).map((f) => f.name);
+    assert(nomesArquivos.includes('rsc.json'), 'rsc.json deveria ter sido criado a partir da migração do configuracoes.json antigo');
+    assert(nomesArquivos.includes('nuvem-palavras.json'), 'nuvem-palavras.json deveria ter sido criado a partir da migração do configuracoes.json antigo');
+});
+
+test('Configurações modulares: sem arquivo novo nem antigo, sincronizar "semeia" o diretório com o que este dispositivo já tem localmente', async ({ page, baseUrl }) => {
+    const mock = createMockDrive();
+    await mock.install(page);
+    await mockGis(page);
+    await abrirConfig(page, baseUrl);
+    await conectar(page, 'lattesZen');
+
+    // Este "dispositivo" já tinha RSC configurado localmente ANTES de
+    // conectar ao diretório (ou de qualquer "Salvar" ter rodado depois de
+    // conectar) — nem rsc.json nem configuracoes.json com esses dados
+    // existem no Drive ainda.
+    await page.evaluate(async () => {
+        window.AppCore.state.rsc.enabled = true;
+        window.AppCore.state.rsc.cfg = { cargo: 'Técnico', siape: '123456' };
+        await window.AppCore.syncFromDirectory();
+    });
+    await page.waitForTimeout(1000); // debounce da escrita
+
+    const rscArquivo = Array.from(mock.files.values()).find((f) => f.name === 'rsc.json');
+    assert(rscArquivo, 'rsc.json deveria ter sido criado (semeado) com o que este dispositivo já tinha, mesmo sem nada existir antes no Drive');
+    const rscConteudo = JSON.parse(rscArquivo.content);
+    assertEqual(rscConteudo.enabled, true, 'O rsc.json semeado deveria refletir o estado local (habilitado)');
+    assertEqual(rscConteudo.cfg, { cargo: 'Técnico', siape: '123456' }, 'O rsc.json semeado deveria refletir a configuração local');
 });

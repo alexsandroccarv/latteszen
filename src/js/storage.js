@@ -502,7 +502,7 @@ window.Storage = (function () {
             let children; try { children = await window.GDriveClient.listChildren(parentId); } catch (_) { return []; }
             const out = [];
             for (const child of children) {
-                if (child.isDir) continue;
+                if (child.isDir || ehArquivoOculto(child.name)) continue;
                 const m = child.name.match(/\.([^.]+)$/);
                 const ext = m ? m[1].toLowerCase() : '';
                 if (!ATTACH_EXTS.includes(ext)) continue;
@@ -514,7 +514,7 @@ window.Storage = (function () {
         let inbox; try { inbox = await inboxDir(true); } catch (_) { return []; }
         const out = [];
         for await (const [name, h] of inbox.entries()) {
-            if (h.kind !== 'file') continue;
+            if (h.kind !== 'file' || ehArquivoOculto(name)) continue;
             const m = name.match(/\.([^.]+)$/);
             const ext = m ? m[1].toLowerCase() : '';
             if (!ATTACH_EXTS.includes(ext)) continue;
@@ -895,6 +895,32 @@ window.Storage = (function () {
         };
     }
 
+    // Nomes de arquivo que nunca são conteúdo de verdade do catálogo — o
+    // sistema operacional os recria sozinho em pastas externas/de rede
+    // (ex.: "._nome.json", o "AppleDouble" que o macOS usa pra guardar
+    // metadados de recurso ao copiar/sincronizar arquivos fora de um disco
+    // formatado como APFS/HFS+ — mantém a extensão original, então batia
+    // com o filtro de ".json" e o app tentava ler como se fosse um item de
+    // verdade, sempre falhando o JSON.parse pra sempre — como esses
+    // arquivos nunca somem sozinhos, toda sincronização reportava a MESMA
+    // falha, indefinidamente, até apagar manualmente. Pedido do Alexsandro:
+    // simplesmente ignorar qualquer nome começando com "." (também cobre
+    // ".DS_Store" e afins) em vez de tentar ler.
+    function ehArquivoOculto(name) { return String(name).charAt(0) === '.'; }
+
+    // Nomes reservados na raiz do diretório que nunca são um item de
+    // catálogo — o índice (catalogo.json), o antigo blob de configurações
+    // (SETTINGS_FILE), exports legados ("latteszen-...") e, a partir desta
+    // versão, um arquivo por módulo de configuração (ver
+    // "Configurações modulares" mais abaixo) — sem isto, scanDirectory()
+    // tentaria ler "rsc.json"/"nuvem-palavras.json" etc. como se fossem
+    // itens do catálogo.
+    const MODULOS_CONFIG = ['nuvem-palavras', 'rsc', 'sumula', 'geral', 'publicar', 'acessibilidade'];
+    function ehArquivoDeConfiguracao(name) {
+        return name === 'catalogo.json' || name === SETTINGS_FILE || name.indexOf('latteszen-') === 0
+            || MODULOS_CONFIG.some((m) => name === `${m}.json`);
+    }
+
     // Varre uma lista de "raízes" no Google Drive — cada raiz é
     // { tipo: 'pasta', id, caminho } (varre a pasta inteira, recursivamente)
     // ou { tipo: 'arquivo', id, caminho, pastaCaminho } (lê só ESSE arquivo,
@@ -924,7 +950,7 @@ window.Storage = (function () {
                     if (child.name === INBOX_FOLDER) return Promise.resolve(); // não indexa a bandeja de entrada
                     return scanPasta(child.id, caminho ? `${caminho}/${child.name}` : child.name);
                 }
-                if (child.name.toLowerCase().endsWith('.json') && child.name !== 'catalogo.json' && child.name !== SETTINGS_FILE && child.name.indexOf('latteszen-') !== 0) {
+                if (!ehArquivoOculto(child.name) && child.name.toLowerCase().endsWith('.json') && !ehArquivoDeConfiguracao(child.name)) {
                     return lerArquivo(child.id, caminho ? `${caminho}/${child.name}` : child.name, caminho);
                 }
                 return Promise.resolve();
@@ -951,7 +977,7 @@ window.Storage = (function () {
         async function scanPasta(handle, caminho) {
             try {
                 for await (const [name, h] of handle.entries()) {
-                    if (h.kind === 'file' && name.toLowerCase().endsWith('.json') && name !== 'catalogo.json' && name !== SETTINGS_FILE && name.indexOf('latteszen-') !== 0) {
+                    if (h.kind === 'file' && !ehArquivoOculto(name) && name.toLowerCase().endsWith('.json') && !ehArquivoDeConfiguracao(name)) {
                         await lerArquivo(h, caminho ? `${caminho}/${name}` : name, caminho);
                     } else if (h.kind === 'directory') {
                         if (name === INBOX_FOLDER) continue; // não indexa a bandeja de entrada
@@ -1052,14 +1078,16 @@ window.Storage = (function () {
         scheduleSettingsWrite();
         return true;
     }
-    // Lê configuracoes.json da raiz do diretório, se existir (usado ao
-    // sincronizar/escanear: um navegador novo, ou índice local limpo, recupera
-    // as configurações do sistema do mesmo jeito que já recupera os itens).
-    async function readSettingsFromDirectory() {
+    // Lê um arquivo .json (nome completo, com extensão) da RAIZ do diretório
+    // configurado — devolve null se não existir, sem diretório, ou qualquer
+    // erro de leitura/parse. Base de readSettingsFromDirectory() (o antigo
+    // "configuracoes.json") e de readConfigModule() (os novos módulos, ver
+    // abaixo) — mesma lógica gdrive/local, extraída pra não duplicar.
+    async function lerJsonDaRaiz(nomeComExtensao) {
         if (mode === 'gdrive') {
             if (!gdriveCfg) return null;
             try {
-                const fileId = await window.GDriveClient.findFile(gdriveCfg.rootFolderId, SETTINGS_FILE);
+                const fileId = await window.GDriveClient.findFile(gdriveCfg.rootFolderId, nomeComExtensao);
                 if (!fileId) return null;
                 const blob = await window.GDriveClient.getFileContent(fileId);
                 if (!blob) return null;
@@ -1068,10 +1096,68 @@ window.Storage = (function () {
         }
         try {
             const dir = await ensureDirReady();
-            const fh = await dir.getFileHandle(SETTINGS_FILE);
+            const fh = await dir.getFileHandle(nomeComExtensao);
             const file = await fh.getFile();
             return JSON.parse(await file.text());
         } catch (_) { return null; }
+    }
+    // Lê configuracoes.json da raiz do diretório, se existir — hoje só serve
+    // de FALLBACK pra migrar bibliotecas de antes da modularização (ver
+    // MODULOS_CONFIG/restaurarModuloConfig abaixo): a partir desta versão,
+    // cada módulo grava e lê seu próprio arquivo, então configuracoes.json
+    // só ainda guarda o que é mesmo local/deste dispositivo (ex.:
+    // gdriveMigrationPendente, avisoDevVisto, sinceBackup — ver comentário em
+    // storageKeys, config.js).
+    async function readSettingsFromDirectory() { return lerJsonDaRaiz(SETTINGS_FILE); }
+
+    /* --------------- Configurações modulares (1 JSON por módulo) ---------
+       Pedido do Alexsandro: nuvem de palavras, RSC, Súmula etc. deveriam
+       sobreviver a trocar de dispositivo do mesmo jeito que os itens do
+       catálogo já sobrevivem — cada módulo no seu próprio JSON na raiz do
+       diretório (não mais um único "configuracoes.json" genérico), pra
+       "Exportar configurações" deixar de ser necessário: basta reconectar
+       ao mesmo diretório/Google Drive pra ter tudo de volta.
+       ----------------------------------------------------------------- */
+    function nomeArquivoModulo(modulo) { return `${modulo}.json`; }
+    async function readConfigModule(modulo) {
+        if (!hasDirectory()) return null;
+        return lerJsonDaRaiz(nomeArquivoModulo(modulo));
+    }
+    // Grava um módulo (debounced, mesmo padrão de scheduleSettingsWrite —
+    // várias chamadas seguidas, ex. digitando no memorial do RSC, colapsam
+    // numa escrita só). Silencioso sem diretório, mesmo padrão de sempre.
+    const moduloWriteTimers = {};
+    function writeConfigModule(modulo, dados) {
+        if (!hasDirectory()) return;
+        clearTimeout(moduloWriteTimers[modulo]);
+        moduloWriteTimers[modulo] = setTimeout(() => {
+            // writeJson() já acrescenta ".json" sozinho (mesmo padrão de
+            // SETTINGS_FILE_BASE) — passar nomeArquivoModulo() aqui (que já
+            // tem a extensão) gravaria "rsc.json.json".
+            writeJson(modulo, dados).catch(() => {});
+        }, 800);
+    }
+    // Restaura um módulo: 1) tenta o arquivo próprio dele; 2) sem ele, tenta
+    // extrair do configuracoes.json antigo (`extrairDoAntigo`, biblioteca de
+    // antes desta modularização); 3) sem os dois, usa o estado ATUAL deste
+    // dispositivo. Nos casos 2 e 3, GRAVA o resultado no arquivo do módulo —
+    // corrige a causa raiz do problema relatado pelo Alexsandro: antes, uma
+    // configuração só ia pro diretório se alguém clicasse "Salvar" DEPOIS de
+    // já haver diretório configurado; conectar/sincronizar em si nunca
+    // "semeava" o que o dispositivo já tinha. Agora toda sincronização
+    // garante que o módulo existe no diretório, vindo de algum lugar.
+    // Devolve { dados, deFora } — deFora=true quando os dados vieram do
+    // diretório de verdade (arquivo do módulo ou o blob antigo), pra quem
+    // chama distinguir "restaurei algo de fato" de "só semeei com o que
+    // este dispositivo já tinha" (ex.: pra decidir se mostra "configurações
+    // restauradas" na tela).
+    async function restaurarModuloConfig(modulo, blobAntigo, extrairDoAntigo, estadoLocalAtual) {
+        const doArquivo = await readConfigModule(modulo);
+        if (doArquivo) return { dados: doArquivo, deFora: true };
+        const doAntigo = blobAntigo ? extrairDoAntigo(blobAntigo) : null;
+        const dados = doAntigo || estadoLocalAtual;
+        writeConfigModule(modulo, dados);
+        return { dados, deFora: !!doAntigo };
     }
 
     /* ------------- Tokens de publicação direta (GitHub/Netlify) ---------- */
@@ -1110,5 +1196,10 @@ window.Storage = (function () {
         // catálogo + lixeira + settings
         loadCatalog, saveCatalog, loadTrash, saveTrash, loadSettings, saveSettings, readSettingsFromDirectory,
         loadDeployToken, saveDeployToken,
+        // Configurações modulares (1 JSON por módulo na raiz do diretório —
+        // ver comentário acima de readConfigModule) — usadas por app.js
+        // (syncFromDirectory, persistirXxx) pra ler/escrever/restaurar cada
+        // módulo (nuvem de palavras, RSC, Súmula, geral, publicar, acessibilidade).
+        readConfigModule, writeConfigModule, restaurarModuloConfig,
     };
 })();

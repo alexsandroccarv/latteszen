@@ -223,6 +223,7 @@ window.TabConfig = (function () {
         sel.addEventListener('change', () => {
             localStorage.setItem(APP_CONFIG.storageKeys.themePreset, sel.value);
             aplicarTema(sel.value);
+            window.AppCore.persistirAcessibilidade();
         });
     }
 
@@ -309,6 +310,7 @@ window.TabConfig = (function () {
         en.addEventListener('change', () => {
             state.rsc.enabled = en.checked;
             const s = Storage.loadSettings(); s.rscEnabled = state.rsc.enabled; Storage.saveSettings(s);
+            window.AppCore.persistirRsc();
             window.AppCore.applyRscVisibility();
             toast(state.rsc.enabled ? 'Módulo RSC habilitado.' : 'Módulo RSC desabilitado.', 'ok');
         });
@@ -333,6 +335,7 @@ window.TabConfig = (function () {
         en.addEventListener('change', () => {
             state.sumula.enabled = en.checked;
             const s = Storage.loadSettings(); s.sumulaEnabled = state.sumula.enabled; Storage.saveSettings(s);
+            window.AppCore.persistirSumula();
             window.AppCore.applySumulaVisibility();
             toast(state.sumula.enabled ? 'Módulo Súmula Curricular FAPESP habilitado.' : 'Módulo Súmula Curricular FAPESP desabilitado.', 'ok');
         });
@@ -357,6 +360,7 @@ window.TabConfig = (function () {
         en.addEventListener('change', () => {
             state.pubWebEnabled = en.checked;
             const s = Storage.loadSettings(); s.pubWebEnabled = state.pubWebEnabled; Storage.saveSettings(s);
+            window.AppCore.persistirGeral();
             window.AppCore.applyPublicarVisibility();
             toast(state.pubWebEnabled ? 'Aba "Publicar na Web" habilitada.' : 'Aba "Publicar na Web" desabilitada.', 'ok');
         });
@@ -398,6 +402,7 @@ window.TabConfig = (function () {
             s.nuvemExclusao = state.linhaTempo.nuvemExclusao;
             s.nuvemCompostas = state.linhaTempo.nuvemCompostas;
             Storage.saveSettings(s);
+            window.AppCore.persistirNuvem();
             toast('Listas da nuvem de palavras salvas.', 'ok');
         });
     }
@@ -823,6 +828,7 @@ window.TabConfig = (function () {
         if (btnSavePrefix) btnSavePrefix.addEventListener('click', () => {
             state.idPrefix = window.AppCore.sanitizePrefix($('#idPrefix').value);
             const s = Storage.loadSettings(); s.idPrefix = state.idPrefix; Storage.saveSettings(s);
+            window.AppCore.persistirGeral();
             toast(`Prefixo definido: "${state.idPrefix}". Novos arquivos: ${state.idPrefix}-XXX.`, 'ok');
             render();
         });
@@ -1040,6 +1046,9 @@ window.TabConfig = (function () {
             state.sumula.texto = '';       // texto da Súmula FAPESP
             // Persiste a limpeza das listas, do RSC e da Súmula nas configurações.
             const s = Storage.loadSettings(); s.vocab = {}; s.rsc = {}; s.sumula = {}; s.sumulaTexto = ''; Storage.saveSettings(s);
+            window.AppCore.persistirGeral();
+            window.AppCore.persistirRsc();
+            window.AppCore.persistirSumula();
             window.AppCore.resetBackupReminder();        // zera o contador de backup
             toast('Índice local limpo (itens, listas, RSC e Súmula FAPESP).', 'ok');
             window.AppCore.renderItemList();
@@ -1221,5 +1230,7 @@ window.TabConfig = (function () {
     // após renomear um valor de autocomplete).
     window.AppCore.renderConfig = render;
 
-    return { render };
+    // aplicarTema exposta pra app.js reaplicar o tema restaurado do módulo
+    // "acessibilidade" (ver syncFromDirectory), sem duplicar a lógica aqui.
+    return { render, aplicarTema };
 })();

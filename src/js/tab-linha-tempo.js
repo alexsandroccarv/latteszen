@@ -172,22 +172,47 @@ window.TabLinhaTempo = (function () {
             caixas.push(caixa || { x: cx - largura / 2, y: cy - altura / 2, w: largura, h: altura });
         });
 
+        // Tamanho NATURAL da nuvem (soma de todas as caixas já espalhadas,
+        // com as fontes no tamanho original) — em telas estreitas de
+        // celular, isso costumava ficar mais largo que `larguraArea` (o
+        // tamanho das palavras não encolhe sozinho com a tela), vazando pra
+        // fora da área reservada (pedido do Alexsandro: a nuvem deve
+        // encolher pra caber, em vez de vazar).
         const minX = Math.min(0, ...caixas.map(c => c.x));
-        const maxX = Math.max(larguraArea, ...caixas.map(c => c.x + c.w));
+        const maxX = Math.max(...caixas.map(c => c.x + c.w));
         const minY = Math.min(0, ...caixas.map(c => c.y));
         const maxY = Math.max(...caixas.map(c => c.y + c.h));
-        const larguraFinal = maxX - minX;
-        const deslocX = larguraArea > larguraFinal ? (larguraArea - larguraFinal) / 2 - minX : -minX;
-        const deslocY = -minY;
+        const larguraNatural = maxX - minX;
+        const alturaNatural = maxY - minY;
+        const deslocX = -minX, deslocY = -minY; // tudo passa a começar em (0,0)
+
+        // Quando a nuvem natural não cabe na largura disponível, encolhe
+        // ela inteira (palavras E espaçamento juntos, como uma foto) até
+        // caber exatamente — um wrapper do tamanho natural, redimensionado
+        // via CSS transform, dentro de `area` (que tem overflow:hidden,
+        // como garantia extra contra qualquer vazamento). Quando já cabe,
+        // só centraliza horizontalmente (comportamento de sempre).
+        const encolhe = larguraNatural > larguraArea;
+        const escala = encolhe ? larguraArea / larguraNatural : 1;
+        const wrapper = document.createElement('div');
+        wrapper.style.position = 'absolute';
+        wrapper.style.top = '0';
+        wrapper.style.left = encolhe ? '0' : `${(larguraArea - larguraNatural) / 2}px`;
+        wrapper.style.width = `${larguraNatural}px`;
+        wrapper.style.height = `${alturaNatural}px`;
+        if (encolhe) { wrapper.style.transformOrigin = 'left top'; wrapper.style.transform = `scale(${escala})`; }
 
         spans.forEach((span, i) => {
             const c = caixas[i];
             span.style.position = 'absolute';
             span.style.left = `${c.x + PAD + deslocX}px`;
             span.style.top = `${c.y + PAD + deslocY}px`;
+            wrapper.appendChild(span); // sai de `area` e entra no wrapper
         });
+        area.appendChild(wrapper);
         area.style.position = 'relative';
-        area.style.height = `${(maxY - minY) + 10}px`;
+        area.style.overflow = 'hidden';
+        area.style.height = `${alturaNatural * escala + 10}px`;
     }
 
     /* ------------------------------ Linha do tempo (grade) ------------------------------ */
