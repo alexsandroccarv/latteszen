@@ -713,6 +713,45 @@ test('pdf-report.js: numeroRomano() converte 1-21 (nº de categorias) corretamen
     assertEqual(r, ['I', 'II', 'III', 'IV', 'V', 'IX', 'XIV', 'XIX', 'XXI'], `Conversão pra romano incorreta — obtido: ${JSON.stringify(r)}`);
 });
 
+test('pdf-report.js: numeroVisivelDaPagina() pula capa/sumário e divisórias internas, sem furo na contagem visível', async ({ page, baseUrl }) => {
+    await seedCatalog(page, baseUrl, []);
+    const r = await page.evaluate(() => {
+        const paginasSemNumero = 5; // capa + sumário: índices 0-4
+        const indicesDivisoria = new Set([6, 9]); // 2 divisórias entre páginas de conteúdo
+        return [2, 5, 6, 7, 8, 9, 10, 11].map((i) => window.LzPdfReport.numeroVisivelDaPagina(i, paginasSemNumero, indicesDivisoria));
+    });
+    assertEqual(r, [null, 1, null, 2, 3, null, 4, 5], `Capa/sumário (índice < paginasSemNumero) e divisórias deveriam ficar sem número, com a contagem visível seguindo sequencial (1,2,3,4,5) sem furo — obtido: ${JSON.stringify(r)}`);
+});
+
+test('pdf-report.js: layoutNuvemFlow() distribui palavras em linhas que quebram, com tamanho proporcional à frequência', async ({ page, baseUrl }) => {
+    await seedCatalog(page, baseUrl, []);
+    const r = await page.evaluate(() => {
+        const fonteFalsa = { widthOfTextAtSize: (t, tamanho) => t.length * tamanho * 0.5 };
+        const palavras = [['muitofrequente', 10], ['media', 5], ['rara', 1]];
+        const nuvem = window.LzPdfReport.layoutNuvemFlow(palavras, fonteFalsa, fonteFalsa, { larguraMax: 40, tamMin: 8, tamMax: 20, nDestaque: 0 });
+        return {
+            textos: nuvem.spans.map((s) => s.texto).sort(),
+            linhasDistintas: new Set(nuvem.spans.map((s) => s.y)).size,
+            tamMaisFrequente: nuvem.spans.find((s) => s.texto === 'muitofrequente').tamanho,
+            tamMenosFrequente: nuvem.spans.find((s) => s.texto === 'rara').tamanho,
+            altura: nuvem.altura,
+        };
+    });
+    assertEqual(r.textos, ['media', 'muitofrequente', 'rara'], `Nenhuma palavra deveria se perder — obtido: ${JSON.stringify(r.textos)}`);
+    assert(r.linhasDistintas > 1, `Largura estreita (40pt) deveria forçar quebra em mais de 1 linha — obtido: ${r.linhasDistintas}`);
+    assert(r.tamMaisFrequente > r.tamMenosFrequente, `A palavra mais frequente deveria ficar maior que a menos frequente — obtido: ${JSON.stringify(r)}`);
+    assert(r.altura > 0, 'Altura total do bloco deveria ser maior que zero com palavras presentes');
+});
+
+test('pdf-report.js: layoutNuvemFlow() sem palavras devolve bloco vazio (sem altura)', async ({ page, baseUrl }) => {
+    await seedCatalog(page, baseUrl, []);
+    const r = await page.evaluate(() => {
+        const fonteFalsa = { widthOfTextAtSize: (t, tamanho) => t.length * tamanho * 0.5 };
+        return window.LzPdfReport.layoutNuvemFlow([], fonteFalsa, fonteFalsa, { larguraMax: 100 });
+    });
+    assertEqual(r, { spans: [], altura: 0 }, `Sem palavras, deveria devolver spans vazio e altura 0 — obtido: ${JSON.stringify(r)}`);
+});
+
 test('pdf-report.js: anexosDaSecaoSemLink() só traz evidências de arquivo (exclui as em link, ext "url")', async ({ page, baseUrl }) => {
     await seedCatalog(page, baseUrl, []);
     const resultado = await page.evaluate(() => {

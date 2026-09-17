@@ -175,7 +175,7 @@ window.LzPdfReport = (function () {
     // conforme o conteúdo enche a página atual (mesma ideia de um editor de
     // texto fluindo por várias páginas) — usado pelo Memorial, pelo
     // Currículo completo e pelos Anexos.
-    function criarEscritor(pdfDoc, fontes, paginasSemNumero) {
+    function criarEscritor(pdfDoc, fontes, paginasSemNumero, indicesDivisoria) {
         let pagina = null, y = 0, margemExtra = 0, deslocamentoX = 0;
         // decorador(pagina): redesenhado em TODA página nova, inclusive as
         // criadas automaticamente por garantirEspaco() no meio de uma seção
@@ -248,26 +248,127 @@ window.LzPdfReport = (function () {
             // dela) — usado pelo cabeçalho de cada página de evidência e
             // pelo sumário (entradasSumario[...].paginaIndex), pra dar
             // contexto de posição sem esperar numerarPaginas() rodar (só no
-            // fim, depois que o documento inteiro já foi montado).
-            get numeroPagina() { return pdfDoc.getPageCount() - paginasSemNumero; },
+            // fim, depois que o documento inteiro já foi montado). Mesma
+            // conta de numeroVisivelDaPagina() (desconta as divisórias
+            // internas já criadas até aqui — também sem número, ver
+            // desenharDivisoria/numerarPaginas), senão o número mostrado
+            // aqui destoaria do que numerarPaginas() de fato estampa na
+            // página.
+            get numeroPagina() { return numeroVisivelDaPagina(pdfDoc.getPageCount() - 1, paginasSemNumero, indicesDivisoria); },
         };
     }
 
-    // Página-título de seção ("capa intermediária") — página cheia, só o
-    // nome da seção centralizado; a próxima página já começa "limpa" pro
-    // conteúdo real daquela seção.
-    function desenharDivisoria(pdfDoc, fontes, titulo) {
+    // Desenha, embaixo de um título de categoria (Modelo B), a lista de
+    // subcategorias (sec.tipos) ligadas a ele por um "conector de árvore"
+    // — tronco vertical + um tracinho horizontal por subcategoria — na cor
+    // da própria categoria (mesmo desenho já refinado no protótipo da
+    // Divisória C). xTexto = mesmo eixo X do título (o tronco fica um
+    // pouco à esquerda dele); yTopoTree = Y logo abaixo do título (já
+    // descontada a margem entre eles). Devolve o Y após a última linha.
+    function desenharSubcategorias(pagina, fontes, xTexto, yTopoTree, cor, subcategorias) {
+        const corRgb = fontes.rgb(cor[0], cor[1], cor[2]);
+        const tamanho = 15, leading = tamanho * 1.55;
+        const xTronco = xTexto - 10;
+        let y = yTopoTree;
+        const baselines = [];
+        subcategorias.forEach((label) => {
+            const seguro = sanitizarTexto(fontes.tituloFonte, label);
+            pagina.drawText(seguro, { x: xTexto, y, size: tamanho, font: fontes.tituloFonte, color: fontes.corTexto });
+            baselines.push(y);
+            y -= leading;
+        });
+        if (!baselines.length) return y;
+        const yTopoTronco = yTopoTree + 12;
+        const yBaseTronco = baselines[baselines.length - 1] - 3;
+        pagina.drawRectangle({ x: xTronco, y: yBaseTronco, width: 1.2, height: yTopoTronco - yBaseTronco, color: corRgb });
+        pagina.drawRectangle({ x: xTronco, y: yTopoTronco - 0.6, width: 6, height: 1.2, color: corRgb });
+        baselines.forEach((yb) => {
+            pagina.drawRectangle({ x: xTronco, y: yb - 0.6, width: xTexto - xTronco - 5, height: 1.2, color: corRgb });
+        });
+        return y;
+    }
+
+    // Página-título de seção ("capa intermediária") — a próxima página já
+    // começa "limpa" pro conteúdo real daquela seção. indicesDivisoria
+    // (opcional): Set preenchido com o índice (0-based) desta página, pra
+    // numerarPaginas() pular — divisória não é "conteúdo numerado", é
+    // título de seção (pedido do Alexsandro: "as capas internas não devem
+    // ter número de página", mesmo raciocínio já aplicado à capa e ao
+    // sumário). modelo/sec (opcionais, default 'A'/null): dois desenhos
+    // diferentes, escolhidos entre os mockups do protótipo —
+    //   'A' (sóbrio): selo circular com o número da categoria (cor da
+    //       categoria, ou cinza neutro sem categoria — Memorial/links),
+    //       título centralizado, linhas finas em cima/embaixo.
+    //   'B' (colorido): a faixa lateral vira uma cor SÓLIDA (a cor da
+    //       categoria — "a bolinha, a barra e as linhas de interligação
+    //       têm a mesma cor", pedido do Alexsandro) em vez do índice de 12
+    //       cores das páginas de conteúdo; título alinhado à coluna de
+    //       texto, com as subcategorias (sec.tipos) listadas abaixo, presas
+    //       ao título por um conector de árvore (ver desenharSubcategorias).
+    // sec (opcional): a seção/categoria (mesmo objeto de model.secoes —
+    // ver buildPublicModel em tab-publicar.js) por trás desta divisória,
+    // quando ela tem uma (Memorial e "Evidências em link" não têm
+    // categoria própria, então sec fica null/ausente nesses casos).
+    function desenharDivisoria(pdfDoc, fontes, titulo, indicesDivisoria, modelo, sec) {
         const pagina = pdfDoc.addPage([PAGE_W, PAGE_H]);
-        pagina.drawRectangle({ x: 0, y: PAGE_H / 2 - 60, width: PAGE_W, height: 3, color: fontes.corAccent });
+        if (indicesDivisoria) indicesDivisoria.add(pdfDoc.getPageCount() - 1);
+        const num = sec && sec.num;
+        const cor = num ? corDaCategoria(num) : CINZA_NEUTRO;
+
+        if (modelo === 'B') {
+            pagina.drawRectangle({ x: 0, y: 0, width: SIDEBAR_W, height: PAGE_H, color: fontes.rgb(cor[0], cor[1], cor[2]) });
+            const xTexto = SIDEBAR_W + 40;
+            const larguraTexto = PAGE_W - xTexto - MARGIN;
+            let y = PAGE_H - 70;
+            const diamSelo = 46;
+            if (num) {
+                y = desenharSeloCategoria(pagina, fontes, xTexto + diamSelo / 2, y, diamSelo, cor, String(num).padStart(2, '0'));
+                y -= 20;
+            }
+            pagina.drawRectangle({ x: xTexto, y, width: larguraTexto, height: 0.75, color: fontes.corRule });
+            y -= 20;
+
+            const fonteTitulo = fontes.tituloFonte;
+            const textoSeguro = sanitizarTexto(fonteTitulo, titulo);
+            let tamTitulo = 19;
+            while (tamTitulo > 13 && fonteTitulo.widthOfTextAtSize(textoSeguro, tamTitulo) > larguraTexto * 2.2) tamTitulo -= 1;
+            quebrarLinhas(titulo, fonteTitulo, tamTitulo, larguraTexto).forEach((linha) => {
+                pagina.drawText(sanitizarTexto(fonteTitulo, linha), { x: xTexto, y, size: tamTitulo, font: fonteTitulo, color: fontes.corTexto });
+                y -= tamTitulo * 1.2;
+            });
+            y -= 12;
+
+            const subcategorias = sec ? (sec.tipos || []).map((t) => t.label).filter(Boolean).slice(0, 10) : [];
+            if (subcategorias.length) desenharSubcategorias(pagina, fontes, xTexto, y, cor, subcategorias);
+            return pagina;
+        }
+
+        const larguraRegua = 40;
+        let y = PAGE_H / 2 + 70;
+        pagina.drawRectangle({ x: PAGE_W / 2 - larguraRegua / 2, y, width: larguraRegua, height: 1.5, color: fontes.rgb(cor[0], cor[1], cor[2]) });
+        y -= 30;
+
+        const diamSelo = 60;
+        if (num) {
+            y = desenharSeloCategoria(pagina, fontes, PAGE_W / 2, y, diamSelo, cor, String(num).padStart(2, '0'));
+            y -= 24;
+        }
+
         const fonte = fontes.tituloFonte;
         const textoSeguro = sanitizarTexto(fonte, titulo);
         // Título de categoria ("Anexo <romano> — <categoria>") pode ser bem
         // mais comprido que "Memorial"/"Anexos" — encolhe a fonte até caber
         // na largura útil da página em vez de deixar vazar pelas bordas.
-        let tamanho = 28;
+        let tamanho = 26;
         while (tamanho > 14 && fonte.widthOfTextAtSize(textoSeguro, tamanho) > CONTENT_W) tamanho -= 1;
-        const largura = fonte.widthOfTextAtSize(textoSeguro, tamanho);
-        pagina.drawText(textoSeguro, { x: (PAGE_W - largura) / 2, y: PAGE_H / 2 - 20, size: tamanho, font: fonte, color: fontes.corTexto });
+        quebrarLinhas(titulo, fonte, tamanho, CONTENT_W).forEach((linha) => {
+            const seguro = sanitizarTexto(fonte, linha);
+            const largura = fonte.widthOfTextAtSize(seguro, tamanho);
+            pagina.drawText(seguro, { x: (PAGE_W - largura) / 2, y, size: tamanho, font: fonte, color: fontes.corTexto });
+            y -= tamanho * 1.2;
+        });
+        y -= 18;
+        pagina.drawRectangle({ x: PAGE_W / 2 - larguraRegua / 2, y, width: larguraRegua, height: 1.5, color: fontes.rgb(cor[0], cor[1], cor[2]) });
         return pagina;
     }
 
@@ -292,13 +393,20 @@ window.LzPdfReport = (function () {
         // Rótulo da categoria (texto rotacionado) com o dobro do tamanho
         // original (pedido do Alexsandro — só este, não o número grande
         // acima, pra não estourar a largura da barra em categorias de 2
-        // dígitos) — o deslocamento a partir da borda direita da barra
-        // escala junto, pra manter o texto centralizado na largura da
-        // barra como estava antes.
+        // dígitos). Rotação de 90° (sentido anti-horário, convenção do
+        // PDF): o "ascent" do texto (que sem rotação ficaria acima da linha
+        // de base) passa a apontar pra ESQUERDA do ponto (x,y), e o
+        // "descent" pra DIREITA — centralizar na largura da barra exige
+        // compensar essa assimetria (métricas padrão da Helvetica: ascent
+        // ~0,718em, descent ~0,207em a partir da linha de base), não só
+        // metade do tamanho da fonte. A fórmula antiga (deslocamento fixo a
+        // partir da borda direita) não escalava certo com o tamanho da
+        // fonte — descentralizava ao aumentá-la (pedido do Alexsandro).
         const lbl = sanitizarTexto(fontes.negrito, (contexto.label || '').toUpperCase());
         if (lbl) {
             const lblTam = 15;
-            pagina.drawText(lbl, { x: SIDEBAR_W - (16 / 7.5) * lblTam, y: 90, size: lblTam, font: fontes.negrito, color: corTexto, rotate: fontes.degrees(90) });
+            const xLbl = SIDEBAR_W / 2 + (0.718 - 0.207) * lblTam / 2;
+            pagina.drawText(lbl, { x: xLbl, y: 90, size: lblTam, font: fontes.negrito, color: corTexto, rotate: fontes.degrees(90) });
         }
     }
 
@@ -748,10 +856,22 @@ window.LzPdfReport = (function () {
     // estilo do Memorial) ou sem nenhuma, direto pro primeiro item — nos
     // dois casos, o número de página da 1ª página de cada categoria é
     // gravado na entrada do sumário correspondente (grupo.entrada).
-    async function anexarEvidencias(pdfDoc, PDFLib, escritor, fontes, modelo, grupos, linksNota, entradaLinks, paginasDivisao) {
+    async function anexarEvidencias(pdfDoc, PDFLib, escritor, fontes, modelo, grupos, linksNota, entradaLinks, paginasDivisao, indicesDivisoria, contextoB) {
         const { PDFDocument } = PDFLib;
         for (const grupo of grupos) {
-            if (paginasDivisao) desenharDivisoria(pdfDoc, fontes, grupo.entrada.titulo);
+            // Barra lateral (modelo B) segue a categoria de cada bloco de
+            // anexos — "Anexo | <categoria>" na cor real da categoria — em
+            // vez do rótulo/cinza neutro fixo (pedido do Alexsandro; não
+            // se aplica à própria página de divisória, que já usa a cor da
+            // categoria por conta própria).
+            if (contextoB) {
+                if (grupo.sec && grupo.sec.num) {
+                    Object.assign(contextoB, { cor: corDaCategoria(grupo.sec.num), num: grupo.sec.num, label: `Anexo | ${grupo.sec.label}`, corTexto: undefined });
+                } else {
+                    Object.assign(contextoB, { cor: CINZA_CLARO_ANEXOS, num: null, label: `Anexo | ${grupo.sec.label}`, corTexto: TEXTO_ESCURO_ANEXOS });
+                }
+            }
+            if (paginasDivisao) desenharDivisoria(pdfDoc, fontes, grupo.entrada.titulo, indicesDivisoria, modelo, grupo.sec);
             let primeiraPaginaRegistrada = false;
             const registrarPrimeiraPagina = () => {
                 if (!primeiraPaginaRegistrada) { grupo.entrada.paginaIndex = escritor.numeroPagina; primeiraPaginaRegistrada = true; }
@@ -797,7 +917,8 @@ window.LzPdfReport = (function () {
             }
         }
         if (linksNota.length) {
-            if (paginasDivisao) desenharDivisoria(pdfDoc, fontes, entradaLinks.titulo);
+            if (contextoB) Object.assign(contextoB, { cor: CINZA_CLARO_ANEXOS, num: null, label: 'Anexos', corTexto: TEXTO_ESCURO_ANEXOS });
+            if (paginasDivisao) desenharDivisoria(pdfDoc, fontes, entradaLinks.titulo, indicesDivisoria, modelo, null);
             escritor.novaPagina();
             if (entradaLinks) entradaLinks.paginaIndex = escritor.numeroPagina;
             escritor.linha('Evidências em link (endereço na web, sem arquivo para anexar)', { negrito: true, tamanho: 12 });
@@ -823,36 +944,108 @@ window.LzPdfReport = (function () {
         return linhas;
     }
 
-    // Motivo decorativo "tijolos empilhados" no canto inferior direito da
-    // capa do Modelo B (pedido do Alexsandro, entre as 3 propostas de
-    // mockup) — pirâmide de fileiras (4-3-2-1), cada tijolo numa cor
-    // diferente da paleta de categorias. Alinhada pela DIREITA (a borda
-    // direita de cada fileira encosta em xDireita, em vez de centralizada),
-    // com o dobro do tamanho original, começando exatamente na margem
-    // inferior (pedido do Alexsandro, depois de ver a primeira versão).
-    function desenharTijolosCapa(pagina, fontes, xDireita, yBase) {
-        const cores = [2, 4, 6, 9, 0, 7].map((i) => PALETA_CATEGORIAS[i]);
-        const bw = 40, bh = 24, gap = 6;
-        let corIdx = 0, y = yBase;
-        [4, 3, 2, 1].forEach((n) => {
-            const rowW = n * bw + (n - 1) * gap;
-            const xIni = xDireita - rowW;
-            for (let i = 0; i < n; i++) {
-                const c = cores[corIdx % cores.length]; corIdx += 1;
-                pagina.drawRectangle({ x: xIni + i * (bw + gap), y, width: bw, height: bh, color: fontes.rgb(c[0], c[1], c[2]) });
-            }
-            y += bh + gap;
+    // Distribui uma lista de [palavra, frequência] (já ordenada, mais
+    // frequente primeiro — mesmo formato de TabLinhaTempo.contarPalavras())
+    // num "fluxo" de linhas que quebram dentro de larguraMax, cada palavra
+    // com tamanho de fonte proporcional à frequência (mesma escala linear
+    // já usada por TabLinhaTempo.renderNuvemPalavras() no app — aqui em
+    // pontos, não rem). Layout "editorial" (linhas que quebram e
+    // centralizam), não o espiral com detecção de colisão da versão web:
+    // mais simples de portar pro pdf-lib (sem DOM/canvas pra medir texto) e
+    // mais legível numa página impressa. As `nDestaque` palavras mais
+    // frequentes ganham negrito + uma cor da paleta de categorias
+    // (cor.length delas, cíclico); o resto fica em 2 tons de cinza,
+    // proporcional ao tamanho. Pura (só usa fonte.widthOfTextAtSize) —
+    // exposta só para teste.
+    function layoutNuvemFlow(palavras, fonteRegular, fonteNegrito, opts) {
+        opts = opts || {};
+        if (!palavras || !palavras.length) return { spans: [], altura: 0 };
+        const larguraMax = opts.larguraMax;
+        const tamMin = opts.tamMin != null ? opts.tamMin : 8;
+        const tamMax = opts.tamMax != null ? opts.tamMax : 24;
+        const nDestaque = opts.nDestaque || 0;
+        const gapX = opts.gapX != null ? opts.gapX : 6;
+        const gapY = opts.gapY != null ? opts.gapY : 4;
+        const lineHeight = opts.lineHeight || 1.15;
+        const coresDestaque = opts.coresDestaque || [[0.075, 0.318, 0.706]];
+        const corMedia = opts.corMedia || [0.11, 0.11, 0.11];
+        const corMuted = opts.corMuted || [0.55, 0.55, 0.52];
+        const align = opts.align || 'center';
+
+        const max = palavras[0][1];
+        const min = palavras[palavras.length - 1][1];
+        const tamanhoDe = (n) => (max === min ? (tamMin + tamMax) / 2 : tamMin + ((n - min) / (max - min)) * (tamMax - tamMin));
+        const meio = tamMin + (tamMax - tamMin) * 0.55;
+
+        const itens = palavras.map(([w, n], i) => {
+            const tamanho = tamanhoDe(n);
+            const destaque = i < nDestaque;
+            const fonte = destaque || tamanho >= meio ? fonteNegrito : fonteRegular;
+            const cor = destaque ? coresDestaque[i % coresDestaque.length] : (tamanho >= meio ? corMedia : corMuted);
+            const largura = fonte.widthOfTextAtSize(w, tamanho);
+            return { texto: w, tamanho, fonte, cor, largura };
         });
+
+        const linhas = [];
+        let atual = [], larguraAtual = 0;
+        itens.forEach((item) => {
+            const acrescimo = item.largura + (atual.length ? gapX : 0);
+            if (atual.length && larguraAtual + acrescimo > larguraMax) {
+                linhas.push(atual);
+                atual = [item];
+                larguraAtual = item.largura;
+            } else {
+                atual.push(item);
+                larguraAtual += acrescimo;
+            }
+        });
+        if (atual.length) linhas.push(atual);
+
+        const spans = [];
+        let y = 0;
+        linhas.forEach((linha) => {
+            const alturaLinha = Math.max(...linha.map((it) => it.tamanho)) * lineHeight;
+            const larguraLinha = linha.reduce((s, it, i) => s + it.largura + (i ? gapX : 0), 0);
+            let x = align === 'left' ? 0 : (larguraMax - larguraLinha) / 2;
+            linha.forEach((it) => {
+                spans.push({ texto: it.texto, tamanho: it.tamanho, cor: it.cor, fonte: it.fonte, x, y: y + alturaLinha });
+                x += it.largura + gapX;
+            });
+            y += alturaLinha + gapY;
+        });
+        return { spans, altura: Math.max(0, y - gapY) };
     }
 
-    // Capa do Modelo B: "faixa lateral estendida" — a mesma faixa colorida
-    // das páginas de conteúdo (desenharSidebarB) cobre a capa inteira,
-    // como uma sequência das 12 cores de categoria (um "código de barras"
-    // que já anuncia a linguagem visual do resto do documento). Texto bem
-    // afastado da faixa, nome e subtítulo maiores que no Modelo A, contato
-    // logo abaixo do subtítulo — ajustes pedidos pelo Alexsandro depois de
-    // ver 3 propostas de mockup.
-    function desenharCapaB(pagina, fontes, model, subtitulo, fotoImg, linhasContato) {
+    // Selo circular colorido com o número da categoria em branco,
+    // centralizado — versão "grande" (capa/divisórias) do índice numérico
+    // já usado na faixa lateral (ver desenharSidebarB). cx = centro
+    // horizontal; yTopo = topo do círculo (Y decresce a partir daí,
+    // convenção pdf-lib). Devolve o Y da base do círculo, pra continuar o
+    // layout abaixo dele.
+    function desenharSeloCategoria(pagina, fontes, cx, yTopo, diametro, cor, numero) {
+        const cy = yTopo - diametro / 2;
+        pagina.drawCircle({ x: cx, y: cy, size: diametro / 2, color: fontes.rgb(cor[0], cor[1], cor[2]) });
+        if (numero) {
+            const numSeguro = sanitizarTexto(fontes.negrito, numero);
+            const tam = diametro * 0.32;
+            const w = fontes.negrito.widthOfTextAtSize(numSeguro, tam);
+            pagina.drawText(numSeguro, { x: cx - w / 2, y: cy - tam * 0.36, size: tam, font: fontes.negrito, color: fontes.rgb(1, 1, 1) });
+        }
+        return yTopo - diametro;
+    }
+
+    // Capa do Modelo B — "nuvem em destaque": cabeçalho compacto (foto,
+    // nome, ORCID), nuvem de palavras (termos mais frequentes do catálogo)
+    // como elemento central da capa, e o texto inicial do Currículo Lattes
+    // (RESUMO_CV) como epígrafe logo abaixo dela — escolhida entre 3
+    // propostas de mockup (pedido do Alexsandro: incluir a nuvem e o texto
+    // inicial na capa). Telefone/e-mail viraram um bloco à parte, mais
+    // discreto, alinhado à direita perto do rodapé (pedido do Alexsandro:
+    // separar do ORCID, que fica junto do nome). A nuvem faz o mesmo papel
+    // visual que a pirâmide de tijolos fazia antes (preenche o espaço, dá
+    // cor à capa) — mas com informação de verdade, no espírito já usado na
+    // faixa lateral colorida do resto do Modelo B.
+    function desenharCapaB(pagina, fontes, model, subtitulo, fotoImg) {
         const faixaH = PAGE_H / PALETA_CATEGORIAS.length;
         PALETA_CATEGORIAS.forEach((cor, i) => {
             pagina.drawRectangle({ x: 0, y: PAGE_H - (i + 1) * faixaH - 0.5, width: SIDEBAR_W, height: faixaH + 1, color: fontes.rgb(cor[0], cor[1], cor[2]) });
@@ -860,35 +1053,98 @@ window.LzPdfReport = (function () {
 
         const xTexto = SIDEBAR_W + 54;
         const larguraTexto = PAGE_W - xTexto - MARGIN;
-        let y = PAGE_H - 140;
+        const cxTexto = xTexto + larguraTexto / 2;
+        const larguraBloco = Math.min(larguraTexto, 340);
+        const xBloco = cxTexto - larguraBloco / 2;
 
+        // Subtítulo ("Curriculum Vitae"/"Evidências") fixo perto do topo da
+        // coluna de texto, centralizado — sai do caminho do cabeçalho/nuvem
+        // logo abaixo, em vez de competir por espaço com eles.
+        const subTam = 10;
+        const subSeguro = sanitizarTexto(fontes.negrito, subtitulo.toUpperCase());
+        const subLargura = fontes.negrito.widthOfTextAtSize(subSeguro, subTam);
+        pagina.drawText(subSeguro, { x: cxTexto - subLargura / 2, y: PAGE_H - 46, size: subTam, font: fontes.negrito, color: fontes.corAccent });
+
+        let y = PAGE_H - 100;
         if (fotoImg) {
-            const lado = 108;
+            const lado = 76;
             const escala = Math.min(lado / fotoImg.width, lado / fotoImg.height);
             const w = fotoImg.width * escala, h = fotoImg.height * escala;
-            pagina.drawImage(fotoImg, { x: xTexto, y: y - h, width: w, height: h });
-            y -= h + 28;
+            pagina.drawImage(fotoImg, { x: cxTexto - w / 2, y: y - h, width: w, height: h });
+            y -= h + 16;
         }
 
-        const nomeTam = 30;
+        const nomeTam = 20;
         quebrarLinhas(model.nome, fontes.nomeFonte, nomeTam, larguraTexto).forEach((linha) => {
-            pagina.drawText(sanitizarTexto(fontes.nomeFonte, linha), { x: xTexto, y, size: nomeTam, font: fontes.nomeFonte, color: fontes.corTextoCapa });
-            y -= nomeTam * 1.12;
+            const seguro = sanitizarTexto(fontes.nomeFonte, linha);
+            const w = fontes.nomeFonte.widthOfTextAtSize(seguro, nomeTam);
+            pagina.drawText(seguro, { x: cxTexto - w / 2, y, size: nomeTam, font: fontes.nomeFonte, color: fontes.corTextoCapa });
+            y -= nomeTam * 1.15;
         });
+
+        if (model.orcid) {
+            y -= 4;
+            const seguro = sanitizarTexto(fontes.regular, `ORCID: ${model.orcid}`);
+            const w = fontes.regular.widthOfTextAtSize(seguro, 9);
+            pagina.drawText(seguro, { x: cxTexto - w / 2, y, size: 9, font: fontes.regular, color: fontes.corTextoCapaMuted });
+            y -= 16;
+        }
+
         y -= 6;
+        pagina.drawRectangle({ x: xTexto, y, width: larguraTexto, height: 0.75, color: fontes.corRule });
+        y -= 24;
 
-        const subTam = 17;
-        pagina.drawText(sanitizarTexto(fontes.negrito, subtitulo.toUpperCase()), { x: xTexto, y, size: subTam, font: fontes.negrito, color: fontes.corAccent });
+        // Nuvem de palavras — limitada aos ~18 termos mais frequentes, pra
+        // caber com folga numa capa (página única, sem overflow pra
+        // próxima página).
+        const nuvemPalavras = (model.nuvemPalavras || []).slice(0, 18);
+        if (nuvemPalavras.length) {
+            const nuvem = layoutNuvemFlow(nuvemPalavras, fontes.regular, fontes.negrito, {
+                larguraMax: larguraBloco, tamMin: 8, tamMax: 22, nDestaque: 3, gapX: 5, gapY: 3,
+                coresDestaque: [PALETA_CATEGORIAS[2], PALETA_CATEGORIAS[4], PALETA_CATEGORIAS[6]],
+                corMedia: [0.11, 0.11, 0.11], corMuted: [0.55, 0.55, 0.52],
+            });
+            nuvem.spans.forEach((span) => {
+                const seguro = sanitizarTexto(span.fonte, span.texto);
+                pagina.drawText(seguro, { x: xBloco + span.x, y: y - span.y, size: span.tamanho, font: span.fonte, color: fontes.rgb(span.cor[0], span.cor[1], span.cor[2]) });
+            });
+            y -= nuvem.altura + 18;
+        }
 
-        if (linhasContato.length) {
-            y -= 26;
-            linhasContato.forEach((txt) => {
-                pagina.drawText(sanitizarTexto(fontes.regular, txt), { x: xTexto, y, size: 10.5, font: fontes.regular, color: fontes.corTextoCapaMuted });
-                y -= 16;
+        // Texto inicial do Currículo Lattes (RESUMO_CV), como epígrafe —
+        // limitado a 6 linhas (mesma lógica de segurança da nuvem acima).
+        if (model.bio) {
+            const bioTam = 9;
+            quebrarLinhas(model.bio, fontes.regular, bioTam, larguraBloco).slice(0, 6).forEach((linha) => {
+                const seguro = sanitizarTexto(fontes.regular, linha);
+                const w = fontes.regular.widthOfTextAtSize(seguro, bioTam);
+                pagina.drawText(seguro, { x: cxTexto - w / 2, y, size: bioTam, font: fontes.regular, color: fontes.rgb(0.36, 0.36, 0.33) });
+                y -= bioTam * 1.55;
             });
         }
 
-        desenharTijolosCapa(pagina, fontes, PAGE_W - MARGIN, MARGIN);
+        // Telefone/e-mail — bloco à parte, mais discreto, alinhado à
+        // direita da coluna de texto, ancorado perto do rodapé (posição
+        // fixa, não encadeado ao fim da nuvem/bio acima — evita colidir com
+        // conteúdo variável, capa é página única sem "próxima página").
+        const contatos = [model.telefone, model.email].filter(Boolean);
+        if (contatos.length) {
+            let yContato = 108;
+            contatos.forEach((txt) => {
+                const seguro = sanitizarTexto(fontes.regular, txt);
+                const w = fontes.regular.widthOfTextAtSize(seguro, 9);
+                pagina.drawText(seguro, { x: PAGE_W - MARGIN - w, y: yContato, size: 9, font: fontes.regular, color: fontes.corTextoCapaMuted });
+                yContato -= 15;
+            });
+        }
+
+        // Linha fina + ano corrente, no rodapé, centralizada na coluna de
+        // texto — fecha a capa com uma marca discreta.
+        const ano = String(new Date().getFullYear());
+        const anoSeguro = sanitizarTexto(fontes.regular, ano);
+        const anoLargura = fontes.regular.widthOfTextAtSize(anoSeguro, 9);
+        pagina.drawRectangle({ x: cxTexto - 12, y: 40, width: 24, height: 0.75, color: fontes.corRule });
+        pagina.drawText(anoSeguro, { x: cxTexto - anoLargura / 2, y: 26, size: 9, font: fontes.regular, color: fontes.corTextoCapaMuted });
     }
 
     // Nome/foto/ORCID do Ego (Identificação) — mesmos dados já resolvidos
@@ -896,13 +1152,13 @@ window.LzPdfReport = (function () {
     function desenharCapa(pdfDoc, fontes, modelo, model, subtitulo, fotoImg) {
         const pagina = pdfDoc.addPage([PAGE_W, PAGE_H]);
         pagina.drawRectangle({ x: 0, y: 0, width: PAGE_W, height: PAGE_H, color: fontes.corCapaFundo });
-        const linhasContato = linhasContatoCapa(model);
 
         if (modelo === 'B') {
-            desenharCapaB(pagina, fontes, model, subtitulo, fotoImg, linhasContato);
+            desenharCapaB(pagina, fontes, model, subtitulo, fotoImg);
             return pagina;
         }
 
+        const linhasContato = linhasContatoCapa(model);
         pagina.drawRectangle({ x: PAGE_W / 2 - 20, y: PAGE_H - 64, width: 40, height: 2, color: fontes.corAccent });
         pagina.drawRectangle({ x: PAGE_W / 2 - 20, y: 62, width: 40, height: 2, color: fontes.corAccent });
         let y = PAGE_H - 220;
@@ -1007,6 +1263,26 @@ window.LzPdfReport = (function () {
         });
     }
 
+    // Número visível de uma página de CONTEÚDO (índice 0-based), ou null se
+    // ela não deve ganhar número — capa/sumário (índice < paginasSemNumero)
+    // e divisórias internas (indicesDivisoria: Memorial/Anexos/categoria,
+    // preenchido por desenharDivisoria() — só título de seção, não conteúdo
+    // numerado, mesmo critério já aplicado à capa/sumário; pedido do
+    // Alexsandro: "as capas internas não devem ter número de página"). A
+    // contagem visível continua sequencial (sem pular número) — cada
+    // divisória antes do índice desconta 1 do valor bruto (índice -
+    // paginasSemNumero + 1). Pura (sem pdf-lib) — usada por
+    // numerarPaginas()/criarEscritor() e exposta só para teste.
+    function numeroVisivelDaPagina(indice, paginasSemNumero, indicesDivisoria) {
+        if (indice < paginasSemNumero) return null;
+        if (indicesDivisoria && indicesDivisoria.has(indice)) return null;
+        let divisoriasAntes = 0;
+        if (indicesDivisoria) {
+            indicesDivisoria.forEach((idx) => { if (idx >= paginasSemNumero && idx < indice) divisoriasAntes += 1; });
+        }
+        return (indice - paginasSemNumero + 1) - divisoriasAntes;
+    }
+
     // Numera as páginas de CONTEÚDO — nem a capa nem o sumário entram na
     // contagem (pedido do Alexsandro): "1" cai na 1ª página depois do
     // sumário (Memorial/Currículo/Anexos, o que vier primeiro), não mais na
@@ -1014,11 +1290,13 @@ window.LzPdfReport = (function () {
     // do sumário, já resolvido antes de chamar isto — ver gerar()) marca
     // onde a contagem visível começa. modelo === 'B': número sobe pro canto
     // superior direito (pedido do Alexsandro), em vez do rodapé central de
-    // sempre.
-    function numerarPaginas(pdfDoc, fontes, modelo, paginasSemNumero) {
+    // sempre. indicesDivisoria: ver numeroVisivelDaPagina() acima.
+    function numerarPaginas(pdfDoc, fontes, modelo, paginasSemNumero, indicesDivisoria) {
         const paginas = pdfDoc.getPages();
         for (let i = paginasSemNumero; i < paginas.length - 1; i++) {
-            const numero = String(i - paginasSemNumero + 1);
+            const num = numeroVisivelDaPagina(i, paginasSemNumero, indicesDivisoria);
+            if (num == null) continue;
+            const numero = String(num);
             const w = fontes.regular.widthOfTextAtSize(numero, 9);
             if (modelo === 'B') {
                 paginas[i].drawText(numero, { x: PAGE_W - MARGIN - w, y: PAGE_H - MARGIN + 16, size: 9, font: fontes.regular, color: fontes.corMuted });
@@ -1164,7 +1442,11 @@ window.LzPdfReport = (function () {
             let romanoIdx = 0;
             gruposAnexo.forEach((g) => {
                 romanoIdx += 1;
-                g.entrada = { titulo: `Anexo ${numeroRomano(romanoIdx)} — ${g.sec.label}`, nivel: 1, paginaIndex: null, num: g.sec.num };
+                // Formato pedido pelo Alexsandro: "Anexo I - 03 Atuação" (o
+                // número da categoria, já zero-padded em LATTES_CATEGORIES,
+                // antes do nome — sem ele nas seções sem categoria própria,
+                // como "Outras atividades").
+                g.entrada = { titulo: `Anexo ${numeroRomano(romanoIdx)} - ${g.sec.num ? g.sec.num + ' ' : ''}${g.sec.label}`, nivel: 1, paginaIndex: null, num: g.sec.num };
                 entradasSumario.push(g.entrada);
             });
             if (linksNota.length) {
@@ -1183,7 +1465,14 @@ window.LzPdfReport = (function () {
         // (nenhum conteúdo foi desenhado ainda), então isto é literalmente
         // "quantas páginas vêm antes da 1ª página numerada como '1'".
         const paginasSemNumero = pdfDoc.getPageCount();
-        const escritor = criarEscritor(pdfDoc, fontes, paginasSemNumero);
+        // Índices (0-based) das divisórias internas (Memorial/Anexos/
+        // categoria) — preenchido por desenharDivisoria() conforme cada uma
+        // é criada, e usado tanto por numeroPagina (acima) quanto por
+        // numerarPaginas() no fim, pra nenhuma delas ganhar número de
+        // página (pedido do Alexsandro: "as capas internas não devem ter
+        // número de página").
+        const indicesDivisoria = new Set();
+        const escritor = criarEscritor(pdfDoc, fontes, paginasSemNumero, indicesDivisoria);
         // contextoA/contextoB alimentam o decorador (cabeçalho corrido do
         // Modelo A / faixa lateral do Modelo B), atualizados ANTES de cada
         // novaPagina()/seção — ver criarEscritor() e desenharCabecalhoA/
@@ -1196,7 +1485,7 @@ window.LzPdfReport = (function () {
 
         // 3) Memorial (só existe se houver texto e incluirCurriculo)
         if (memorialTexto) {
-            desenharDivisoria(pdfDoc, fontes, 'Memorial');
+            desenharDivisoria(pdfDoc, fontes, 'Memorial', indicesDivisoria, modelo, null);
             contextoA.secao = 'Memorial';
             Object.assign(contextoB, { cor: CINZA_NEUTRO, num: null, label: 'Memorial' });
             escritor.novaPagina();
@@ -1260,7 +1549,7 @@ window.LzPdfReport = (function () {
         if (temAnexos) {
             contextoA.secao = 'Anexos — Evidências';
             Object.assign(contextoB, { cor: CINZA_CLARO_ANEXOS, num: null, label: 'Anexos', corTexto: TEXTO_ESCURO_ANEXOS });
-            await anexarEvidencias(pdfDoc, PDFLib, escritor, fontes, modelo, gruposAnexo, linksNota, entradaLinks, paginasDivisao);
+            await anexarEvidencias(pdfDoc, PDFLib, escritor, fontes, modelo, gruposAnexo, linksNota, entradaLinks, paginasDivisao, indicesDivisoria, contextoB);
         }
 
         // 6) Contracapa
@@ -1268,7 +1557,7 @@ window.LzPdfReport = (function () {
 
         // 7) Sumário (agora com os índices de página resolvidos) e paginação.
         desenharSumario(paginasSumario, fontes, entradasSumario, modelo);
-        numerarPaginas(pdfDoc, fontes, modelo, paginasSemNumero);
+        numerarPaginas(pdfDoc, fontes, modelo, paginasSemNumero, indicesDivisoria);
 
         return pdfDoc.save();
     }
@@ -1282,6 +1571,7 @@ window.LzPdfReport = (function () {
     // Tailwind/Font Awesome — ver harness.mjs).
     return {
         gerar, quebrarLinhas, anexosDoModelo, calcularPaginasSumario, sanitizarTexto, tituloParaLinha, linhaDoItem,
-        corDaCategoria, misturarComBranco, sufixoCargaHoraria, numeroRomano, anexosDaSecaoSemLink,
+        corDaCategoria, misturarComBranco, sufixoCargaHoraria, numeroRomano, anexosDaSecaoSemLink, numeroVisivelDaPagina,
+        layoutNuvemFlow,
     };
 })();

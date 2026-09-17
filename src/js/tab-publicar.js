@@ -100,10 +100,12 @@ window.TabPublicar = (function () {
                     // Caminho "de onde a evidência mora" — modo de armazenamento +
                     // pasta raiz + Evidências/categoria + arquivo — mostrado no
                     // rodapé da página de evidência do Relatório (PDF), pedido do
-                    // Alexsandro: "Evidência disponível em: /Google Drive: ~/pasta/
-                    // Evidências/categoria/id-evidencia.ext".
+                    // Alexsandro: "Evidência disponível em: Google Drive/Meu Drive/
+                    // acc-curriculum/Evidências/03 Atuação/acc-art-3a.pdf" — caminho
+                    // completo, com o segmento "Meu Drive" só no modo Google Drive
+                    // (pastaBase já inclui o prefixo "Evidências/").
                     const modoLabel = storageModo === 'gdrive' ? 'Google Drive' : 'Pasta local';
-                    const caminho = `/${modoLabel}: ~/${rootName ? rootName + '/' : ''}${pastaBase}/${ev.basename}.${ev.ext}`;
+                    const caminho = `${modoLabel}${storageModo === 'gdrive' ? '/Meu Drive' : ''}/${rootName ? rootName + '/' : ''}${pastaBase}/${ev.basename}.${ev.ext}`;
                     if (external && isImageExt(ev.ext)) {
                         const relPath = `${PUB_IMG_SUBDIR}/${ev.basename}.${ev.ext}`;
                         await Storage.writeFile(`${ev.basename}.${ev.ext}`, f, `${LattesTypes.publicacaoFolder()}/${PUB_IMG_SUBDIR}`);
