@@ -400,6 +400,58 @@ test('scanDirectory() reconstrói todos os itens de várias pastas de categoria,
 });
 
 /* ==========================================================================
+   Regressão: scanDirectory() ignora arquivos "ocultos" que o sistema
+   operacional cria sozinho numa pasta (nunca escritos pelo próprio app) —
+   relatado pelo Alexsandro: sincronizar pelo celular mostrava "N pasta(s)
+   não sincronizadas" por causa de arquivos "._nomedoarquivo" (o
+   "AppleDouble" que o macOS cria ao copiar/sincronizar arquivos fora de um
+   disco formatado como APFS/HFS+ — guarda metadados de recurso, não é JSON
+   de verdade, e mantém a extensão original, então batia com o filtro de
+   ".json"). Como o sistema operacional os recria sozinho, a falha nunca se
+   resolvia sozinha — precisou apagar os arquivos manualmente.
+   ========================================================================== */
+test('scanDirectory() (Google Drive) ignora arquivos ocultos (ex.: "._nome.json") em vez de tentar lê-los como item', async ({ page, baseUrl }) => {
+    const mock = createMockDrive();
+    await mock.install(page);
+    await mockGis(page);
+    await abrirConfig(page, baseUrl);
+    await conectar(page, 'lattesZen');
+
+    await page.evaluate(async () => {
+        await window.Storage.writeJson('it-normal', { id: 'it-normal', titulo: 'Item normal' }, 'Atuação');
+    });
+    const pastaAtuacao = Array.from(mock.files.values()).find((f) => f.name === 'Atuação' && f.isDir);
+    assert(pastaAtuacao, 'A pasta "Atuação" deveria ter sido criada no mock');
+    // Simula o arquivo "sombra" que o macOS cria sozinho — mesmo nome do
+    // item real + ".json", mas sem JSON válido nenhum dentro (na vida
+    // real, é dado binário de recurso).
+    mock.files.set('fake-shadow', { id: 'fake-shadow', name: '._it-normal.json', parentId: pastaAtuacao.id, isDir: false, content: 'não é json de verdade' });
+
+    const { items, falhas, detalhes } = await page.evaluate(() => window.Storage.scanDirectory());
+    assertEqual(items.length, 1, 'Só o item de verdade deveria ter sido lido, ignorando o arquivo "._" oculto');
+    assertEqual(items[0].id, 'it-normal', 'O item lido deveria ser o real, não o arquivo sombra');
+    assertEqual(falhas, 0, 'O arquivo oculto não deveria contar como falha — ele é ignorado, nem chega a ser lido');
+    assertEqual(detalhes.length, 0, 'Sem nenhuma falha, detalhes deveria vir vazio');
+});
+
+test('scanDirectory() (pasta local) também ignora arquivos ocultos (ex.: "._nome.json")', async ({ page, baseUrl }) => {
+    await mockLocalDir(page, [
+        { name: 'it-normal.json', kind: 'file', content: '{"id":"it-normal","titulo":"Item normal"}' },
+        { name: '._it-normal.json', kind: 'file', content: 'não é json de verdade' },
+        { name: '.DS_Store', kind: 'file', content: 'lixo binário do macOS' },
+    ]);
+    await page.goto(baseUrl + '/index.html');
+    await page.waitForTimeout(300);
+    await page.evaluate(() => window.Storage.chooseDirectory());
+
+    const { items, falhas, detalhes } = await page.evaluate(() => window.Storage.scanDirectory());
+    assertEqual(items.length, 1, 'Só o item de verdade deveria ter sido lido, ignorando os arquivos ocultos');
+    assertEqual(items[0].id, 'it-normal', 'O item lido deveria ser o real');
+    assertEqual(falhas, 0, 'Os arquivos ocultos não deveriam contar como falha');
+    assertEqual(detalhes.length, 0, 'Sem nenhuma falha, detalhes deveria vir vazio');
+});
+
+/* ==========================================================================
    Regressão: mensagens de falha mais claras + "tentar de novo só o que
    falhou" (issue relatada pelo Alexsandro: depois de uma sincronização
    incompleta pelo celular, o aviso genérico "2 pasta(s) não puderam ser

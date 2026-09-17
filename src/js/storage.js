@@ -502,7 +502,7 @@ window.Storage = (function () {
             let children; try { children = await window.GDriveClient.listChildren(parentId); } catch (_) { return []; }
             const out = [];
             for (const child of children) {
-                if (child.isDir) continue;
+                if (child.isDir || ehArquivoOculto(child.name)) continue;
                 const m = child.name.match(/\.([^.]+)$/);
                 const ext = m ? m[1].toLowerCase() : '';
                 if (!ATTACH_EXTS.includes(ext)) continue;
@@ -514,7 +514,7 @@ window.Storage = (function () {
         let inbox; try { inbox = await inboxDir(true); } catch (_) { return []; }
         const out = [];
         for await (const [name, h] of inbox.entries()) {
-            if (h.kind !== 'file') continue;
+            if (h.kind !== 'file' || ehArquivoOculto(name)) continue;
             const m = name.match(/\.([^.]+)$/);
             const ext = m ? m[1].toLowerCase() : '';
             if (!ATTACH_EXTS.includes(ext)) continue;
@@ -895,6 +895,19 @@ window.Storage = (function () {
         };
     }
 
+    // Nomes de arquivo que nunca são conteúdo de verdade do catálogo — o
+    // sistema operacional os recria sozinho em pastas externas/de rede
+    // (ex.: "._nome.json", o "AppleDouble" que o macOS usa pra guardar
+    // metadados de recurso ao copiar/sincronizar arquivos fora de um disco
+    // formatado como APFS/HFS+ — mantém a extensão original, então batia
+    // com o filtro de ".json" e o app tentava ler como se fosse um item de
+    // verdade, sempre falhando o JSON.parse pra sempre — como esses
+    // arquivos nunca somem sozinhos, toda sincronização reportava a MESMA
+    // falha, indefinidamente, até apagar manualmente. Pedido do Alexsandro:
+    // simplesmente ignorar qualquer nome começando com "." (também cobre
+    // ".DS_Store" e afins) em vez de tentar ler.
+    function ehArquivoOculto(name) { return String(name).charAt(0) === '.'; }
+
     // Varre uma lista de "raízes" no Google Drive — cada raiz é
     // { tipo: 'pasta', id, caminho } (varre a pasta inteira, recursivamente)
     // ou { tipo: 'arquivo', id, caminho, pastaCaminho } (lê só ESSE arquivo,
@@ -924,7 +937,7 @@ window.Storage = (function () {
                     if (child.name === INBOX_FOLDER) return Promise.resolve(); // não indexa a bandeja de entrada
                     return scanPasta(child.id, caminho ? `${caminho}/${child.name}` : child.name);
                 }
-                if (child.name.toLowerCase().endsWith('.json') && child.name !== 'catalogo.json' && child.name !== SETTINGS_FILE && child.name.indexOf('latteszen-') !== 0) {
+                if (!ehArquivoOculto(child.name) && child.name.toLowerCase().endsWith('.json') && child.name !== 'catalogo.json' && child.name !== SETTINGS_FILE && child.name.indexOf('latteszen-') !== 0) {
                     return lerArquivo(child.id, caminho ? `${caminho}/${child.name}` : child.name, caminho);
                 }
                 return Promise.resolve();
@@ -951,7 +964,7 @@ window.Storage = (function () {
         async function scanPasta(handle, caminho) {
             try {
                 for await (const [name, h] of handle.entries()) {
-                    if (h.kind === 'file' && name.toLowerCase().endsWith('.json') && name !== 'catalogo.json' && name !== SETTINGS_FILE && name.indexOf('latteszen-') !== 0) {
+                    if (h.kind === 'file' && !ehArquivoOculto(name) && name.toLowerCase().endsWith('.json') && name !== 'catalogo.json' && name !== SETTINGS_FILE && name.indexOf('latteszen-') !== 0) {
                         await lerArquivo(h, caminho ? `${caminho}/${name}` : name, caminho);
                     } else if (h.kind === 'directory') {
                         if (name === INBOX_FOLDER) continue; // não indexa a bandeja de entrada
