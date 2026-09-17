@@ -203,9 +203,83 @@
         const s = Storage.loadSettings();
         s.vocab = state.vocab;
         Storage.saveSettings(s);
+        persistirGeral();
     }
     // Publicado em AppCore para tab-catalogar.js — mesmo motivo de uid/nowISO.
     window.AppCore.saveVocab = saveVocab;
+
+    // Configurações modulares (1 JSON por módulo na raiz do diretório — ver
+    // Storage.writeConfigModule/restaurarModuloConfig) — pedido do
+    // Alexsandro: nuvem de palavras, RSC, Súmula e as demais configurações
+    // deveriam sobreviver a trocar de dispositivo do mesmo jeito que os
+    // itens do catálogo já sobrevivem (1 arquivo por item), tornando
+    // "Exportar catálogo" dispensável só pra isso — basta reconectar ao
+    // mesmo diretório/Google Drive. Cada persistirXxx() monta o retrato
+    // ATUAL do módulo e grava; chamado logo depois de cada "Salvar" que já
+    // existia (Storage.loadSettings()/saveSettings() — o cache local rápido
+    // desta janela — continua funcionando exatamente como antes, inalterado).
+    function persistirNuvem() {
+        Storage.writeConfigModule('nuvem-palavras', { exclusao: state.linhaTempo.nuvemExclusao, compostas: state.linhaTempo.nuvemCompostas });
+    }
+    function persistirRsc() {
+        Storage.writeConfigModule('rsc', { enabled: state.rsc.enabled, cfg: state.rsc.cfg, memorialTexto: state.rsc.memorialTexto });
+    }
+    function persistirSumula() {
+        Storage.writeConfigModule('sumula', { enabled: state.sumula.enabled, cfg: state.sumula.cfg, texto: state.sumula.texto });
+    }
+    // idPrefix/vocab/pubWebEnabled — lastCat/lastType (última categoria/tipo
+    // usados em Catalogar) ficam DE FORA de propósito: mudam a cada item
+    // salvo, e perder essa conveniência (só agiliza o próximo cadastro) num
+    // dispositivo novo não justifica gravar um arquivo a cada item.
+    function persistirGeral() {
+        Storage.writeConfigModule('geral', { idPrefix: state.idPrefix, vocab: state.vocab, pubWebEnabled: state.pubWebEnabled });
+    }
+    // pubStyle/deploy_* não têm `state` próprio (tab-publicar.js lê sempre
+    // "ao vivo" de Storage.loadSettings()) — monta o retrato a partir de lá.
+    // O token de deploy (GitHub/Netlify) fica de fora sempre (Storage.loadDeployToken,
+    // chave própria — nunca deveria ir num arquivo que a pessoa pode compartilhar).
+    function persistirPublicar() {
+        const s = Storage.loadSettings();
+        Storage.writeConfigModule('publicar', { pubStyle: s.pubStyle || 'elegante', deployGithub: s.deploy_github || null, deployNetlify: s.deploy_netlify || null });
+    }
+    function persistirAcessibilidade() {
+        Storage.writeConfigModule('acessibilidade', {
+            altoContraste: document.documentElement.classList.contains('high-contrast'),
+            fontScale: parseInt(localStorage.getItem('fontScale') || '100', 10),
+            temaPreset: localStorage.getItem(APP_CONFIG.storageKeys.themePreset) || '',
+        });
+    }
+    window.AppCore.persistirNuvem = persistirNuvem;
+    window.AppCore.persistirRsc = persistirRsc;
+    window.AppCore.persistirSumula = persistirSumula;
+    window.AppCore.persistirGeral = persistirGeral;
+    window.AppCore.persistirPublicar = persistirPublicar;
+    window.AppCore.persistirAcessibilidade = persistirAcessibilidade;
+
+    // Aplica visualmente o módulo "acessibilidade" restaurado de um
+    // diretório (alto contraste, zoom de fonte, tema) — usado só por
+    // syncFromDirectory() abaixo, ao trazer de volta o que outro
+    // dispositivo já tinha configurado.
+    function aplicarAcessibilidade(dados) {
+        const htmlEl = document.documentElement;
+        const altoContraste = !!dados.altoContraste;
+        htmlEl.classList.toggle('high-contrast', altoContraste);
+        localStorage.setItem(APP_CONFIG.storageKeys.highContrast, altoContraste ? '1' : '0');
+        const hc = $('#highContrastToggle');
+        if (hc) hc.setAttribute('aria-pressed', altoContraste ? 'true' : 'false');
+
+        const fs = Math.max(80, Math.min(150, parseInt(dados.fontScale, 10) || 100));
+        htmlEl.style.fontSize = fs === 100 ? '' : fs + '%';
+        localStorage.setItem('fontScale', String(fs));
+        const dec = $('#fontDec'), inc = $('#fontInc');
+        if (dec) dec.disabled = fs <= 80;
+        if (inc) inc.disabled = fs >= 150;
+
+        if (dados.temaPreset) {
+            localStorage.setItem(APP_CONFIG.storageKeys.themePreset, dados.temaPreset);
+            if (window.TabConfig && typeof window.TabConfig.aplicarTema === 'function') window.TabConfig.aplicarTema(dados.temaPreset);
+        }
+    }
 
     // Sincroniza o catálogo local a partir dos arquivos *.json do diretório:
     // mescla por id (nunca remove itens que só existem no índice local —
@@ -230,37 +304,91 @@
         state.catalogo.items = Array.from(byId.values());
         saveCatalog();
 
-        // Restaura as configurações do sistema (prefixo do identificador,
-        // listas de autocomplete, RSC/Súmula etc.) a partir de
-        // configuracoes.json, se o diretório tiver uma — mesmo mecanismo já
-        // usado pra restaurar um backup completo importado, só que automático
-        // a cada sincronização. É o que permite recuperar tudo (itens +
-        // configurações) num navegador/perfil novo só reescaneando o
-        // diretório, sem depender de lembrar de exportar/importar um backup.
+        // Restaura as configurações do sistema — nuvem de palavras, RSC,
+        // Súmula, geral (prefixo/autocomplete/Publicar na Web habilitado),
+        // Publicar na Web (tema/deploy) e Acessibilidade — cada uma do seu
+        // próprio arquivo na raiz do diretório (ver Storage.restaurarModuloConfig),
+        // com fallback pro antigo configuracoes.json (biblioteca de antes
+        // desta modularização — migra sozinha, sem ação nenhuma) e
+        // "semeadura" automática quando nem o novo nem o antigo existirem
+        // ainda: grava o que ESTE dispositivo já tem localmente, corrigindo
+        // a causa raiz do problema relatado pelo Alexsandro (configurações
+        // feitas antes de haver diretório nunca chegavam a ser escritas
+        // nele — só uma sincronização automática, na hora de conectar,
+        // garante isso; antes só acontecia se alguém clicasse "Salvar" de
+        // novo DEPOIS de já haver diretório). Resultado: "Exportar
+        // catálogo" deixa de ser necessário só pra levar configurações a um
+        // dispositivo novo — reconectar ao mesmo diretório/Google Drive já
+        // basta.
         let configRestaurada = false;
         if (!retentativaAlvo) {
             try {
-                const dirSettings = await Storage.readSettingsFromDirectory();
-                if (dirSettings && typeof dirSettings === 'object') {
-                    const merged = Object.assign(Storage.loadSettings(), dirSettings);
-                    Storage.saveSettings(merged);
-                    state.vocab = merged.vocab || {};
-                    state.idPrefix = sanitizePrefix(merged.idPrefix || 'lz');
-                    state.catalogo.lastCat = merged.lastCat || '';
-                    state.catalogo.lastType = merged.lastType || '';
-                    state.rsc.enabled = !!merged.rscEnabled;
-                    state.rsc.cfg = merged.rsc || {};
-                    state.rsc.memorialTexto = merged.rscMemorialTexto || '';
-                    applyRscVisibility();
-                    state.sumula.enabled = !!merged.sumulaEnabled;
-                    state.sumula.cfg = merged.sumula || {};
-                    state.sumula.texto = merged.sumulaTexto || '';
-                    applySumulaVisibility();
-                    state.pubWebEnabled = merged.pubWebEnabled !== undefined ? !!merged.pubWebEnabled : state.catalogo.items.length > 0;
-                    applyPublicarVisibility();
-                    state.linhaTempo.nuvemExclusao = Array.isArray(merged.nuvemExclusao) ? merged.nuvemExclusao : [];
-                    state.linhaTempo.nuvemCompostas = Array.isArray(merged.nuvemCompostas) ? merged.nuvemCompostas : [];
-                    configRestaurada = true;
+                const blobAntigo = await Storage.readSettingsFromDirectory();
+
+                const nuvem = await Storage.restaurarModuloConfig('nuvem-palavras', blobAntigo,
+                    (b) => (b.nuvemExclusao || b.nuvemCompostas) ? { exclusao: b.nuvemExclusao || [], compostas: b.nuvemCompostas || [] } : null,
+                    { exclusao: state.linhaTempo.nuvemExclusao, compostas: state.linhaTempo.nuvemCompostas });
+                state.linhaTempo.nuvemExclusao = Array.isArray(nuvem.dados.exclusao) ? nuvem.dados.exclusao : [];
+                state.linhaTempo.nuvemCompostas = Array.isArray(nuvem.dados.compostas) ? nuvem.dados.compostas : [];
+
+                const rsc = await Storage.restaurarModuloConfig('rsc', blobAntigo,
+                    (b) => (b.rscEnabled !== undefined || b.rsc || b.rscMemorialTexto) ? { enabled: !!b.rscEnabled, cfg: b.rsc || {}, memorialTexto: b.rscMemorialTexto || '' } : null,
+                    { enabled: state.rsc.enabled, cfg: state.rsc.cfg, memorialTexto: state.rsc.memorialTexto });
+                state.rsc.enabled = !!rsc.dados.enabled;
+                state.rsc.cfg = rsc.dados.cfg || {};
+                state.rsc.memorialTexto = rsc.dados.memorialTexto || '';
+                applyRscVisibility();
+
+                const sumula = await Storage.restaurarModuloConfig('sumula', blobAntigo,
+                    (b) => (b.sumulaEnabled !== undefined || b.sumula || b.sumulaTexto) ? { enabled: !!b.sumulaEnabled, cfg: b.sumula || {}, texto: b.sumulaTexto || '' } : null,
+                    { enabled: state.sumula.enabled, cfg: state.sumula.cfg, texto: state.sumula.texto });
+                state.sumula.enabled = !!sumula.dados.enabled;
+                state.sumula.cfg = sumula.dados.cfg || {};
+                state.sumula.texto = sumula.dados.texto || '';
+                applySumulaVisibility();
+
+                const geral = await Storage.restaurarModuloConfig('geral', blobAntigo,
+                    (b) => (b.idPrefix || b.vocab || b.pubWebEnabled !== undefined) ? { idPrefix: b.idPrefix || '', vocab: b.vocab || {}, pubWebEnabled: b.pubWebEnabled } : null,
+                    { idPrefix: state.idPrefix, vocab: state.vocab, pubWebEnabled: state.pubWebEnabled });
+                state.vocab = geral.dados.vocab || {};
+                state.idPrefix = sanitizePrefix(geral.dados.idPrefix || 'lz');
+                state.pubWebEnabled = geral.dados.pubWebEnabled !== undefined ? !!geral.dados.pubWebEnabled : state.catalogo.items.length > 0;
+                applyPublicarVisibility();
+
+                const publicar = await Storage.restaurarModuloConfig('publicar', blobAntigo,
+                    (b) => (b.pubStyle || b.deploy_github || b.deploy_netlify) ? { pubStyle: b.pubStyle || 'elegante', deployGithub: b.deploy_github || null, deployNetlify: b.deploy_netlify || null } : null,
+                    { pubStyle: Storage.loadSettings().pubStyle || 'elegante', deployGithub: Storage.loadSettings().deploy_github || null, deployNetlify: Storage.loadSettings().deploy_netlify || null });
+
+                const acessibilidade = await Storage.restaurarModuloConfig('acessibilidade', blobAntigo,
+                    () => null, // acessibilidade nunca esteve no antigo configuracoes.json — sem fallback, só semeadura
+                    {
+                        altoContraste: document.documentElement.classList.contains('high-contrast'),
+                        fontScale: parseInt(localStorage.getItem('fontScale') || '100', 10),
+                        temaPreset: localStorage.getItem(APP_CONFIG.storageKeys.themePreset) || '',
+                    });
+                aplicarAcessibilidade(acessibilidade.dados);
+
+                configRestaurada = nuvem.deFora || rsc.deFora || sumula.deFora || geral.deFora || publicar.deFora || acessibilidade.deFora;
+
+                // Mantém o blob local (lz_settings) coerente com o que acabou
+                // de ser restaurado — continua sendo o cache rápido desta
+                // janela (ex.: init() na próxima abertura, sem depender do
+                // diretório estar acessível). Só quando algo veio de fato de
+                // fora (configRestaurada): sem isso, `state` já É o que estava
+                // localmente (nada mudou), então regravar seria só um no-op
+                // — e evita clobber de uma alteração local feita por fora do
+                // fluxo normal (ex.: outra aba) bem no meio dessa sincronização.
+                if (configRestaurada) {
+                    const s = Storage.loadSettings();
+                    s.nuvemExclusao = state.linhaTempo.nuvemExclusao;
+                    s.nuvemCompostas = state.linhaTempo.nuvemCompostas;
+                    s.rscEnabled = state.rsc.enabled; s.rsc = state.rsc.cfg; s.rscMemorialTexto = state.rsc.memorialTexto;
+                    s.sumulaEnabled = state.sumula.enabled; s.sumula = state.sumula.cfg; s.sumulaTexto = state.sumula.texto;
+                    s.idPrefix = state.idPrefix; s.vocab = state.vocab; s.pubWebEnabled = state.pubWebEnabled;
+                    s.pubStyle = publicar.dados.pubStyle;
+                    if (publicar.dados.deployGithub) s.deploy_github = publicar.dados.deployGithub;
+                    if (publicar.dados.deployNetlify) s.deploy_netlify = publicar.dados.deployNetlify;
+                    Storage.saveSettings(s);
                 }
             } catch (_) {}
         }
@@ -730,6 +858,7 @@
             htmlEl.classList.toggle('high-contrast');
             localStorage.setItem(APP_CONFIG.storageKeys.highContrast, htmlEl.classList.contains('high-contrast') ? '1' : '0');
             syncHC();
+            persistirAcessibilidade();
         });
 
         // Escala de fonte (acessibilidade): 80%–150%, passo de 10%.
@@ -745,8 +874,8 @@
         };
         applyFS(getFS());
         const dec = $('#fontDec'), inc = $('#fontInc');
-        if (dec) dec.addEventListener('click', () => applyFS(getFS() - FS_STEP));
-        if (inc) inc.addEventListener('click', () => applyFS(getFS() + FS_STEP));
+        if (dec) dec.addEventListener('click', () => { applyFS(getFS() - FS_STEP); persistirAcessibilidade(); });
+        if (inc) inc.addEventListener('click', () => { applyFS(getFS() + FS_STEP); persistirAcessibilidade(); });
     }
 
     /* =====================================================================

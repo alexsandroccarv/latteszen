@@ -112,6 +112,7 @@ window.TabRsc = (function () {
             cfg.escolaridade = $('#rsc-escolaridade').value;
             state.rsc.cfg = cfg;
             const s = Storage.loadSettings(); s.rsc = cfg; Storage.saveSettings(s);
+            window.AppCore.persistirRsc();
             toast('Configuração do RSC salva.', 'ok');
             render();
         });
@@ -203,6 +204,7 @@ window.TabRsc = (function () {
         const salvarMemorialTexto = () => {
             state.rsc.memorialTexto = memArea.value;
             const s = Storage.loadSettings(); s.rscMemorialTexto = state.rsc.memorialTexto; Storage.saveSettings(s);
+            window.AppCore.persistirRsc();
             if (memInfo) { memInfo.textContent = 'Salvo.'; clearTimeout(memInfo._t); memInfo._t = setTimeout(() => { memInfo.textContent = ''; }, 1500); }
         };
         memArea.addEventListener('input', () => { clearTimeout(memSaveTimer); memSaveTimer = setTimeout(salvarMemorialTexto, 500); });

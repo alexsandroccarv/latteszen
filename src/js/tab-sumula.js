@@ -78,6 +78,7 @@ window.TabSumula = (function () {
             };
             state.sumula.cfg = cfg;
             const s = Storage.loadSettings(); s.sumula = cfg; Storage.saveSettings(s);
+            window.AppCore.persistirSumula();
             toast('Configuração da Súmula FAPESP salva.', 'ok');
             render();
         });
@@ -329,6 +330,7 @@ window.TabSumula = (function () {
         const salvar = () => {
             state.sumula.texto = area.value;
             const s = Storage.loadSettings(); s.sumulaTexto = state.sumula.texto; Storage.saveSettings(s);
+            window.AppCore.persistirSumula();
             if (info) { info.textContent = 'Salvo.'; clearTimeout(info._t); info._t = setTimeout(() => { info.textContent = ''; }, 1500); }
         };
         area.addEventListener('input', () => { clearTimeout(saveTimer); saveTimer = setTimeout(salvar, 500); });

@@ -339,6 +339,7 @@ window.TabPublicar = (function () {
     }
     function setPubStyle(style) {
         const s = Storage.loadSettings(); s.pubStyle = style; Storage.saveSettings(s);
+        window.AppCore.persistirPublicar();
     }
 
     // external: gera a versão com CSS/imagens como arquivo à parte (grava as
@@ -382,6 +383,7 @@ window.TabPublicar = (function () {
         const s = Storage.loadSettings();
         s['deploy_' + provider] = resto;
         Storage.saveSettings(s);
+        window.AppCore.persistirPublicar();
     }
     function render() {
         const panel = $('#tab-publicar');
