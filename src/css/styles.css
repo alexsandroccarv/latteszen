@@ -77,6 +77,31 @@ html.high-contrast button {
 .badge { display: inline-flex; align-items: center; gap: .25rem; font-size: .68rem;
          padding: .1rem .45rem; border-radius: 9999px; font-weight: 600; white-space: nowrap; }
 
+/* ---- Tooltip customizado — substitui o atributo `title` nativo do
+   navegador (não dá pra estilizar; aparece sempre com o chrome claro do
+   SO/navegador, destoando de temas escuros — ex.: Catppuccin Mocha).
+   Uso: troca title="..." por data-tooltip="...". Cores herdam o tema
+   ativo (--lz-*, ver bloco "Tema" abaixo) automaticamente; sem tema
+   selecionado, cai num visual escuro neutro de fallback que já funciona
+   bem sobre claro ou escuro. */
+[data-tooltip] { position: relative; }
+[data-tooltip]::after,
+[data-tooltip]::before { opacity: 0; pointer-events: none; transition: opacity .12s ease .05s; z-index: 60; }
+[data-tooltip]::after {
+    content: attr(data-tooltip);
+    position: absolute; left: 50%; bottom: calc(100% + 8px); transform: translateX(-50%);
+    background: var(--lz-surface, #111827); color: var(--lz-text, #f9fafb);
+    border: 1px solid var(--lz-border, #374151);
+    padding: .35rem .6rem; border-radius: .375rem; font-size: .72rem; font-weight: 500;
+    line-height: 1.2; white-space: nowrap; box-shadow: 0 4px 10px rgba(0,0,0,.25);
+}
+[data-tooltip]::before {
+    content: ""; position: absolute; left: 50%; bottom: 100%; transform: translateX(-50%);
+    border: 5px solid transparent; border-top-color: var(--lz-surface, #111827);
+}
+[data-tooltip]:hover::after, [data-tooltip]:hover::before,
+[data-tooltip]:focus-visible::after, [data-tooltip]:focus-visible::before { opacity: 1; }
+
 /* ---- Paleta categórica de gráficos (aba Linha do tempo, issue #10) ----
    Cores fixas em CSS puro, não classes do Tailwind: um gráfico não pode
    ficar sem cor (preto/sem sentido) se a CDN do Tailwind falhar ao carregar
