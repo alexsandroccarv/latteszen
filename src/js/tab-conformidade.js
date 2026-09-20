@@ -120,7 +120,7 @@ window.TabConformidade = (function () {
         const chip = (key, n) => {
             const m = VIEW_META[key];
             const active = state.ui.viewFilter === key;
-            return `<button type="button" data-view="${key}" title="Filtrar: ${m.titulo}" aria-pressed="${active}"
+            return `<button type="button" data-view="${key}" data-tooltip="Filtrar: ${m.titulo}" aria-pressed="${active}"
                 class="text-left bg-white dark:bg-gray-900 border rounded px-3 py-2 hover:shadow transition ${active ? `border-${m.cor}-500 ring-2 ring-${m.cor}-500/40` : 'border-gray-200 dark:border-gray-700'}">
                 <span class="block text-xl font-bold text-${m.cor}-600 dark:text-${m.cor}-400">${n}</span>
                 <span class="block text-xs text-gray-600 dark:text-gray-400">${m.titulo}</span>
@@ -172,7 +172,7 @@ window.TabConformidade = (function () {
         const chip = (key) => {
             const m = VIEW_META[key];
             const active = state.ui.viewFilter === key;
-            return `<button type="button" data-view="${key}" title="Filtrar: ${m.titulo}" aria-pressed="${active}"
+            return `<button type="button" data-view="${key}" data-tooltip="Filtrar: ${m.titulo}" aria-pressed="${active}"
                 class="text-left bg-white dark:bg-gray-900 border rounded px-3 py-2 hover:shadow transition ${active ? `border-${m.cor}-500 ring-2 ring-${m.cor}-500/40` : 'border-gray-200 dark:border-gray-700'}">
                 <span class="block text-xl font-bold text-${m.cor}-600 dark:text-${m.cor}-400">${count(key)}</span>
                 <span class="block text-xs text-gray-600 dark:text-gray-400">${m.titulo}</span>
