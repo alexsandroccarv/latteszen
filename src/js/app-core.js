@@ -24,6 +24,8 @@
    de um lado aparece do outro) e um punhado de utilidades sem estado próprio.
    Conforme mais abas forem extraídas de app.js, mais deve entrar aqui.
    ========================================================================== */
+import { t, tp } from './i18n.js';
+
 window.AppCore = (function () {
     /* ----------------------------- Estado ------------------------------- */
     const state = {
@@ -394,5 +396,6 @@ window.AppCore = (function () {
         elegivelAoLattes, itemsUsingValue, normNome,
         validateISSN, validateISBN, validateISBNorISSN, validateDOI, validateURL, validateField,
         setFieldError, associateLabels, isFieldDisabled, evCount, descState,
+        t, tp,
     };
 })();

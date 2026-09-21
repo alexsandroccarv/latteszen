@@ -20,95 +20,103 @@
    --------------------------------------------------------------------------
    Extraído de lattes-types.js (issue de refatoração) — seção "02 Formação"
    da taxonomia Lattes, sem nenhuma mudança de conteúdo.
+
+   i18n (preparação): label/help/placeholder passam por t(), inclusive os
+   VALORES (não as chaves) do mapa `labelWhen.map` — são rótulos exibidos
+   condicionalmente. Os arrays de `options`/`default` e as CHAVES de
+   `disabledWhen`/`labelWhen` (que precisam bater com valores de `options`)
+   ficam de fora — ver nota de arquitetura no topo de
+   lattes-types-campos.js (value vs. label ainda em aberto).
    ========================================================================== */
 import { F_INST, F_AINI, NIVEIS_FORMACAO, nivelExcept } from './lattes-types-campos.js';
+import { t } from './i18n.js';
 
 export const TYPES_02_FORMACAO = {
     // 02 Formação
-    FORMACAO_ACADEMICA: { label: 'Formação acadêmica/titulação', fields: [
-        { key: 'nivel', label: 'Nível', type: 'select', required: true, options: NIVEIS_FORMACAO },
+    FORMACAO_ACADEMICA: { label: t('lattes.tipo.FORMACAO_ACADEMICA.label', 'Formação acadêmica/titulação'), fields: [
+        { key: 'nivel', label: t('lattes.tipo.FORMACAO_ACADEMICA.campo.nivel.label', 'Nível'), type: 'select', required: true, options: NIVEIS_FORMACAO },
         // "Tipo de X": só existe (e só faz sentido) para o próprio nível X.
-        { key: 'tipoDoutorado', label: 'Tipo de doutorado', type: 'select', options: ['Normal', 'Sanduíche', 'Cotutela', 'Cotutela-Sanduíche'],
+        { key: 'tipoDoutorado', label: t('lattes.tipo.FORMACAO_ACADEMICA.campo.tipo_doutorado.label', 'Tipo de doutorado'), type: 'select', options: ['Normal', 'Sanduíche', 'Cotutela', 'Cotutela-Sanduíche'],
           disabledWhen: { field: 'nivel', in: nivelExcept('Doutorado') } },
-        { key: 'tipoMestrado', label: 'Tipo de mestrado', type: 'select', options: ['Normal', 'Sanduíche'],
+        { key: 'tipoMestrado', label: t('lattes.tipo.FORMACAO_ACADEMICA.campo.tipo_mestrado.label', 'Tipo de mestrado'), type: 'select', options: ['Normal', 'Sanduíche'],
           disabledWhen: { field: 'nivel', in: nivelExcept('Mestrado') } },
-        { key: 'tipoMestradoProfissional', label: 'Tipo de mestrado profissional', type: 'select', options: ['Normal', 'Sanduíche'],
+        { key: 'tipoMestradoProfissional', label: t('lattes.tipo.FORMACAO_ACADEMICA.campo.tipo_mestrado_profissional.label', 'Tipo de mestrado profissional'), type: 'select', options: ['Normal', 'Sanduíche'],
           disabledWhen: { field: 'nivel', in: nivelExcept('Mestrado profissional') } },
-        { key: 'tipoGraduacao', label: 'Tipo de graduação', type: 'select', options: ['Normal', 'Sanduíche'],
+        { key: 'tipoGraduacao', label: t('lattes.tipo.FORMACAO_ACADEMICA.campo.tipo_graduacao.label', 'Tipo de graduação'), type: 'select', options: ['Normal', 'Sanduíche'],
           disabledWhen: { field: 'nivel', in: nivelExcept('Graduação') } },
-        { key: 'instituicao', label: 'Instituição', type: 'text', required: true },
-        { key: 'curso', label: 'Curso', type: 'text',
+        { key: 'instituicao', label: t('lattes.tipo.FORMACAO_ACADEMICA.campo.instituicao.label', 'Instituição'), type: 'text', required: true },
+        { key: 'curso', label: t('lattes.tipo.FORMACAO_ACADEMICA.campo.curso.label', 'Curso'), type: 'text',
           disabledWhen: { field: 'nivel', in: ['Ensino fundamental', 'Ensino médio', 'Residência médica'] } },
-        { key: 'cargaHoraria', label: 'Carga horária (h)', type: 'number', na: true,
+        { key: 'cargaHoraria', label: t('lattes.tipo.FORMACAO_ACADEMICA.campo.carga_horaria.label', 'Carga horária (h)'), type: 'number', na: true,
           disabledWhen: { field: 'nivel', in: nivelExcept('Aperfeiçoamento', 'Especialização') } },
-        { key: 'statusCurso', label: 'Status do curso', type: 'select', options: ['Em andamento', 'Concluído', 'Incompleto'] },
-        { ...F_AINI, row: 'periodo' }, { key: 'anoFim', label: 'Conclusão (ano)', type: 'datebr', row: 'periodo',
+        { key: 'statusCurso', label: t('lattes.tipo.FORMACAO_ACADEMICA.campo.status_curso.label', 'Status do curso'), type: 'select', options: ['Em andamento', 'Concluído', 'Incompleto'] },
+        { ...F_AINI, row: 'periodo' }, { key: 'anoFim', label: t('lattes.tipo.FORMACAO_ACADEMICA.campo.ano_fim.label', 'Conclusão (ano)'), type: 'datebr', row: 'periodo',
           disabledWhen: { field: 'statusCurso', in: ['', 'Em andamento', 'Incompleto'] } },
-        { key: 'anoObtencaoTitulo', label: 'Obtenção do título (mês/ano)', type: 'datebr',
+        { key: 'anoObtencaoTitulo', label: t('lattes.tipo.FORMACAO_ACADEMICA.campo.ano_obtencao_titulo.label', 'Obtenção do título (mês/ano)'), type: 'datebr',
           disabledWhen: [
               { field: 'nivel', in: nivelExcept('Mestrado', 'Mestrado profissional', 'Doutorado') },
               { field: 'statusCurso', in: ['', 'Em andamento', 'Incompleto'] },
           ] },
-        { key: 'comBolsa', label: 'Com bolsa?', type: 'select', options: ['Sim', 'Não'],
+        { key: 'comBolsa', label: t('lattes.tipo.FORMACAO_ACADEMICA.campo.com_bolsa.label', 'Com bolsa?'), type: 'select', options: ['Sim', 'Não'],
           disabledWhen: { field: 'nivel', in: ['Ensino fundamental', 'Ensino médio'] } },
-        { key: 'bolsa', label: 'Agência financiadora', type: 'text', disabledWhen: { field: 'comBolsa', in: ['', 'Não'] } },
-        { key: 'titulo', label: 'Título da dissertação/tese', type: 'text', na: true,
-          labelWhen: { field: 'nivel', map: { 'Graduação': 'Título monografia', 'Aperfeiçoamento': 'Título monografia', 'Especialização': 'Título monografia' } },
+        { key: 'bolsa', label: t('lattes.tipo.FORMACAO_ACADEMICA.campo.bolsa.label', 'Agência financiadora'), type: 'text', disabledWhen: { field: 'comBolsa', in: ['', 'Não'] } },
+        { key: 'titulo', label: t('lattes.tipo.FORMACAO_ACADEMICA.campo.titulo.label', 'Título da dissertação/tese'), type: 'text', na: true,
+          labelWhen: { field: 'nivel', map: { 'Graduação': t('lattes.tipo.FORMACAO_ACADEMICA.campo.titulo.label_when.monografia', 'Título monografia'), 'Aperfeiçoamento': t('lattes.tipo.FORMACAO_ACADEMICA.campo.titulo.label_when.monografia', 'Título monografia'), 'Especialização': t('lattes.tipo.FORMACAO_ACADEMICA.campo.titulo.label_when.monografia', 'Título monografia') } },
           disabledWhen: { field: 'nivel', in: ['Ensino fundamental', 'Ensino médio', 'Curso técnico', 'Residência médica'] } },
-        { key: 'orientador', label: 'Nome completo do orientador', type: 'text', na: true,
+        { key: 'orientador', label: t('lattes.tipo.FORMACAO_ACADEMICA.campo.orientador.label', 'Nome completo do orientador'), type: 'text', na: true,
           disabledWhen: { field: 'nivel', in: ['Ensino fundamental', 'Ensino médio', 'Curso técnico', 'Residência médica'] } },
-        { key: 'coorientador', label: 'Nome completo do coorientador', type: 'text', na: true,
+        { key: 'coorientador', label: t('lattes.tipo.FORMACAO_ACADEMICA.campo.coorientador.label', 'Nome completo do coorientador'), type: 'text', na: true,
           disabledWhen: { field: 'nivel', in: nivelExcept('Mestrado', 'Mestrado profissional', 'Doutorado') } },
-        { key: 'residenciaEm', label: 'Residência médica em', type: 'text', disabledWhen: { field: 'nivel', in: nivelExcept('Residência médica') } },
-        { key: 'numeroRegistro', label: 'Número do registro', type: 'text', disabledWhen: { field: 'nivel', in: nivelExcept('Residência médica') } },
-        { key: 'palavrasChave', label: 'Palavras-chave', type: 'textarea', placeholder: 'Separe por ponto e vírgula (;)', help: 'Até 6 palavras-chave (limite da Plataforma Lattes).',
+        { key: 'residenciaEm', label: t('lattes.tipo.FORMACAO_ACADEMICA.campo.residencia_em.label', 'Residência médica em'), type: 'text', disabledWhen: { field: 'nivel', in: nivelExcept('Residência médica') } },
+        { key: 'numeroRegistro', label: t('lattes.tipo.FORMACAO_ACADEMICA.campo.numero_registro.label', 'Número do registro'), type: 'text', disabledWhen: { field: 'nivel', in: nivelExcept('Residência médica') } },
+        { key: 'palavrasChave', label: t('lattes.tipo.FORMACAO_ACADEMICA.campo.palavras_chave.label', 'Palavras-chave'), type: 'textarea', placeholder: t('lattes.tipo.FORMACAO_ACADEMICA.campo.palavras_chave.placeholder', 'Separe por ponto e vírgula (;)'), help: t('lattes.tipo.FORMACAO_ACADEMICA.campo.palavras_chave.help', 'Até 6 palavras-chave (limite da Plataforma Lattes).'),
           disabledWhen: { field: 'nivel', in: nivelExcept('Mestrado', 'Mestrado profissional', 'Doutorado', 'Residência médica') } },
-        { key: 'areaConhecimento', label: 'Área do conhecimento (CNPq/CAPES)', type: 'areatree', help: 'Selecione do mais geral ao mais específico: Grande área > Área > Subárea > Especialidade.',
+        { key: 'areaConhecimento', label: t('lattes.tipo.FORMACAO_ACADEMICA.campo.area_conhecimento.label', 'Área do conhecimento (CNPq/CAPES)'), type: 'areatree', help: t('lattes.tipo.FORMACAO_ACADEMICA.campo.area_conhecimento.help', 'Selecione do mais geral ao mais específico: Grande área > Área > Subárea > Especialidade.'),
           disabledWhen: { field: 'nivel', in: nivelExcept('Mestrado', 'Mestrado profissional', 'Doutorado', 'Residência médica') } },
-        { key: 'setores', label: 'Setores de atividade', type: 'cnaeSetores', help: 'Até 3 setores (lista CNAE).',
+        { key: 'setores', label: t('lattes.tipo.FORMACAO_ACADEMICA.campo.setores.label', 'Setores de atividade'), type: 'cnaeSetores', help: t('lattes.tipo.FORMACAO_ACADEMICA.campo.setores.help', 'Até 3 setores (lista CNAE).'),
           disabledWhen: { field: 'nivel', in: nivelExcept('Mestrado', 'Mestrado profissional', 'Doutorado', 'Residência médica') } },
     ] },
-    POS_DOUTORADO: { label: 'Pós-doutorado e/ou livre-docência', fields: [
-        { key: 'tipo', label: 'Nível', type: 'select', required: true, options: ['Pós-Doutorado', 'Livre-docência'] },
-        { key: 'instituicao', label: 'Instituição', type: 'text', required: true },
+    POS_DOUTORADO: { label: t('lattes.tipo.POS_DOUTORADO.label', 'Pós-doutorado e/ou livre-docência'), fields: [
+        { key: 'tipo', label: t('lattes.tipo.POS_DOUTORADO.campo.tipo.label', 'Nível'), type: 'select', required: true, options: ['Pós-Doutorado', 'Livre-docência'] },
+        { key: 'instituicao', label: t('lattes.tipo.POS_DOUTORADO.campo.instituicao.label', 'Instituição'), type: 'text', required: true },
         // Pós-Doutorado: Status do curso, Período (início/conclusão) e Bolsa.
-        { key: 'statusCurso', label: 'Status do curso', type: 'select', options: ['Em andamento', 'Concluído', 'Incompleto'],
+        { key: 'statusCurso', label: t('lattes.tipo.POS_DOUTORADO.campo.status_curso.label', 'Status do curso'), type: 'select', options: ['Em andamento', 'Concluído', 'Incompleto'],
           disabledWhen: { field: 'tipo', equals: 'Livre-docência' } },
         { ...F_AINI, row: 'periodo', disabledWhen: { field: 'tipo', equals: 'Livre-docência' } },
-        { key: 'anoFim', label: 'Ano de conclusão', type: 'datebr', row: 'periodo', disabledWhen: { field: 'tipo', equals: 'Livre-docência' } },
-        { key: 'comBolsa', label: 'Com bolsa?', type: 'select', options: ['Sim', 'Não'],
+        { key: 'anoFim', label: t('lattes.tipo.POS_DOUTORADO.campo.ano_fim.label', 'Ano de conclusão'), type: 'datebr', row: 'periodo', disabledWhen: { field: 'tipo', equals: 'Livre-docência' } },
+        { key: 'comBolsa', label: t('lattes.tipo.POS_DOUTORADO.campo.com_bolsa.label', 'Com bolsa?'), type: 'select', options: ['Sim', 'Não'],
           disabledWhen: { field: 'tipo', equals: 'Livre-docência' } },
-        { key: 'bolsa', label: 'Agência financiadora', type: 'text', disabledWhen: { field: 'comBolsa', in: ['', 'Não'] } },
+        { key: 'bolsa', label: t('lattes.tipo.POS_DOUTORADO.campo.bolsa.label', 'Agência financiadora'), type: 'text', disabledWhen: { field: 'comBolsa', in: ['', 'Não'] } },
         // Livre-docência: Período (obtenção do título), Detalhamento (título),
         // Palavras-chave e Setores.
-        { key: 'anoObtencaoTitulo', label: 'Obtenção do título', type: 'datebr', disabledWhen: { field: 'tipo', equals: 'Pós-Doutorado' } },
-        { key: 'titulo', label: 'Título do trabalho', type: 'text', disabledWhen: { field: 'tipo', equals: 'Pós-Doutorado' } },
-        { key: 'palavrasChave', label: 'Palavras-chave', type: 'textarea', placeholder: 'Separe por ponto e vírgula (;)', help: 'Até 6 palavras-chave (limite da Plataforma Lattes).',
+        { key: 'anoObtencaoTitulo', label: t('lattes.tipo.POS_DOUTORADO.campo.ano_obtencao_titulo.label', 'Obtenção do título'), type: 'datebr', disabledWhen: { field: 'tipo', equals: 'Pós-Doutorado' } },
+        { key: 'titulo', label: t('lattes.tipo.POS_DOUTORADO.campo.titulo.label', 'Título do trabalho'), type: 'text', disabledWhen: { field: 'tipo', equals: 'Pós-Doutorado' } },
+        { key: 'palavrasChave', label: t('lattes.tipo.POS_DOUTORADO.campo.palavras_chave.label', 'Palavras-chave'), type: 'textarea', placeholder: t('lattes.tipo.POS_DOUTORADO.campo.palavras_chave.placeholder', 'Separe por ponto e vírgula (;)'), help: t('lattes.tipo.POS_DOUTORADO.campo.palavras_chave.help', 'Até 6 palavras-chave (limite da Plataforma Lattes).'),
           disabledWhen: { field: 'tipo', equals: 'Pós-Doutorado' } },
         // Áreas: comum aos dois níveis.
-        { key: 'areaConhecimento', label: 'Área do conhecimento (CNPq/CAPES)', type: 'areatree', help: 'Selecione do mais geral ao mais específico: Grande área > Área > Subárea > Especialidade.' },
-        { key: 'setores', label: 'Setores de atividade', type: 'cnaeSetores', help: 'Até 3 setores (lista CNAE).',
+        { key: 'areaConhecimento', label: t('lattes.tipo.POS_DOUTORADO.campo.area_conhecimento.label', 'Área do conhecimento (CNPq/CAPES)'), type: 'areatree', help: t('lattes.tipo.POS_DOUTORADO.campo.area_conhecimento.help', 'Selecione do mais geral ao mais específico: Grande área > Área > Subárea > Especialidade.') },
+        { key: 'setores', label: t('lattes.tipo.POS_DOUTORADO.campo.setores.label', 'Setores de atividade'), type: 'cnaeSetores', help: t('lattes.tipo.POS_DOUTORADO.campo.setores.help', 'Até 3 setores (lista CNAE).'),
           disabledWhen: { field: 'tipo', equals: 'Pós-Doutorado' } },
     ] },
     // Nível de Formação complementar (espelha FORMACAO-COMPLEMENTAR do schema
     // Lattes: 4 elementos distintos — só "MBA" tem bolsa/orientador/monografia/
     // áreas/palavras-chave/setores; os outros 3 só têm os campos básicos.
-    FORMACAO_COMPLEMENTAR: { label: 'Formação complementar', fields: [
-        { key: 'nivel', label: 'Nível', type: 'select', required: true, default: 'Outros',
+    FORMACAO_COMPLEMENTAR: { label: t('lattes.tipo.FORMACAO_COMPLEMENTAR.label', 'Formação complementar'), fields: [
+        { key: 'nivel', label: t('lattes.tipo.FORMACAO_COMPLEMENTAR.campo.nivel.label', 'Nível'), type: 'select', required: true, default: 'Outros',
           options: ['Curso de curta duração', 'Extensão universitária', 'MBA', 'Outros'] },
-        { key: 'titulo', label: 'Curso', type: 'text', required: true },
+        { key: 'titulo', label: t('lattes.tipo.FORMACAO_COMPLEMENTAR.campo.titulo.label', 'Curso'), type: 'text', required: true },
         F_INST,
-        { key: 'cargaHoraria', label: 'Carga horária (h)', type: 'number', na: true },
-        { key: 'statusCurso', label: 'Status do curso', type: 'select', options: ['Em andamento', 'Concluído', 'Incompleto'] },
-        { key: 'anoInicio', label: 'Início (ano)', type: 'datebr', row: 'periodo' },
-        { key: 'anoFim', label: 'Conclusão (ano)', type: 'datebr', row: 'periodo' },
-        { key: 'anoObtencaoTitulo', label: 'Obtenção do título', type: 'datebr', disabledWhen: { field: 'nivel', notEquals: 'MBA' } },
-        { key: 'comBolsa', label: 'Com bolsa?', type: 'select', options: ['Sim', 'Não'], disabledWhen: { field: 'nivel', notEquals: 'MBA' } },
-        { key: 'bolsa', label: 'Agência financiadora', type: 'text', disabledWhen: [{ field: 'nivel', notEquals: 'MBA' }, { field: 'comBolsa', in: ['', 'Não'] }] },
-        { key: 'tituloMonografia', label: 'Título da monografia', type: 'text', disabledWhen: { field: 'nivel', notEquals: 'MBA' } },
-        { key: 'orientador', label: 'Nome completo do orientador', type: 'text', disabledWhen: { field: 'nivel', notEquals: 'MBA' } },
-        { key: 'palavrasChave', label: 'Palavras-chave', type: 'textarea', placeholder: 'Separe por ponto e vírgula (;)', help: 'Até 6 palavras-chave (limite da Plataforma Lattes).', disabledWhen: { field: 'nivel', notEquals: 'MBA' } },
-        { key: 'areaConhecimento', label: 'Área do conhecimento (CNPq/CAPES)', type: 'areatree', help: 'Selecione do mais geral ao mais específico: Grande área > Área > Subárea > Especialidade.', disabledWhen: { field: 'nivel', notEquals: 'MBA' } },
-        { key: 'setores', label: 'Setores de atividade', type: 'cnaeSetores', help: 'Até 3 setores (lista CNAE).', disabledWhen: { field: 'nivel', notEquals: 'MBA' } },
+        { key: 'cargaHoraria', label: t('lattes.tipo.FORMACAO_COMPLEMENTAR.campo.carga_horaria.label', 'Carga horária (h)'), type: 'number', na: true },
+        { key: 'statusCurso', label: t('lattes.tipo.FORMACAO_COMPLEMENTAR.campo.status_curso.label', 'Status do curso'), type: 'select', options: ['Em andamento', 'Concluído', 'Incompleto'] },
+        { key: 'anoInicio', label: t('lattes.tipo.FORMACAO_COMPLEMENTAR.campo.ano_inicio.label', 'Início (ano)'), type: 'datebr', row: 'periodo' },
+        { key: 'anoFim', label: t('lattes.tipo.FORMACAO_COMPLEMENTAR.campo.ano_fim.label', 'Conclusão (ano)'), type: 'datebr', row: 'periodo' },
+        { key: 'anoObtencaoTitulo', label: t('lattes.tipo.FORMACAO_COMPLEMENTAR.campo.ano_obtencao_titulo.label', 'Obtenção do título'), type: 'datebr', disabledWhen: { field: 'nivel', notEquals: 'MBA' } },
+        { key: 'comBolsa', label: t('lattes.tipo.FORMACAO_COMPLEMENTAR.campo.com_bolsa.label', 'Com bolsa?'), type: 'select', options: ['Sim', 'Não'], disabledWhen: { field: 'nivel', notEquals: 'MBA' } },
+        { key: 'bolsa', label: t('lattes.tipo.FORMACAO_COMPLEMENTAR.campo.bolsa.label', 'Agência financiadora'), type: 'text', disabledWhen: [{ field: 'nivel', notEquals: 'MBA' }, { field: 'comBolsa', in: ['', 'Não'] }] },
+        { key: 'tituloMonografia', label: t('lattes.tipo.FORMACAO_COMPLEMENTAR.campo.titulo_monografia.label', 'Título da monografia'), type: 'text', disabledWhen: { field: 'nivel', notEquals: 'MBA' } },
+        { key: 'orientador', label: t('lattes.tipo.FORMACAO_COMPLEMENTAR.campo.orientador.label', 'Nome completo do orientador'), type: 'text', disabledWhen: { field: 'nivel', notEquals: 'MBA' } },
+        { key: 'palavrasChave', label: t('lattes.tipo.FORMACAO_COMPLEMENTAR.campo.palavras_chave.label', 'Palavras-chave'), type: 'textarea', placeholder: t('lattes.tipo.FORMACAO_COMPLEMENTAR.campo.palavras_chave.placeholder', 'Separe por ponto e vírgula (;)'), help: t('lattes.tipo.FORMACAO_COMPLEMENTAR.campo.palavras_chave.help', 'Até 6 palavras-chave (limite da Plataforma Lattes).'), disabledWhen: { field: 'nivel', notEquals: 'MBA' } },
+        { key: 'areaConhecimento', label: t('lattes.tipo.FORMACAO_COMPLEMENTAR.campo.area_conhecimento.label', 'Área do conhecimento (CNPq/CAPES)'), type: 'areatree', help: t('lattes.tipo.FORMACAO_COMPLEMENTAR.campo.area_conhecimento.help', 'Selecione do mais geral ao mais específico: Grande área > Área > Subárea > Especialidade.'), disabledWhen: { field: 'nivel', notEquals: 'MBA' } },
+        { key: 'setores', label: t('lattes.tipo.FORMACAO_COMPLEMENTAR.campo.setores.label', 'Setores de atividade'), type: 'cnaeSetores', help: t('lattes.tipo.FORMACAO_COMPLEMENTAR.campo.setores.help', 'Até 3 setores (lista CNAE).'), disabledWhen: { field: 'nivel', notEquals: 'MBA' } },
     ] },
 };

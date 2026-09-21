@@ -27,8 +27,21 @@
    type: 'text' | 'textarea' | 'number' | 'datebr' | 'date' | 'url' | 'select'
    'datebr': aceita aaaa, mm/aaaa ou dd/mm/aaaa; na exportação XML Lattes
    apenas o ANO é mantido (usado em todo campo de ano da aplicação).
+
+   i18n (preparação): label/note (categorias, subgrupos, NAO_LATTES_TYPE)
+   passam por t(). As constantes de PASTA (BACKUP_FOLDER, EVIDENCIAS_FOLDER,
+   RSC_PCCTAE_FOLDER etc.) ficam de propósito FORA do t() — não são texto de
+   exibição, são NOMES DE DIRETÓRIO gravados/lidos de verdade no disco (ou
+   Google Drive) da pessoa; traduzir isso quebraria a leitura de pastas já
+   criadas em sessões anteriores. `titleCasePt`/`TC_MINOR` (regra de Title
+   Case com conectores em minúsculas) é lógica gramatical específica do
+   português — fica como está, sem tentativa de generalizar pra outro
+   idioma agora. O fallback 'Outra' em itemTitle() (Redes acadêmicas)
+   também fica fora: precisa bater exatamente com o valor da opção
+   'Outra' do campo (ver nota de arquitetura em lattes-types-campos.js).
    ========================================================================== */
 import { F_TITULO, F_ANO, F_URL, F_AFIM } from './lattes-types-campos.js';
+import { t } from './i18n.js';
 import { TYPES_01_DADOS_GERAIS } from './lattes-types-01-dados-gerais.js';
 import { TYPES_02_FORMACAO } from './lattes-types-02-formacao.js';
 import { TYPES_03_ATUACAO } from './lattes-types-03-atuacao.js';
@@ -54,10 +67,10 @@ const PROD_BIBLIO = ['ARTIGO_PERIODICO', 'ARTIGO_ACEITO', 'LIVROS', 'CAPITULOS_L
 const PROD_TECNICA = ['ASSESSORIA_CONSULTORIA', 'EXTENSAO_TECNOLOGICA', 'SOFTWARE_SEM_REGISTRO', 'PRODUTO_TECNOLOGICO', 'PROCESSO_TECNICA', 'TRABALHO_TECNICO', 'CARTA_MAPA', 'CURSO_MINISTRADO', 'MATERIAL_DIDATICO', 'EDITORACAO', 'MANUTENCAO_OBRA', 'MAQUETE', 'MIDIA', 'RELATORIO_PESQUISA', 'MIDIA_SOCIAL', 'OUTRA_TECNICA'];
 const PROD_ARTISTICA = ['ARTES_CENICAS', 'MUSICA', 'ARTES_VISUAIS', 'OUTRA_ARTISTICA'];
 const PI_TYPES = ['PATENTE', 'SOFTWARE_REGISTRADO', 'CULTIVAR_PROTEGIDA', 'CULTIVAR_REGISTRADA', 'DESENHO_INDUSTRIAL', 'MARCA', 'TOPOGRAFIA_CI'];
-const AL_NOTE = 'Os itens registrados nesta categoria não são vinculados ao Currículo Lattes e não serão exportados, mas serão exibidos na página pessoal do módulo Publicar na Web.';
+const AL_NOTE = t('lattes.categoria.al_note', 'Os itens registrados nesta categoria não são vinculados ao Currículo Lattes e não serão exportados, mas serão exibidos na página pessoal do módulo Publicar na Web.');
 
 window.LATTES_CATEGORIES = [
-    { num: '01', key: 'DADOS_GERAIS', label: 'Dados gerais', icon: 'fa-id-card',
+    { num: '01', key: 'DADOS_GERAIS', label: t('lattes.categoria.DADOS_GERAIS.label', 'Dados gerais'), icon: 'fa-id-card',
       // Antes editados só em Configurações (perfil); mesclados aqui pra
       // cadastrar/editar tudo pelo mesmo fluxo do Catalogar, como qualquer
       // outro item (a pedido do usuário). Fotos/Documentos deixam de ter
@@ -70,29 +83,29 @@ window.LATTES_CATEGORIES = [
       // ao final da lista.
       types: ['IDENTIFICACAO', 'ENDERECO', 'FOTO_PERFIL', 'DOCUMENTO_PESSOAL',
           'LICENCA', 'IDIOMAS', 'PREMIO', 'CONEXAO_SOCIAL', 'CONEXAO_ACADEMICA', 'CONEXAO_PROFISSIONAL', 'RESUMO_CV', 'MEMORIAL', 'OUTRAS_INFO'] },
-    { num: '02', key: 'FORMACAO', label: 'Formação', icon: 'fa-user-graduate',
+    { num: '02', key: 'FORMACAO', label: t('lattes.categoria.FORMACAO.label', 'Formação'), icon: 'fa-user-graduate',
       types: ['FORMACAO_ACADEMICA', 'POS_DOUTORADO', 'FORMACAO_COMPLEMENTAR'] },
-    { num: '03', key: 'ATUACAO', label: 'Atuação', icon: 'fa-briefcase',
+    { num: '03', key: 'ATUACAO', label: t('lattes.categoria.ATUACAO.label', 'Atuação'), icon: 'fa-briefcase',
       groups: [
           { label: null, types: ['AREA_ATUACAO', 'VINCULO_PROFISSIONAL', 'LINHA_PESQUISA', 'CORPO_EDITORIAL', 'COMITE_ASSESSORAMENTO', 'REVISOR_PERIODICO', 'REVISOR_FOMENTO'] },
-          { label: 'Atividades de Atuação profissional', types: ['ATIV_DIRECAO', 'ATIV_PESQUISA', 'ATIV_ENSINO', 'ATIV_ESTAGIO', 'ATIV_SERVICO', 'ATIV_EXTENSAO', 'ATIV_TREINAMENTO', 'ATIV_OUTRA', 'ATIV_CONSELHO'] },
+          { label: t('lattes.categoria.ATUACAO.grupo.atividades', 'Atividades de Atuação profissional'), types: ['ATIV_DIRECAO', 'ATIV_PESQUISA', 'ATIV_ENSINO', 'ATIV_ESTAGIO', 'ATIV_SERVICO', 'ATIV_EXTENSAO', 'ATIV_TREINAMENTO', 'ATIV_OUTRA', 'ATIV_CONSELHO'] },
       ] },
-    { num: '04', key: 'PROJETOS', label: 'Projetos', icon: 'fa-diagram-project',
+    { num: '04', key: 'PROJETOS', label: t('lattes.categoria.PROJETOS.label', 'Projetos'), icon: 'fa-diagram-project',
       types: ['PROJETO_PESQUISA', 'PROJETO_DESENVOLVIMENTO', 'PROJETO_EXTENSAO', 'PROJETO_ENSINO', 'PROJETO_OUTRO'] },
-    { num: '05', key: 'PRODUCOES', label: 'Produções', icon: 'fa-book',
+    { num: '05', key: 'PRODUCOES', label: t('lattes.categoria.PRODUCOES.label', 'Produções'), icon: 'fa-book',
       groups: [
-          { label: 'Produção Bibliográfica', types: PROD_BIBLIO },
-          { label: 'Produção Técnica', types: PROD_TECNICA },
-          { label: 'Outra produção artística/cultural', types: PROD_ARTISTICA },
+          { label: t('lattes.categoria.PRODUCOES.grupo.bibliografica', 'Produção Bibliográfica'), types: PROD_BIBLIO },
+          { label: t('lattes.categoria.PRODUCOES.grupo.tecnica', 'Produção Técnica'), types: PROD_TECNICA },
+          { label: t('lattes.categoria.PRODUCOES.grupo.artistica', 'Outra produção artística/cultural'), types: PROD_ARTISTICA },
       ] },
-    { num: '06', key: 'PATENTES_REGISTROS', label: 'Patentes e Registros', icon: 'fa-certificate', types: PI_TYPES },
-    { num: '07', key: 'INOVACAO', label: 'Inovação', icon: 'fa-lightbulb',
+    { num: '06', key: 'PATENTES_REGISTROS', label: t('lattes.categoria.PATENTES_REGISTROS.label', 'Patentes e Registros'), icon: 'fa-certificate', types: PI_TYPES },
+    { num: '07', key: 'INOVACAO', label: t('lattes.categoria.INOVACAO.label', 'Inovação'), icon: 'fa-lightbulb',
       types: ['SOFTWARE_SEM_REGISTRO', 'PRODUTO_TECNOLOGICO', 'PROCESSO_TECNICA', 'PROJETO_PESQUISA', 'PROJETO_DESENVOLVIMENTO', 'PROJETO_EXTENSAO', 'PROJETO_ENSINO', 'PROJETO_OUTRO'] },
-    { num: '08', key: 'EDUCACAO_CT', label: 'Educação e Popularização de C&T', icon: 'fa-chalkboard-user',
+    { num: '08', key: 'EDUCACAO_CT', label: t('lattes.categoria.EDUCACAO_CT.label', 'Educação e Popularização de C&T'), icon: 'fa-chalkboard-user',
       types: ['ARTIGO_PERIODICO', 'ARTIGO_ACEITO', 'LIVROS', 'CAPITULOS_LIVRO', 'TEXTO_JORNAL', 'TRABALHO_EVENTO', 'APRESENTACAO', 'SOFTWARE_SEM_REGISTRO', 'CURSO_MINISTRADO', 'MATERIAL_DIDATICO', 'MIDIA', 'SOFTWARE_REGISTRADO', 'ORGANIZACAO_EVENTO', 'PARTICIPACAO_EVENTO', 'MIDIA_SOCIAL', 'ARTES_VISUAIS', 'ARTES_CENICAS', 'MUSICA', 'OUTRA_BIBLIOGRAFICA', 'OUTRA_TECNICA', 'OUTRA_ARTISTICA'] },
-    { num: '09', key: 'EVENTOS', label: 'Eventos', icon: 'fa-calendar-days', types: ['PARTICIPACAO_EVENTO', 'ORGANIZACAO_EVENTO'] },
-    { num: '10', key: 'ORIENTACOES', label: 'Orientações', icon: 'fa-user-group', types: ['ORIENTACAO_CONCLUIDA', 'ORIENTACAO_ANDAMENTO'] },
-    { num: '11', key: 'BANCAS', label: 'Bancas', icon: 'fa-gavel', types: ['BANCA_CONCLUSAO', 'BANCA_JULGADORA'] },
+    { num: '09', key: 'EVENTOS', label: t('lattes.categoria.EVENTOS.label', 'Eventos'), icon: 'fa-calendar-days', types: ['PARTICIPACAO_EVENTO', 'ORGANIZACAO_EVENTO'] },
+    { num: '10', key: 'ORIENTACOES', label: t('lattes.categoria.ORIENTACOES.label', 'Orientações'), icon: 'fa-user-group', types: ['ORIENTACAO_CONCLUIDA', 'ORIENTACAO_ANDAMENTO'] },
+    { num: '11', key: 'BANCAS', label: t('lattes.categoria.BANCAS.label', 'Bancas'), icon: 'fa-gavel', types: ['BANCA_CONCLUSAO', 'BANCA_JULGADORA'] },
     // Categorias 12-21 reordenadas e renumeradas (pedido do Alexsandro):
     // Grupos de Pesquisa/Atuação em Crise de Saúde Pública (antes as 2
     // categorias exclusivas do RSC) e as 8 categorias de "Outras
@@ -107,26 +120,26 @@ window.LATTES_CATEGORIES = [
     // (itens dela continuam podendo ser contabilizados no RSC, via
     // "usar para RSC" no item, igual a qualquer outra categoria). "Atuação
     // em Crise de Saúde Pública" (21, abaixo) CONTINUA exclusiva do RSC.
-    { num: '12', key: 'RSC_GRUPO', label: 'Grupos de Pesquisa', icon: 'fa-microscope', naoLattes: true,
+    { num: '12', key: 'RSC_GRUPO', label: t('lattes.categoria.RSC_GRUPO.label', 'Grupos de Pesquisa'), icon: 'fa-microscope', naoLattes: true,
       note: AL_NOTE, types: ['RSC_GRUPO_PESQUISA'] },
-    { num: '13', key: 'AL_CERTIFICACAO_CAT', label: 'Certificações', icon: 'fa-certificate', naoLattes: true,
+    { num: '13', key: 'AL_CERTIFICACAO_CAT', label: t('lattes.categoria.AL_CERTIFICACAO_CAT.label', 'Certificações'), icon: 'fa-certificate', naoLattes: true,
       note: AL_NOTE, types: ['AL_CERT_PROF_GESTAO', 'AL_CERT_TI', 'AL_CERT_FINANCEIRA', 'AL_CERT_OUTRA'] },
-    { num: '14', key: 'AL_FILIACAO_CAT', label: 'Filiações', icon: 'fa-id-badge', naoLattes: true,
+    { num: '14', key: 'AL_FILIACAO_CAT', label: t('lattes.categoria.AL_FILIACAO_CAT.label', 'Filiações'), icon: 'fa-id-badge', naoLattes: true,
       note: AL_NOTE, types: ['AL_FILIACAO_CONSELHO', 'AL_FILIACAO_CIENTIFICA', 'AL_FILIACAO_ASSOC_PROF', 'AL_FILIACAO_SINDICATO', 'AL_FILIACAO_OUTRA'] },
-    { num: '15', key: 'AL_IMPRENSA_CAT', label: 'Imprensa', icon: 'fa-newspaper', naoLattes: true,
+    { num: '15', key: 'AL_IMPRENSA_CAT', label: t('lattes.categoria.AL_IMPRENSA_CAT.label', 'Imprensa'), icon: 'fa-newspaper', naoLattes: true,
       note: AL_NOTE, types: ['AL_IMPRENSA_CITACAO', 'AL_IMPRENSA_ENTREVISTADO', 'AL_IMPRENSA_OUTRA'] },
-    { num: '16', key: 'AL_CONCURSO_CAT', label: 'Concursos e Processos seletivos', icon: 'fa-list-check', naoLattes: true,
+    { num: '16', key: 'AL_CONCURSO_CAT', label: t('lattes.categoria.AL_CONCURSO_CAT.label', 'Concursos e Processos seletivos'), icon: 'fa-list-check', naoLattes: true,
       note: AL_NOTE, types: ['AL_CONCURSO_PUBLICO', 'AL_CONCURSO_PSS', 'AL_CONCURSO_ACADEMICO', 'AL_CONCURSO_CULTURAL', 'AL_CONCURSO_CHAMADA_PUBLICA', 'AL_CONCURSO_HACKATHON', 'AL_CONCURSO_INTERNA'] },
-    { num: '17', key: 'AL_DESENVOLVIMENTO', label: 'Desenvolvimento Pessoal e Habilidades', icon: 'fa-seedling', naoLattes: true,
+    { num: '17', key: 'AL_DESENVOLVIMENTO', label: t('lattes.categoria.AL_DESENVOLVIMENTO.label', 'Desenvolvimento Pessoal e Habilidades'), icon: 'fa-seedling', naoLattes: true,
       note: AL_NOTE, types: ['AL_CURSO_LIVRE', 'AL_MENTORIA', 'AL_PROJETO_PESSOAL'] },
-    { num: '18', key: 'AL_ENGAJAMENTO', label: 'Engajamento Comunitário e Cidadania', icon: 'fa-people-group', naoLattes: true,
+    { num: '18', key: 'AL_ENGAJAMENTO', label: t('lattes.categoria.AL_ENGAJAMENTO.label', 'Engajamento Comunitário e Cidadania'), icon: 'fa-people-group', naoLattes: true,
       note: AL_NOTE, types: ['AL_ATIVISMO', 'AL_LIDERANCA', 'AL_ORG_EVENTO_COM', 'AL_VOLUNTARIADO'] },
-    { num: '19', key: 'AL_SAUDE_ESPORTE', label: 'Saúde, Esporte e Bem-Estar', icon: 'fa-heart-pulse', naoLattes: true,
+    { num: '19', key: 'AL_SAUDE_ESPORTE', label: t('lattes.categoria.AL_SAUDE_ESPORTE.label', 'Saúde, Esporte e Bem-Estar'), icon: 'fa-heart-pulse', naoLattes: true,
       note: AL_NOTE, types: ['AL_EXPEDICAO', 'AL_COMPETICAO', 'AL_ESPORTE', 'AL_BEMESTAR'] },
-    { num: '20', key: 'AL_INTERESSES', label: 'Interesses, Cultura e Lazer', icon: 'fa-palette', naoLattes: true,
+    { num: '20', key: 'AL_INTERESSES', label: t('lattes.categoria.AL_INTERESSES.label', 'Interesses, Cultura e Lazer'), icon: 'fa-palette', naoLattes: true,
       note: AL_NOTE, types: ['AL_ESPECTADOR_ESPORTE', 'AL_CINEMA', 'AL_COLECIONISMO', 'AL_ARTES_CENICAS', 'AL_GASTRONOMIA',
           'AL_EXPOSICOES', 'AL_FEIRAS_CULTURAIS', 'AL_HOBBY', 'AL_JOGOS', 'AL_LEITURA', 'AL_MUSICA', 'AL_VIAGENS'] },
-    { num: '21', key: 'RSC_CRISE_SAUDE', label: 'Atuação em Crise de Saúde Pública', icon: 'fa-virus', naoLattes: true, rscOnly: true,
+    { num: '21', key: 'RSC_CRISE_SAUDE', label: t('lattes.categoria.RSC_CRISE_SAUDE.label', 'Atuação em Crise de Saúde Pública'), icon: 'fa-virus', naoLattes: true, rscOnly: true,
       types: ['RSC_CRISE_SAUDE_ATUACAO'] },
 ];
 
@@ -168,8 +181,8 @@ const LEGACY_TYPE = { LIVRO: 'LIVRO_CAPITULO', CAPITULO_LIVRO: 'LIVRO_CAPITULO',
 
 /* ---- Categoria/tipo especial: itens NÃO LATTES ---- */
 window.NAO_LATTES_TYPE = {
-    key: 'NAO_LATTES', label: 'Item não-Lattes (pessoal)',
-    fields: [F_TITULO, { key: 'categoria', label: 'Categoria', type: 'select', options: ['Hobby', 'Atividade pessoal', 'Voluntariado', 'Certificado avulso', 'Curso livre', 'Outro'] }, { ...F_ANO, row: 'periodo' }, F_AFIM, { key: 'descricao', label: 'Descrição', type: 'textarea' }, F_URL],
+    key: 'NAO_LATTES', label: t('lattes.tipo.NAO_LATTES.label', 'Item não-Lattes (pessoal)'),
+    fields: [F_TITULO, { key: 'categoria', label: t('lattes.tipo.NAO_LATTES.campo.categoria.label', 'Categoria'), type: 'select', options: ['Hobby', 'Atividade pessoal', 'Voluntariado', 'Certificado avulso', 'Curso livre', 'Outro'] }, { ...F_ANO, row: 'periodo' }, F_AFIM, { key: 'descricao', label: t('lattes.tipo.NAO_LATTES.campo.descricao.label', 'Descrição'), type: 'textarea' }, F_URL],
 };
 
 /* ---- Enums do schema Lattes: normalização rótulo↔token ----
@@ -187,8 +200,8 @@ const ENUM_ALIAS = {
     'CONFERENCIA_OU_PALESTRA': 'CONFERENCIA',
 };
 function enumToken(value) {
-    const t = _tok(value);
-    return ENUM_ALIAS[t] || t;
+    const tok = _tok(value);
+    return ENUM_ALIAS[tok] || tok;
 }
 window.LattesEnums = { tok: _tok, token: enumToken };
 
@@ -196,7 +209,7 @@ window.LattesEnums = { tok: _tok, token: enumToken };
 window.LattesTypes = (function () {
     const catByKey = {};
     LATTES_CATEGORIES.forEach(c => { catByKey[c.key] = c; });
-    catByKey['NAO_LATTES'] = { num: '00', key: 'NAO_LATTES', label: 'Não-Lattes', icon: 'fa-heart' };
+    catByKey['NAO_LATTES'] = { num: '00', key: 'NAO_LATTES', label: t('lattes.categoria.NAO_LATTES.label', 'Não-Lattes'), icon: 'fa-heart' };
 
     const BACKUP_FOLDER = 'Cópia de segurança';
     const INBOX_FOLDER = 'Caixa de Entrada';
@@ -254,7 +267,7 @@ window.LattesTypes = (function () {
         getType(typeKey) { return TYPES[typeKey] || (typeKey === 'NAO_LATTES' ? NAO_LATTES_TYPE : null); },
         // compat: get() devolve o tipo (independe de categoria)
         get(typeKey) { return this.getType(typeKey); },
-        label(typeKey) { const t = this.getType(typeKey); return t ? t.label : typeKey; },
+        label(typeKey) { const def = this.getType(typeKey); return def ? def.label : typeKey; },
         categoryByKey(catKey) { return catByKey[catKey] || null; },
         categoryLabel(catKey) { const c = catByKey[catKey]; return c ? c.label : (catKey || ''); },
         categoryNumLabel(catKey) { const c = catByKey[catKey]; return c ? `${c.num ? c.num + '. ' : ''}${c.label}` : (catKey || ''); },
@@ -270,14 +283,14 @@ window.LattesTypes = (function () {
         isNaoLattesCategory(catKey) { return catKey === 'NAO_LATTES' || !!(catByKey[catKey] && catByKey[catKey].naoLattes); },
         // Tipos "não-Lattes" por si só (ex.: Conexões), mesmo dentro de uma
         // categoria que normalmente é Lattes (Dados gerais).
-        isNaoLattesType(typeKey) { const t = this.getType(typeKey); return !!(t && t.naoLattes); },
-        isSingleton(typeKey) { const t = this.getType(typeKey); return !!(t && t.singleton); },
+        isNaoLattesType(typeKey) { const def = this.getType(typeKey); return !!(def && def.naoLattes); },
+        isSingleton(typeKey) { const def = this.getType(typeKey); return !!(def && def.singleton); },
         // "Singleton por campo": no máximo 1 item por valor do campo indicado
         // (ex.: Endereço — 1 Residencial + 1 Profissional). Salvar de novo o
         // mesmo valor atualiza o existente em vez de duplicar; ver onSubmitForm.
-        singletonScopeField(typeKey) { const t = this.getType(typeKey); return (t && t.singletonBy) || null; },
+        singletonScopeField(typeKey) { const def = this.getType(typeKey); return (def && def.singletonBy) || null; },
         // Tipos de "perfil" (Dados gerais) editados em Configurações, não em Catalogar
-        isPerfilType(typeKey) { const t = this.getType(typeKey); return !!(t && t.perfil); },
+        isPerfilType(typeKey) { const def = this.getType(typeKey); return !!(def && def.perfil); },
         perfilTypes() { return Object.keys(TYPES).filter(k => TYPES[k].perfil); },
         // Estrutura de pastas criada ao configurar o diretório: Caixa de
         // Entrada e Cópia de segurança na raiz (a Caixa ganha a subpasta
@@ -299,11 +312,14 @@ window.LattesTypes = (function () {
                 const fim = String(f.anoFim || '').trim();
                 const periodo = (ini && fim) ? `${ini}-${fim}` : (ini || fim || '');
                 const resto = [f.nivel, f.curso].map(x => String(x || '').trim()).filter(Boolean).join(' · ');
-                const t = [periodo, resto].filter(Boolean).join(' ');
-                if (t) return t;
+                const res = [periodo, resto].filter(Boolean).join(' ');
+                if (res) return res;
             }
             // Redes acadêmicas: com "Outra" escolhida, mostra o nome digitado
-            // em "Nome da rede" em vez do rótulo genérico "Outra".
+            // em "Nome da rede" em vez do rótulo genérico "Outra". 'Outra'
+            // aqui precisa bater exatamente com o valor da opção do campo
+            // `titulo` (ver nota de arquitetura no topo do arquivo) — fica
+            // fora do t().
             if (item.typeKey === 'CONEXAO_ACADEMICA' && f.titulo === 'Outra') {
                 return String(f.outraNome || '').trim() || 'Outra';
             }
@@ -326,31 +342,31 @@ window.LattesTypes = (function () {
             // (AL_CONCURSO_*) que a substituem.
             if (item.typeKey.indexOf('AL_CONCURSO') === 0) {
                 const cargo = String(f.cargo || '').trim(), coloc = String(f.colocacao || '').trim();
-                const t = coloc ? `${cargo || f.titulo || ''} (${coloc})`.trim() : cargo;
-                if (t) return t;
+                const res = coloc ? `${cargo || f.titulo || ''} (${coloc})`.trim() : cargo;
+                if (res) return res;
             }
             // Orientações: "Nome do orientando | Título do trabalho" (o ano já
             // aparece à parte no card).
             if (item.typeKey === 'ORIENTACAO_CONCLUIDA' || item.typeKey === 'ORIENTACAO_ANDAMENTO') {
-                const t = [f.orientando, f.titulo].map(x => String(x || '').trim()).filter(Boolean).join(' | ');
-                if (t) return t;
+                const res = [f.orientando, f.titulo].map(x => String(x || '').trim()).filter(Boolean).join(' | ');
+                if (res) return res;
             }
             // Documentos pessoais: "Tipo de documento · Descrição/Nº do documento"
             if (item.typeKey === 'DOCUMENTO_PESSOAL') {
-                const t = [f.tipoDoc, f.titulo].map(x => String(x || '').trim()).filter(Boolean).join(' · ');
-                if (t) return t;
+                const res = [f.tipoDoc, f.titulo].map(x => String(x || '').trim()).filter(Boolean).join(' · ');
+                if (res) return res;
             }
             // Identidade (RG) / Passaporte: não têm campo "titulo" — usam "numero"
             if (item.typeKey === 'DOC_IDENTIDADE') {
-                const t = [f.numero, f.orgao].map(x => String(x || '').trim()).filter(Boolean).join(' · ');
-                if (t) return t;
+                const res = [f.numero, f.orgao].map(x => String(x || '').trim()).filter(Boolean).join(' · ');
+                if (res) return res;
             }
             if (item.typeKey === 'DOC_PASSAPORTE' && String(f.numero || '').trim()) return String(f.numero).trim();
             // Atuação em crise de saúde pública: "Tipo de situação — Ato que
             // decretou" (não tem campo "titulo" próprio).
             if (item.typeKey === 'RSC_CRISE_SAUDE_ATUACAO') {
-                const t = [f.tipoSituacao, f.ato].map(x => String(x || '').trim()).filter(Boolean).join(' — ');
-                if (t) return t;
+                const res = [f.tipoSituacao, f.ato].map(x => String(x || '').trim()).filter(Boolean).join(' — ');
+                if (res) return res;
             }
             // Texto inicial do CV / Memorial descritivo / Outras informações:
             // não têm campo "titulo" — mostram um trecho do próprio texto
@@ -359,8 +375,7 @@ window.LattesTypes = (function () {
                 const d = String(f.descricao || '').trim().replace(/\s+/g, ' ');
                 if (d) return d.length > 60 ? d.slice(0, 60) + '…' : d;
             }
-            return f.titulo || f.curso || f.orientando || f.candidato || f.instituicao || f.nome || '(sem título)';
+            return f.titulo || f.curso || f.orientando || f.candidato || f.instituicao || f.nome || t('lattes.item.sem_titulo', '(sem título)');
         },
     };
 })();
-
