@@ -22,9 +22,14 @@
    - Arquivos (ID.pdf / ID.json): File System Access API, num diretório
      escolhido pelo usuário e persistido no IndexedDB (o handle é
      estruturável-clonável e sobrevive entre sessões, mediante permissão).
+   i18n (preparação): mensagens de erro/aviso voltadas ao usuário passam
+   por window.AppCore.t — só chamadas em resposta a uma ação do usuário
+   ou depois do boot completo do app (nunca no carregamento deste
+   módulo), então window.AppCore já existe.
    ========================================================================== */
 window.Storage = (function () {
     const K = APP_CONFIG.storageKeys;
+    const t = (chave, padrao, vars) => window.AppCore.t(chave, padrao, vars);
     const IDB_NAME = 'lattesZen';
     const IDB_STORE = 'handles';
     const IDB_KEY = 'dirHandle';
@@ -176,7 +181,7 @@ window.Storage = (function () {
     // dele), o original fica intocado (efeito de "copiar"). Retorna null se
     // o usuário cancelar o seletor.
     async function pickDriveEvidenceFile() {
-        if (mode !== 'gdrive' || !gdriveCfg) throw new Error('Conecte o Google Drive antes de usar este recurso.');
+        if (mode !== 'gdrive' || !gdriveCfg) throw new Error(t('storage.erro_sem_gdrive', 'Conecte o Google Drive antes de usar este recurso.'));
         const picked = await window.GDriveClient.pickFile(APP_CONFIG.googlePickerApiKey);
         if (!picked) return null;
         let driveSourceInbox = false;
@@ -188,7 +193,7 @@ window.Storage = (function () {
             }
         } catch (_) {}
         const blob = await window.GDriveClient.getFileContent(picked.id);
-        if (!blob) throw new Error('Não foi possível baixar o conteúdo do arquivo selecionado.');
+        if (!blob) throw new Error(t('storage.erro_download_arquivo', 'Não foi possível baixar o conteúdo do arquivo selecionado.'));
         const file = new File([blob], picked.name, { type: blob.type || picked.mimeType || 'application/octet-stream' });
         return { file, driveSourceInbox };
     }
@@ -296,8 +301,8 @@ window.Storage = (function () {
     // se falhar no meio e for chamada de novo, os arquivos já copiados só são
     // sobrescritos (upsertFile), não duplicados.
     async function migrateLocalToGoogleDrive(onProgress) {
-        if (!dirHandle) throw new Error('Nenhuma pasta local configurada para migrar.');
-        if (!gdriveCfg) throw new Error('Conecte ao Google Drive antes de migrar os arquivos.');
+        if (!dirHandle) throw new Error(t('storage.erro_sem_pasta_local', 'Nenhuma pasta local configurada para migrar.'));
+        if (!gdriveCfg) throw new Error(t('storage.erro_sem_gdrive_migrar', 'Conecte ao Google Drive antes de migrar os arquivos.'));
         let copiados = 0;
         async function copyDir(localHandle, driveParentId) {
             for await (const [name, h] of localHandle.entries()) {
@@ -324,7 +329,7 @@ window.Storage = (function () {
     }
 
     async function chooseDirectory() {
-        if (!supportsFS) throw new Error('Navegador sem suporte à File System Access API (use Chrome ou Edge).');
+        if (!supportsFS) throw new Error(t('storage.erro_sem_fs_api', 'Navegador sem suporte à File System Access API (use Chrome ou Edge).'));
         const handle = await window.showDirectoryPicker({ mode: 'readwrite' });
         dirHandle = handle;
         mode = 'local';
@@ -350,9 +355,9 @@ window.Storage = (function () {
     }
 
     async function ensureDirReady() {
-        if (!dirHandle) throw new Error('Nenhum diretório configurado. Vá em Configurações e escolha uma pasta.');
+        if (!dirHandle) throw new Error(t('storage.erro_sem_diretorio', 'Nenhum diretório configurado. Vá em Configurações e escolha uma pasta.'));
         const ok = await verifyPermission(dirHandle, true);
-        if (!ok) throw new Error('Permissão de escrita negada para o diretório.');
+        if (!ok) throw new Error(t('storage.erro_permissao_negada', 'Permissão de escrita negada para o diretório.'));
         return dirHandle;
     }
 
@@ -1072,7 +1077,7 @@ window.Storage = (function () {
             // contra estouro de cota do localStorage — sem isto, uma falha
             // aqui (ex.: RSC/Súmula com texto grande) era engolida em
             // silêncio, sem nenhum aviso ao usuário.
-            if (window.AppCore) window.AppCore.toast('Não foi possível salvar as configurações (armazenamento cheio).', 'erro');
+            if (window.AppCore) window.AppCore.toast(t('storage.erro_armazenamento_cheio', 'Não foi possível salvar as configurações (armazenamento cheio).'), 'erro');
             return false;
         }
         scheduleSettingsWrite();

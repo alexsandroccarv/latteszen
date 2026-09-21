@@ -26,9 +26,13 @@
    Usa o método de "digest deploy" (hash SHA-1 de cada arquivo, só envia o
    conteúdo dos que o Netlify ainda não tem em cache) em vez de montar um
    .zip no navegador — mais simples e sem depender de nenhuma lib externa.
+   i18n (preparação): mensagens de erro voltadas ao usuário passam por
+   window.AppCore.t — só chamadas em resposta a uma ação do usuário (nunca
+   no carregamento do módulo), então window.AppCore já existe.
    ========================================================================== */
 window.DeployNetlify = (function () {
     const BASE = 'https://api.netlify.com/api/v1';
+    const t = (chave, padrao, vars) => window.AppCore.t(chave, padrao, vars);
 
     async function req(token, method, path, opts) {
         opts = opts || {};
@@ -40,13 +44,13 @@ window.DeployNetlify = (function () {
                 body: opts.body,
             });
         } catch (e) {
-            const err = new Error('Não foi possível conectar ao Netlify — verifique sua conexão.');
+            const err = new Error(t('deploy_netlify.erro_conexao', 'Não foi possível conectar ao Netlify — verifique sua conexão.'));
             err.isNetworkError = true;
             throw err;
         }
         if (opts.okStatuses && opts.okStatuses.includes(resp.status)) return resp;
         if (!resp.ok) {
-            let msg = `Netlify: HTTP ${resp.status}`;
+            let msg = t('deploy_netlify.erro_http', 'Netlify: HTTP {status}', { status: resp.status });
             try { const j = await resp.json(); if (j && j.message) msg += ` — ${j.message}`; } catch (_) {}
             const err = new Error(msg);
             err.status = resp.status;
@@ -81,16 +85,16 @@ window.DeployNetlify = (function () {
 
     async function getSite(token, siteId) {
         const resp = await req(token, 'GET', `/sites/${encodeURIComponent(siteId)}`, { okStatuses: [200, 404] });
-        if (resp.status === 404) throw new Error('Site do Netlify não encontrado (ou o token não tem acesso a ele).');
+        if (resp.status === 404) throw new Error(t('deploy_netlify.erro_site_nao_encontrado', 'Site do Netlify não encontrado (ou o token não tem acesso a ele).'));
         return resp.json();
     }
 
     // Publica `files` (array de {path, content}, content string ou Blob/File;
     // path com "/" inicial, ex.: "/index.html") como um novo deploy do site.
     async function publish({ token, siteId, files }) {
-        if (!token) throw new Error('Informe um token de acesso do Netlify.');
-        if (!siteId) throw new Error('Informe o ID do site do Netlify (ou crie um).');
-        if (!files || !files.length) throw new Error('Nada para publicar.');
+        if (!token) throw new Error(t('deploy_netlify.erro_sem_token', 'Informe um token de acesso do Netlify.'));
+        if (!siteId) throw new Error(t('deploy_netlify.erro_sem_site', 'Informe o ID do site do Netlify (ou crie um).'));
+        if (!files || !files.length) throw new Error(t('deploy_comum.erro_nada_para_publicar', 'Nada para publicar.'));
 
         const bytesByPath = new Map();
         const digestFiles = {};

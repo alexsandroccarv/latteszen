@@ -28,9 +28,14 @@
    (um PUT por arquivo) pra publicar todos os arquivos num ÚNICO commit —
    evita deixar o site num estado parcial (ex.: index.html novo apontando
    pra uma imagem que ainda não chegou) se a rede cair no meio do envio.
+   i18n (preparação): mensagens de erro voltadas ao usuário (lançadas via
+   throw, exibidas depois num toast por quem chama) passam por
+   window.AppCore.t — só chamadas em resposta a uma ação do usuário
+   (nunca no carregamento do módulo), então window.AppCore já existe.
    ========================================================================== */
 window.DeployGithub = (function () {
     const BASE = 'https://api.github.com';
+    const t = (chave, padrao, vars) => window.AppCore.t(chave, padrao, vars);
 
     async function req(token, method, path, opts) {
         opts = opts || {};
@@ -42,13 +47,13 @@ window.DeployGithub = (function () {
                 body: opts.body,
             });
         } catch (e) {
-            const err = new Error('Não foi possível conectar ao GitHub — verifique sua conexão.');
+            const err = new Error(t('deploy_github.erro_conexao', 'Não foi possível conectar ao GitHub — verifique sua conexão.'));
             err.isNetworkError = true;
             throw err;
         }
         if (opts.okStatuses && opts.okStatuses.includes(resp.status)) return resp;
         if (!resp.ok) {
-            let msg = `GitHub: HTTP ${resp.status}`;
+            let msg = t('deploy_github.erro_http', 'GitHub: HTTP {status}', { status: resp.status });
             try { const j = await resp.json(); if (j && j.message) msg += ` — ${j.message}`; } catch (_) {}
             const err = new Error(msg);
             err.status = resp.status;
@@ -75,7 +80,7 @@ window.DeployGithub = (function () {
     // só na hora de publicar).
     async function checkRepo(token, owner, repo) {
         const resp = await req(token, 'GET', `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`, { okStatuses: [200, 404] });
-        if (resp.status === 404) throw new Error(`Repositório "${owner}/${repo}" não encontrado (ou o token não tem acesso a ele).`);
+        if (resp.status === 404) throw new Error(t('deploy_github.erro_repo_nao_encontrado', 'Repositório "{repo}" não encontrado (ou o token não tem acesso a ele).', { repo: `${owner}/${repo}` }));
         return resp.json();
     }
 
@@ -83,9 +88,9 @@ window.DeployGithub = (function () {
     // num commit único no branch indicado — cria o branch (e o repositório,
     // se ainda estiver vazio) automaticamente quando necessário.
     async function publish({ token, owner, repo, branch, files, message }) {
-        if (!token) throw new Error('Informe um token de acesso do GitHub.');
-        if (!owner || !repo) throw new Error('Informe o repositório (dono/nome).');
-        if (!files || !files.length) throw new Error('Nada para publicar.');
+        if (!token) throw new Error(t('deploy_github.erro_sem_token', 'Informe um token de acesso do GitHub.'));
+        if (!owner || !repo) throw new Error(t('deploy_github.erro_sem_repo', 'Informe o repositório (dono/nome).'));
+        if (!files || !files.length) throw new Error(t('deploy_comum.erro_nada_para_publicar', 'Nada para publicar.'));
         branch = (branch || 'gh-pages').trim() || 'gh-pages';
 
         let baseCommitSha = null, baseTreeSha = null;

@@ -37,9 +37,11 @@
 
    As duas seções ignoram as mesmas categorias "não-produção" (identificação,
    endereço, foto de perfil etc.) — ver CATEGORIAS_EXCLUIDAS.
+
+   i18n (preparação): todo texto de exibição passa por t().
    ========================================================================== */
 window.TabLinhaTempo = (function () {
-    const { state, $, esc, itemYear } = window.AppCore;
+    const { state, $, esc, itemYear, t, tp } = window.AppCore;
 
     // Categoria "não-produção" (identificação, endereço, foto de perfil,
     // documentos pessoais etc.) — não entra nem na nuvem de palavras, nem na
@@ -125,15 +127,15 @@ window.TabLinhaTempo = (function () {
                 const max = palavras[0][1];
                 const min = palavras[palavras.length - 1][1];
                 const tamanho = (n) => (max === min ? 1.15 : 0.8 + ((n - min) / (max - min)) * 1.3).toFixed(2);
-                const spans = palavras.map(([w, n]) => `<span class="text-govbr-700 dark:text-unifesp-400 font-semibold leading-none whitespace-nowrap" style="font-size:${tamanho(n)}rem" data-palavra="${esc(w)}" data-freq="${n}" title="${esc(w)}: ${n} ocorrência${n === 1 ? '' : 's'}">${esc(w)}</span>`).join('');
+                const spans = palavras.map(([w, n]) => `<span class="text-govbr-700 dark:text-unifesp-400 font-semibold leading-none whitespace-nowrap" style="font-size:${tamanho(n)}rem" data-palavra="${esc(w)}" data-freq="${n}" title="${esc(w)}: ${esc(tp('tab_linha_tempo.ocorrencias', n, { um: '{n} ocorrência', outros: '{n} ocorrências' }))}">${esc(w)}</span>`).join('');
                 return `<div id="nuvemPalavrasArea" class="w-full">${spans}</div>`;
             })()
-            : `<p class="text-sm text-gray-500 italic">Nenhuma palavra encontrada ainda — preencha título, palavras-chave ou área de conhecimento nos itens.</p>`;
+            : `<p class="text-sm text-gray-500 italic">${t('tab_linha_tempo.nuvem_vazia', 'Nenhuma palavra encontrada ainda — preencha título, palavras-chave ou área de conhecimento nos itens.')}</p>`;
 
         return `
             <section class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-                <h2 class="text-lg font-bold mb-1 flex items-center gap-2"><i class="fa-solid fa-cloud text-govbr-600 dark:text-unifesp-400"></i> Nuvem de palavras</h2>
-                <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">Termos mais frequentes nos títulos, palavras-chave e área de conhecimento dos seus itens — quanto maior a palavra, mais vezes ela aparece. Passe o mouse para ver o total exato.</p>
+                <h2 class="text-lg font-bold mb-1 flex items-center gap-2"><i class="fa-solid fa-cloud text-govbr-600 dark:text-unifesp-400"></i> ${t('tab_linha_tempo.nuvem_titulo', 'Nuvem de palavras')}</h2>
+                <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">${t('tab_linha_tempo.nuvem_intro', 'Termos mais frequentes nos títulos, palavras-chave e área de conhecimento dos seus itens — quanto maior a palavra, mais vezes ela aparece. Passe o mouse para ver o total exato.')}</p>
                 ${corpo}
             </section>`;
     }
@@ -297,7 +299,7 @@ window.TabLinhaTempo = (function () {
                     const cells = anos.map(y => {
                         const n = porCategoria[k][y] || 0;
                         const cls = NIVEL_CLASSES[nivel(n, max)];
-                        const titulo = `${labelByKey[k]} — ${y}: ${n} ite${n === 1 ? 'm' : 'ns'}`;
+                        const titulo = `${labelByKey[k]} — ${y}: ${tp('tab_linha_tempo.itens_contagem', n, { um: '{n} item', outros: '{n} itens' })}`;
                         return `<td class="p-0.5" aria-label="${esc(titulo)}"><div class="w-[11px] h-[11px] rounded-sm ${cls}" data-ano="${y}" data-qtd="${n}" title="${esc(titulo)}"></div></td>`;
                     }).join('');
                     return `<tr class="h-[22px]">${cells}</tr>`;
@@ -306,30 +308,30 @@ window.TabLinhaTempo = (function () {
                 return `
                     <div class="flex items-start">
                         <table class="border-separate shrink-0" style="border-spacing:2px">
-                            <caption class="sr-only">Categorias da linha do tempo</caption>
+                            <caption class="sr-only">${t('tab_linha_tempo.caption_categorias', 'Categorias da linha do tempo')}</caption>
                             <thead><tr class="h-[18px]"><th class="pr-3">&nbsp;</th></tr></thead>
                             <tbody>${labelRows}</tbody>
                         </table>
                         <div class="overflow-x-auto min-w-0 flex-1 scroll-area">
                             <table class="border-separate" style="border-spacing:2px">
-                                <caption class="sr-only">Quantidade de itens por categoria e ano — cada célula traz a categoria, o ano e a contagem</caption>
+                                <caption class="sr-only">${t('tab_linha_tempo.caption_grade', 'Quantidade de itens por categoria e ano — cada célula traz a categoria, o ano e a contagem')}</caption>
                                 <thead><tr class="h-[18px]">${headCells}</tr></thead>
                                 <tbody>${dataRows}</tbody>
                             </table>
                         </div>
                     </div>
                     <div class="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 mt-3">
-                        <span>Menos</span>
+                        <span>${t('tab_linha_tempo.menos', 'Menos')}</span>
                         ${NIVEL_CLASSES.map(cls => `<div class="w-2 h-2 rounded-sm ${cls}"></div>`).join('')}
-                        <span>Mais</span>
+                        <span>${t('tab_linha_tempo.mais', 'Mais')}</span>
                     </div>`;
             })()
-            : `<p class="text-sm text-gray-500 italic py-8 text-center">Nenhum item com ano identificável ainda. Cadastre itens em <strong>Catalogar</strong> (ou importe o XML do Lattes) para ver a linha do tempo.</p>`;
+            : `<p class="text-sm text-gray-500 italic py-8 text-center">${t('tab_linha_tempo.grade_vazia', 'Nenhum item com ano identificável ainda. Cadastre itens em <strong>Catalogar</strong> (ou importe o XML do Lattes) para ver a linha do tempo.')}</p>`;
 
         return `
             <section id="gradeLinhaTempo" class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-                <h2 class="text-lg font-bold mb-1 flex items-center gap-2"><i class="fa-solid fa-table-cells text-govbr-600 dark:text-unifesp-400"></i> Linha do tempo</h2>
-                <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">Quantidade de itens por categoria e ano — quanto mais escuro o quadradinho, mais itens naquele ano. Passe o mouse sobre um quadradinho para ver o total exato.</p>
+                <h2 class="text-lg font-bold mb-1 flex items-center gap-2"><i class="fa-solid fa-table-cells text-govbr-600 dark:text-unifesp-400"></i> ${t('tab_linha_tempo.linha_tempo_titulo', 'Linha do tempo')}</h2>
+                <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">${t('tab_linha_tempo.linha_tempo_intro', 'Quantidade de itens por categoria e ano — quanto mais escuro o quadradinho, mais itens naquele ano. Passe o mouse sobre um quadradinho para ver o total exato.')}</p>
                 ${corpo}
             </section>`;
     }
@@ -404,7 +406,7 @@ window.TabLinhaTempo = (function () {
                 Object.entries(porTipo[tk]).forEach(([ano, n]) => { porAnoOutros[ano] = (porAnoOutros[ano] || 0) + n; });
                 totalOutros += totalPorTipo[tk];
             });
-            series.push({ label: 'Outros', corClasse: CLASSE_COR_OUTROS, porAno: porAnoOutros, total: totalOutros });
+            series.push({ label: t('tab_linha_tempo.outros', 'Outros'), corClasse: CLASSE_COR_OUTROS, porAno: porAnoOutros, total: totalOutros });
         }
         return { series, anoMin, anoMax };
     }
@@ -424,8 +426,8 @@ window.TabLinhaTempo = (function () {
         if (!series.length) {
             return `
                 <section id="graficoProducaoTipo" class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-                    <h2 class="text-lg font-bold mb-1 flex items-center gap-2"><i class="fa-solid fa-chart-column text-govbr-600 dark:text-unifesp-400"></i> Produção por tipo</h2>
-                    <p class="text-sm text-gray-500 italic py-8 text-center">Nenhum item de produção (bibliográfica, técnica ou artística/cultural) com ano identificável ainda.</p>
+                    <h2 class="text-lg font-bold mb-1 flex items-center gap-2"><i class="fa-solid fa-chart-column text-govbr-600 dark:text-unifesp-400"></i> ${t('tab_linha_tempo.producao_tipo_titulo', 'Produção por tipo')}</h2>
+                    <p class="text-sm text-gray-500 italic py-8 text-center">${t('tab_linha_tempo.producao_tipo_vazia', 'Nenhum item de produção (bibliográfica, técnica ou artística/cultural) com ano identificável ainda.')}</p>
                 </section>`;
         }
         const anos = [];
@@ -469,7 +471,7 @@ window.TabLinhaTempo = (function () {
                 acumulado += d.n;
                 const rectY = topY + GAP / 2;
                 const h = Math.max(0.5, (baseY - topY) - GAP);
-                const titulo = `<title>${esc(d.sr.label)} — ${y}: ${d.n} ite${d.n === 1 ? 'm' : 'ns'}</title>`;
+                const titulo = `<title>${esc(d.sr.label)} — ${y}: ${esc(tp('tab_linha_tempo.itens_contagem', d.n, { um: '{n} item', outros: '{n} itens' }))}</title>`;
                 const isTopo = idx === ativos.length - 1;
                 if (isTopo && h > 4) {
                     return `<g>${titulo}
@@ -496,13 +498,13 @@ window.TabLinhaTempo = (function () {
         // recolhida por padrão (mesmo padrão de <details> usado em Itens).
         const tabelaHtml = `
             <details class="mt-3 text-xs">
-                <summary class="cursor-pointer select-none text-gray-500 dark:text-gray-400 hover:text-govbr-600 dark:hover:text-unifesp-400">Ver como tabela</summary>
+                <summary class="cursor-pointer select-none text-gray-500 dark:text-gray-400 hover:text-govbr-600 dark:hover:text-unifesp-400">${t('tab_linha_tempo.ver_como_tabela', 'Ver como tabela')}</summary>
                 <div class="overflow-x-auto mt-2">
                     <table class="border-collapse text-xs">
                         <thead><tr>
-                            <th class="text-left pr-3 pb-1 font-semibold">Tipo</th>
+                            <th class="text-left pr-3 pb-1 font-semibold">${t('tab_linha_tempo.coluna_tipo', 'Tipo')}</th>
                             ${anos.map(y => `<th class="px-2 pb-1 font-normal text-gray-500 dark:text-gray-400 text-right">${y}</th>`).join('')}
-                            <th class="px-2 pb-1 font-semibold text-right">Total</th>
+                            <th class="px-2 pb-1 font-semibold text-right">${t('tab_linha_tempo.coluna_total', 'Total')}</th>
                         </tr></thead>
                         <tbody>${series.map(sr => `
                             <tr class="border-t border-gray-200 dark:border-gray-700">
@@ -517,10 +519,10 @@ window.TabLinhaTempo = (function () {
 
         return `
             <section id="graficoProducaoTipo" class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-                <h2 class="text-lg font-bold mb-1 flex items-center gap-2"><i class="fa-solid fa-chart-column text-govbr-600 dark:text-unifesp-400"></i> Produção por tipo</h2>
-                <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">Quantidade de produção bibliográfica, técnica e artística/cultural por ano, separada por tipo — passe o mouse sobre um bloco para ver o total exato.</p>
+                <h2 class="text-lg font-bold mb-1 flex items-center gap-2"><i class="fa-solid fa-chart-column text-govbr-600 dark:text-unifesp-400"></i> ${t('tab_linha_tempo.producao_tipo_titulo', 'Produção por tipo')}</h2>
+                <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">${t('tab_linha_tempo.producao_tipo_intro', 'Quantidade de produção bibliográfica, técnica e artística/cultural por ano, separada por tipo — passe o mouse sobre um bloco para ver o total exato.')}</p>
                 <div class="overflow-x-auto">
-                    <svg viewBox="0 0 ${svgW} ${svgH}" width="${svgW}" height="${svgH}" role="img" aria-label="Produção por tipo e ano">
+                    <svg viewBox="0 0 ${svgW} ${svgH}" width="${svgW}" height="${svgH}" role="img" aria-label="${t('tab_linha_tempo.svg_aria_label', 'Produção por tipo e ano')}">
                         ${gridHtml}
                         ${barsHtml}
                         ${xLabelsHtml}
@@ -759,18 +761,18 @@ window.TabLinhaTempo = (function () {
     function renderRedeColaboracao() {
         const { alteri, paresAlterAlter } = montarRedeColaboracao();
         const seletorHtml = `
-            <label for="redeColabLayoutSelect" class="text-xs font-semibold text-gray-600 dark:text-gray-300 mr-2">Layout</label>
+            <label for="redeColabLayoutSelect" class="text-xs font-semibold text-gray-600 dark:text-gray-300 mr-2">${t('tab_linha_tempo.rede_layout_label', 'Layout')}</label>
             <select id="redeColabLayoutSelect" class="text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900">
-                <option value="concentrico" ${redeColabLayout === 'concentrico' ? 'selected' : ''}>Radial concêntrico</option>
-                <option value="forcas" ${redeColabLayout === 'forcas' ? 'selected' : ''}>Forças (ancorado no Ego)</option>
-                <option value="arvore" ${redeColabLayout === 'arvore' ? 'selected' : ''}>Árvore radial (por tipo de produção)</option>
+                <option value="concentrico" ${redeColabLayout === 'concentrico' ? 'selected' : ''}>${t('tab_linha_tempo.rede_layout_concentrico', 'Radial concêntrico')}</option>
+                <option value="forcas" ${redeColabLayout === 'forcas' ? 'selected' : ''}>${t('tab_linha_tempo.rede_layout_forcas', 'Forças (ancorado no Ego)')}</option>
+                <option value="arvore" ${redeColabLayout === 'arvore' ? 'selected' : ''}>${t('tab_linha_tempo.rede_layout_arvore', 'Árvore radial (por tipo de produção)')}</option>
             </select>`;
 
         if (!alteri.size) {
             return `
                 <section id="redeColaboracao" class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-                    <h2 class="text-lg font-bold mb-1 flex items-center gap-2"><i class="fa-solid fa-diagram-project text-govbr-600 dark:text-unifesp-400"></i> Rede de colaboração</h2>
-                    <p class="text-sm text-gray-500 italic py-8 text-center">Nenhuma coautoria encontrada ainda — preencha o campo "Autores" (lista) nos itens de produção, eventos ou patentes/registros com mais de uma pessoa.</p>
+                    <h2 class="text-lg font-bold mb-1 flex items-center gap-2"><i class="fa-solid fa-diagram-project text-govbr-600 dark:text-unifesp-400"></i> ${t('tab_linha_tempo.rede_titulo', 'Rede de colaboração')}</h2>
+                    <p class="text-sm text-gray-500 italic py-8 text-center">${t('tab_linha_tempo.rede_vazia', 'Nenhuma coautoria encontrada ainda — preencha o campo "Autores" (lista) nos itens de produção, eventos ou patentes/registros com mais de uma pessoa.')}</p>
                 </section>`;
         }
 
@@ -824,27 +826,27 @@ window.TabLinhaTempo = (function () {
                 ? `<text x="${p.x.toFixed(1)}" y="${(p.y - raio - 3).toFixed(1)}" text-anchor="middle" class="fill-gray-600 dark:fill-gray-300" font-size="9">${esc(a.nome.length > 22 ? a.nome.slice(0, 21) + '…' : a.nome)}</text>`
                 : '';
             return `<g>
-                <circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${raio}" class="viz-net-alter"><title>${esc(a.nome)} — ${a.itens} ite${a.itens === 1 ? 'm' : 'ns'} em comum</title></circle>
+                <circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${raio}" class="viz-net-alter"><title>${esc(a.nome)} — ${esc(tp('tab_linha_tempo.itens_em_comum', a.itens, { um: '{n} item em comum', outros: '{n} itens em comum' }))}</title></circle>
                 ${rotulo}
             </g>`;
         }).join('');
 
         const egoNome = (() => {
             const ident = state.catalogo.items.find(i => i.typeKey === 'IDENTIFICACAO' && i.fields && i.fields.titulo);
-            return ident ? String(ident.fields.titulo).trim() : 'Você (Ego)';
+            return ident ? String(ident.fields.titulo).trim() : t('tab_linha_tempo.voce_ego', 'Você (Ego)');
         })();
 
         const densidade = densidadeVizinhanca(todosOrdenados.length, paresAlterAlter);
         const densidadeHtml = densidade == null
             ? ''
-            : `<p class="text-xs text-gray-500 dark:text-gray-400 mt-2"><i class="fa-solid fa-circle-nodes mr-1"></i> Densidade da vizinhança: <strong class="tabular-nums">${(densidade * 100).toFixed(0)}%</strong> das conexões possíveis entre seus colaboradores — quanto maior, mais coeso o grupo (colaboradores que também colaboram entre si).</p>`;
+            : `<p class="text-xs text-gray-500 dark:text-gray-400 mt-2"><i class="fa-solid fa-circle-nodes mr-1"></i> ${t('tab_linha_tempo.densidade', 'Densidade da vizinhança: <strong class="tabular-nums">{pct}%</strong> das conexões possíveis entre seus colaboradores — quanto maior, mais coeso o grupo (colaboradores que também colaboram entre si).', { pct: (densidade * 100).toFixed(0) })}</p>`;
 
         const tabelaHtml = `
             <details class="mt-3 text-xs">
-                <summary class="cursor-pointer select-none text-gray-500 dark:text-gray-400 hover:text-govbr-600 dark:hover:text-unifesp-400">Ver como tabela</summary>
+                <summary class="cursor-pointer select-none text-gray-500 dark:text-gray-400 hover:text-govbr-600 dark:hover:text-unifesp-400">${t('tab_linha_tempo.ver_como_tabela', 'Ver como tabela')}</summary>
                 <div class="overflow-x-auto mt-2">
                     <table class="border-collapse text-xs">
-                        <thead><tr><th class="text-left pr-3 pb-1 font-semibold">Colaborador</th><th class="px-2 pb-1 font-semibold text-right">Itens em comum</th></tr></thead>
+                        <thead><tr><th class="text-left pr-3 pb-1 font-semibold">${t('tab_linha_tempo.coluna_colaborador', 'Colaborador')}</th><th class="px-2 pb-1 font-semibold text-right">${t('tab_linha_tempo.coluna_itens_comum', 'Itens em comum')}</th></tr></thead>
                         <tbody>${todosOrdenados.map(a => `
                             <tr class="border-t border-gray-200 dark:border-gray-700">
                                 <td class="pr-3 py-1 whitespace-nowrap">${esc(a.nome)}</td>
@@ -858,16 +860,16 @@ window.TabLinhaTempo = (function () {
         return `
             <section id="redeColaboracao" class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
                 <div class="flex flex-wrap items-center justify-between gap-2 mb-1">
-                    <h2 class="text-lg font-bold flex items-center gap-2"><i class="fa-solid fa-diagram-project text-govbr-600 dark:text-unifesp-400"></i> Rede de colaboração</h2>
+                    <h2 class="text-lg font-bold flex items-center gap-2"><i class="fa-solid fa-diagram-project text-govbr-600 dark:text-unifesp-400"></i> ${t('tab_linha_tempo.rede_titulo', 'Rede de colaboração')}</h2>
                     <div>${seletorHtml}</div>
                 </div>
-                <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">Rede egocêntrica de coautoria: você (Ego) no centro e seus colaboradores (Alteri) ao redor, a partir do campo "Autores" (lista) dos itens do catálogo.${ocultos > 0 ? ` Mostrando os ${MAX_ALTERI_EXIBIDOS} colaboradores com mais itens em comum — ${ocultos} com menos colaborações não exibido${ocultos === 1 ? '' : 's'} no desenho (continuam na tabela abaixo).` : ''}</p>
+                <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">${t('tab_linha_tempo.rede_intro', 'Rede egocêntrica de coautoria: você (Ego) no centro e seus colaboradores (Alteri) ao redor, a partir do campo "Autores" (lista) dos itens do catálogo.')}${ocultos > 0 ? ` ${tp('tab_linha_tempo.rede_ocultos', ocultos, { um: 'Mostrando os {max} colaboradores com mais itens em comum — {n} com menos colaborações não exibido no desenho (continuam na tabela abaixo).', outros: 'Mostrando os {max} colaboradores com mais itens em comum — {n} com menos colaborações não exibidos no desenho (continuam na tabela abaixo).' }, { max: MAX_ALTERI_EXIBIDOS })}` : ''}</p>
                 <div class="overflow-x-auto flex justify-center">
-                    <svg viewBox="0 0 ${REDE_SVG} ${REDE_SVG}" width="${REDE_SVG}" height="${REDE_SVG}" role="img" aria-label="Rede de colaboração e coautoria">
+                    <svg viewBox="0 0 ${REDE_SVG} ${REDE_SVG}" width="${REDE_SVG}" height="${REDE_SVG}" role="img" aria-label="${t('tab_linha_tempo.rede_aria_label', 'Rede de colaboração e coautoria')}">
                         ${arestasAlterAlterHtml}
                         ${arestasEgoHtml}
                         ${ramosHtml}
-                        <circle cx="${REDE_CX}" cy="${REDE_CY}" r="${REDE_NODE_R_EGO}" class="viz-net-ego"><title>${esc(egoNome)} (Ego)</title></circle>
+                        <circle cx="${REDE_CX}" cy="${REDE_CY}" r="${REDE_NODE_R_EGO}" class="viz-net-ego"><title>${esc(t('tab_linha_tempo.ego_titulo', '{nome} (Ego)', { nome: egoNome }))}</title></circle>
                         ${nosHtml}
                     </svg>
                 </div>
