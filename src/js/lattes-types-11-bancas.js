@@ -22,17 +22,17 @@
    da taxonomia Lattes, sem nenhuma mudança de conteúdo.
 
    i18n (preparação): label/help/placeholder passam por t(); os arrays de
-   `options` (Natureza/Tipo) ficam de fora — ver nota de arquitetura no
-   topo de lattes-types-campos.js (value vs. label ainda em aberto).
+   `options` (Natureza/Tipo) viram `{ value, label }` via opcoes() — ver
+   nota de arquitetura no topo de lattes-types-campos.js.
    ========================================================================== */
-import { F_ANO, F_INST, F_AFIM, F_PAIS, F_IDIOMA } from './lattes-types-campos.js';
+import { F_ANO, F_INST, F_AFIM, F_PAIS, F_IDIOMA, opcoes } from './lattes-types-campos.js';
 import { t } from './i18n.js';
 
 export const TYPES_11_BANCAS = {
     // 11 Bancas
     BANCA_CONCLUSAO: { label: t('lattes.tipo.BANCA_CONCLUSAO.label', 'Participação em bancas de trabalhos de conclusão'), fields: [
-        { key: 'tipo', label: t('lattes.tipo.BANCA_CONCLUSAO.campo.tipo.label', 'Natureza'), type: 'select', required: true, options: ['Mestrado', 'Doutorado', 'Exame de qualificação de doutorado', 'Exame de qualificação de mestrado', 'Curso de aperfeiçoamento/especialização', 'Graduação'] },
-        { key: 'modalidade', label: t('lattes.tipo.BANCA_CONCLUSAO.campo.modalidade.label', 'Tipo'), type: 'select', options: ['Acadêmico', 'Profissionalizante'], help: t('lattes.tipo.BANCA_CONCLUSAO.campo.modalidade.help', 'Apenas para Mestrado.'),
+        { key: 'tipo', label: t('lattes.tipo.BANCA_CONCLUSAO.campo.tipo.label', 'Natureza'), type: 'select', required: true, options: opcoes('banca_conclusao_tipo', ['Mestrado', 'Doutorado', 'Exame de qualificação de doutorado', 'Exame de qualificação de mestrado', 'Curso de aperfeiçoamento/especialização', 'Graduação']) },
+        { key: 'modalidade', label: t('lattes.tipo.BANCA_CONCLUSAO.campo.modalidade.label', 'Tipo'), type: 'select', options: opcoes('orientacao_modalidade', ['Acadêmico', 'Profissionalizante']), help: t('lattes.tipo.BANCA_CONCLUSAO.campo.modalidade.help', 'Apenas para Mestrado.'),
           disabledWhen: { field: 'tipo', in: ['Doutorado', 'Exame de qualificação de doutorado', 'Exame de qualificação de mestrado', 'Curso de aperfeiçoamento/especialização', 'Graduação'] } },
         { key: 'titulo', label: t('lattes.tipo.BANCA_CONCLUSAO.campo.titulo.label', 'Título'), type: 'text' }, { ...F_ANO, row: 'periodo' }, F_AFIM, F_PAIS, F_IDIOMA,
         { key: 'url', label: t('lattes.tipo.BANCA_CONCLUSAO.campo.url.label', 'Home page do trabalho (URL)'), type: 'url' },
@@ -44,7 +44,7 @@ export const TYPES_11_BANCAS = {
         { key: 'outrasInfo', label: t('lattes.tipo.BANCA_CONCLUSAO.campo.outras_info.label', 'Outras informações'), type: 'textarea' },
     ] },
     BANCA_JULGADORA: { label: t('lattes.tipo.BANCA_JULGADORA.label', 'Participação em bancas de comissões julgadoras'), fields: [
-        { key: 'tipo', label: t('lattes.tipo.BANCA_JULGADORA.campo.tipo.label', 'Natureza'), type: 'select', required: true, options: ['Concurso público', 'Professor titular', 'Livre-docência', 'Avaliação de cursos', 'Outra'] },
+        { key: 'tipo', label: t('lattes.tipo.BANCA_JULGADORA.campo.tipo.label', 'Natureza'), type: 'select', required: true, options: opcoes('banca_julgadora_tipo', ['Concurso público', 'Professor titular', 'Livre-docência', 'Avaliação de cursos', 'Outra']) },
         { key: 'titulo', label: t('lattes.tipo.BANCA_JULGADORA.campo.titulo.label', 'Título'), type: 'text', help: t('lattes.tipo.BANCA_JULGADORA.campo.titulo.help', 'Título do concurso, cargo ou processo avaliado.') }, { ...F_ANO, row: 'periodo' }, F_AFIM, F_PAIS, F_IDIOMA,
         { key: 'url', label: t('lattes.tipo.BANCA_JULGADORA.campo.url.label', 'Home page do trabalho (URL)'), type: 'url' },
         F_INST,

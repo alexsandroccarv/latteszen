@@ -40,7 +40,7 @@
    também fica fora: precisa bater exatamente com o valor da opção
    'Outra' do campo (ver nota de arquitetura em lattes-types-campos.js).
    ========================================================================== */
-import { F_TITULO, F_ANO, F_URL, F_AFIM } from './lattes-types-campos.js';
+import { F_TITULO, F_ANO, F_URL, F_AFIM, opcoes } from './lattes-types-campos.js';
 import { t } from './i18n.js';
 import { TYPES_01_DADOS_GERAIS } from './lattes-types-01-dados-gerais.js';
 import { TYPES_02_FORMACAO } from './lattes-types-02-formacao.js';
@@ -182,7 +182,7 @@ const LEGACY_TYPE = { LIVRO: 'LIVRO_CAPITULO', CAPITULO_LIVRO: 'LIVRO_CAPITULO',
 /* ---- Categoria/tipo especial: itens NÃO LATTES ---- */
 window.NAO_LATTES_TYPE = {
     key: 'NAO_LATTES', label: t('lattes.tipo.NAO_LATTES.label', 'Item não-Lattes (pessoal)'),
-    fields: [F_TITULO, { key: 'categoria', label: t('lattes.tipo.NAO_LATTES.campo.categoria.label', 'Categoria'), type: 'select', options: ['Hobby', 'Atividade pessoal', 'Voluntariado', 'Certificado avulso', 'Curso livre', 'Outro'] }, { ...F_ANO, row: 'periodo' }, F_AFIM, { key: 'descricao', label: t('lattes.tipo.NAO_LATTES.campo.descricao.label', 'Descrição'), type: 'textarea' }, F_URL],
+    fields: [F_TITULO, { key: 'categoria', label: t('lattes.tipo.NAO_LATTES.campo.categoria.label', 'Categoria'), type: 'select', options: opcoes('nao_lattes_categoria', ['Hobby', 'Atividade pessoal', 'Voluntariado', 'Certificado avulso', 'Curso livre', 'Outro']) }, { ...F_ANO, row: 'periodo' }, F_AFIM, { key: 'descricao', label: t('lattes.tipo.NAO_LATTES.campo.descricao.label', 'Descrição'), type: 'textarea' }, F_URL],
 };
 
 /* ---- Enums do schema Lattes: normalização rótulo↔token ----

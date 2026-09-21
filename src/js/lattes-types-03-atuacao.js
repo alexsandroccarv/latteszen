@@ -22,20 +22,21 @@
    da taxonomia Lattes, sem nenhuma mudança de conteúdo.
 
    i18n (preparação): label/placeholder/help passam por t(); os arrays de
-   `options` e `forceValueWhen.map` ficam de fora — ver nota de arquitetura
-   no topo de lattes-types-campos.js (value vs. label ainda em aberto).
+   `options` viram `{ value, label }` via opcoes() — as CHAVES/VALORES de
+   `forceValueWhen.map` continuam literais, batendo com `value` — ver nota
+   de arquitetura no topo de lattes-types-campos.js.
    ========================================================================== */
-import { F_INST, periodoComSituacao } from './lattes-types-campos.js';
+import { F_INST, periodoComSituacao, opcoes } from './lattes-types-campos.js';
 import { t } from './i18n.js';
 
 export const TYPES_03_ATUACAO = {
     // 03 Atuação
     VINCULO_PROFISSIONAL: { label: t('lattes.tipo.VINCULO_PROFISSIONAL.label', 'Atuação profissional'), fields: [
         { key: 'instituicao', label: t('lattes.tipo.VINCULO_PROFISSIONAL.campo.instituicao.label', 'Nome da instituição'), type: 'text', required: true },
-        { key: 'vinculo', label: t('lattes.tipo.VINCULO_PROFISSIONAL.campo.vinculo.label', 'Tipo do vínculo'), type: 'select', options: ['Servidor público', 'Celetista', 'Professor visitante', 'Estudante', 'Bolsista', 'Outro'] },
+        { key: 'vinculo', label: t('lattes.tipo.VINCULO_PROFISSIONAL.campo.vinculo.label', 'Tipo do vínculo'), type: 'select', options: opcoes('vinculo_profissional_vinculo', ['Servidor público', 'Celetista', 'Professor visitante', 'Estudante', 'Bolsista', 'Outro']) },
         // Derivado do Tipo do vínculo (Servidor público/Celetista → Sim; os
         // demais → Não) — ver forceValueWhen/wireForcedValues em tab-catalogar.js.
-        { key: 'vinculoEmpregaticio', label: t('lattes.tipo.VINCULO_PROFISSIONAL.campo.vinculo_empregaticio.label', 'Possui vínculo empregatício?'), type: 'select', options: ['Sim', 'Não'],
+        { key: 'vinculoEmpregaticio', label: t('lattes.tipo.VINCULO_PROFISSIONAL.campo.vinculo_empregaticio.label', 'Possui vínculo empregatício?'), type: 'select', options: opcoes('vinculo_empregaticio', ['Sim', 'Não']),
             forceValueWhen: { field: 'vinculo', map: { 'Servidor público': 'Sim', 'Celetista': 'Sim', 'Professor visitante': 'Não', 'Estudante': 'Não', 'Bolsista': 'Não', 'Outro': 'Não' } } },
         { key: 'cargo', label: t('lattes.tipo.VINCULO_PROFISSIONAL.campo.cargo.label', 'Enquadramento funcional'), type: 'text' },
         { key: 'cargaHoraria', label: t('lattes.tipo.VINCULO_PROFISSIONAL.campo.carga_horaria.label', 'Carga horária semanal'), type: 'number', na: true },
@@ -78,7 +79,7 @@ export const TYPES_03_ATUACAO = {
         { key: 'titulo', label: t('lattes.tipo.ATIV_PESQUISA.campo.titulo.label', 'Linhas de pesquisa'), type: 'text', required: true, placeholder: t('lattes.tipo.ATIV_PESQUISA.campo.titulo.placeholder', 'Separe por ponto e vírgula (;)') }] },
     ATIV_ENSINO: { label: t('lattes.tipo.ATIV_ENSINO.label', 'Ensino'), fields: [
         F_INST,
-        { key: 'nivel', label: t('lattes.tipo.ATIV_ENSINO.campo.nivel.label', 'Nível'), type: 'select', required: true, options: ['Graduação', 'Pós-graduação', 'Especialização', 'Aperfeiçoamento', 'Ensino fundamental', 'Ensino médio', 'Outros'] },
+        { key: 'nivel', label: t('lattes.tipo.ATIV_ENSINO.campo.nivel.label', 'Nível'), type: 'select', required: true, options: opcoes('ativ_ensino_nivel', ['Graduação', 'Pós-graduação', 'Especialização', 'Aperfeiçoamento', 'Ensino fundamental', 'Ensino médio', 'Outros']) },
         { key: 'curso', label: t('lattes.tipo.ATIV_ENSINO.campo.curso.label', 'Curso'), type: 'text', required: true }, ...periodoComSituacao(),
         { key: 'outrasInfo', label: t('lattes.tipo.ATIV_ENSINO.campo.outras_info.label', 'Outras informações'), type: 'textarea' },
         { key: 'disciplinas', label: t('lattes.tipo.ATIV_ENSINO.campo.disciplinas.label', 'Disciplinas ministradas'), type: 'textarea', placeholder: t('lattes.tipo.ATIV_ENSINO.campo.disciplinas.placeholder', 'Separe por ponto e vírgula (;)') }] },

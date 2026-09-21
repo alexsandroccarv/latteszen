@@ -22,10 +22,10 @@
    da taxonomia Lattes, sem nenhuma mudança de conteúdo.
 
    i18n (preparação): label/help passam por t(); os arrays de `options`
-   ficam de fora — ver nota de arquitetura no topo de lattes-types-campos.js
-   (value vs. label ainda em aberto).
+   viram `{ value, label }` via opcoes() — ver nota de arquitetura no
+   topo de lattes-types-campos.js.
    ========================================================================== */
-import { F_TITULO, F_ANO, F_URL, F_CIDADE, F_NATUREZA, F_AFIM, F_PAIS, F_IDIOMA, MEIO_DIVULGACAO_OPTIONS, PROD_AUTORES_LISTA, PROD_PALAVRAS_AREA_SETORES_OUTRAS } from './lattes-types-campos.js';
+import { F_TITULO, F_ANO, F_URL, F_CIDADE, F_NATUREZA, F_AFIM, F_PAIS, F_IDIOMA, MEIO_DIVULGACAO_OPTIONS, PROD_AUTORES_LISTA, PROD_PALAVRAS_AREA_SETORES_OUTRAS, opcoes } from './lattes-types-campos.js';
 import { t } from './i18n.js';
 
 export const TYPES_09_EVENTOS = {
@@ -40,9 +40,9 @@ export const TYPES_09_EVENTOS = {
     // campos da tela real (9.1) já estavam corretamente mapeados.
     PARTICIPACAO_EVENTO: { label: t('lattes.tipo.PARTICIPACAO_EVENTO.label', 'Participação em eventos, congressos, exposições, feiras e olimpíadas'), fields: [
         { key: 'titulo', label: t('lattes.tipo.PARTICIPACAO_EVENTO.campo.titulo.label', 'Nome do evento'), type: 'text', required: true },
-        { key: 'natureza', label: t('lattes.tipo.PARTICIPACAO_EVENTO.campo.natureza.label', 'Natureza'), type: 'select', required: true, options: ['Congresso', 'Seminário', 'Simpósio', 'Oficina', 'Encontro', 'Olimpíada', 'Feira', 'Exposição', 'Outra'] },
-        { key: 'formaParticipacao', label: t('lattes.tipo.PARTICIPACAO_EVENTO.campo.forma_participacao.label', 'Forma de participação'), type: 'select', options: ['Convidado', 'Participante', 'Ouvinte'] },
-        { key: 'tipoParticipacao', label: t('lattes.tipo.PARTICIPACAO_EVENTO.campo.tipo_participacao.label', 'Tipo de apresentação / participação'), type: 'select', options: ['Conferencista', 'Simposista', 'Moderador', 'Avaliador', 'Homenageado'], disabledWhen: { field: 'formaParticipacao', equals: 'Ouvinte' } },
+        { key: 'natureza', label: t('lattes.tipo.PARTICIPACAO_EVENTO.campo.natureza.label', 'Natureza'), type: 'select', required: true, options: opcoes('participacao_evento_natureza', ['Congresso', 'Seminário', 'Simpósio', 'Oficina', 'Encontro', 'Olimpíada', 'Feira', 'Exposição', 'Outra']) },
+        { key: 'formaParticipacao', label: t('lattes.tipo.PARTICIPACAO_EVENTO.campo.forma_participacao.label', 'Forma de participação'), type: 'select', options: opcoes('participacao_evento_forma_participacao', ['Convidado', 'Participante', 'Ouvinte']) },
+        { key: 'tipoParticipacao', label: t('lattes.tipo.PARTICIPACAO_EVENTO.campo.tipo_participacao.label', 'Tipo de apresentação / participação'), type: 'select', options: opcoes('participacao_evento_tipo_participacao', ['Conferencista', 'Simposista', 'Moderador', 'Avaliador', 'Homenageado']), disabledWhen: { field: 'formaParticipacao', equals: 'Ouvinte' } },
         { key: 'tituloApresentacao', label: t('lattes.tipo.PARTICIPACAO_EVENTO.campo.titulo_apresentacao.label', 'Título da apresentação'), type: 'text', help: t('lattes.tipo.PARTICIPACAO_EVENTO.campo.titulo_apresentacao.help', 'Preencher apenas para Convidado ou Participante.'), disabledWhen: { field: 'formaParticipacao', equals: 'Ouvinte' } },
         { ...F_ANO, row: 'periodo' }, F_AFIM,
         F_PAIS,
@@ -51,8 +51,8 @@ export const TYPES_09_EVENTOS = {
         { key: 'cargaHoraria', label: t('lattes.tipo.PARTICIPACAO_EVENTO.campo.carga_horaria.label', 'Carga horária (h)'), type: 'number', na: true, help: t('lattes.tipo.PARTICIPACAO_EVENTO.campo.carga_horaria.help', 'Campo interno do lattesZen — não existe no Currículo Lattes e não é exportado no XML.') },
         { key: 'url', label: t('lattes.tipo.PARTICIPACAO_EVENTO.campo.url.label', 'Home page do trabalho (URL)'), type: 'url' }] },
     ORGANIZACAO_EVENTO: { label: t('lattes.tipo.ORGANIZACAO_EVENTO.label', 'Organização de eventos, congressos, exposições, feiras e olimpíadas'), fields: [
-        { key: 'tipoEvento', label: t('lattes.tipo.ORGANIZACAO_EVENTO.campo.tipo_evento.label', 'Tipo'), type: 'select', options: ['Concerto', 'Concurso', 'Congresso', 'Exposição', 'Festival', 'Feira', 'Olimpíada', 'Outro'] },
-        F_NATUREZA(['Curadoria', 'Montagem', 'Museologia', 'Organização']),
+        { key: 'tipoEvento', label: t('lattes.tipo.ORGANIZACAO_EVENTO.campo.tipo_evento.label', 'Tipo'), type: 'select', options: opcoes('organizacao_evento_tipo_evento', ['Concerto', 'Concurso', 'Congresso', 'Exposição', 'Festival', 'Feira', 'Olimpíada', 'Outro']) },
+        F_NATUREZA(opcoes('organizacao_evento_natureza', ['Curadoria', 'Montagem', 'Museologia', 'Organização'])),
         F_TITULO, { ...F_ANO, row: 'periodo' }, F_AFIM,
         F_PAIS, F_IDIOMA,
         { key: 'meioDivulgacao', label: t('lattes.tipo.ORGANIZACAO_EVENTO.campo.meio_divulgacao.label', 'Meio de divulgação'), type: 'select', options: MEIO_DIVULGACAO_OPTIONS }, F_URL,

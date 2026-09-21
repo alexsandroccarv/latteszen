@@ -21,17 +21,17 @@
    Extraído de lattes-types.js (issue de refatoração) — seção "05.2 Produção técnica"
    da taxonomia Lattes, sem nenhuma mudança de conteúdo.
 
-   i18n (preparação): label passa por t(); os arrays de `options` ficam de
-   fora — ver nota de arquitetura no topo de lattes-types-campos.js (value
-   vs. label ainda em aberto).
+   i18n (preparação): label passa por t(); os arrays de `options` viram
+   `{ value, label }` via opcoes() — ver nota de arquitetura no topo de
+   lattes-types-campos.js.
    ========================================================================== */
-import { F_TITULO, F_ANO, F_URL, F_INST, F_FINAL, F_CIDADE, F_NATUREZA, F_AFIM, F_PAIS, F_IDIOMA, MEIO_DIVULGACAO_OPTIONS, PROD_AUTORES_LISTA, PROD_PALAVRAS_AREA_SETORES_OUTRAS } from './lattes-types-campos.js';
+import { F_TITULO, F_ANO, F_URL, F_INST, F_FINAL, F_CIDADE, F_NATUREZA, F_AFIM, F_PAIS, F_IDIOMA, MEIO_DIVULGACAO_OPTIONS, PROD_AUTORES_LISTA, PROD_PALAVRAS_AREA_SETORES_OUTRAS, opcoes } from './lattes-types-campos.js';
 import { t } from './i18n.js';
 
 export const TYPES_05_PRODUCAO_TECNICA = {
     // 05.2 Produção técnica
     ASSESSORIA_CONSULTORIA: { label: t('lattes.tipo.ASSESSORIA_CONSULTORIA.label', 'Assessoria e consultoria'), fields: [
-        F_NATUREZA(['Assessoria', 'Consultoria']), F_TITULO, F_ANO, F_PAIS, F_IDIOMA,
+        F_NATUREZA(opcoes('assessoria_consultoria_natureza', ['Assessoria', 'Consultoria'])), F_TITULO, F_ANO, F_PAIS, F_IDIOMA,
         { key: 'meioDivulgacao', label: t('lattes.tipo.ASSESSORIA_CONSULTORIA.campo.meio_divulgacao.label', 'Meio de divulgação'), type: 'select', options: MEIO_DIVULGACAO_OPTIONS }, F_URL,
         { key: 'relevante', label: t('lattes.tipo.ASSESSORIA_CONSULTORIA.campo.relevante.label', 'É um dos 10 trabalhos mais relevantes de sua produção?'), type: 'checkbox' },
         PROD_AUTORES_LISTA, F_FINAL,
@@ -54,7 +54,7 @@ export const TYPES_05_PRODUCAO_TECNICA = {
     // e "Qual o potencial de inovação?" (texto longo) também não têm atributo
     // correspondente. Nenhum dos quatro foi adicionado à UI por esse motivo.
     SOFTWARE_SEM_REGISTRO: { label: t('lattes.tipo.SOFTWARE_SEM_REGISTRO.label', 'Programa de computador sem registro'), fields: [
-        F_NATUREZA(['Computacional', 'Multimídia', 'Outro']),
+        F_NATUREZA(opcoes('software_sem_registro_natureza', ['Computacional', 'Multimídia', 'Outro'])),
         F_TITULO, { ...F_ANO, row: 'periodo' }, F_AFIM, F_PAIS, F_IDIOMA,
         { key: 'meioDivulgacao', label: t('lattes.tipo.SOFTWARE_SEM_REGISTRO.campo.meio_divulgacao.label', 'Meio de divulgação'), type: 'select', options: MEIO_DIVULGACAO_OPTIONS }, F_URL,
         { key: 'relevante', label: t('lattes.tipo.SOFTWARE_SEM_REGISTRO.campo.relevante.label', 'É um dos 10 trabalhos mais relevantes de sua produção?'), type: 'checkbox' },
@@ -62,17 +62,17 @@ export const TYPES_05_PRODUCAO_TECNICA = {
         { key: 'potencialInovacao', label: t('lattes.tipo.SOFTWARE_SEM_REGISTRO.campo.potencial_inovacao.label', 'Possui potencial de inovação de produtos, processos ou serviços?'), type: 'checkbox' },
         PROD_AUTORES_LISTA, F_FINAL,
         { key: 'plataforma', label: t('lattes.tipo.SOFTWARE_SEM_REGISTRO.campo.plataforma.label', 'Plataforma / Ambiente'), type: 'text' },
-        { key: 'disponibilidade', label: t('lattes.tipo.SOFTWARE_SEM_REGISTRO.campo.disponibilidade.label', 'Disponibilidade'), type: 'select', options: ['Restrita', 'Irrestrita'] },
+        { key: 'disponibilidade', label: t('lattes.tipo.SOFTWARE_SEM_REGISTRO.campo.disponibilidade.label', 'Disponibilidade'), type: 'select', options: opcoes('disponibilidade_restrita_irrestrita', ['Restrita', 'Irrestrita']) },
         { key: 'instituicao', label: t('lattes.tipo.SOFTWARE_SEM_REGISTRO.campo.instituicao.label', 'Instituição financiadora'), type: 'text' },
         ...PROD_PALAVRAS_AREA_SETORES_OUTRAS.slice(0, 3),
         { key: 'outrasInfo', label: t('lattes.tipo.SOFTWARE_SEM_REGISTRO.campo.outras_info.label', 'Resumo'), type: 'textarea' },
     ] },
     PRODUTO_TECNOLOGICO: { label: t('lattes.tipo.PRODUTO_TECNOLOGICO.label', 'Produtos'), fields: [
-        { key: 'natureza', label: t('lattes.tipo.PRODUTO_TECNOLOGICO.campo.natureza.label', 'Tipo'), type: 'select', options: ['Piloto', 'Projeto', 'Protótipo', 'Outro'] },
+        { key: 'natureza', label: t('lattes.tipo.PRODUTO_TECNOLOGICO.campo.natureza.label', 'Tipo'), type: 'select', options: opcoes('produto_tecnologico_tipo', ['Piloto', 'Projeto', 'Protótipo', 'Outro']) },
         // "Natureza" real do schema (APARELHO/EQUIPAMENTO/FARMACOS_E_SIMILARES/
         // INSTRUMENTO/OUTRA) — distinta do "Tipo" acima (chave `natureza`
         // herdada do átomo F_NATUREZA original, mapeado pra TIPO-PRODUTO).
-        { key: 'naturezaProduto', label: t('lattes.tipo.PRODUTO_TECNOLOGICO.campo.natureza_produto.label', 'Natureza'), type: 'select', options: ['Aparelho', 'Equipamento', 'Fármacos e similares', 'Instrumento', 'Outra'] },
+        { key: 'naturezaProduto', label: t('lattes.tipo.PRODUTO_TECNOLOGICO.campo.natureza_produto.label', 'Natureza'), type: 'select', options: opcoes('produto_tecnologico_natureza_produto', ['Aparelho', 'Equipamento', 'Fármacos e similares', 'Instrumento', 'Outra']) },
         F_TITULO, F_ANO, F_PAIS, F_IDIOMA,
         { key: 'meioDivulgacao', label: t('lattes.tipo.PRODUTO_TECNOLOGICO.campo.meio_divulgacao.label', 'Meio de divulgação'), type: 'select', options: MEIO_DIVULGACAO_OPTIONS }, F_URL,
         { key: 'relevante', label: t('lattes.tipo.PRODUTO_TECNOLOGICO.campo.relevante.label', 'É um dos 10 trabalhos mais relevantes de sua produção?'), type: 'checkbox' },
@@ -84,7 +84,7 @@ export const TYPES_05_PRODUCAO_TECNICA = {
         ...PROD_PALAVRAS_AREA_SETORES_OUTRAS,
     ] },
     PROCESSO_TECNICA: { label: t('lattes.tipo.PROCESSO_TECNICA.label', 'Processos ou técnicas'), fields: [
-        F_NATUREZA(['Analítica', 'Instrumental', 'Pedagógica', 'Processual', 'Terapêutica', 'Outra']),
+        F_NATUREZA(opcoes('processo_tecnica_natureza', ['Analítica', 'Instrumental', 'Pedagógica', 'Processual', 'Terapêutica', 'Outra'])),
         F_TITULO, F_ANO, F_PAIS, F_IDIOMA,
         { key: 'meioDivulgacao', label: t('lattes.tipo.PROCESSO_TECNICA.campo.meio_divulgacao.label', 'Meio de divulgação'), type: 'select', options: MEIO_DIVULGACAO_OPTIONS }, F_URL,
         { key: 'relevante', label: t('lattes.tipo.PROCESSO_TECNICA.campo.relevante.label', 'É um dos 10 trabalhos mais relevantes de sua produção?'), type: 'checkbox' },
@@ -95,7 +95,7 @@ export const TYPES_05_PRODUCAO_TECNICA = {
         ...PROD_PALAVRAS_AREA_SETORES_OUTRAS,
     ] },
     TRABALHO_TECNICO: { label: t('lattes.tipo.TRABALHO_TECNICO.label', 'Trabalhos técnicos'), fields: [
-        F_NATUREZA(['Parecer', 'Elaboração de projeto', 'Relatório técnico', 'Serviços na área da saúde', 'Extensão tecnológica', 'Outra']),
+        F_NATUREZA(opcoes('trabalho_tecnico_natureza', ['Parecer', 'Elaboração de projeto', 'Relatório técnico', 'Serviços na área da saúde', 'Extensão tecnológica', 'Outra'])),
         F_TITULO, F_ANO, F_PAIS, F_IDIOMA,
         { key: 'meioDivulgacao', label: t('lattes.tipo.TRABALHO_TECNICO.campo.meio_divulgacao.label', 'Meio de divulgação'), type: 'select', options: MEIO_DIVULGACAO_OPTIONS }, F_URL,
         { key: 'relevante', label: t('lattes.tipo.TRABALHO_TECNICO.campo.relevante.label', 'É um dos 10 trabalhos mais relevantes de sua produção?'), type: 'checkbox' },
@@ -105,7 +105,7 @@ export const TYPES_05_PRODUCAO_TECNICA = {
         ...PROD_PALAVRAS_AREA_SETORES_OUTRAS,
     ] },
     CARTA_MAPA: { label: t('lattes.tipo.CARTA_MAPA.label', 'Cartas, mapas ou similares'), fields: [
-        F_NATUREZA(['Aerofotograma', 'Carta', 'Fotograma', 'Mapa', 'Outra']),
+        F_NATUREZA(opcoes('carta_mapa_natureza', ['Aerofotograma', 'Carta', 'Fotograma', 'Mapa', 'Outra'])),
         F_TITULO, { ...F_ANO, row: 'periodo' }, F_AFIM, F_PAIS, F_IDIOMA,
         { key: 'meioDivulgacao', label: t('lattes.tipo.CARTA_MAPA.campo.meio_divulgacao.label', 'Meio de divulgação'), type: 'select', options: MEIO_DIVULGACAO_OPTIONS }, F_URL,
         { key: 'relevante', label: t('lattes.tipo.CARTA_MAPA.campo.relevante.label', 'É um dos 10 trabalhos mais relevantes de sua produção?'), type: 'checkbox' },
@@ -117,12 +117,12 @@ export const TYPES_05_PRODUCAO_TECNICA = {
         ...PROD_PALAVRAS_AREA_SETORES_OUTRAS,
     ] },
     CURSO_MINISTRADO: { label: t('lattes.tipo.CURSO_MINISTRADO.label', 'Curso de curta duração ministrado'), fields: [
-        { key: 'nivel', label: t('lattes.tipo.CURSO_MINISTRADO.campo.nivel.label', 'Nível do curso'), type: 'select', options: ['Extensão', 'Aperfeiçoamento', 'Especialização', 'Outra'] },
+        { key: 'nivel', label: t('lattes.tipo.CURSO_MINISTRADO.campo.nivel.label', 'Nível do curso'), type: 'select', options: opcoes('curso_ministrado_nivel', ['Extensão', 'Aperfeiçoamento', 'Especialização', 'Outra']) },
         F_TITULO, { ...F_ANO, row: 'periodo' }, F_AFIM, F_PAIS, F_IDIOMA,
         { key: 'meioDivulgacao', label: t('lattes.tipo.CURSO_MINISTRADO.campo.meio_divulgacao.label', 'Meio de divulgação'), type: 'select', options: MEIO_DIVULGACAO_OPTIONS }, F_URL,
         { key: 'relevante', label: t('lattes.tipo.CURSO_MINISTRADO.campo.relevante.label', 'É um dos 10 trabalhos mais relevantes de sua produção?'), type: 'checkbox' },
         { key: 'divulgacaoCT', label: t('lattes.tipo.CURSO_MINISTRADO.campo.divulgacao_ct.label', 'É uma produção para educação e popularização de C&T?'), type: 'checkbox' },
-        { key: 'participacaoAutores', label: t('lattes.tipo.CURSO_MINISTRADO.campo.participacao_autores.label', 'Participação dos autores'), type: 'select', options: ['Docente', 'Organizador', 'Outra'] },
+        { key: 'participacaoAutores', label: t('lattes.tipo.CURSO_MINISTRADO.campo.participacao_autores.label', 'Participação dos autores'), type: 'select', options: opcoes('curso_ministrado_participacao_autores', ['Docente', 'Organizador', 'Outra']) },
         PROD_AUTORES_LISTA,
         { key: 'cargaHoraria', label: t('lattes.tipo.CURSO_MINISTRADO.campo.carga_horaria.label', 'Duração (carga horária)'), type: 'number', na: true },
         { key: 'unidade', label: t('lattes.tipo.CURSO_MINISTRADO.campo.unidade.label', 'Unidade da duração (h, dias, meses...)'), type: 'text' },
@@ -140,7 +140,7 @@ export const TYPES_05_PRODUCAO_TECNICA = {
         ...PROD_PALAVRAS_AREA_SETORES_OUTRAS,
     ] },
     EDITORACAO: { label: t('lattes.tipo.EDITORACAO.label', 'Editoração'), fields: [
-        F_NATUREZA(['Livro', 'Anais', 'Catálogo', 'Coletânea', 'Enciclopédia', 'Periódico', 'Outra']),
+        F_NATUREZA(opcoes('editoracao_natureza', ['Livro', 'Anais', 'Catálogo', 'Coletânea', 'Enciclopédia', 'Periódico', 'Outra'])),
         F_TITULO, { ...F_ANO, row: 'periodo' }, F_AFIM, F_PAIS, F_IDIOMA,
         { key: 'meioDivulgacao', label: t('lattes.tipo.EDITORACAO.campo.meio_divulgacao.label', 'Meio de divulgação'), type: 'select', options: MEIO_DIVULGACAO_OPTIONS }, F_URL,
         { key: 'relevante', label: t('lattes.tipo.EDITORACAO.campo.relevante.label', 'É um dos 10 trabalhos mais relevantes de sua produção?'), type: 'checkbox' },
@@ -160,15 +160,15 @@ export const TYPES_05_PRODUCAO_TECNICA = {
     // Descrição") já era exportado como LOCAL — relabeled pra bater com o
     // campo real da tela ("Local"), sem trocar a chave nem os dados salvos.
     MANUTENCAO_OBRA: { label: t('lattes.tipo.MANUTENCAO_OBRA.label', 'Manutenção de obra artística'), fields: [
-        { key: 'tipo', label: t('lattes.tipo.MANUTENCAO_OBRA.campo.tipo.label', 'Tipo'), type: 'select', options: ['Conservação', 'Restauração', 'Outro'] },
-        F_NATUREZA(['Arquitetura', 'Desenho', 'Escultura', 'Fotografia', 'Gravura', 'Pintura', 'Outra']),
+        { key: 'tipo', label: t('lattes.tipo.MANUTENCAO_OBRA.campo.tipo.label', 'Tipo'), type: 'select', options: opcoes('manutencao_obra_tipo', ['Conservação', 'Restauração', 'Outro']) },
+        F_NATUREZA(opcoes('manutencao_obra_natureza', ['Arquitetura', 'Desenho', 'Escultura', 'Fotografia', 'Gravura', 'Pintura', 'Outra'])),
         F_TITULO, { ...F_ANO, row: 'periodo' }, F_AFIM, F_PAIS, F_IDIOMA,
         { key: 'relevante', label: t('lattes.tipo.MANUTENCAO_OBRA.campo.relevante.label', 'É um dos 10 trabalhos mais relevantes de sua produção?'), type: 'checkbox' },
         PROD_AUTORES_LISTA,
         { key: 'nomeObra', label: t('lattes.tipo.MANUTENCAO_OBRA.campo.nome_obra.label', 'Nome da obra'), type: 'text' },
         { key: 'autorObra', label: t('lattes.tipo.MANUTENCAO_OBRA.campo.autor_obra.label', 'Autor da obra'), type: 'text' },
         { key: 'anoObra', label: t('lattes.tipo.MANUTENCAO_OBRA.campo.ano_obra.label', 'Ano da obra'), type: 'text' },
-        { key: 'acervo', label: t('lattes.tipo.MANUTENCAO_OBRA.campo.acervo.label', 'Acervo'), type: 'select', options: ['Público', 'Privado'] },
+        { key: 'acervo', label: t('lattes.tipo.MANUTENCAO_OBRA.campo.acervo.label', 'Acervo'), type: 'select', options: opcoes('manutencao_obra_acervo', ['Público', 'Privado']) },
         { ...F_FINAL, label: t('lattes.tipo.MANUTENCAO_OBRA.campo.local', 'Local') }, F_CIDADE,
         ...PROD_PALAVRAS_AREA_SETORES_OUTRAS,
     ] },
@@ -183,7 +183,7 @@ export const TYPES_05_PRODUCAO_TECNICA = {
         ...PROD_PALAVRAS_AREA_SETORES_OUTRAS,
     ] },
     MIDIA: { label: t('lattes.tipo.MIDIA.label', 'Entrevistas, mesas redondas, programas e comentários na mídia'), fields: [
-        { key: 'tipo', label: t('lattes.tipo.MIDIA.campo.tipo.label', 'Natureza'), type: 'select', options: ['Entrevista', 'Mesa redonda', 'Comentário', 'Programa', 'Outra'] },
+        { key: 'tipo', label: t('lattes.tipo.MIDIA.campo.tipo.label', 'Natureza'), type: 'select', options: opcoes('midia_tipo', ['Entrevista', 'Mesa redonda', 'Comentário', 'Programa', 'Outra']) },
         F_TITULO, { ...F_ANO, row: 'periodo' }, F_AFIM, F_PAIS, F_IDIOMA,
         { key: 'meioDivulgacao', label: t('lattes.tipo.MIDIA.campo.meio_divulgacao.label', 'Meio de divulgação'), type: 'select', options: MEIO_DIVULGACAO_OPTIONS }, F_URL,
         { key: 'relevante', label: t('lattes.tipo.MIDIA.campo.relevante.label', 'É um dos 10 trabalhos mais relevantes de sua produção?'), type: 'checkbox' },
@@ -212,7 +212,7 @@ export const TYPES_05_PRODUCAO_TECNICA = {
     // quanto como Tema — bug de conflação) só correspondia de fato ao Tema —
     // relabeled, mantendo a chave e os dados salvos. `natureza` é campo novo.
     MIDIA_SOCIAL: { label: t('lattes.tipo.MIDIA_SOCIAL.label', 'Redes sociais, websites e blogs'), fields: [
-        F_NATUREZA(['Rede Social', 'Fórum', 'Blog', 'Site']),
+        F_NATUREZA(opcoes('midia_social_natureza', ['Rede Social', 'Fórum', 'Blog', 'Site'])),
         F_TITULO, { ...F_ANO, row: 'periodo' }, F_AFIM, F_PAIS, F_IDIOMA, F_URL,
         { key: 'relevante', label: t('lattes.tipo.MIDIA_SOCIAL.campo.relevante.label', 'É um dos 10 trabalhos mais relevantes de sua produção?'), type: 'checkbox' },
         { key: 'divulgacaoCT', label: t('lattes.tipo.MIDIA_SOCIAL.campo.divulgacao_ct.label', 'É uma produção para educação e popularização de C&T?'), type: 'checkbox' },

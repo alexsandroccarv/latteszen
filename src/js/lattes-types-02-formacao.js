@@ -23,12 +23,12 @@
 
    i18n (preparação): label/help/placeholder passam por t(), inclusive os
    VALORES (não as chaves) do mapa `labelWhen.map` — são rótulos exibidos
-   condicionalmente. Os arrays de `options`/`default` e as CHAVES de
-   `disabledWhen`/`labelWhen` (que precisam bater com valores de `options`)
-   ficam de fora — ver nota de arquitetura no topo de
-   lattes-types-campos.js (value vs. label ainda em aberto).
+   condicionalmente. Os arrays de `options` viram `{ value, label }` via
+   opcoes() — `default` e as CHAVES de `disabledWhen`/`labelWhen`
+   continuam literais, batendo com `value` — ver nota de arquitetura no
+   topo de lattes-types-campos.js.
    ========================================================================== */
-import { F_INST, F_AINI, NIVEIS_FORMACAO, nivelExcept } from './lattes-types-campos.js';
+import { F_INST, F_AINI, NIVEIS_FORMACAO, nivelExcept, opcoes } from './lattes-types-campos.js';
 import { t } from './i18n.js';
 
 export const TYPES_02_FORMACAO = {
@@ -36,20 +36,20 @@ export const TYPES_02_FORMACAO = {
     FORMACAO_ACADEMICA: { label: t('lattes.tipo.FORMACAO_ACADEMICA.label', 'Formação acadêmica/titulação'), fields: [
         { key: 'nivel', label: t('lattes.tipo.FORMACAO_ACADEMICA.campo.nivel.label', 'Nível'), type: 'select', required: true, options: NIVEIS_FORMACAO },
         // "Tipo de X": só existe (e só faz sentido) para o próprio nível X.
-        { key: 'tipoDoutorado', label: t('lattes.tipo.FORMACAO_ACADEMICA.campo.tipo_doutorado.label', 'Tipo de doutorado'), type: 'select', options: ['Normal', 'Sanduíche', 'Cotutela', 'Cotutela-Sanduíche'],
+        { key: 'tipoDoutorado', label: t('lattes.tipo.FORMACAO_ACADEMICA.campo.tipo_doutorado.label', 'Tipo de doutorado'), type: 'select', options: opcoes('formacao_academica_tipo_doutorado', ['Normal', 'Sanduíche', 'Cotutela', 'Cotutela-Sanduíche']),
           disabledWhen: { field: 'nivel', in: nivelExcept('Doutorado') } },
-        { key: 'tipoMestrado', label: t('lattes.tipo.FORMACAO_ACADEMICA.campo.tipo_mestrado.label', 'Tipo de mestrado'), type: 'select', options: ['Normal', 'Sanduíche'],
+        { key: 'tipoMestrado', label: t('lattes.tipo.FORMACAO_ACADEMICA.campo.tipo_mestrado.label', 'Tipo de mestrado'), type: 'select', options: opcoes('formacao_academica_tipo_mestrado', ['Normal', 'Sanduíche']),
           disabledWhen: { field: 'nivel', in: nivelExcept('Mestrado') } },
-        { key: 'tipoMestradoProfissional', label: t('lattes.tipo.FORMACAO_ACADEMICA.campo.tipo_mestrado_profissional.label', 'Tipo de mestrado profissional'), type: 'select', options: ['Normal', 'Sanduíche'],
+        { key: 'tipoMestradoProfissional', label: t('lattes.tipo.FORMACAO_ACADEMICA.campo.tipo_mestrado_profissional.label', 'Tipo de mestrado profissional'), type: 'select', options: opcoes('formacao_academica_tipo_mestrado_profissional', ['Normal', 'Sanduíche']),
           disabledWhen: { field: 'nivel', in: nivelExcept('Mestrado profissional') } },
-        { key: 'tipoGraduacao', label: t('lattes.tipo.FORMACAO_ACADEMICA.campo.tipo_graduacao.label', 'Tipo de graduação'), type: 'select', options: ['Normal', 'Sanduíche'],
+        { key: 'tipoGraduacao', label: t('lattes.tipo.FORMACAO_ACADEMICA.campo.tipo_graduacao.label', 'Tipo de graduação'), type: 'select', options: opcoes('formacao_academica_tipo_graduacao', ['Normal', 'Sanduíche']),
           disabledWhen: { field: 'nivel', in: nivelExcept('Graduação') } },
         { key: 'instituicao', label: t('lattes.tipo.FORMACAO_ACADEMICA.campo.instituicao.label', 'Instituição'), type: 'text', required: true },
         { key: 'curso', label: t('lattes.tipo.FORMACAO_ACADEMICA.campo.curso.label', 'Curso'), type: 'text',
           disabledWhen: { field: 'nivel', in: ['Ensino fundamental', 'Ensino médio', 'Residência médica'] } },
         { key: 'cargaHoraria', label: t('lattes.tipo.FORMACAO_ACADEMICA.campo.carga_horaria.label', 'Carga horária (h)'), type: 'number', na: true,
           disabledWhen: { field: 'nivel', in: nivelExcept('Aperfeiçoamento', 'Especialização') } },
-        { key: 'statusCurso', label: t('lattes.tipo.FORMACAO_ACADEMICA.campo.status_curso.label', 'Status do curso'), type: 'select', options: ['Em andamento', 'Concluído', 'Incompleto'] },
+        { key: 'statusCurso', label: t('lattes.tipo.FORMACAO_ACADEMICA.campo.status_curso.label', 'Status do curso'), type: 'select', options: opcoes('status_curso', ['Em andamento', 'Concluído', 'Incompleto']) },
         { ...F_AINI, row: 'periodo' }, { key: 'anoFim', label: t('lattes.tipo.FORMACAO_ACADEMICA.campo.ano_fim.label', 'Conclusão (ano)'), type: 'datebr', row: 'periodo',
           disabledWhen: { field: 'statusCurso', in: ['', 'Em andamento', 'Incompleto'] } },
         { key: 'anoObtencaoTitulo', label: t('lattes.tipo.FORMACAO_ACADEMICA.campo.ano_obtencao_titulo.label', 'Obtenção do título (mês/ano)'), type: 'datebr',
@@ -57,7 +57,7 @@ export const TYPES_02_FORMACAO = {
               { field: 'nivel', in: nivelExcept('Mestrado', 'Mestrado profissional', 'Doutorado') },
               { field: 'statusCurso', in: ['', 'Em andamento', 'Incompleto'] },
           ] },
-        { key: 'comBolsa', label: t('lattes.tipo.FORMACAO_ACADEMICA.campo.com_bolsa.label', 'Com bolsa?'), type: 'select', options: ['Sim', 'Não'],
+        { key: 'comBolsa', label: t('lattes.tipo.FORMACAO_ACADEMICA.campo.com_bolsa.label', 'Com bolsa?'), type: 'select', options: opcoes('com_bolsa', ['Sim', 'Não']),
           disabledWhen: { field: 'nivel', in: ['Ensino fundamental', 'Ensino médio'] } },
         { key: 'bolsa', label: t('lattes.tipo.FORMACAO_ACADEMICA.campo.bolsa.label', 'Agência financiadora'), type: 'text', disabledWhen: { field: 'comBolsa', in: ['', 'Não'] } },
         { key: 'titulo', label: t('lattes.tipo.FORMACAO_ACADEMICA.campo.titulo.label', 'Título da dissertação/tese'), type: 'text', na: true,
@@ -77,14 +77,14 @@ export const TYPES_02_FORMACAO = {
           disabledWhen: { field: 'nivel', in: nivelExcept('Mestrado', 'Mestrado profissional', 'Doutorado', 'Residência médica') } },
     ] },
     POS_DOUTORADO: { label: t('lattes.tipo.POS_DOUTORADO.label', 'Pós-doutorado e/ou livre-docência'), fields: [
-        { key: 'tipo', label: t('lattes.tipo.POS_DOUTORADO.campo.tipo.label', 'Nível'), type: 'select', required: true, options: ['Pós-Doutorado', 'Livre-docência'] },
+        { key: 'tipo', label: t('lattes.tipo.POS_DOUTORADO.campo.tipo.label', 'Nível'), type: 'select', required: true, options: opcoes('pos_doutorado_tipo', ['Pós-Doutorado', 'Livre-docência']) },
         { key: 'instituicao', label: t('lattes.tipo.POS_DOUTORADO.campo.instituicao.label', 'Instituição'), type: 'text', required: true },
         // Pós-Doutorado: Status do curso, Período (início/conclusão) e Bolsa.
-        { key: 'statusCurso', label: t('lattes.tipo.POS_DOUTORADO.campo.status_curso.label', 'Status do curso'), type: 'select', options: ['Em andamento', 'Concluído', 'Incompleto'],
+        { key: 'statusCurso', label: t('lattes.tipo.POS_DOUTORADO.campo.status_curso.label', 'Status do curso'), type: 'select', options: opcoes('status_curso', ['Em andamento', 'Concluído', 'Incompleto']),
           disabledWhen: { field: 'tipo', equals: 'Livre-docência' } },
         { ...F_AINI, row: 'periodo', disabledWhen: { field: 'tipo', equals: 'Livre-docência' } },
         { key: 'anoFim', label: t('lattes.tipo.POS_DOUTORADO.campo.ano_fim.label', 'Ano de conclusão'), type: 'datebr', row: 'periodo', disabledWhen: { field: 'tipo', equals: 'Livre-docência' } },
-        { key: 'comBolsa', label: t('lattes.tipo.POS_DOUTORADO.campo.com_bolsa.label', 'Com bolsa?'), type: 'select', options: ['Sim', 'Não'],
+        { key: 'comBolsa', label: t('lattes.tipo.POS_DOUTORADO.campo.com_bolsa.label', 'Com bolsa?'), type: 'select', options: opcoes('com_bolsa', ['Sim', 'Não']),
           disabledWhen: { field: 'tipo', equals: 'Livre-docência' } },
         { key: 'bolsa', label: t('lattes.tipo.POS_DOUTORADO.campo.bolsa.label', 'Agência financiadora'), type: 'text', disabledWhen: { field: 'comBolsa', in: ['', 'Não'] } },
         // Livre-docência: Período (obtenção do título), Detalhamento (título),
@@ -103,15 +103,15 @@ export const TYPES_02_FORMACAO = {
     // áreas/palavras-chave/setores; os outros 3 só têm os campos básicos.
     FORMACAO_COMPLEMENTAR: { label: t('lattes.tipo.FORMACAO_COMPLEMENTAR.label', 'Formação complementar'), fields: [
         { key: 'nivel', label: t('lattes.tipo.FORMACAO_COMPLEMENTAR.campo.nivel.label', 'Nível'), type: 'select', required: true, default: 'Outros',
-          options: ['Curso de curta duração', 'Extensão universitária', 'MBA', 'Outros'] },
+          options: opcoes('formacao_complementar_nivel', ['Curso de curta duração', 'Extensão universitária', 'MBA', 'Outros']) },
         { key: 'titulo', label: t('lattes.tipo.FORMACAO_COMPLEMENTAR.campo.titulo.label', 'Curso'), type: 'text', required: true },
         F_INST,
         { key: 'cargaHoraria', label: t('lattes.tipo.FORMACAO_COMPLEMENTAR.campo.carga_horaria.label', 'Carga horária (h)'), type: 'number', na: true },
-        { key: 'statusCurso', label: t('lattes.tipo.FORMACAO_COMPLEMENTAR.campo.status_curso.label', 'Status do curso'), type: 'select', options: ['Em andamento', 'Concluído', 'Incompleto'] },
+        { key: 'statusCurso', label: t('lattes.tipo.FORMACAO_COMPLEMENTAR.campo.status_curso.label', 'Status do curso'), type: 'select', options: opcoes('status_curso', ['Em andamento', 'Concluído', 'Incompleto']) },
         { key: 'anoInicio', label: t('lattes.tipo.FORMACAO_COMPLEMENTAR.campo.ano_inicio.label', 'Início (ano)'), type: 'datebr', row: 'periodo' },
         { key: 'anoFim', label: t('lattes.tipo.FORMACAO_COMPLEMENTAR.campo.ano_fim.label', 'Conclusão (ano)'), type: 'datebr', row: 'periodo' },
         { key: 'anoObtencaoTitulo', label: t('lattes.tipo.FORMACAO_COMPLEMENTAR.campo.ano_obtencao_titulo.label', 'Obtenção do título'), type: 'datebr', disabledWhen: { field: 'nivel', notEquals: 'MBA' } },
-        { key: 'comBolsa', label: t('lattes.tipo.FORMACAO_COMPLEMENTAR.campo.com_bolsa.label', 'Com bolsa?'), type: 'select', options: ['Sim', 'Não'], disabledWhen: { field: 'nivel', notEquals: 'MBA' } },
+        { key: 'comBolsa', label: t('lattes.tipo.FORMACAO_COMPLEMENTAR.campo.com_bolsa.label', 'Com bolsa?'), type: 'select', options: opcoes('com_bolsa', ['Sim', 'Não']), disabledWhen: { field: 'nivel', notEquals: 'MBA' } },
         { key: 'bolsa', label: t('lattes.tipo.FORMACAO_COMPLEMENTAR.campo.bolsa.label', 'Agência financiadora'), type: 'text', disabledWhen: [{ field: 'nivel', notEquals: 'MBA' }, { field: 'comBolsa', in: ['', 'Não'] }] },
         { key: 'tituloMonografia', label: t('lattes.tipo.FORMACAO_COMPLEMENTAR.campo.titulo_monografia.label', 'Título da monografia'), type: 'text', disabledWhen: { field: 'nivel', notEquals: 'MBA' } },
         { key: 'orientador', label: t('lattes.tipo.FORMACAO_COMPLEMENTAR.campo.orientador.label', 'Nome completo do orientador'), type: 'text', disabledWhen: { field: 'nivel', notEquals: 'MBA' } },

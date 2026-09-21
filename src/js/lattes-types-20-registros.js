@@ -23,10 +23,10 @@
 
    i18n (preparação): label/placeholder passam por t() (placeholders que são
    só máscara de formato, como 'https://...', ficam de fora); os arrays de
-   `options` ficam de fora — ver nota de arquitetura no topo de
-   lattes-types-campos.js (value vs. label ainda em aberto).
+   `options` viram `{ value, label }` via opcoes() — ver nota de
+   arquitetura no topo de lattes-types-campos.js.
    ========================================================================== */
-import { F_AINI, F_AFIM, alNome, alCertificacaoFields, alFiliacaoFields, alImprensaFields, alConcursoFields } from './lattes-types-campos.js';
+import { F_AINI, F_AFIM, alNome, alCertificacaoFields, alFiliacaoFields, alImprensaFields, alConcursoFields, opcoes } from './lattes-types-campos.js';
 import { t } from './i18n.js';
 
 export const TYPES_20_REGISTROS = {
@@ -40,11 +40,11 @@ export const TYPES_20_REGISTROS = {
     // Rótulos alinhados ao "Tipo de item" pedido pelo usuário — cada um já
     // restringe sozinho as opções de "Tipo de participação" relevantes.
     AL_IMPRENSA_CITACAO: { label: t('lattes.tipo.AL_IMPRENSA_CITACAO.label', 'Presença indireta/menção'), fields: alImprensaFields(
-        ['Citado nominalmente', 'Citado via documento/estudo', 'Fotografado/Imagem', 'Objeto da pauta', 'Alvo de crítica/Contraditório']) },
+        opcoes('al_imprensa_citacao_tipo_participacao', ['Citado nominalmente', 'Citado via documento/estudo', 'Fotografado/Imagem', 'Objeto da pauta', 'Alvo de crítica/Contraditório'])) },
     AL_IMPRENSA_ENTREVISTADO: { label: t('lattes.tipo.AL_IMPRENSA_ENTREVISTADO.label', 'Participação direta'), fields: alImprensaFields(
-        ['Entrevistado principal', 'Comentarista/Especialista', 'Articulista', 'Debatedor/Painelista', 'Porta-voz em coletiva']) },
+        opcoes('al_imprensa_entrevistado_tipo_participacao', ['Entrevistado principal', 'Comentarista/Especialista', 'Articulista', 'Debatedor/Painelista', 'Porta-voz em coletiva'])) },
     AL_IMPRENSA_OUTRA: { label: t('lattes.tipo.AL_IMPRENSA_OUTRA.label', 'Bastidores e assessoria de RP'), fields: alImprensaFields(
-        ['Fonte em off/Background', 'Nota oficial', 'Sugestão de pauta/Pitching', 'Demanda não atendida']) },
+        opcoes('al_imprensa_outra_tipo_participacao', ['Fonte em off/Background', 'Nota oficial', 'Sugestão de pauta/Pitching', 'Demanda não atendida'])) },
     // Mantido apenas para compatibilidade com itens já catalogados (chave
     // legada); novos itens usam os 7 tipos específicos abaixo — um por
     // "Tipo de item" pedido pelo usuário (sem campo de classificação
@@ -89,7 +89,7 @@ export const TYPES_20_REGISTROS = {
     // Sem "Identificador / ID": o identificador do usuário na plataforma já
     // faz parte do próprio Link (URL) — campo à parte seria redundante.
     CONEXAO_ACADEMICA: { label: t('lattes.tipo.CONEXAO_ACADEMICA.label', 'Redes acadêmicas'), noExport: true, noEvidence: true, naoLattes: true, fields: [
-        { key: 'titulo', label: t('lattes.tipo.CONEXAO_ACADEMICA.campo.titulo.label', 'Plataforma'), type: 'select', required: true, options: ['Currículo Lattes', 'Web of Science', 'Google Scholar (MyCitation)', 'Zotero', 'Outra'] },
+        { key: 'titulo', label: t('lattes.tipo.CONEXAO_ACADEMICA.campo.titulo.label', 'Plataforma'), type: 'select', required: true, options: opcoes('conexao_academica_titulo', ['Currículo Lattes', 'Web of Science', 'Google Scholar (MyCitation)', 'Zotero', 'Outra']) },
         // Não marcado required: um campo obrigatório com disabledWhen fica
         // sempre "faltando" quando desabilitado (collectFields zera o valor
         // de campos desabilitados antes da validação) — deixando "Outra"
@@ -108,7 +108,7 @@ export const TYPES_20_REGISTROS = {
         { key: 'lideres', label: t('lattes.tipo.RSC_GRUPO_PESQUISA.campo.lideres.label', 'Líder(es)'), type: 'textarea', placeholder: t('lattes.tipo.RSC_GRUPO_PESQUISA.campo.lideres.placeholder', 'Separe por ponto e vírgula (;) se houver mais de um') },
         { key: 'viceLider', label: t('lattes.tipo.RSC_GRUPO_PESQUISA.campo.vice_lider.label', 'Vice-líder'), type: 'text' },
         { key: 'area', label: t('lattes.tipo.RSC_GRUPO_PESQUISA.campo.area.label', 'Área'), type: 'text', placeholder: t('lattes.tipo.RSC_GRUPO_PESQUISA.campo.area.placeholder', 'ex.: Educação') },
-        { key: 'papel', label: t('lattes.tipo.RSC_GRUPO_PESQUISA.campo.papel.label', 'Função'), type: 'select', options: ['Líder', 'Vice-líder', 'Pesquisador', 'Estudante', 'Técnico', 'Colaborador estrangeiro'], required: true },
+        { key: 'papel', label: t('lattes.tipo.RSC_GRUPO_PESQUISA.campo.papel.label', 'Função'), type: 'select', options: opcoes('rsc_grupo_pesquisa_papel', ['Líder', 'Vice-líder', 'Pesquisador', 'Estudante', 'Técnico', 'Colaborador estrangeiro']), required: true },
         { key: 'anoInicio', label: t('lattes.tipo.RSC_GRUPO_PESQUISA.campo.ano_inicio.label', 'Data de inclusão'), type: 'datebr' },
         { key: 'egresso', label: t('lattes.tipo.RSC_GRUPO_PESQUISA.campo.egresso.label', 'Egresso'), type: 'checkbox' },
         { key: 'anoFim', label: t('lattes.tipo.RSC_GRUPO_PESQUISA.campo.ano_fim.label', 'Data de desligamento'), type: 'datebr', disabledWhen: { field: 'egresso', in: ['Não'] } },
@@ -116,7 +116,7 @@ export const TYPES_20_REGISTROS = {
 
     /* --- Atuação em Crise de Saúde Pública (não-Lattes; só com o módulo RSC) --- */
     RSC_CRISE_SAUDE_ATUACAO: { label: t('lattes.tipo.RSC_CRISE_SAUDE_ATUACAO.label', 'Atuação em crise de saúde pública'), noExport: true, rsc: true, fields: [
-        { key: 'tipoSituacao', label: t('lattes.tipo.RSC_CRISE_SAUDE_ATUACAO.campo.tipo_situacao.label', 'Tipo de situação'), type: 'select', options: ['Surto', 'Epidemia', 'Pandemia'], required: true },
+        { key: 'tipoSituacao', label: t('lattes.tipo.RSC_CRISE_SAUDE_ATUACAO.campo.tipo_situacao.label', 'Tipo de situação'), type: 'select', options: opcoes('rsc_crise_saude_atuacao_tipo_situacao', ['Surto', 'Epidemia', 'Pandemia']), required: true },
         { key: 'ato', label: t('lattes.tipo.RSC_CRISE_SAUDE_ATUACAO.campo.ato.label', 'Ato que decretou a situação'), type: 'text' },
         { key: 'anoInicio', label: t('lattes.tipo.RSC_CRISE_SAUDE_ATUACAO.campo.ano_inicio.label', 'Data de início'), type: 'datebr', row: 'periodo' },
         { key: 'anoFim', label: t('lattes.tipo.RSC_CRISE_SAUDE_ATUACAO.campo.ano_fim.label', 'Data de fim'), type: 'datebr', row: 'periodo' },

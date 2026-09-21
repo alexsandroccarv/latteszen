@@ -94,12 +94,17 @@ window.LattesXML = (function () {
     function snapSelects(typeKey, fields) {
         const def = window.LattesTypes && LattesTypes.getType(typeKey);
         if (!def || !window.LattesEnums) return;
+        // Cada opção pode ser string simples (listas ainda não convertidas,
+        // ex. país/idioma) ou { value, label } (taxonomia Lattes, desde a
+        // preparação de i18n) — value é sempre o literal comparado/
+        // armazenado, igual a antes.
+        const ov = (o) => (o && typeof o === 'object') ? o.value : o;
         for (const f of (def.fields || [])) {
             if (f.type !== 'select' || !f.options) continue;
-            const v = fields[f.key]; if (!v || f.options.indexOf(v) >= 0) continue;
+            const v = fields[f.key]; if (!v || f.options.some(o => ov(o) === v)) continue;
             const t = LattesEnums.tok(v);
-            const match = f.options.find(o => LattesEnums.tok(o) === t);
-            if (match) fields[f.key] = match;
+            const match = f.options.find(o => LattesEnums.tok(ov(o)) === t);
+            if (match) fields[f.key] = ov(match);
         }
     }
 

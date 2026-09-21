@@ -22,10 +22,10 @@
    da taxonomia Lattes, sem nenhuma mudança de conteúdo.
 
    i18n (preparação): label/placeholder passam por t(); os arrays de
-   `options` ficam de fora — ver nota de arquitetura no topo de
-   lattes-types-campos.js (value vs. label ainda em aberto).
+   `options` viram `{ value, label }` via opcoes() — ver nota de
+   arquitetura no topo de lattes-types-campos.js.
    ========================================================================== */
-import { F_TITULO, F_ANO, F_URL, F_FINAL, F_NATUREZA, F_AFIM, F_PAIS, PROD_AUTORES_LISTA, PROD_PALAVRAS_AREA_SETORES_OUTRAS, CULTIVAR_FIELDS, PI_FIELDS, TOPOGRAFIA_FIELDS } from './lattes-types-campos.js';
+import { F_TITULO, F_ANO, F_URL, F_FINAL, F_NATUREZA, F_AFIM, F_PAIS, PROD_AUTORES_LISTA, PROD_PALAVRAS_AREA_SETORES_OUTRAS, CULTIVAR_FIELDS, PI_FIELDS, TOPOGRAFIA_FIELDS, opcoes } from './lattes-types-campos.js';
 import { t } from './i18n.js';
 
 export const TYPES_06_07_PATENTES_REGISTROS = {
@@ -40,10 +40,10 @@ export const TYPES_06_07_PATENTES_REGISTROS = {
     // (NOME-DO-DEPOSITANTE existe só no XSD) — por isso os dois grupos
     // viram um único campo de texto livre aqui.
     PATENTE: { label: t('lattes.tipo.PATENTE.label', 'Patente'), fields: [
-        { key: 'categoria', label: t('lattes.tipo.PATENTE.campo.categoria.label', 'Categoria'), type: 'select', options: ['Produto', 'Processo', 'Produto e Processo', 'Outra'] },
+        { key: 'categoria', label: t('lattes.tipo.PATENTE.campo.categoria.label', 'Categoria'), type: 'select', options: opcoes('patente_categoria', ['Produto', 'Processo', 'Produto e Processo', 'Outra']) },
         { key: 'registro', label: t('lattes.tipo.PATENTE.campo.registro.label', 'Número do registro'), type: 'text' },
         { key: 'instituicao', label: t('lattes.tipo.PATENTE.campo.instituicao.label', 'Instituição onde foi depositada'), type: 'text' }, F_PAIS,
-        { key: 'natureza', label: t('lattes.tipo.PATENTE.campo.natureza.label', 'Natureza'), type: 'select', options: ['Patente de Invenção', 'Patente de Modelo de Utilidade'] },
+        { key: 'natureza', label: t('lattes.tipo.PATENTE.campo.natureza.label', 'Natureza'), type: 'select', options: opcoes('patente_natureza', ['Patente de Invenção', 'Patente de Modelo de Utilidade']) },
         F_TITULO,
         { key: 'numeroPCT', label: t('lattes.tipo.PATENTE.campo.numero_pct.label', 'Número do depósito PCT (caso exista)'), type: 'text' },
         { key: 'potencialInovacao', label: t('lattes.tipo.PATENTE.campo.potencial_inovacao.label', 'Possui potencial de inovação de produtos, processos ou serviços?'), type: 'checkbox' },
@@ -58,7 +58,7 @@ export const TYPES_06_07_PATENTES_REGISTROS = {
     // Diferente de Programa de computador sem registro (5.13), esta tela não
     // tem Meio de divulgação, Home page nem Idioma (doc 6.2).
     SOFTWARE_REGISTRADO: { label: t('lattes.tipo.SOFTWARE_REGISTRADO.label', 'Programa de Computador Registrado'), fields: [
-        F_NATUREZA(['Computacional', 'Multimídia', 'Outro']),
+        F_NATUREZA(opcoes('software_registrado_natureza', ['Computacional', 'Multimídia', 'Outro'])),
         { key: 'registro', label: t('lattes.tipo.SOFTWARE_REGISTRADO.campo.registro.label', 'Número do registro'), type: 'text' },
         { key: 'instituicaoRegistro', label: t('lattes.tipo.SOFTWARE_REGISTRADO.campo.instituicao_registro.label', 'Instituição de registro'), type: 'text' },
         F_PAIS, F_TITULO,
@@ -85,8 +85,8 @@ export const TYPES_06_07_PATENTES_REGISTROS = {
     MARCA: { label: t('lattes.tipo.MARCA.label', 'Marca registrada'), fields: [
         { key: 'registro', label: t('lattes.tipo.MARCA.campo.registro.label', 'Número do registro'), type: 'text' },
         { key: 'instituicaoRegistro', label: t('lattes.tipo.MARCA.campo.instituicao_registro.label', 'Instituição de registro'), type: 'text' }, F_PAIS,
-        { key: 'tipo', label: t('lattes.tipo.MARCA.campo.tipo.label', 'Tipo'), type: 'select', options: ['de Produto', 'de Serviço', 'Coletiva', 'Certificação'] },
-        { key: 'natureza', label: t('lattes.tipo.MARCA.campo.natureza.label', 'Natureza'), type: 'select', options: ['Figurativa', 'Nominativa', 'Mista', 'Tridimensional'] },
+        { key: 'tipo', label: t('lattes.tipo.MARCA.campo.tipo.label', 'Tipo'), type: 'select', options: opcoes('marca_tipo', ['de Produto', 'de Serviço', 'Coletiva', 'Certificação']) },
+        { key: 'natureza', label: t('lattes.tipo.MARCA.campo.natureza.label', 'Natureza'), type: 'select', options: opcoes('marca_natureza', ['Figurativa', 'Nominativa', 'Mista', 'Tridimensional']) },
         F_TITULO, { ...F_ANO, row: 'periodo' }, F_AFIM,
         { key: 'dataDeposito', label: t('lattes.tipo.MARCA.campo.data_deposito.label', 'Data do depósito'), type: 'date' },
         { key: 'dataConcessao', label: t('lattes.tipo.MARCA.campo.data_concessao.label', 'Data da concessão'), type: 'date' },

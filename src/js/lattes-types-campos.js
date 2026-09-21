@@ -26,15 +26,44 @@
 
    i18n (preparação — app ainda só em português, ver i18n.js): todo texto
    de EXIBIÇÃO (label/help/addLabel/placeholder instrucional) passa por
-   t(). Os arrays de OPTIONS (NIVEIS_FORMACAO, NATUREZA_PROJETO_OPTIONS
-   etc.) e valores como `default: 'Brasil'`/`disabledWhen.in`/
-   `enabledWhenCol.equals` ficam de propósito FORA do t(): são VALORES
-   armazenados no item, comparados em lógica condicional e mapeados na
-   exportação XML Lattes — traduzir só a exibição sem desacoplar o valor
-   quebraria dado já salvo, disabledWhen e o XML. Isso é uma decisão de
-   arquitetura em aberto (value vs. label), não um esquecimento.
+   t(). Os arrays de OPTIONS da própria taxonomia (NIVEIS_FORMACAO,
+   NATUREZA_PROJETO_OPTIONS etc., e todo `options: [...]` inline nos
+   arquivos lattes-types-NN-*.js) viram `{ value, label }` via opcoes()
+   abaixo: `value` continua o MESMO literal de sempre (armazenado no
+   item, comparado em disabledWhen/enabledWhenCol/forceValueWhen/
+   labelWhen, mapeado na exportação XML Lattes) — só `label` passa a ser
+   traduzível. Isso preserva 100% a compatibilidade com item já salvo e
+   com o XML, sem exigir nenhuma migração de dado. `default: 'Brasil'` e
+   as CHAVES dos mapas `disabledWhen.in`/`enabledWhenCol.equals`/
+   `forceValueWhen.map`/`labelWhen.map`/`descriptions` continuam
+   literais (precisam bater com `value`, não com `label`).
+
+   Listas GRANDES ainda não convertidas nesta fase (país/idioma/CNAE —
+   window.PAISES_LATTES/IDIOMAS_LATTES/CNAE_SETORES, ver
+   paises.js/idiomas.js/cnae.js) continuam string[] simples — os pontos
+   que leem `field.options` (tab-catalogar.js, lattes-xml.js) aceitam os
+   dois formatos ao mesmo tempo (ver optVal/optLabel em tab-catalogar.js),
+   então nada quebra; só ainda não ficaram traduzíveis.
    ========================================================================== */
 import { t } from './i18n.js';
+
+// Gera uma chave i18n estável a partir do valor da própria opção
+// (minúsculas, sem acento, não-alfanumérico vira "_") — usada por
+// opcoes() abaixo, sob um namespace por lista (evita colisão entre
+// listas diferentes que compartilham um valor, ex. duas listas com
+// "Outra").
+function slugOpcao(v) {
+    return String(v).toLowerCase()
+        .normalize('NFD').replace(/[̀-ͯ]/g, '')
+        .replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+}
+// Converte uma lista de valores literais (formato antigo de `options`)
+// numa lista de pares { value, label }: `value` continua o MESMO
+// literal (comparado/armazenado/exportado sem mudança), `label` passa
+// por t() com chave derivada automaticamente do próprio valor.
+function opcoes(namespace, valores) {
+    return valores.map(v => ({ value: v, label: t(`lattes.opcao.${namespace}.${slugOpcao(v)}`, v) }));
+}
 
 // Átomos de campo reutilizados
 const F_TITULO  = { key: 'titulo', label: t('campos.f_titulo.label', 'Título'), type: 'text', required: true };
@@ -56,37 +85,35 @@ const F_PAIS = { key: 'pais', label: t('campos.f_pais.label', 'País'), type: 's
 const F_IDIOMA = { key: 'idioma', label: t('campos.f_idioma.label', 'Idioma'), type: 'select', options: window.IDIOMAS_LATTES || [] };
 // Opções de "Meio de divulgação" (Livros/Capítulos) — enum MEIO-DE-DIVULGACAO
 // do schema Lattes, exceto WEB (não usada na tela real para estes tipos).
-// Valores/enum do schema — ver nota de arquitetura no topo do arquivo.
-const MEIO_DIVULGACAO_OPTIONS = ['Impresso', 'Meio magnético', 'Meio digital', 'Filme', 'Hipertexto', 'Outro', 'Impresso e mídia eletrônica'];
+const MEIO_DIVULGACAO_OPTIONS = opcoes('meio_divulgacao', ['Impresso', 'Meio magnético', 'Meio digital', 'Filme', 'Hipertexto', 'Outro', 'Impresso e mídia eletrônica']);
 // Período usado nos itens de Atuação (Vínculo, Corpo editorial, Comitê,
 // Revisor...): Início, Situação (Atual/Anterior) e Fim — o Fim só aparece
 // quando a Situação é "Anterior (finalizado)", como na tela real do Lattes.
 const periodoComSituacao = () => [
     { key: 'anoInicio', label: t('campos.periodo_com_situacao.ano_inicio', 'Início (mês/ano)'), type: 'datebr', row: 'periodo' },
-    { key: 'situacao', label: t('campos.periodo_com_situacao.situacao', 'Situação'), type: 'select', options: ['Atual (não finalizado)', 'Anterior (finalizado)'], row: 'periodo' },
+    { key: 'situacao', label: t('campos.periodo_com_situacao.situacao', 'Situação'), type: 'select', options: opcoes('periodo_situacao', ['Atual (não finalizado)', 'Anterior (finalizado)']), row: 'periodo' },
     { key: 'anoFim', label: t('campos.periodo_com_situacao.ano_fim', 'Fim (mês/ano)'), type: 'datebr', row: 'periodo', disabledWhen: { field: 'situacao', in: ['', 'Atual (não finalizado)'] } },
 ];
 
 // Níveis de Formação acadêmica/titulação (espelha FORMACAO-ACADEMICA-TITULACAO
 // do schema Lattes) e um atalho para "todos os níveis, exceto os informados"
-// — usado nos `disabledWhen` dos campos específicos de cada nível abaixo.
+// — usado nos `disabledWhen` dos campos específicos de cada nível abaixo
+// (que comparam contra VALOR, por isso nivelExcept() extrai .value antes de
+// filtrar — devolve strings simples, nunca os pares {value,label}).
 // Inclui '' (nenhum Nível escolhido ainda) na lista de exclusão: assim, antes
 // de escolher o Nível, nenhum campo específico de um nível aparece.
-// Valores/enum do schema — ver nota de arquitetura no topo do arquivo.
-const NIVEIS_FORMACAO = ['Ensino fundamental', 'Ensino médio', 'Curso técnico', 'Graduação', 'Aperfeiçoamento',
-    'Especialização', 'Mestrado', 'Mestrado profissional', 'Doutorado', 'Residência médica'];
-const nivelExcept = (...keep) => [...NIVEIS_FORMACAO.filter(n => !keep.includes(n)), ''];
+const NIVEIS_FORMACAO = opcoes('nivel_formacao', ['Ensino fundamental', 'Ensino médio', 'Curso técnico', 'Graduação', 'Aperfeiçoamento',
+    'Especialização', 'Mestrado', 'Mestrado profissional', 'Doutorado', 'Residência médica']);
+const nivelExcept = (...keep) => [...NIVEIS_FORMACAO.map(o => o.value).filter(n => !keep.includes(n)), ''];
 
 // Conjuntos de campos reutilizáveis
 // Projetos (Dados gerais + Equipe/Financiadores/Produção C&T/Orientações, na
 // ordem e com os campos das telas reais do Lattes). Os blocos em tabela
 // (Equipe, Instituições envolvidas, Financiamento, Produção C&T, Orientações)
 // usam o tipo `repeater` (lista com adicionar/editar/remover linha).
-// Os 3 arrays de opções abaixo (NATUREZA_PROJETO_OPTIONS etc.) são
-// valores/enum — ver nota de arquitetura no topo do arquivo.
-const NATUREZA_PROJETO_OPTIONS = ['Desenvolvimento', 'Extensão', 'Pesquisa', 'Ensino', 'Outra'];
-const SITUACAO_PROJETO_OPTIONS = ['Em andamento', 'Concluído', 'Desativado'];
-const FINANCIADOR_NATUREZA_OPTIONS = ['Bolsa', 'Auxílio financeiro', 'Remuneração', 'Outro', 'Cooperação', 'Não informado'];
+const NATUREZA_PROJETO_OPTIONS = opcoes('natureza_projeto', ['Desenvolvimento', 'Extensão', 'Pesquisa', 'Ensino', 'Outra']);
+const SITUACAO_PROJETO_OPTIONS = opcoes('situacao_projeto', ['Em andamento', 'Concluído', 'Desativado']);
+const FINANCIADOR_NATUREZA_OPTIONS = opcoes('financiador_natureza', ['Bolsa', 'Auxílio financeiro', 'Remuneração', 'Outro', 'Cooperação', 'Não informado']);
 const QTD_ALUNOS_BASE = [
     { key: 'qtdGraduacao', label: t('campos.qtd_alunos.graduacao', 'Graduação'), type: 'number', row: 'qtdAlunos' },
     { key: 'qtdEspecializacao', label: t('campos.qtd_alunos.especializacao', 'Especialização'), type: 'number', row: 'qtdAlunos' },
@@ -168,11 +195,10 @@ const projetoFieldsPadrao = (extraQtdAntes, tituloLabel, natSitRow) => [
 // Projeto de ensino: cooperação/inovação/temática são específicos dessa
 // natureza na tela do Lattes e não têm atributo correspondente no schema
 // (ficam só na interface — ver comentário em buildAtuacoes).
-// Os 2 arrays de opções abaixo são valores/enum — ver nota no topo do arquivo.
-const ACOES_INOVADORAS_NIVEIS = ['Ensino Fundamental (1º grau)', 'Ensino Médio (2º grau)', 'Graduação', 'Especialização', 'Mestrado', 'Mestrado Profissional', 'Doutorado'];
-const TEMATICA_PROJETO_ENSINO = ['Ensino e aprendizagem', 'Aprendizagem por projetos', 'Projetos de curso', 'Formação inicial ou continuada de professores',
+const ACOES_INOVADORAS_NIVEIS = opcoes('acoes_inovadoras_niveis', ['Ensino Fundamental (1º grau)', 'Ensino Médio (2º grau)', 'Graduação', 'Especialização', 'Mestrado', 'Mestrado Profissional', 'Doutorado']);
+const TEMATICA_PROJETO_ENSINO = opcoes('tematica_projeto_ensino', ['Ensino e aprendizagem', 'Aprendizagem por projetos', 'Projetos de curso', 'Formação inicial ou continuada de professores',
     'Inserção de tecnologias no ensino', 'Ação inclusiva', 'Integração social (escola, família, comunidade)', 'Projeto de intervenção',
-    'Mobilidade e internacionalização', 'Avaliação', 'Gestão', 'Outra'];
+    'Mobilidade e internacionalização', 'Avaliação', 'Gestão', 'Outra']);
 const PROJETO_ENSINO_FIELDS = [
     F_TITULO,
     { key: 'descricao', label: t('campos.projeto_ensino.descricao', 'Descrição'), type: 'textarea' },
@@ -180,7 +206,7 @@ const PROJETO_ENSINO_FIELDS = [
     { key: 'situacao', label: t('campos.projeto_ensino.situacao', 'Situação'), type: 'select', options: SITUACAO_PROJETO_OPTIONS },
     { key: 'anoInicio', label: t('campos.projeto_ensino.ano_inicio', 'Ano início'), type: 'datebr', required: true, row: 'periodo' },
     { ...F_AFIM, label: t('campos.projeto_ensino.ano_fim', 'Ano fim'), row: 'periodo' },
-    { key: 'cooperacaoTipos', label: t('campos.projeto_ensino.cooperacao_tipos', 'É um projeto em cooperação com'), type: 'checkboxes', options: ['Instituição de ensino', 'Agência de fomento', 'Empresa'] },
+    { key: 'cooperacaoTipos', label: t('campos.projeto_ensino.cooperacao_tipos', 'É um projeto em cooperação com'), type: 'checkboxes', options: opcoes('projeto_ensino_cooperacao_tipos', ['Instituição de ensino', 'Agência de fomento', 'Empresa']) },
     { key: 'acoesInovadoras', label: t('campos.projeto_ensino.acoes_inovadoras', 'O projeto possui ações inovadoras e produtos, processos ou serviços?'), type: 'checkbox' },
     { key: 'acoesInovadorasNiveis', label: t('campos.projeto_ensino.acoes_inovadoras_niveis', 'O projeto possui ações inovadoras na'), type: 'checkboxes', options: ACOES_INOVADORAS_NIVEIS, disabledWhen: { field: 'acoesInovadoras', in: ['', 'Não'] } },
     { key: 'tematica', label: t('campos.projeto_ensino.tematica', 'Em relação à temática'), type: 'checkboxes', options: TEMATICA_PROJETO_ENSINO },
@@ -227,8 +253,7 @@ const alFiliacaoFields = () => [
 // dos 3 tipos já É o "Tipo de item" que restringe as opções relevantes,
 // sem precisar de lógica condicional em tempo de execução). "Formato da
 // aparição" é a mesma lista pros 3.
-// Valores/enum — ver nota de arquitetura no topo do arquivo.
-const FORMATO_APARICAO_OPCOES = ['Texto (Aspas/Declaração)', 'Vídeo ao vivo', 'Vídeo gravado', 'Áudio (Podcast/Rádio)', 'Foto', 'Nota Oficial'];
+const FORMATO_APARICAO_OPCOES = opcoes('formato_aparicao', ['Texto (Aspas/Declaração)', 'Vídeo ao vivo', 'Vídeo gravado', 'Áudio (Podcast/Rádio)', 'Foto', 'Nota Oficial']);
 const alImprensaFields = (opcoesParticipacao) => [
     alNome(t('campos.al_imprensa.titulo', 'Título da matéria')),
     { key: 'tipoParticipacao', label: t('campos.al_imprensa.tipo_participacao', 'Tipo de participação'), type: 'select', options: opcoesParticipacao, row: 'impParticipacaoFormato' },
@@ -248,7 +273,7 @@ const alConcursoFields = () => [
     { key: 'cargo', label: t('campos.al_concurso.cargo', 'Cargo'), type: 'text' },
     { ...F_AINI, row: 'periodo' }, F_AFIM,
     { key: 'colocacao', label: t('campos.al_concurso.colocacao', 'Colocação'), type: 'text' },
-    { key: 'situacao', label: t('campos.al_concurso.situacao_final', 'Situação final'), type: 'select', options: ['Em andamento', 'Aprovado', 'Reprovado'] },
+    { key: 'situacao', label: t('campos.al_concurso.situacao_final', 'Situação final'), type: 'select', options: opcoes('al_concurso_situacao_final', ['Em andamento', 'Aprovado', 'Reprovado']) },
 ];
 
 // Autores como lista (Nome completo/Nome como citado) — mesmo padrão dos
@@ -310,4 +335,4 @@ const TOPOGRAFIA_FIELDS = [
 
 /* ---- Definição global dos TIPOS (por chave) ---- */
 
-export { F_TITULO, F_ANO, F_DOI, F_URL, F_AUTORES, F_INST, F_FINAL, F_CIDADE, F_NATUREZA, F_AINI, F_AFIM, F_DINI, F_DFIM, F_PAIS, F_IDIOMA, MEIO_DIVULGACAO_OPTIONS, periodoComSituacao, NIVEIS_FORMACAO, nivelExcept, NATUREZA_PROJETO_OPTIONS, SITUACAO_PROJETO_OPTIONS, FINANCIADOR_NATUREZA_OPTIONS, QTD_ALUNOS_BASE, QTD_TECNICO, QTD_FUNDAMENTAL, QTD_MEDIO, projetoEquipeField, institucaoColumns, projetoInstituicoesEnvolvidasField, projetoFinanciadoresField, projetoInstituicaoExecucaoFields, projetoProducoesField, projetoOrientacoesField, projetoFieldsPadrao, ACOES_INOVADORAS_NIVEIS, TEMATICA_PROJETO_ENSINO, PROJETO_ENSINO_FIELDS, AL_ENT, AL_PAPEL, AL_FREQ, AL_IMP, AL_LOCAL, AL_ANO, alNome, alCertificacaoFields, alFiliacaoFields, FORMATO_APARICAO_OPCOES, alImprensaFields, alConcursoFields, PROD_AUTORES_LISTA, PROD_PALAVRAS_AREA_SETORES_OUTRAS, CULTIVAR_FIELDS, PI_FIELDS, TOPOGRAFIA_FIELDS };
+export { opcoes, F_TITULO, F_ANO, F_DOI, F_URL, F_AUTORES, F_INST, F_FINAL, F_CIDADE, F_NATUREZA, F_AINI, F_AFIM, F_DINI, F_DFIM, F_PAIS, F_IDIOMA, MEIO_DIVULGACAO_OPTIONS, periodoComSituacao, NIVEIS_FORMACAO, nivelExcept, NATUREZA_PROJETO_OPTIONS, SITUACAO_PROJETO_OPTIONS, FINANCIADOR_NATUREZA_OPTIONS, QTD_ALUNOS_BASE, QTD_TECNICO, QTD_FUNDAMENTAL, QTD_MEDIO, projetoEquipeField, institucaoColumns, projetoInstituicoesEnvolvidasField, projetoFinanciadoresField, projetoInstituicaoExecucaoFields, projetoProducoesField, projetoOrientacoesField, projetoFieldsPadrao, ACOES_INOVADORAS_NIVEIS, TEMATICA_PROJETO_ENSINO, PROJETO_ENSINO_FIELDS, AL_ENT, AL_PAPEL, AL_FREQ, AL_IMP, AL_LOCAL, AL_ANO, alNome, alCertificacaoFields, alFiliacaoFields, FORMATO_APARICAO_OPCOES, alImprensaFields, alConcursoFields, PROD_AUTORES_LISTA, PROD_PALAVRAS_AREA_SETORES_OUTRAS, CULTIVAR_FIELDS, PI_FIELDS, TOPOGRAFIA_FIELDS };

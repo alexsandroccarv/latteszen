@@ -54,6 +54,17 @@ window.TabCatalogar = (function () {
         setFieldError, associateLabels, isFieldDisabled,
     } = window.AppCore;
 
+    // Uma opção de select/checkboxes/skilllevels pode vir como string simples
+    // (formato antigo, ainda usado por listas grandes tipo país/idioma/CNAE,
+    // não convertidas nesta fase — ver nota em lattes-types-campos.js) ou
+    // como { value, label } (formato novo, usado pela taxonomia Lattes desde
+    // a preparação de i18n — value é o literal armazenado/comparado/
+    // exportado de sempre; label é o texto de exibição, traduzível). Estas
+    // duas funções normalizam os dois formatos num só lugar, em vez de
+    // espalhar `typeof o === 'string'` por cada função de renderização.
+    const optVal = (o) => (o && typeof o === 'object') ? o.value : o;
+    const optLabel = (o) => (o && typeof o === 'object') ? o.label : o;
+
     /* =====================================================================
        ABA: CATALOGAR
        ===================================================================== */
@@ -394,7 +405,7 @@ window.TabCatalogar = (function () {
                     .filter(i => i.typeKey === 'IDIOMAS' && (!itemAtual || i.id !== itemAtual.id))
                     .map(i => (i.fields || {}).titulo).filter(Boolean));
                 camposParaRenderizar = def.fields.map(f => f.key === 'titulo'
-                    ? Object.assign({}, f, { options: (f.options || []).filter(o => !usados.has(o)) })
+                    ? Object.assign({}, f, { options: (f.options || []).filter(o => !usados.has(optVal(o))) })
                     : f);
             }
             $('#dynFields').innerHTML = dynFieldsHtml(camposParaRenderizar, vals);
@@ -700,7 +711,7 @@ window.TabCatalogar = (function () {
         // acessível confiável) não bastavam.
         const al = `aria-label="${esc(c.label)}"`;
         if (c.type === 'checkbox') return `<label class="flex items-center gap-1 text-xs whitespace-nowrap"><input type="checkbox" ${tag}> ${esc(c.label)}</label>`;
-        if (c.type === 'select') return `<select ${tag} ${al} class="${base}"><option value="">${esc(c.label)}</option>${(c.options || []).map(o => `<option value="${esc(o)}">${esc(o)}</option>`).join('')}</select>`;
+        if (c.type === 'select') return `<select ${tag} ${al} class="${base}"><option value="">${esc(c.label)}</option>${(c.options || []).map(o => `<option value="${esc(optVal(o))}">${esc(optLabel(o))}</option>`).join('')}</select>`;
         if (c.type === 'datebr') return `<input type="text" ${tag} ${al} autocomplete="off" readonly data-ro-focus inputmode="numeric" maxlength="10" placeholder="${esc(c.label)}" data-datebr class="${base}" style="width:7rem">`;
         const t = c.type === 'number' ? 'number' : 'text';
         const listAttr = c.datalist ? `list="${c.datalist}"` : '';
@@ -736,7 +747,7 @@ window.TabCatalogar = (function () {
         // Endereço), onde não faz sentido um 3º estado "nenhum escolhido".
         return `<select name="${f.key}" ${req} class="${base}">
             ${f.noBlankOption ? '' : '<option value="">—</option>'}
-            ${f.options.map(o => `<option value="${esc(o)}" ${o === val ? 'selected' : ''}>${esc(o)}</option>`).join('')}
+            ${f.options.map(o => `<option value="${esc(optVal(o))}" ${optVal(o) === val ? 'selected' : ''}>${esc(optLabel(o))}</option>`).join('')}
         </select>`;
     }
     function fieldDateBr(f, val, req, base, compact) {
@@ -757,11 +768,12 @@ window.TabCatalogar = (function () {
         const selected = String(val || '').split(/[;,]/).map(s => s.trim()).filter(Boolean);
         return `<div class="flex flex-wrap gap-x-4 gap-y-1 pt-1">
             ${f.options.map(o => {
-                const desc = f.descriptions && f.descriptions[o];
-                const cb = `<input type="checkbox" data-cbgroup="${f.key}" value="${esc(o)}" ${selected.includes(o) ? 'checked' : ''} class="mt-0.5">`;
-                if (!desc) return `<label class="flex items-center gap-1.5 text-sm">${cb} ${esc(o)}</label>`;
+                const v = optVal(o), lbl = optLabel(o);
+                const desc = f.descriptions && f.descriptions[v];
+                const cb = `<input type="checkbox" data-cbgroup="${f.key}" value="${esc(v)}" ${selected.includes(v) ? 'checked' : ''} class="mt-0.5">`;
+                if (!desc) return `<label class="flex items-center gap-1.5 text-sm">${cb} ${esc(lbl)}</label>`;
                 return `<label class="flex items-start gap-1.5 text-sm w-full">${cb}
-                    <span>${esc(o)}
+                    <span>${esc(lbl)}
                         <details class="mt-0.5"><summary class="text-xs text-govbr-700 dark:text-unifesp-400 cursor-pointer select-none">Ver definição legal</summary>
                             <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 max-w-2xl">${esc(desc)}</p></details>
                     </span></label>`;
@@ -780,13 +792,13 @@ window.TabCatalogar = (function () {
         // o 1º (o único ligado à <label> do campo via associateLabels); os
         // demais (2º-4º nível de habilidade) ficavam sem nome acessível.
         return `<div class="space-y-1 pt-1">
-            ${f.options.map(sk => `<div class="flex items-center gap-2 text-sm">
-                <span class="w-32 shrink-0">${esc(sk)}</span>
-                <select data-slgroup="${f.key}" data-skill="${esc(sk)}" aria-label="${esc(sk)}" class="${base}">
+            ${f.options.map(o => { const sk = optVal(o), skLbl = optLabel(o); return `<div class="flex items-center gap-2 text-sm">
+                <span class="w-32 shrink-0">${esc(skLbl)}</span>
+                <select data-slgroup="${f.key}" data-skill="${esc(sk)}" aria-label="${esc(skLbl)}" class="${base}">
                     <option value="">—</option>
                     ${levels.map(l => `<option value="${esc(l)}" ${map[sk] === l ? 'selected' : ''}>${esc(l)}</option>`).join('')}
                 </select>
-            </div>`).join('')}
+            </div>`; }).join('')}
         </div>`;
     }
     function fieldAreaTree(f, val, base, req) {

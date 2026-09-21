@@ -21,11 +21,11 @@
    Extraído de lattes-types.js (issue de refatoração) — seção "05.3 Produção artística/cultural"
    da taxonomia Lattes, sem nenhuma mudança de conteúdo.
 
-   i18n (preparação): label passa por t(); os arrays de `options` ficam de
-   fora — ver nota de arquitetura no topo de lattes-types-campos.js (value
-   vs. label ainda em aberto).
+   i18n (preparação): label passa por t(); os arrays de `options` viram
+   `{ value, label }` via opcoes() — ver nota de arquitetura no topo de
+   lattes-types-campos.js.
    ========================================================================== */
-import { F_TITULO, F_ANO, F_URL, F_CIDADE, F_NATUREZA, F_AFIM, F_PAIS, F_IDIOMA, MEIO_DIVULGACAO_OPTIONS, PROD_AUTORES_LISTA, PROD_PALAVRAS_AREA_SETORES_OUTRAS } from './lattes-types-campos.js';
+import { F_TITULO, F_ANO, F_URL, F_CIDADE, F_NATUREZA, F_AFIM, F_PAIS, F_IDIOMA, MEIO_DIVULGACAO_OPTIONS, PROD_AUTORES_LISTA, PROD_PALAVRAS_AREA_SETORES_OUTRAS, opcoes } from './lattes-types-campos.js';
 import { t } from './i18n.js';
 
 export const TYPES_05_PRODUCAO_ARTISTICA = {
@@ -39,7 +39,7 @@ export const TYPES_05_PRODUCAO_ARTISTICA = {
     // OBRA no XSD/DTD (só DETALHAMENTO-DA-MUSICA tem) — limitação genuína do
     // schema, por isso o campo não entrou na UI de Artes cênicas.
     ARTES_CENICAS: { label: t('lattes.tipo.ARTES_CENICAS.label', 'Artes cênicas'), fields: [
-        F_NATUREZA(['Audiovisual', 'Circense', 'Coreográfica', 'Diversas', 'Operística', 'Performática', 'Radialística', 'Teatral', 'Outra']),
+        F_NATUREZA(opcoes('artes_cenicas_natureza', ['Audiovisual', 'Circense', 'Coreográfica', 'Diversas', 'Operística', 'Performática', 'Radialística', 'Teatral', 'Outra'])),
         F_TITULO, { ...F_ANO, row: 'periodo' }, F_AFIM, F_PAIS, F_IDIOMA,
         { key: 'meioDivulgacao', label: t('lattes.tipo.ARTES_CENICAS.campo.meio_divulgacao.label', 'Meio de divulgação'), type: 'select', options: MEIO_DIVULGACAO_OPTIONS }, F_URL,
         { key: 'relevante', label: t('lattes.tipo.ARTES_CENICAS.campo.relevante.label', 'É um dos 10 trabalhos mais relevantes de sua produção?'), type: 'checkbox' },
@@ -61,7 +61,7 @@ export const TYPES_05_PRODUCAO_ARTISTICA = {
         ...PROD_PALAVRAS_AREA_SETORES_OUTRAS,
     ] },
     MUSICA: { label: t('lattes.tipo.MUSICA.label', 'Música'), fields: [
-        F_NATUREZA(['Apresentação de obra', 'Arranjo', 'Audiovisual', 'Composição', 'Diversas', 'Interpretação', 'Publicação de partitura', 'Registro fonográfico', 'Trilha sonora', 'Outra']),
+        F_NATUREZA(opcoes('musica_natureza', ['Apresentação de obra', 'Arranjo', 'Audiovisual', 'Composição', 'Diversas', 'Interpretação', 'Publicação de partitura', 'Registro fonográfico', 'Trilha sonora', 'Outra'])),
         F_TITULO, { ...F_ANO, row: 'periodo' }, F_AFIM, F_PAIS, F_IDIOMA,
         { key: 'meioDivulgacao', label: t('lattes.tipo.MUSICA.campo.meio_divulgacao.label', 'Meio de divulgação'), type: 'select', options: MEIO_DIVULGACAO_OPTIONS }, F_URL,
         { key: 'relevante', label: t('lattes.tipo.MUSICA.campo.relevante.label', 'É um dos 10 trabalhos mais relevantes de sua produção?'), type: 'checkbox' },
@@ -89,7 +89,7 @@ export const TYPES_05_PRODUCAO_ARTISTICA = {
     // tem atributo correspondente no XSD/DTD — limitação genuína do schema,
     // por isso não entraram na UI.
     ARTES_VISUAIS: { label: t('lattes.tipo.ARTES_VISUAIS.label', 'Artes visuais'), fields: [
-        F_NATUREZA(['Intervenção urbana', 'Livro de artista', 'Performance', 'Pintura', 'Programação visual', 'Vídeo', 'Webart', 'Animação', 'Instalação', 'Computação gráfica', 'Desenho', 'Diversas', 'Escultura', 'Filme', 'Fotografia', 'Gravura', 'Ilustração', 'Outra']),
+        F_NATUREZA(opcoes('artes_visuais_natureza', ['Intervenção urbana', 'Livro de artista', 'Performance', 'Pintura', 'Programação visual', 'Vídeo', 'Webart', 'Animação', 'Instalação', 'Computação gráfica', 'Desenho', 'Diversas', 'Escultura', 'Filme', 'Fotografia', 'Gravura', 'Ilustração', 'Outra'])),
         F_TITULO, { ...F_ANO, row: 'periodo' }, F_AFIM, F_PAIS, F_IDIOMA,
         { key: 'meioDivulgacao', label: t('lattes.tipo.ARTES_VISUAIS.campo.meio_divulgacao.label', 'Meio de divulgação'), type: 'select', options: MEIO_DIVULGACAO_OPTIONS }, F_URL,
         { key: 'relevante', label: t('lattes.tipo.ARTES_VISUAIS.campo.relevante.label', 'É um dos 10 trabalhos mais relevantes de sua produção?'), type: 'checkbox' },
