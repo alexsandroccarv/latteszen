@@ -87,11 +87,25 @@ function lerLocalePersistido() {
     } catch (_) { return LOCALE_PADRAO; }
 }
 
+// Reflete o locale ativo em <html lang>, tanto na carga inicial quanto em
+// toda troca via setLocale() — sem isso o atributo ficava fixo em "pt-BR"
+// no HTML estático, incoerente com o idioma efetivamente exibido assim que
+// houver um 2º idioma. BCP 47: subtag de idioma em minúsculas, subtag de
+// região em maiúsculas ('pt-br' → 'pt-BR'; um locale sem região, ex. 'en',
+// fica como está).
+function aplicarHtmlLang(locale) {
+    if (typeof document === 'undefined' || !document.documentElement) return;
+    const [idioma, regiao] = locale.split('-');
+    document.documentElement.setAttribute('lang', regiao ? `${idioma}-${regiao.toUpperCase()}` : idioma);
+}
+
 let localeAtual = localeValido(lerLocalePersistido());
+aplicarHtmlLang(localeAtual);
 
 export function getLocale() { return localeAtual; }
 export function setLocale(locale) {
     localeAtual = localeValido(locale);
+    aplicarHtmlLang(localeAtual);
     return localeAtual;
 }
 export function localesDisponiveis() { return Object.keys(DICIONARIOS); }

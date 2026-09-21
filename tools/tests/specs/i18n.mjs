@@ -71,6 +71,18 @@ test('i18n: setLocale() cai pro padrão (pt-br) ao pedir um locale sem dicionár
     assertEqual(r.depois, 'pt-br', 'getLocale() deveria refletir o fallback pro padrão');
 });
 
+test('i18n: <html lang> reflete o locale ativo na carga inicial e é atualizado por setLocale()', async ({ page, baseUrl }) => {
+    await seedCatalog(page, baseUrl, []);
+    const r = await page.evaluate(() => {
+        const inicial = document.documentElement.getAttribute('lang');
+        window.LzI18n.setLocale('idioma-inexistente');
+        const depoisFallback = document.documentElement.getAttribute('lang');
+        return { inicial, depoisFallback };
+    });
+    assertEqual(r.inicial, 'pt-BR', '<html lang> deveria começar como pt-BR, refletindo o locale padrão (pt-br)');
+    assertEqual(r.depoisFallback, 'pt-BR', 'setLocale() para um locale inválido cai pro padrão — <html lang> deveria seguir junto');
+});
+
 test('i18n: window.AppCore.t/tp existem e se comportam como window.LzI18n.t/tp (mesma instância, módulos de aba usam por aqui)', async ({ page, baseUrl }) => {
     await seedCatalog(page, baseUrl, []);
     const r = await page.evaluate(() => ({
