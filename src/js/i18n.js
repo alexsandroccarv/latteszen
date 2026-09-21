@@ -68,13 +68,30 @@ export const LOCALE_PADRAO = 'pt-br';
 // registrarDicionario), o que ainda não acontece em lugar nenhum do app.
 const DICIONARIOS = { [LOCALE_PADRAO]: {} };
 
-let localeAtual = LOCALE_PADRAO;
-
-export function getLocale() { return localeAtual; }
 // Cai pro padrão se pedirem um locale sem dicionário carregado — nunca deixa
 // a UI "muda" por causa de um nome de locale errado/typo.
+function localeValido(locale) { return DICIONARIOS[locale] ? locale : LOCALE_PADRAO; }
+
+// Lê a preferência de locale já persistida (Configurações › geral) direto do
+// localStorage, sem depender de Storage (storage.js carrega DEPOIS deste
+// módulo no index.html) nem esperar app.js/init() rodar (só acontece bem
+// depois, no fim da fila de <script>). Sem isto, o locale inicial deste
+// módulo sempre seria o padrão — mesmo já havendo outro configurado —
+// porque paises.js/idiomas.js/lattes-types-*.js (que chamam t()/resolveLista()
+// uma única vez, ao carregar) rodam ANTES de qualquer setLocale() explícito.
+function lerLocalePersistido() {
+    try {
+        const chave = (window.APP_CONFIG && window.APP_CONFIG.storageKeys && window.APP_CONFIG.storageKeys.settings) || 'lz_settings';
+        const cfg = JSON.parse(localStorage.getItem(chave));
+        return (cfg && cfg.locale) || LOCALE_PADRAO;
+    } catch (_) { return LOCALE_PADRAO; }
+}
+
+let localeAtual = localeValido(lerLocalePersistido());
+
+export function getLocale() { return localeAtual; }
 export function setLocale(locale) {
-    localeAtual = DICIONARIOS[locale] ? locale : LOCALE_PADRAO;
+    localeAtual = localeValido(locale);
     return localeAtual;
 }
 export function localesDisponiveis() { return Object.keys(DICIONARIOS); }
@@ -88,6 +105,24 @@ export function nomeLocale(locale) { return NOMES_LOCALE[locale] || locale; }
 // chaves sem apagar o que já estava carregado.
 export function registrarDicionario(locale, entradas) {
     DICIONARIOS[locale] = Object.assign({}, DICIONARIOS[locale] || {}, entradas || {});
+}
+
+// Resolve uma lista de valores grandes demais pra virar entradas de
+// dicionário uma a uma (países, idiomas, setores de atividade — ver
+// paises.js/idiomas.js/cnae.js) a partir de um prefixo (ex.: 'PAISES') +
+// locale ativo: procura window['PAISES_' + locale] e, se esse idioma ainda
+// não tiver a lista própria, cai pra window['PAISES_pt-br'] (sempre
+// presente — é a lista original, nunca removida). Convenção deliberadamente
+// à parte de t()/tp(): são arrays de centenas de itens onde o valor
+// gravado no item É o próprio texto de exibição (ver nota em
+// lattes-types-campos.js) — não dá pra virar {value, label} sem quebrar
+// dados já salvos, então a lista inteira troca por locale em vez de cada
+// item ganhar uma chave.
+export function resolveLista(prefixo) {
+    const doLocale = window[`${prefixo}_${localeAtual}`];
+    if (Array.isArray(doLocale)) return doLocale;
+    const doPadrao = window[`${prefixo}_${LOCALE_PADRAO}`];
+    return Array.isArray(doPadrao) ? doPadrao : [];
 }
 
 // `{nome}` → vars.nome. Chave não encontrada em `vars` fica como está no
@@ -116,5 +151,5 @@ export function tp(chave, n, formasPadrao, vars) {
 }
 
 if (typeof window !== 'undefined') {
-    window.LzI18n = { t, tp, getLocale, setLocale, localesDisponiveis, nomeLocale, registrarDicionario, LOCALE_PADRAO };
+    window.LzI18n = { t, tp, getLocale, setLocale, localesDisponiveis, nomeLocale, registrarDicionario, resolveLista, LOCALE_PADRAO };
 }

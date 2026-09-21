@@ -51,7 +51,7 @@ window.TabCatalogar = (function () {
         state, $, $$, esc, toast, anoDe, sortByYear,
         isImageExt, isVideoExt, isArchiveExt, NA_VALUE,
         elegivelAoLattes, itemsUsingValue, normNome, validateField,
-        setFieldError, associateLabels, isFieldDisabled, t, tp,
+        setFieldError, associateLabels, isFieldDisabled, t, tp, resolveLista,
     } = window.AppCore;
 
     // Uma opção de select/checkboxes/skilllevels pode vir como string simples
@@ -837,7 +837,7 @@ window.TabCatalogar = (function () {
         // nomeados (SETOR-DE-ATIVIDADE-1..3), por isso 3 selects fixos.
         // Mesmo tratamento de <details> recolhido do campo acima.
         const chosen = String(val || '').split(';').map(s => s.trim()).filter(Boolean);
-        const opts = window.CNAE_SETORES || [];
+        const opts = resolveLista('SETORES');
         // aria-label próprio por select — mesmo motivo do areatree acima:
         // sem isto, só o 1º select tinha nome acessível.
         const sel = (i) => `<select data-setor="${i}" aria-label="${esc(t('tab_catalogar.setor_aria', 'Setor {n}', { n: i }))}" class="${base}">

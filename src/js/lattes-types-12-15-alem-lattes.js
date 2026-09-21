@@ -27,7 +27,7 @@
    — ver nota de arquitetura no topo de lattes-types-campos.js.
    ========================================================================== */
 import { F_URL, F_AINI, F_AFIM, AL_ENT, AL_PAPEL, AL_FREQ, AL_IMP, AL_LOCAL, AL_ANO, alNome, opcoes } from './lattes-types-campos.js';
-import { t } from './i18n.js';
+import { t, resolveLista } from './i18n.js';
 
 export const TYPES_12_15_ALEM_LATTES = {
     // 12 — Desenvolvimento Pessoal e Habilidades (lista de tipos revisada a
@@ -37,7 +37,7 @@ export const TYPES_12_15_ALEM_LATTES = {
     // em "01. Dados gerais", e Treinamentos/workshops passou a caber em
     // "Cursos livres e oficinas").
     AL_CURSO_LIVRE: { label: t('lattes.tipo.AL_CURSO_LIVRE.label', 'Cursos livres e oficinas'), fields: [alNome(t('lattes.tipo.AL_CURSO_LIVRE.campo.nome_curso', 'Nome do curso')), { key: 'entidade', label: t('lattes.tipo.AL_CURSO_LIVRE.campo.entidade.label', 'Instituição'), type: 'text' }, { key: 'frequencia', label: t('lattes.tipo.AL_CURSO_LIVRE.campo.frequencia.label', 'Carga horária'), type: 'text' }, { ...F_AINI, row: 'periodo' }, F_AFIM, AL_IMP, F_URL] },
-    AL_IDIOMAS: { label: t('lattes.tipo.AL_IDIOMAS.label', 'Idiomas e proficiências'), fields: [{ key: 'titulo', label: t('lattes.tipo.AL_IDIOMAS.campo.titulo.label', 'Idioma'), type: 'select', options: window.IDIOMAS_LATTES || [], required: true }, { key: 'habilidades', label: t('lattes.tipo.AL_IDIOMAS.campo.habilidades.label', 'Proficiência (nível por habilidade)'), type: 'skilllevels', options: opcoes('idiomas_habilidades', ['Leitura', 'Fala', 'Escrita', 'Compreensão']), levels: ['Bom', 'Razoável', 'Pouco'] }, { key: 'entidade', label: t('lattes.tipo.AL_IDIOMAS.campo.entidade.label', 'Onde estudou'), type: 'text' }, { ...F_AINI, row: 'periodo' }, F_AFIM, AL_IMP] },
+    AL_IDIOMAS: { label: t('lattes.tipo.AL_IDIOMAS.label', 'Idiomas e proficiências'), fields: [{ key: 'titulo', label: t('lattes.tipo.AL_IDIOMAS.campo.titulo.label', 'Idioma'), type: 'select', options: resolveLista('IDIOMAS'), required: true }, { key: 'habilidades', label: t('lattes.tipo.AL_IDIOMAS.campo.habilidades.label', 'Proficiência (nível por habilidade)'), type: 'skilllevels', options: opcoes('idiomas_habilidades', ['Leitura', 'Fala', 'Escrita', 'Compreensão']), levels: ['Bom', 'Razoável', 'Pouco'] }, { key: 'entidade', label: t('lattes.tipo.AL_IDIOMAS.campo.entidade.label', 'Onde estudou'), type: 'text' }, { ...F_AINI, row: 'periodo' }, F_AFIM, AL_IMP] },
     AL_TREINAMENTO: { label: t('lattes.tipo.AL_TREINAMENTO.label', 'Treinamentos e workshops'), fields: [alNome(t('lattes.tipo.AL_TREINAMENTO.campo.nome', 'Nome')), AL_ENT, AL_PAPEL, AL_FREQ, { ...F_AINI, row: 'periodo' }, F_AFIM, AL_IMP, F_URL] },
     AL_MENTORIA: { label: t('lattes.tipo.AL_MENTORIA.label', 'Mentorias e grupos de estudos'), fields: [alNome(t('lattes.tipo.AL_MENTORIA.campo.nome', 'Nome')), AL_ENT, AL_PAPEL, AL_FREQ, { ...F_AINI, row: 'periodo' }, F_AFIM, AL_IMP, F_URL] },
     AL_PROJETO_PESSOAL: { label: t('lattes.tipo.AL_PROJETO_PESSOAL.label', 'Projetos pessoais e autoaprendizagem'), fields: [alNome(t('lattes.tipo.AL_PROJETO_PESSOAL.campo.nome_projeto', 'Nome do projeto')), AL_PAPEL, { ...F_AINI, row: 'periodo' }, F_AFIM, { key: 'frequencia', label: t('lattes.tipo.AL_PROJETO_PESSOAL.campo.frequencia.label', 'Frequência / Dedicação'), type: 'text' }, AL_IMP, F_URL] },

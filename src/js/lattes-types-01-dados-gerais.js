@@ -28,7 +28,7 @@
    arquitetura no topo de lattes-types-campos.js.
    ========================================================================== */
 import { F_TITULO, F_URL, F_CIDADE, opcoes } from './lattes-types-campos.js';
-import { t } from './i18n.js';
+import { t, resolveLista } from './i18n.js';
 
 export const TYPES_01_DADOS_GERAIS = {
     // 01 Dados gerais
@@ -42,8 +42,8 @@ export const TYPES_01_DADOS_GERAIS = {
         { key: 'corRaca', label: t('lattes.tipo.IDENTIFICACAO.campo.cor_raca.label', 'Cor ou raça'), type: 'select', options: opcoes('identificacao_cor_raca', ['Branca', 'Preta', 'Parda', 'Amarela', 'Indígena', 'Não desejo declarar']) },
         { key: 'sexo', label: t('lattes.tipo.IDENTIFICACAO.campo.sexo.label', 'Sexo'), type: 'select', options: opcoes('identificacao_sexo', ['Masculino', 'Feminino']), help: t('lattes.tipo.IDENTIFICACAO.campo.sexo.help', 'Exigido pelo Lattes na importação do XML.') },
         { key: 'nacionalidade', label: t('lattes.tipo.IDENTIFICACAO.campo.nacionalidade.label', 'Nacionalidade'), type: 'text', placeholder: t('lattes.tipo.IDENTIFICACAO.campo.nacionalidade.placeholder', 'Brasileira') },
-        { key: 'paisNacionalidade', label: t('lattes.tipo.IDENTIFICACAO.campo.pais_nacionalidade.label', 'País de nacionalidade'), type: 'select', options: window.PAISES_LATTES || [], default: 'Brasil' },
-        { key: 'pais', label: t('lattes.tipo.IDENTIFICACAO.campo.pais.label', 'País de nascimento'), type: 'select', options: window.PAISES_LATTES || [], default: 'Brasil' },
+        { key: 'paisNacionalidade', label: t('lattes.tipo.IDENTIFICACAO.campo.pais_nacionalidade.label', 'País de nacionalidade'), type: 'select', options: resolveLista('PAISES'), default: 'Brasil' },
+        { key: 'pais', label: t('lattes.tipo.IDENTIFICACAO.campo.pais.label', 'País de nascimento'), type: 'select', options: resolveLista('PAISES'), default: 'Brasil' },
         { key: 'ufNascimento', label: t('lattes.tipo.IDENTIFICACAO.campo.uf_nascimento.label', 'UF de nascimento'), type: 'text', placeholder: 'ex.: RS', disabledWhen: { field: 'pais', notEquals: 'Brasil' } },
         { key: 'cidadeNascimento', label: t('lattes.tipo.IDENTIFICACAO.campo.cidade_nascimento.label', 'Cidade de nascimento'), type: 'text' },
         { key: 'dataNascimento', label: t('lattes.tipo.IDENTIFICACAO.campo.data_nascimento.label', 'Data de nascimento'), type: 'datebr' },
@@ -87,7 +87,7 @@ export const TYPES_01_DADOS_GERAIS = {
         { key: 'numero', label: t('lattes.tipo.DOC_PASSAPORTE.campo.numero.label', 'Número do passaporte'), type: 'text', required: true },
         { key: 'dataValidade', label: t('lattes.tipo.DOC_PASSAPORTE.campo.data_validade.label', 'Data de validade'), type: 'datebr' },
         { key: 'dataEmissao', label: t('lattes.tipo.DOC_PASSAPORTE.campo.data_emissao.label', 'Data de emissão'), type: 'datebr' },
-        { key: 'paisEmissao', label: t('lattes.tipo.DOC_PASSAPORTE.campo.pais_emissao.label', 'País de emissão'), type: 'select', options: window.PAISES_LATTES || [], default: 'Brasil' }] },
+        { key: 'paisEmissao', label: t('lattes.tipo.DOC_PASSAPORTE.campo.pais_emissao.label', 'País de emissão'), type: 'select', options: resolveLista('PAISES'), default: 'Brasil' }] },
     // Dois registros persistentes (1 Residencial + 1 Profissional, a pedido
     // do usuário) — não é singleton global, é "singleton por Tipo"
     // (singletonBy), ver onSubmitForm e wireSingletonScope() em
@@ -100,7 +100,7 @@ export const TYPES_01_DADOS_GERAIS = {
         { key: 'tipo', label: t('lattes.tipo.ENDERECO.campo.tipo.label', 'Tipo'), type: 'select', required: true, noBlankOption: true, default: 'Residencial', options: opcoes('endereco_tipo', ['Residencial', 'Profissional']) },
         { key: 'titulo', label: t('lattes.tipo.ENDERECO.campo.titulo.label', 'Endereço'), type: 'text', required: true }, F_CIDADE, { key: 'uf', label: t('lattes.tipo.ENDERECO.campo.uf.label', 'UF'), type: 'text' }, { key: 'cep', label: t('lattes.tipo.ENDERECO.campo.cep.label', 'CEP'), type: 'text' }] },
     LICENCA: { label: t('lattes.tipo.LICENCA.label', 'Licença maternidade, paternidade e adoção'), noExport: true, fields: [{ key: 'titulo', label: t('lattes.tipo.LICENCA.campo.titulo.label', 'Descrição'), type: 'text', required: true }, { key: 'tipo', label: t('lattes.tipo.LICENCA.campo.tipo.label', 'Tipo'), type: 'select', options: opcoes('licenca_tipo', ['Maternidade', 'Paternidade', 'Adoção']) }, { key: 'dataInicio', label: t('lattes.tipo.LICENCA.campo.data_inicio.label', 'Data de início'), type: 'datebr', row: 'periodo' }, { key: 'dataFim', label: t('lattes.tipo.LICENCA.campo.data_fim.label', 'Data de fim'), type: 'datebr', row: 'periodo' }] },
-    IDIOMAS: { label: t('lattes.tipo.IDIOMAS.label', 'Idiomas'), fields: [{ key: 'titulo', label: t('lattes.tipo.IDIOMAS.campo.titulo.label', 'Idioma'), type: 'select', options: window.IDIOMAS_LATTES || [], required: true }, { key: 'habilidades', label: t('lattes.tipo.IDIOMAS.campo.habilidades.label', 'Proficiência (nível por habilidade)'), type: 'skilllevels', options: opcoes('idiomas_habilidades', ['Leitura', 'Fala', 'Escrita', 'Compreensão']), levels: ['Bom', 'Razoável', 'Pouco'] }] },
+    IDIOMAS: { label: t('lattes.tipo.IDIOMAS.label', 'Idiomas'), fields: [{ key: 'titulo', label: t('lattes.tipo.IDIOMAS.campo.titulo.label', 'Idioma'), type: 'select', options: resolveLista('IDIOMAS'), required: true }, { key: 'habilidades', label: t('lattes.tipo.IDIOMAS.campo.habilidades.label', 'Proficiência (nível por habilidade)'), type: 'skilllevels', options: opcoes('idiomas_habilidades', ['Leitura', 'Fala', 'Escrita', 'Compreensão']), levels: ['Bom', 'Razoável', 'Pouco'] }] },
     PREMIO: { label: t('lattes.tipo.PREMIO.label', 'Prêmios e títulos'), fields: [F_TITULO, { key: 'ano', label: t('lattes.tipo.PREMIO.campo.ano.label', 'Data da premiação'), type: 'datebr', required: true }, { key: 'entidade', label: t('lattes.tipo.PREMIO.campo.entidade.label', 'Entidade promotora'), type: 'text', required: true }] },
     RESUMO_CV: { label: t('lattes.tipo.RESUMO_CV.label', 'Texto inicial do Currículo Lattes'), singleton: true, noEvidence: true, perfil: true, fields: [{ key: 'descricao', label: t('lattes.tipo.RESUMO_CV.campo.descricao.label', 'Texto'), type: 'textarea', required: true }] },
     // Texto narrativo (memorial descritivo, comum em processos de progressão/

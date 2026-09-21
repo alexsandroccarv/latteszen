@@ -38,14 +38,17 @@
    `forceValueWhen.map`/`labelWhen.map`/`descriptions` continuam
    literais (precisam bater com `value`, não com `label`).
 
-   Listas GRANDES ainda não convertidas nesta fase (país/idioma/CNAE —
-   window.PAISES_LATTES/IDIOMAS_LATTES/CNAE_SETORES, ver
-   paises.js/idiomas.js/cnae.js) continuam string[] simples — os pontos
-   que leem `field.options` (tab-catalogar.js, lattes-xml.js) aceitam os
-   dois formatos ao mesmo tempo (ver optVal/optLabel em tab-catalogar.js),
-   então nada quebra; só ainda não ficaram traduzíveis.
+   Listas GRANDES ainda não convertidas pro formato {value, label} nesta
+   fase (país/idioma/CNAE — window['PAISES_pt-br']/['IDIOMAS_pt-br']/
+   ['SETORES_pt-br'], ver paises.js/idiomas.js/cnae.js) continuam string[]
+   simples — os pontos que leem `field.options` (tab-catalogar.js,
+   lattes-xml.js) aceitam os dois formatos ao mesmo tempo (ver optVal/
+   optLabel em tab-catalogar.js), então nada quebra; só ainda não ficaram
+   traduzíveis item a item. A lista INTEIRA já troca por locale, porém —
+   ver resolveLista() em i18n.js: window['<prefixo>_' + locale], caindo
+   pro pt-br quando o locale ativo ainda não tiver lista própria.
    ========================================================================== */
-import { t } from './i18n.js';
+import { t, resolveLista } from './i18n.js';
 
 // Gera uma chave i18n estável a partir do valor da própria opção
 // (minúsculas, sem acento, não-alfanumérico vira "_") — usada por
@@ -81,8 +84,8 @@ const F_AFIM = { key: 'anoFim', label: t('campos.f_afim.label', 'Ano de fim'), t
 // Lattes apenas o ANO é mantido (o schema só aceita ANO-INICIO/ANO-FIM).
 const F_DINI = { key: 'anoInicio', label: t('campos.f_dini.label', 'Data de início'), type: 'datebr' };
 const F_DFIM = { key: 'anoFim', label: t('campos.f_dfim.label', 'Data de fim (vazio = atual)'), type: 'datebr' };
-const F_PAIS = { key: 'pais', label: t('campos.f_pais.label', 'País'), type: 'select', options: window.PAISES_LATTES || [], default: 'Brasil' };
-const F_IDIOMA = { key: 'idioma', label: t('campos.f_idioma.label', 'Idioma'), type: 'select', options: window.IDIOMAS_LATTES || [] };
+const F_PAIS = { key: 'pais', label: t('campos.f_pais.label', 'País'), type: 'select', options: resolveLista('PAISES'), default: 'Brasil' };
+const F_IDIOMA = { key: 'idioma', label: t('campos.f_idioma.label', 'Idioma'), type: 'select', options: resolveLista('IDIOMAS') };
 // Opções de "Meio de divulgação" (Livros/Capítulos) — enum MEIO-DE-DIVULGACAO
 // do schema Lattes, exceto WEB (não usada na tela real para estes tipos).
 const MEIO_DIVULGACAO_OPTIONS = opcoes('meio_divulgacao', ['Impresso', 'Meio magnético', 'Meio digital', 'Filme', 'Hipertexto', 'Outro', 'Impresso e mídia eletrônica']);
@@ -152,7 +155,7 @@ const projetoFinanciadoresField = () => ({ key: 'financiadores', label: t('campo
 const projetoInstituicaoExecucaoFields = () => [
     { key: 'instituicaoExecucaoNome', label: t('campos.projeto_instituicao_execucao.nome', 'Instituição de execução'), type: 'text' },
     { key: 'instituicaoExecucaoSigla', label: t('campos.projeto_instituicao_execucao.sigla', 'Sigla'), type: 'text', row: 'instExecucao' },
-    { key: 'instituicaoExecucaoPais', label: t('campos.projeto_instituicao_execucao.pais', 'País'), type: 'select', options: window.PAISES_LATTES || [], default: 'Brasil', row: 'instExecucao' },
+    { key: 'instituicaoExecucaoPais', label: t('campos.projeto_instituicao_execucao.pais', 'País'), type: 'select', options: resolveLista('PAISES'), default: 'Brasil', row: 'instExecucao' },
     { key: 'instituicaoExecucaoUf', label: t('campos.projeto_instituicao_execucao.uf', 'UF'), type: 'text', row: 'instExecucao', disabledWhen: { field: 'instituicaoExecucaoPais', notEquals: 'Brasil' } },
 ];
 const projetoProducoesField = () => ({ key: 'producoesCT', label: t('campos.projeto_producoes.label', 'Produção C&T'), type: 'repeater',
@@ -182,7 +185,7 @@ const projetoFieldsPadrao = (extraQtdAntes, tituloLabel, natSitRow) => [
     { key: 'empresaCnpj', label: t('campos.projeto_fields_padrao.empresa_cnpj', 'CNPJ da empresa'), type: 'text', placeholder: '00.000.000/0000-00', disabledWhen: { field: 'cooperacaoEmpresa', in: ['', 'Não'] } },
     { key: 'empresaNome', label: t('campos.projeto_fields_padrao.empresa_nome', 'Nome da empresa'), type: 'text', disabledWhen: { field: 'cooperacaoEmpresa', in: ['', 'Não'] } },
     { key: 'empresaEmail', label: t('campos.projeto_fields_padrao.empresa_email', 'E-mail Institucional'), type: 'text', placeholder: 'nome@empresa.com.br', disabledWhen: { field: 'cooperacaoEmpresa', in: ['', 'Não'] } },
-    { key: 'empresaSetor', label: t('campos.projeto_fields_padrao.empresa_setor', 'Setor'), type: 'select', options: window.CNAE_SETORES || [], disabledWhen: { field: 'cooperacaoEmpresa', in: ['', 'Não'] } },
+    { key: 'empresaSetor', label: t('campos.projeto_fields_padrao.empresa_setor', 'Setor'), type: 'select', options: resolveLista('SETORES'), disabledWhen: { field: 'cooperacaoEmpresa', in: ['', 'Não'] } },
     { key: 'potencialInovacao', label: t('campos.projeto_fields_padrao.potencial_inovacao', 'O projeto possui potencial de inovação de produtos, processos ou serviços?'), type: 'checkbox' },
     { key: 'potencialInovacaoDescricao', label: t('campos.projeto_fields_padrao.potencial_inovacao_descricao', 'Qual o potencial de inovação do projeto?'), type: 'textarea', disabledWhen: { field: 'potencialInovacao', in: ['', 'Não'] } },
     ...projetoInstituicaoExecucaoFields(),
