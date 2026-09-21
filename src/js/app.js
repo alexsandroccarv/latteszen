@@ -749,8 +749,9 @@
     // Mesma trava, agora também para 4 das 5 páginas do menu lateral de
     // Configurações — só "Armazenamento" (onde mora o assistente de escolha
     // do diretório) fica sempre livre; "Importar", "Exportar", "Recursos
-    // opcionais" e "Zona de risco" dependem de já haver um diretório.
-    const DIR_GATED_CFG_GROUPS = ['grp-importar', 'grp-exportar', 'grp-opcionais', 'grp-risco'];
+    // opcionais", "Módulos" e "Zona de risco" dependem de já haver um
+    // diretório.
+    const DIR_GATED_CFG_GROUPS = ['grp-importar', 'grp-exportar', 'grp-opcionais', 'grp-modulos', 'grp-risco'];
     // Trava real desligável só em teste (window.__LZ_TEST_SKIP_DIR_GATE) —
     // mesmo padrão de window.__LZ_TEST_ANALYTICS_ID em config.js: sem isto,
     // toda a suíte de regressão (que semeia o catálogo direto no

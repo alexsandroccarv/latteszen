@@ -924,12 +924,15 @@ test('Configurações modulares: RSC/Súmula/Publicar na Web/nuvem de palavras/t
     await abrirConfig(page, baseUrl);
     await conectar(page, 'lattesZen');
 
-    await page.click('[data-cfg-page-link="grp-opcionais"]');
+    await page.click('[data-cfg-page-link="grp-modulos"]');
     await page.waitForTimeout(150);
 
     await page.check('#rscEnable');
     await page.waitForTimeout(150);
     await page.check('#sumulaEnable');
+    await page.waitForTimeout(150);
+
+    await page.click('[data-cfg-page-link="grp-opcionais"]');
     await page.waitForTimeout(150);
     await page.check('#pubWebEnable');
     await page.waitForTimeout(150);

@@ -415,6 +415,7 @@ window.TabConfig = (function () {
         { id: 'grp-importar', icon: 'fa-file-import', label: 'Importar' },
         { id: 'grp-exportar', icon: 'fa-file-export', label: 'Exportar' },
         { id: 'grp-opcionais', icon: 'fa-puzzle-piece', label: 'Recursos opcionais' },
+        { id: 'grp-modulos', icon: 'fa-layer-group', label: 'Módulos' },
         { id: 'grp-risco', icon: 'fa-triangle-exclamation', label: 'Zona de risco' },
     ];
     // Cabeçalho de grupo das Configurações (título dentro da própria página) —
@@ -423,7 +424,7 @@ window.TabConfig = (function () {
         return `<h2 id="${g.id}" class="lg:col-span-2 text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 flex items-center gap-2 pt-1 pb-1 border-b border-gray-200 dark:border-gray-700"><i class="fa-solid ${g.icon}"></i> ${esc(g.label)}</h2>`;
     }
 
-    // Menu lateral de Configurações: as 4 seções viram páginas independentes
+    // Menu lateral de Configurações: as 6 seções viram páginas independentes
     // (só uma visível por vez, ver render()) — clicar troca qual está ativa
     // (state.ui.cfgActiveGroup) e re-renderiza. No celular vira uma barra
     // horizontal rolável (ver .cfg-sidebar no CSS/classes abaixo).
@@ -738,8 +739,6 @@ window.TabConfig = (function () {
 
                 <div data-cfg-page="${CFG_GROUPS[3].id}" class="grid grid-cols-1 lg:grid-cols-2 gap-6 ${cfgAtiva === CFG_GROUPS[3].id ? '' : 'hidden'}">
                 ${cfgGroup(CFG_GROUPS[3])}
-                ${rscSectionHtml()}
-                ${sumulaSectionHtml()}
                 ${pubWebSectionHtml()}
                 ${nuvemPalavrasSectionHtml()}
 
@@ -793,6 +792,12 @@ window.TabConfig = (function () {
 
                 <div data-cfg-page="${CFG_GROUPS[4].id}" class="grid grid-cols-1 lg:grid-cols-2 gap-6 ${cfgAtiva === CFG_GROUPS[4].id ? '' : 'hidden'}">
                 ${cfgGroup(CFG_GROUPS[4])}
+                ${rscSectionHtml()}
+                ${sumulaSectionHtml()}
+                </div>
+
+                <div data-cfg-page="${CFG_GROUPS[5].id}" class="grid grid-cols-1 lg:grid-cols-2 gap-6 ${cfgAtiva === CFG_GROUPS[5].id ? '' : 'hidden'}">
+                ${cfgGroup(CFG_GROUPS[5])}
                 ${lixeiraSectionHtml()}
                 <section class="bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800 p-4">
                     <button id="btnClear" class="px-3 py-2 rounded bg-red-600 text-white text-sm"><i class="fa-solid fa-trash mr-1"></i> Limpar catálogo (índice local)</button>

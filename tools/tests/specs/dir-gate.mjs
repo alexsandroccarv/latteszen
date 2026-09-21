@@ -20,9 +20,9 @@ import { test, assert, assertEqual, seedCatalog } from '../harness.mjs';
 
 const ABAS_TRAVADAS = ['catalogar', 'conformidade', 'linhatempo', 'publicar', 'rsc', 'sumula'];
 const ABAS_LIVRES = ['inicio', 'config'];
-// Dentro de Configurações, o mesmo bloqueio vale pra 4 das 5 páginas do
+// Dentro de Configurações, o mesmo bloqueio vale pra 5 das 6 páginas do
 // menu lateral — só "Armazenamento" (onde mora o assistente) fica livre.
-const CFG_PAGINAS_TRAVADAS = ['grp-importar', 'grp-exportar', 'grp-opcionais', 'grp-risco'];
+const CFG_PAGINAS_TRAVADAS = ['grp-importar', 'grp-exportar', 'grp-opcionais', 'grp-modulos', 'grp-risco'];
 
 async function ligarTravaDeVerdade(page) {
     await page.addInitScript(() => { window.__LZ_TEST_SKIP_DIR_GATE = false; });
@@ -119,7 +119,7 @@ test('"Esquecer diretório de armazenamento" volta a travar as abas na hora (app
     assert(travada, 'Depois de "Esquecer diretório de armazenamento", a aba "Catalogar" deveria voltar a ficar desabilitada');
 });
 
-test('Sem diretório configurado, as páginas "Importar"/"Exportar"/"Recursos opcionais"/"Zona de risco" do menu lateral de Configurações ficam desabilitadas (com dica) — "Armazenamento" continua livre', async ({ page, baseUrl }) => {
+test('Sem diretório configurado, as páginas "Importar"/"Exportar"/"Recursos opcionais"/"Módulos"/"Zona de risco" do menu lateral de Configurações ficam desabilitadas (com dica) — "Armazenamento" continua livre', async ({ page, baseUrl }) => {
     await ligarTravaDeVerdade(page);
     await seedCatalog(page, baseUrl, []);
     await page.click('[data-tab="config"]');

@@ -6,18 +6,18 @@
 import { test, assert, assertEqual, seedCatalog } from '../harness.mjs';
 
 // O checkbox "Habilitar módulo Súmula Curricular FAPESP" mora na página
-// "Recursos opcionais" do menu lateral de Configurações — não é a página ativa
-// por padrão (Armazenamento é).
-async function abrirOutrosRecursos(page) {
+// "Módulos" do menu lateral de Configurações — não é a página ativa por
+// padrão (Armazenamento é).
+async function abrirModulos(page) {
     await page.click('[data-tab="config"]');
     await page.waitForTimeout(200);
-    await page.click('[data-cfg-page-link="grp-opcionais"]');
+    await page.click('[data-cfg-page-link="grp-modulos"]');
     await page.waitForTimeout(150);
 }
 
 test('Configurações → Súmula FAPESP só tem o "Habilitar módulo" — os links moram na aba Súmula FAPESP', async ({ page, baseUrl }) => {
     await seedCatalog(page, baseUrl, []);
-    await abrirOutrosRecursos(page);
+    await abrirModulos(page);
 
     assertEqual(await page.locator('#sumulaEnable').count(), 1, 'O checkbox "Habilitar módulo Súmula Curricular FAPESP" deveria existir em Configurações');
     assertEqual(await page.locator('#sumula-linkLattes').count(), 0, 'O campo de link do Lattes não deveria estar em Configurações');
@@ -36,7 +36,7 @@ test('Aba "Súmula FAPESP" só aparece na navegação quando o módulo está hab
     const escondida = await page.evaluate(() => document.querySelector('.tab-btn[data-tab="sumula"]').classList.contains('hidden'));
     assert(escondida, 'A aba "Súmula FAPESP" deveria começar escondida (módulo desabilitado por padrão)');
 
-    await abrirOutrosRecursos(page);
+    await abrirModulos(page);
     await page.click('#sumulaEnable');
     await page.waitForTimeout(200);
     const visivel = await page.evaluate(() => !document.querySelector('.tab-btn[data-tab="sumula"]').classList.contains('hidden'));
@@ -45,7 +45,7 @@ test('Aba "Súmula FAPESP" só aparece na navegação quando o módulo está hab
 
 test('Súmula FAPESP: os links (Lattes/Web of Science/Google Scholar) salvam em settings.sumula', async ({ page, baseUrl }) => {
     await seedCatalog(page, baseUrl, []);
-    await abrirOutrosRecursos(page);
+    await abrirModulos(page);
     await page.click('#sumulaEnable');
     await page.waitForTimeout(100);
     await page.click('[data-tab="sumula"]');
