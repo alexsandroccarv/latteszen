@@ -232,7 +232,7 @@
     // salvo, e perder essa conveniência (só agiliza o próximo cadastro) num
     // dispositivo novo não justifica gravar um arquivo a cada item.
     function persistirGeral() {
-        Storage.writeConfigModule('geral', { idPrefix: state.idPrefix, vocab: state.vocab, pubWebEnabled: state.pubWebEnabled });
+        Storage.writeConfigModule('geral', { idPrefix: state.idPrefix, locale: state.locale, vocab: state.vocab, pubWebEnabled: state.pubWebEnabled });
     }
     // pubStyle/deploy_* não têm `state` próprio (tab-publicar.js lê sempre
     // "ao vivo" de Storage.loadSettings()) — monta o retrato a partir de lá.
@@ -349,9 +349,10 @@
 
                 const geral = await Storage.restaurarModuloConfig('geral', blobAntigo,
                     (b) => (b.idPrefix || b.vocab || b.pubWebEnabled !== undefined) ? { idPrefix: b.idPrefix || '', vocab: b.vocab || {}, pubWebEnabled: b.pubWebEnabled } : null,
-                    { idPrefix: state.idPrefix, vocab: state.vocab, pubWebEnabled: state.pubWebEnabled });
+                    { idPrefix: state.idPrefix, locale: state.locale, vocab: state.vocab, pubWebEnabled: state.pubWebEnabled });
                 state.vocab = geral.dados.vocab || {};
                 state.idPrefix = sanitizePrefix(geral.dados.idPrefix || 'lz');
+                state.locale = window.AppCore.setLocale(geral.dados.locale || state.locale);
                 state.pubWebEnabled = geral.dados.pubWebEnabled !== undefined ? !!geral.dados.pubWebEnabled : state.catalogo.items.length > 0;
                 applyPublicarVisibility();
 
@@ -384,7 +385,7 @@
                     s.nuvemCompostas = state.linhaTempo.nuvemCompostas;
                     s.rscEnabled = state.rsc.enabled; s.rsc = state.rsc.cfg; s.rscMemorialTexto = state.rsc.memorialTexto;
                     s.sumulaEnabled = state.sumula.enabled; s.sumula = state.sumula.cfg; s.sumulaTexto = state.sumula.texto;
-                    s.idPrefix = state.idPrefix; s.vocab = state.vocab; s.pubWebEnabled = state.pubWebEnabled;
+                    s.idPrefix = state.idPrefix; s.locale = state.locale; s.vocab = state.vocab; s.pubWebEnabled = state.pubWebEnabled;
                     s.pubStyle = publicar.dados.pubStyle;
                     if (publicar.dados.deployGithub) s.deploy_github = publicar.dados.deployGithub;
                     if (publicar.dados.deployNetlify) s.deploy_netlify = publicar.dados.deployNetlify;
@@ -1050,6 +1051,7 @@
         // depois disso, o que estiver salvo prevalece (o usuário pode editar/remover).
         if (state.vocab.evidenciaTag === undefined) { state.vocab.evidenciaTag = DEFAULT_EVIDENCE_TAGS.slice(); saveVocab(); }
         state.idPrefix = sanitizePrefix(cfg.idPrefix || 'lz');
+        state.locale = window.AppCore.setLocale(cfg.locale || state.locale);
         state.catalogo.lastCat = cfg.lastCat || '';
         state.catalogo.lastType = cfg.lastType || '';
         state.rsc.enabled = !!cfg.rscEnabled;

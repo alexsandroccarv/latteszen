@@ -78,6 +78,11 @@ export function setLocale(locale) {
     return localeAtual;
 }
 export function localesDisponiveis() { return Object.keys(DICIONARIOS); }
+// Nome de exibição de um locale (pro seletor de idioma) — cai pro próprio
+// código se ainda não houver nome cadastrado (locale novo sem tradução da UI
+// ainda, ex. logo após registrarDicionario de um idioma novo).
+const NOMES_LOCALE = { 'pt-br': 'Português (Brasil)' };
+export function nomeLocale(locale) { return NOMES_LOCALE[locale] || locale; }
 // Só para ferramentas (import de um glossário, testes) — nunca chamado pela
 // UI em si. Faz merge raso: chamadas repetidas acrescentam/sobrescrevem
 // chaves sem apagar o que já estava carregado.
@@ -111,5 +116,5 @@ export function tp(chave, n, formasPadrao, vars) {
 }
 
 if (typeof window !== 'undefined') {
-    window.LzI18n = { t, tp, getLocale, setLocale, localesDisponiveis, registrarDicionario, LOCALE_PADRAO };
+    window.LzI18n = { t, tp, getLocale, setLocale, localesDisponiveis, nomeLocale, registrarDicionario, LOCALE_PADRAO };
 }

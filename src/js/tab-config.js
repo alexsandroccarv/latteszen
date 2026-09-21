@@ -627,6 +627,13 @@ window.TabConfig = (function () {
                         <span class="text-xs text-gray-500">Exemplo: <code id="idPrefixEx" class="bg-gray-200 dark:bg-gray-700 px-1 rounded">${esc(state.idPrefix)}-k7p</code></span>
                         <button id="btnSavePrefix" class="ml-auto px-3 py-1.5 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm"><i class="fa-solid fa-floppy-disk mr-1"></i> Salvar prefixo</button>
                     </div>
+                </div>
+                <div class="mb-4 pb-4 border-b border-gray-200 dark:border-gray-700">
+                    <h3 class="text-sm font-bold mb-1">${passo++}. Idioma</h3>
+                    <p class="text-xs text-gray-500 mb-2">Idioma da estrutura de pastas e do restante do app. Só precisa definir uma vez, antes das pastas serem criadas — depois de configurar o diretório, esta opção some daqui.</p>
+                    <select id="wizLocale" class="text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900">
+                        ${window.AppCore.localesDisponiveis().map(loc => `<option value="${esc(loc)}" ${loc === state.locale ? 'selected' : ''}>${esc(window.AppCore.nomeLocale(loc))}</option>`).join('')}
+                    </select>
                 </div>`;
             }
             if (dirWizardModo) {
@@ -835,6 +842,13 @@ window.TabConfig = (function () {
             const s = Storage.loadSettings(); s.idPrefix = state.idPrefix; Storage.saveSettings(s);
             window.AppCore.persistirGeral();
             toast(`Prefixo definido: "${state.idPrefix}". Novos arquivos: ${state.idPrefix}-XXX.`, 'ok');
+            render();
+        });
+        const wizLocale = $('#wizLocale');
+        if (wizLocale) wizLocale.addEventListener('change', () => {
+            state.locale = window.AppCore.setLocale(wizLocale.value);
+            const s = Storage.loadSettings(); s.locale = state.locale; Storage.saveSettings(s);
+            window.AppCore.persistirGeral();
             render();
         });
         const btnChooseDir = $('#btnChooseDir');
@@ -1209,6 +1223,7 @@ window.TabConfig = (function () {
                 Storage.saveSettings(merged);
                 state.vocab = merged.vocab || {};
                 state.idPrefix = window.AppCore.sanitizePrefix(merged.idPrefix || 'lz');
+                state.locale = window.AppCore.setLocale(merged.locale || state.locale);
                 state.catalogo.lastCat = merged.lastCat || '';
                 state.catalogo.lastType = merged.lastType || '';
                 state.rsc.enabled = !!merged.rscEnabled;

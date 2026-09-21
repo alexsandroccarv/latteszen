@@ -24,7 +24,7 @@
    de um lado aparece do outro) e um punhado de utilidades sem estado próprio.
    Conforme mais abas forem extraídas de app.js, mais deve entrar aqui.
    ========================================================================== */
-import { t, tp } from './i18n.js';
+import { t, tp, getLocale, setLocale, localesDisponiveis, nomeLocale } from './i18n.js';
 
 window.AppCore = (function () {
     /* ----------------------------- Estado ------------------------------- */
@@ -61,6 +61,11 @@ window.AppCore = (function () {
         },
         vocab: {},          // listas curadas de autocomplete (por chave de campo)
         idPrefix: 'lz',     // prefixo do ID dos arquivos (configurável, até 3 chars)
+        // Idioma escolhido na criação do diretório (mesmo padrão do
+        // idPrefix: definido uma vez, junto com a estrutura de pastas, e
+        // sincronizado no módulo "geral" — ver persistirGeral/syncFromDirectory
+        // em app.js). Ainda só pt-br existe (ver i18n.js).
+        locale: getLocale(),
         // Aba "Publicar na Web" — mesmo mecanismo do RSC (checkbox em
         // Configurações mostra/oculta a aba): padrão desabilitada na
         // primeira utilização (opt-in, como RSC/Súmula), e como os outros
@@ -396,6 +401,6 @@ window.AppCore = (function () {
         elegivelAoLattes, itemsUsingValue, normNome,
         validateISSN, validateISBN, validateISBNorISSN, validateDOI, validateURL, validateField,
         setFieldError, associateLabels, isFieldDisabled, evCount, descState,
-        t, tp,
+        t, tp, getLocale, setLocale, localesDisponiveis, nomeLocale,
     };
 })();
