@@ -25,7 +25,7 @@
    parte e continua em tab-catalogar.js). Nenhuma mudança de conteúdo, só
    saiu do arquivo único original.
    ========================================================================== */
-const { state, $, $$, esc, normNome, t } = window.AppCore;
+const { state, $, $$, esc, normNome, t, formatarNumero } = window.AppCore;
 
     // Camada RSC no formulário (abaixo dos campos do item), quando habilitado.
     // Listener global de "clique fora" do buscador de critério — fechado/
@@ -54,7 +54,7 @@ const { state, $, $$, esc, normNome, t } = window.AppCore;
         }
         function labelDoCriterio(id) {
             const c = todosCriterios.find(x => x.id === id);
-            return c ? `${c.item}. ${c.desc} — ${c.unidade} · ${String(c.pontos).replace('.', ',')} pts` : '';
+            return c ? `${c.item}. ${c.desc} — ${c.unidade} · ${formatarNumero(c.pontos)} pts` : '';
         }
         // id previsível por critério (usado em aria-activedescendant, abaixo)
         const critOptId = (id) => `rsc-crit-opt-${id}`;
@@ -65,7 +65,7 @@ const { state, $, $$, esc, normNome, t } = window.AppCore;
             encontrados.forEach(c => (porReq[c.reqLabel] = porReq[c.reqLabel] || []).push(c));
             return Object.keys(porReq).map(label => {
                 const itens = porReq[label].map(c =>
-                    `<button type="button" id="${critOptId(c.id)}" role="option" data-crit="${c.id}" class="block w-full text-left px-2 py-1.5 text-sm hover:bg-amber-100 dark:hover:bg-gray-700">${c.item}. ${esc(c.desc)} — ${esc(c.unidade)} · ${String(c.pontos).replace('.', ',')} pts</button>`).join('');
+                    `<button type="button" id="${critOptId(c.id)}" role="option" data-crit="${c.id}" class="block w-full text-left px-2 py-1.5 text-sm hover:bg-amber-100 dark:hover:bg-gray-700">${c.item}. ${esc(c.desc)} — ${esc(c.unidade)} · ${formatarNumero(c.pontos)} pts</button>`).join('');
                 return `<div><p class="sticky top-0 px-2 py-1 text-[11px] font-semibold text-gray-500 bg-gray-50 dark:bg-gray-800">${esc(t('tab_catalogar_rsc.requisito_label', 'Requisito {label}', { label }))}</p>${itens}</div>`;
             }).join('');
         }
@@ -109,9 +109,9 @@ const { state, $, $$, esc, normNome, t } = window.AppCore;
             const el = $('#rscPontos');
             if (!crit) { el.textContent = t('tab_catalogar_rsc.selecione_criterio', 'Selecione o critério para calcular os pontos.'); return; }
             el.textContent = t('tab_catalogar_rsc.pontos_resultado', 'Pontos: {pontos}  ({quantidade} × {unitario} · {unidade})', {
-                pontos: String(pi.pontos).replace('.', ','),
+                pontos: formatarNumero(pi.pontos),
                 quantidade: pi.quantidade,
-                unitario: String(pi.unitario).replace('.', ','),
+                unitario: formatarNumero(pi.unitario),
                 unidade: crit.unidade,
             });
         }

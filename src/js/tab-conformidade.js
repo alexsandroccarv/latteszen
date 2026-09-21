@@ -647,7 +647,7 @@ window.TabConformidade = (function () {
             const instKeys = Object.keys(byInst).sort((a, b) => {
                 if (a === SEM_INST) return 1;
                 if (b === SEM_INST) return -1;
-                return labelOf[a].localeCompare(labelOf[b], 'pt-BR', { sensitivity: 'base' });
+                return window.AppCore.compararTexto(labelOf[a], labelOf[b], { sensitivity: 'base' });
             });
             return instKeys.map(ik => `
                 <details open class="border border-gray-200 dark:border-gray-700/70 rounded-md">

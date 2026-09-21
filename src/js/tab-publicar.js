@@ -28,7 +28,7 @@
    pdf-report.js).
    ========================================================================== */
 window.TabPublicar = (function () {
-    const { state, $, esc, toast, anoDe, isImageExt, itemYear, sortByYear, publicarWebOk, t } = window.AppCore;
+    const { state, $, esc, toast, anoDe, isImageExt, itemYear, sortByYear, publicarWebOk, t, formatarData } = window.AppCore;
 
     function fileToDataUrl(file) {
         return new Promise((res) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = () => res(null); r.readAsDataURL(file); });
@@ -335,7 +335,7 @@ window.TabPublicar = (function () {
             nome, iniciais, tagline, bio: (resumo && resumo.fields.descricao) || '',
             foto, local, areasAtuacao, orcid, lattesUrl, telefone, email, contatos, outras: (outrasI && outrasI.fields.descricao) || '',
             nuvemPalavras, linhaTempo,
-            secoes, geradoEm: new Date().toLocaleString('pt-BR'), totalItens: items.length,
+            secoes, geradoEm: formatarData(new Date(), { dateStyle: 'short', timeStyle: 'medium' }), totalItens: items.length,
         };
     }
     // Tema (paleta de cores) da página pública — escolhido em Publicar na

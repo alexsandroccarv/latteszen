@@ -87,16 +87,23 @@ function lerLocalePersistido() {
     } catch (_) { return LOCALE_PADRAO; }
 }
 
+// Código interno de locale ('pt-br', minúsculo — combina com o sufixo de
+// PAISES_pt-br/IDIOMAS_pt-br/SETORES_pt-br em resolveLista()) → tag BCP 47
+// própria pra <html lang> e pra Intl (DateTimeFormat/NumberFormat/
+// localeCompare): subtag de região em maiúsculas, resto como está
+// ('pt-br' → 'pt-BR'; um locale sem região, ex. 'en', fica como está).
+function paraBCP47(locale) {
+    const [idioma, regiao] = locale.split('-');
+    return regiao ? `${idioma}-${regiao.toUpperCase()}` : idioma;
+}
+
 // Reflete o locale ativo em <html lang>, tanto na carga inicial quanto em
 // toda troca via setLocale() — sem isso o atributo ficava fixo em "pt-BR"
 // no HTML estático, incoerente com o idioma efetivamente exibido assim que
-// houver um 2º idioma. BCP 47: subtag de idioma em minúsculas, subtag de
-// região em maiúsculas ('pt-br' → 'pt-BR'; um locale sem região, ex. 'en',
-// fica como está).
+// houver um 2º idioma.
 function aplicarHtmlLang(locale) {
     if (typeof document === 'undefined' || !document.documentElement) return;
-    const [idioma, regiao] = locale.split('-');
-    document.documentElement.setAttribute('lang', regiao ? `${idioma}-${regiao.toUpperCase()}` : idioma);
+    document.documentElement.setAttribute('lang', paraBCP47(locale));
 }
 
 let localeAtual = localeValido(lerLocalePersistido());
@@ -139,6 +146,35 @@ export function resolveLista(prefixo) {
     return Array.isArray(doPadrao) ? doPadrao : [];
 }
 
+/* --------------------------------------------------------------------------
+   Formatação sensível ao locale ativo — data/hora, número e comparação de
+   texto (ordenação). Substitui hardcodes tipo `new Date().toLocaleDateString
+   ('pt-BR')`/`x.localeCompare(y, 'pt-BR')` espalhados pelo app (pdf-report.js,
+   rsc.js, storage.js etc.), que sempre formatavam/ordenavam em pt-BR mesmo
+   que o locale ativo fosse outro. Todas usam paraBCP47(localeAtual), então
+   acompanham setLocale() automaticamente — nenhum chamador precisa saber o
+   locale ativo.
+   -------------------------------------------------------------------------- */
+
+// opcoes: as mesmas de Intl.DateTimeFormat (dateStyle/timeStyle etc.).
+export function formatarData(data, opcoes) {
+    return new Intl.DateTimeFormat(paraBCP47(localeAtual), opcoes).format(data);
+}
+
+// useGrouping desligado por padrão: os números formatados aqui (pontos do
+// RSC, tamanhos de arquivo etc.) nunca tiveram separador de milhar — só o
+// separador decimal muda por locale (1234.5 → "1234,5" em pt-BR, não
+// "1.234,5"). Chamador pode religar via opcoes, se algum caso precisar.
+export function formatarNumero(numero, opcoes) {
+    return new Intl.NumberFormat(paraBCP47(localeAtual), Object.assign({ useGrouping: false }, opcoes)).format(numero);
+}
+
+// opcoes: as mesmas do 3º parâmetro de String.prototype.localeCompare
+// (sensitivity etc.).
+export function compararTexto(a, b, opcoes) {
+    return String(a).localeCompare(String(b), paraBCP47(localeAtual), opcoes);
+}
+
 // `{nome}` → vars.nome. Chave não encontrada em `vars` fica como está no
 // texto (visível de propósito — sinaliza uma variável esperada e não
 // passada, em vez de sumir silenciosamente).
@@ -165,5 +201,5 @@ export function tp(chave, n, formasPadrao, vars) {
 }
 
 if (typeof window !== 'undefined') {
-    window.LzI18n = { t, tp, getLocale, setLocale, localesDisponiveis, nomeLocale, registrarDicionario, resolveLista, LOCALE_PADRAO };
+    window.LzI18n = { t, tp, getLocale, setLocale, localesDisponiveis, nomeLocale, registrarDicionario, resolveLista, formatarData, formatarNumero, compararTexto, LOCALE_PADRAO };
 }

@@ -26,7 +26,7 @@
    circular entre os dois arquivos. Nenhuma mudança de conteúdo, só saiu
    do arquivo único original.
    ========================================================================== */
-const { state, $, $$, esc, t } = window.AppCore;
+const { state, $, $$, esc, t, compararTexto } = window.AppCore;
 
         // Entre a seção de seleção do tipo e o formulário de cadastro do
         // idioma: lista os idiomas já cadastrados (ordem alfabética), cada
@@ -40,7 +40,7 @@ const { state, $, $$, esc, t } = window.AppCore;
             if (!ehIdiomas) { bloco.classList.add('hidden'); bloco.innerHTML = ''; return; }
             const cadastrados = state.catalogo.items
                 .filter(i => i.typeKey === 'IDIOMAS' && (!itemAtual || i.id !== itemAtual.id) && (i.fields || {}).titulo)
-                .slice().sort((a, b) => a.fields.titulo.localeCompare(b.fields.titulo, 'pt-BR'));
+                .slice().sort((a, b) => compararTexto(a.fields.titulo, b.fields.titulo));
             if (!cadastrados.length) { bloco.classList.add('hidden'); bloco.innerHTML = ''; return; }
             bloco.classList.remove('hidden');
             bloco.innerHTML = `<div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded p-3">

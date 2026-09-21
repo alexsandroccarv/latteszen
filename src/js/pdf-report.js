@@ -46,6 +46,7 @@ window.LzPdfReport = (function () {
     // i18n (preparação): mesmo motivo — t() só é chamado dentro de funções
     // executadas depois do boot completo (gerar() e o que ela chama).
     const t = (chave, padrao, vars) => window.AppCore.t(chave, padrao, vars);
+    const formatarData = (data, opcoes) => window.AppCore.formatarData(data, opcoes);
 
     const PDF_LIB_URL = 'https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js';
     let pdfLibPromise = null;
@@ -509,7 +510,7 @@ window.LzPdfReport = (function () {
         escritor.espaco(10);
         desenharLinhaFina();
 
-        const dataTxt = new Date().toLocaleDateString('pt-BR');
+        const dataTxt = formatarData(new Date());
         const segmentos = [
             { texto: t('pdf_report.rodape_gerado_em', 'Curriculum Vitae gerado em {data} com apoio do software livre ', { data: dataTxt }) },
             { texto: 'lattesZen', url: 'https://github.com/alexsandroccarv/latteszen' },

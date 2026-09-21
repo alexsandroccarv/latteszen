@@ -24,7 +24,7 @@
    de um lado aparece do outro) e um punhado de utilidades sem estado próprio.
    Conforme mais abas forem extraídas de app.js, mais deve entrar aqui.
    ========================================================================== */
-import { t, tp, getLocale, setLocale, localesDisponiveis, nomeLocale, resolveLista } from './i18n.js';
+import { t, tp, getLocale, setLocale, localesDisponiveis, nomeLocale, resolveLista, formatarData, formatarNumero, compararTexto } from './i18n.js';
 
 window.AppCore = (function () {
     /* ----------------------------- Estado ------------------------------- */
@@ -402,5 +402,6 @@ window.AppCore = (function () {
         validateISSN, validateISBN, validateISBNorISSN, validateDOI, validateURL, validateField,
         setFieldError, associateLabels, isFieldDisabled, evCount, descState,
         t, tp, getLocale, setLocale, localesDisponiveis, nomeLocale, resolveLista,
+        formatarData, formatarNumero, compararTexto,
     };
 })();

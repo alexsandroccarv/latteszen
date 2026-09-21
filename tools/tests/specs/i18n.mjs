@@ -83,6 +83,35 @@ test('i18n: <html lang> reflete o locale ativo na carga inicial e é atualizado 
     assertEqual(r.depoisFallback, 'pt-BR', 'setLocale() para um locale inválido cai pro padrão — <html lang> deveria seguir junto');
 });
 
+test('i18n: formatarData() formata data/hora no locale ativo (equivalente a toLocaleDateString/toLocaleString(\'pt-BR\'))', async ({ page, baseUrl }) => {
+    await seedCatalog(page, baseUrl, []);
+    const r = await page.evaluate(() => {
+        const d = new Date('2026-09-21T14:32:10');
+        return {
+            data: window.LzI18n.formatarData(d),
+            dataHora: window.LzI18n.formatarData(d, { dateStyle: 'short', timeStyle: 'medium' }),
+        };
+    });
+    assertEqual(r.data, '21/09/2026', 'formatarData() sem opções deveria formatar como toLocaleDateString(\'pt-BR\')');
+    assertEqual(r.dataHora, '21/09/2026, 14:32:10', 'formatarData() com dateStyle/timeStyle deveria formatar como toLocaleString(\'pt-BR\')');
+});
+
+test('i18n: formatarNumero() usa vírgula decimal (pt-BR) e não introduz separador de milhar', async ({ page, baseUrl }) => {
+    await seedCatalog(page, baseUrl, []);
+    const r = await page.evaluate(() => [
+        window.LzI18n.formatarNumero(12.5),
+        window.LzI18n.formatarNumero(12),
+        window.LzI18n.formatarNumero(1234.5),
+    ]);
+    assertEqual(r, ['12,5', '12', '1234,5'], 'formatarNumero() deveria trocar "." por "," (pt-BR) sem agrupar milhares, igual ao antigo String(n).replace(\'.\', \',\')');
+});
+
+test('i18n: compararTexto() ordena texto pelo locale ativo (equivalente a localeCompare(x, \'pt-BR\'))', async ({ page, baseUrl }) => {
+    await seedCatalog(page, baseUrl, []);
+    const r = await page.evaluate(() => ['Économico', 'água', 'Zebra', 'Ávila'].sort((a, b) => window.LzI18n.compararTexto(a, b)));
+    assertEqual(r, ['água', 'Ávila', 'Économico', 'Zebra'], 'compararTexto() deveria ordenar acentos/maiúsculas como localeCompare(x, \'pt-BR\')');
+});
+
 test('i18n: window.AppCore.t/tp existem e se comportam como window.LzI18n.t/tp (mesma instância, módulos de aba usam por aqui)', async ({ page, baseUrl }) => {
     await seedCatalog(page, baseUrl, []);
     const r = await page.evaluate(() => ({

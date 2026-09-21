@@ -51,7 +51,7 @@ window.TabCatalogar = (function () {
         state, $, $$, esc, toast, anoDe, sortByYear,
         isImageExt, isVideoExt, isArchiveExt, NA_VALUE,
         elegivelAoLattes, itemsUsingValue, normNome, validateField,
-        setFieldError, associateLabels, isFieldDisabled, t, tp, resolveLista,
+        setFieldError, associateLabels, isFieldDisabled, t, tp, resolveLista, compararTexto,
     } = window.AppCore;
 
     // Uma opção de select/checkboxes/skilllevels pode vir como string simples
@@ -621,7 +621,7 @@ window.TabCatalogar = (function () {
         } else {
             state.catalogo.items.forEach(i => { const v = i.fields && i.fields[key]; if (v && String(v).trim()) set.add(String(v).trim()); });
         }
-        return Array.from(set).filter(Boolean).sort((a, b) => a.localeCompare(b, 'pt-BR'));
+        return Array.from(set).filter(Boolean).sort(compararTexto);
     }
     function datalistsHtml() {
         return AUTOCOMPLETE_KEYS.map(k =>
@@ -666,7 +666,7 @@ window.TabCatalogar = (function () {
         // Atualiza a lista curada: remove o antigo, garante o novo.
         const set = new Set((state.vocab[key] || []).map(s => String(s).trim()).filter(Boolean));
         set.delete(f); set.add(novo);
-        state.vocab[key] = Array.from(set).sort((a, b) => a.localeCompare(b, 'pt-BR'));
+        state.vocab[key] = Array.from(set).sort(compararTexto);
         window.AppCore.saveVocab();
 
         window.AppCore.renderItemList();

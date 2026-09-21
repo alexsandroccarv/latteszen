@@ -30,6 +30,7 @@
 window.Storage = (function () {
     const K = APP_CONFIG.storageKeys;
     const t = (chave, padrao, vars) => window.AppCore.t(chave, padrao, vars);
+    const compararTexto = (a, b, opcoes) => window.AppCore.compararTexto(a, b, opcoes);
     const IDB_NAME = 'lattesZen';
     const IDB_STORE = 'handles';
     const IDB_KEY = 'dirHandle';
@@ -513,7 +514,7 @@ window.Storage = (function () {
                 if (!ATTACH_EXTS.includes(ext)) continue;
                 out.push({ name: child.name, ext, size: child.size });
             }
-            out.sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
+            out.sort((a, b) => compararTexto(a.name, b.name));
             return out;
         }
         let inbox; try { inbox = await inboxDir(true); } catch (_) { return []; }
@@ -527,7 +528,7 @@ window.Storage = (function () {
             try { size = (await h.getFile()).size; } catch (_) {}
             out.push({ name, ext, size });
         }
-        out.sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
+        out.sort((a, b) => compararTexto(a.name, b.name));
         return out;
     }
     async function readInboxFile(name) {
