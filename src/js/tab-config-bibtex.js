@@ -24,7 +24,7 @@
 import { dadosItemHtml, fileStamp } from './tab-config-shared.js';
 import { itemSignature, existingSignatureMap } from './tab-config-dedup.js';
 
-const { state, $, $$, esc, toast } = window.AppCore;
+const { state, $, $$, esc, toast, t } = window.AppCore;
 
 
     /* =====================================================================
@@ -36,18 +36,18 @@ const { state, $, $$, esc, toast } = window.AppCore;
        de conteúdo já usadas no import de XML/ORCID.
        ===================================================================== */
     export function bibImportItemHtml() {
-        return dadosItemHtml('fa-solid fa-file-lines', 'BibTeX/RIS (.bib)',
-            'Traga referências exportadas de outra ferramenta (Zotero, Mendeley, EndNote, Google Scholar) — selecione um arquivo .bib (BibTeX) ou .ris (RIS).', `
+        return dadosItemHtml('fa-solid fa-file-lines', t('tab_config_bibtex.titulo_import', 'BibTeX/RIS (.bib)'),
+            t('tab_config_bibtex.ajuda_import', 'Traga referências exportadas de outra ferramenta (Zotero, Mendeley, EndNote, Google Scholar) — selecione um arquivo .bib (BibTeX) ou .ris (RIS).'), `
                 <input type="file" id="bibInput" accept=".bib,.ris,text/plain,application/x-bibtex"
                        class="text-sm file:mr-2 file:px-3 file:py-1.5 file:rounded file:border-0 file:bg-govbr-600 dark:file:bg-unifesp-700 file:text-white">
                 <div id="bibResult" class="mt-3"></div>`);
     }
     export function bibExportItemHtml() {
-        return dadosItemHtml('fa-solid fa-file-lines', 'BibTeX/RIS',
-            'Gera um arquivo com as publicações já catalogadas (artigos, livros, capítulos, trabalhos em anais de evento e relatórios de pesquisa) — para usar em outra ferramenta de referências.', `
+        return dadosItemHtml('fa-solid fa-file-lines', t('tab_config_bibtex.titulo_export', 'BibTeX/RIS'),
+            t('tab_config_bibtex.ajuda_export', 'Gera um arquivo com as publicações já catalogadas (artigos, livros, capítulos, trabalhos em anais de evento e relatórios de pesquisa) — para usar em outra ferramenta de referências.'), `
                 <div class="flex flex-wrap gap-2">
-                    <button id="btnBibExportBib" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-download mr-1"></i> Baixar .bib (BibTeX)</button>
-                    <button id="btnBibExportRis" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-download mr-1"></i> Baixar .ris (RIS)</button>
+                    <button id="btnBibExportBib" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-download mr-1"></i> ${esc(t('tab_config_bibtex.baixar_bib', 'Baixar .bib (BibTeX)'))}</button>
+                    <button id="btnBibExportRis" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-download mr-1"></i> ${esc(t('tab_config_bibtex.baixar_ris', 'Baixar .ris (RIS)'))}</button>
                 </div>
                 <p id="bibExportStatus" class="text-xs text-gray-500 mt-2"></p>`);
     }
@@ -105,7 +105,7 @@ const { state, $, $$, esc, toast } = window.AppCore;
         const text = await file.text();
         const { formato, entradas } = window.LzBibRis.parse(text);
         if (formato === 'desconhecido') {
-            $('#bibResult').innerHTML = `<p class="text-sm text-red-600 dark:text-red-400">Não foi possível reconhecer o formato do arquivo — confira se é um .bib (BibTeX) ou .ris (RIS) válido.</p>`;
+            $('#bibResult').innerHTML = `<p class="text-sm text-red-600 dark:text-red-400">${esc(t('tab_config_bibtex.formato_desconhecido', 'Não foi possível reconhecer o formato do arquivo — confira se é um .bib (BibTeX) ou .ris (RIS) válido.'))}</p>`;
             return;
         }
         const items = [], ignorados = [];
@@ -121,14 +121,14 @@ const { state, $, $$, esc, toast } = window.AppCore;
         const box = $('#bibResult');
         const avisoIgnorados = ignorados.length ? `
             <div class="text-sm rounded-md border-l-4 border-amber-500 bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-300 px-3 py-2 mb-3">
-                <strong>${ignorados.length} entrada(s) sem tipo correspondente</strong> não entraram na lista abaixo (ex.: teses, dissertações, entradas "misc") — cadastre-as manualmente se quiser incluí-las:
+                <strong>${esc(t('tab_config_bibtex.entradas_sem_tipo', '{n} entrada(s) sem tipo correspondente', { n: ignorados.length }))}</strong> ${t('tab_config_bibtex.entradas_sem_tipo_resto', 'não entraram na lista abaixo (ex.: teses, dissertações, entradas "misc") — cadastre-as manualmente se quiser incluí-las:')}
                 <ul class="list-disc list-inside mt-1">
-                    ${ignorados.slice(0, 20).map((en) => `<li>${esc(en.titulo || '(sem título)')} <span class="text-xs opacity-75">(${esc(en.tipoOriginal)})</span></li>`).join('')}
-                    ${ignorados.length > 20 ? `<li>… e mais ${ignorados.length - 20}.</li>` : ''}
+                    ${ignorados.slice(0, 20).map((en) => `<li>${esc(en.titulo || t('tab_config_bibtex.sem_titulo', '(sem título)'))} <span class="text-xs opacity-75">(${esc(en.tipoOriginal)})</span></li>`).join('')}
+                    ${ignorados.length > 20 ? `<li>${esc(t('tab_config_bibtex.mais_entradas', '… e mais {n}.', { n: ignorados.length - 20 }))}</li>` : ''}
                 </ul>
             </div>` : '';
         if (!items.length) {
-            box.innerHTML = avisoIgnorados || `<p class="text-sm text-gray-500 italic">Nenhuma entrada reconhecida nesse arquivo.</p>`;
+            box.innerHTML = avisoIgnorados || `<p class="text-sm text-gray-500 italic">${esc(t('tab_config_bibtex.nenhuma_entrada', 'Nenhuma entrada reconhecida nesse arquivo.'))}</p>`;
             return;
         }
         const sigMap = existingSignatureMap();
@@ -138,14 +138,14 @@ const { state, $, $$, esc, toast } = window.AppCore;
         box.innerHTML = `
             ${avisoIgnorados}
             <div class="mb-3">
-                <p class="text-sm mb-1">${items.length} obra(s) reconhecida(s) (${formato.toUpperCase()}) — <strong class="text-green-700 dark:text-green-400">${novos} novas</strong>, ${items.length - novos} já catalogada(s).</p>
+                <p class="text-sm mb-1">${t('tab_config_bibtex.resumo_reconhecidas', '{total} obra(s) reconhecida(s) ({formato}) — <strong class="text-green-700 dark:text-green-400">{novos} novas</strong>, {existentes} já catalogada(s).', { total: items.length, formato: formato.toUpperCase(), novos, existentes: items.length - novos })}</p>
             </div>
             <div class="flex items-center gap-2 mb-2 flex-wrap">
-                <button id="btnBibSelNovos" class="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600">Selecionar novos</button>
-                <button id="btnBibSelAll" class="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600">Todos</button>
-                <button id="btnBibSelNone" class="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600">Nenhum</button>
+                <button id="btnBibSelNovos" class="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600">${esc(t('tab_config_bibtex.selecionar_novos', 'Selecionar novos'))}</button>
+                <button id="btnBibSelAll" class="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600">${esc(t('tab_config_bibtex.todos', 'Todos'))}</button>
+                <button id="btnBibSelNone" class="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600">${esc(t('tab_config_bibtex.nenhum', 'Nenhum'))}</button>
                 <button id="btnBibImport" class="ml-auto px-4 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm font-semibold">
-                    <i class="fa-solid fa-download mr-1"></i> Importar selecionados
+                    <i class="fa-solid fa-download mr-1"></i> ${esc(t('tab_config_bibtex.importar_selecionados', 'Importar selecionados'))}
                 </button>
             </div>
             <div class="space-y-1 scroll-area max-h-[60vh] overflow-y-auto pr-1">
@@ -154,8 +154,8 @@ const { state, $, $$, esc, toast } = window.AppCore;
                     return `<label class="flex items-start gap-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded p-2 text-sm ${dup ? 'opacity-60' : ''}">
                         <input type="checkbox" class="bibchk mt-1" data-idx="${idx}" ${dup ? '' : 'checked'}>
                         <span class="min-w-0">
-                            <span class="font-medium">${esc(it.fields.titulo || '(sem título)')}</span>
-                            <span class="block text-xs text-gray-500">${esc(LattesTypes.label(it.typeKey))} ${it.fields.ano ? '· ' + esc(it.fields.ano) : ''} ${dup ? '· <em>já catalogado</em>' : ''}</span>
+                            <span class="font-medium">${esc(it.fields.titulo || t('tab_config_bibtex.sem_titulo', '(sem título)'))}</span>
+                            <span class="block text-xs text-gray-500">${esc(LattesTypes.label(it.typeKey))} ${it.fields.ano ? '· ' + esc(it.fields.ano) : ''} ${dup ? `· <em>${esc(t('tab_config_bibtex.ja_catalogado', 'já catalogado'))}</em>` : ''}</span>
                         </span>
                     </label>`;
                 }).join('')}
@@ -168,7 +168,7 @@ const { state, $, $$, esc, toast } = window.AppCore;
     }
     async function importBibSelected() {
         const chosen = $$('.bibchk').filter((c) => c.checked).map((c) => parseInt(c.dataset.idx, 10));
-        if (!chosen.length) { toast('Nenhum item selecionado.', 'aviso'); return; }
+        if (!chosen.length) { toast(t('tab_config_bibtex.nenhum_selecionado', 'Nenhum item selecionado.'), 'aviso'); return; }
         // Feedback de progresso + botão desabilitado — ver comentário em
         // importSelected() (importação do XML), mesmo padrão.
         const btn = $('#btnBibImport');
@@ -181,7 +181,7 @@ const { state, $, $$, esc, toast } = window.AppCore;
             for (const idx of chosen) {
                 const src = items[idx];
                 const sig = itemSignature(src.typeKey, src.fields || {});
-                if (sig && sigMap.has(sig)) { ignorados++; feito++; if (btn) btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-1"></i> Importando… (${feito}/${chosen.length})`; continue; } // já existe (mesma assinatura) — não duplica
+                if (sig && sigMap.has(sig)) { ignorados++; feito++; if (btn) btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-1"></i> ${esc(t('tab_config_bibtex.importando_progresso', 'Importando… ({feito}/{total})', { feito, total: chosen.length }))}`; continue; } // já existe (mesma assinatura) — não duplica
                 const item = {
                     id: window.AppCore.uid(), createdAt: window.AppCore.nowISO(), updatedAt: window.AppCore.nowISO(),
                     lattesItem: true, typeKey: src.typeKey, categoryKey: src.categoryKey,
@@ -191,9 +191,10 @@ const { state, $, $$, esc, toast } = window.AppCore;
                 await window.AppCore.persistItem(item);
                 if (sig) sigMap.set(sig, item);
                 n++; feito++;
-                if (btn) btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-1"></i> Importando… (${feito}/${chosen.length})`;
+                if (btn) btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-1"></i> ${esc(t('tab_config_bibtex.importando_progresso', 'Importando… ({feito}/{total})', { feito, total: chosen.length }))}`;
             }
-            toast(`${n} item(ns) importado(s)${ignorados ? ` — ${ignorados} já existente(s) ignorado(s)` : ''}.`, 'ok');
+            const ignoradosSufixo = ignorados ? t('tab_config_bibtex.ja_existentes_sufixo', ' — {n} já existente(s) ignorado(s)', { n: ignorados }) : '';
+            toast(t('tab_config_bibtex.itens_importados', '{n} item(ns) importado(s){sufixo}.', { n, sufixo: ignoradosSufixo }), 'ok');
             renderBibResult(state.importacoes.bib);
             window.AppCore.renderItemList();
         } finally {
@@ -239,19 +240,20 @@ const { state, $, $$, esc, toast } = window.AppCore;
         URL.revokeObjectURL(a.href);
     }
     export function wireBibExport() {
-        const status = (t) => { const el = $('#bibExportStatus'); if (el) el.textContent = t; };
+        const status = (txt) => { const el = $('#bibExportStatus'); if (el) el.textContent = txt; };
+        const semPublicacoes = t('tab_config_bibtex.sem_publicacoes', 'Nenhuma publicação (artigo, livro, capítulo, trabalho em evento ou relatório) catalogada ainda.');
         const btnBib = $('#btnBibExportBib');
         if (btnBib) btnBib.addEventListener('click', () => {
             const registros = bibExportRecords();
-            if (!registros.length) { status('Nenhuma publicação (artigo, livro, capítulo, trabalho em evento ou relatório) catalogada ainda.'); return; }
+            if (!registros.length) { status(semPublicacoes); return; }
             baixarArquivoTexto(`publicacoes-${fileStamp()}.bib`, window.LzBibRis.toBibTeX(registros));
-            status(`${registros.length} publicação(ões) exportada(s) em BibTeX.`);
+            status(t('tab_config_bibtex.exportado_bibtex', '{n} publicação(ões) exportada(s) em BibTeX.', { n: registros.length }));
         });
         const btnRis = $('#btnBibExportRis');
         if (btnRis) btnRis.addEventListener('click', () => {
             const registros = bibExportRecords();
-            if (!registros.length) { status('Nenhuma publicação (artigo, livro, capítulo, trabalho em evento ou relatório) catalogada ainda.'); return; }
+            if (!registros.length) { status(semPublicacoes); return; }
             baixarArquivoTexto(`publicacoes-${fileStamp()}.ris`, window.LzBibRis.toRIS(registros));
-            status(`${registros.length} publicação(ões) exportada(s) em RIS.`);
+            status(t('tab_config_bibtex.exportado_ris', '{n} publicação(ões) exportada(s) em RIS.', { n: registros.length }));
         });
     }

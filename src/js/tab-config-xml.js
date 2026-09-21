@@ -24,7 +24,7 @@
 import { dadosItemHtml, fileStamp } from './tab-config-shared.js';
 import { itemSignature, itemSignatures, existingSignatureMap } from './tab-config-dedup.js';
 
-const { state, $, $$, esc, toast } = window.AppCore;
+const { state, $, $$, esc, toast, t } = window.AppCore;
 
     /* =====================================================================
        IMPORTAR LATTES (XML) — seção dentro de Configurações
@@ -34,7 +34,7 @@ const { state, $, $$, esc, toast } = window.AppCore;
     // na Plataforma Lattes (senão a assinatura do item muda e pode duplicar na
     // próxima importação).
     function xmlConsistencyToast() {
-        toast('Lembrete: edite no lattesZen (não direto na Plataforma Lattes) para manter a consistência dos dados.', 'aviso');
+        toast(t('tab_config_xml.consistencia_aviso', 'Lembrete: edite no lattesZen (não direto na Plataforma Lattes) para manter a consistência dos dados.'), 'aviso');
     }
 
 
@@ -42,8 +42,8 @@ const { state, $, $$, esc, toast } = window.AppCore;
     // dados". A verificação de compatibilidade ISO-8859-1 mora aqui dentro
     // (recolhida por padrão), já que só faz sentido no contexto do Lattes.
     export function xmlImportItemHtml() {
-        return dadosItemHtml('fa-solid fa-file-import', 'Lattes (XML)',
-            'Importa o currículo em XML exportado da Plataforma Lattes (CNPq). Os itens são listados para você escolher quais importar.', `
+        return dadosItemHtml('fa-solid fa-file-import', t('tab_config_xml.titulo', 'Lattes (XML)'),
+            t('tab_config_xml.ajuda', 'Importa o currículo em XML exportado da Plataforma Lattes (CNPq). Os itens são listados para você escolher quais importar.'), `
                 <input type="file" id="xmlInput" accept=".xml,application/xml,text/xml"
                        class="text-sm file:mr-2 file:px-3 file:py-1.5 file:rounded file:border-0 file:bg-govbr-600 dark:file:bg-unifesp-700 file:text-white">
                 <div id="xmlResult" class="mt-3"></div>
@@ -52,17 +52,15 @@ const { state, $, $$, esc, toast } = window.AppCore;
                     <summary class="cursor-pointer select-none text-xs font-semibold flex items-center gap-2">
                         <i aria-hidden="true" class="fa-solid fa-angle-right text-xs text-gray-400"></i>
                         <i aria-hidden="true" class="fa-solid fa-language text-govbr-600 dark:text-unifesp-400"></i>
-                        Verificar compatibilidade com o Lattes (ISO-8859-1)
+                        ${esc(t('tab_config_xml.verificar_compatibilidade', 'Verificar compatibilidade com o Lattes (ISO-8859-1)'))}
                     </summary>
                     <div class="pt-3">
                         <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">
-                            O Currículo Lattes usa a codificação <code class="bg-gray-200 dark:bg-gray-700 px-1 rounded">ISO-8859-1</code>.
-                            A verificação abaixo aponta caracteres fora dessa tabela (ex.: aspas “curvas”, travessão —, emoji) que,
-                            na exportação, viram entidades numéricas. Você pode normalizá-los automaticamente.
+                            ${t('tab_config_xml.encoding_explicacao', 'O Currículo Lattes usa a codificação <code class="bg-gray-200 dark:bg-gray-700 px-1 rounded">ISO-8859-1</code>. A verificação abaixo aponta caracteres fora dessa tabela (ex.: aspas “curvas”, travessão —, emoji) que, na exportação, viram entidades numéricas. Você pode normalizá-los automaticamente.')}
                         </p>
                         <div class="flex flex-wrap gap-2">
-                            <button id="btnCheckEnc" class="px-3 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm"><i class="fa-solid fa-spell-check mr-1"></i> Verificar codificação</button>
-                            <button id="btnNormalize" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-wand-magic-sparkles mr-1"></i> Normalizar pontuação</button>
+                            <button id="btnCheckEnc" class="px-3 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm"><i class="fa-solid fa-spell-check mr-1"></i> ${esc(t('tab_config_xml.verificar_codificacao', 'Verificar codificação'))}</button>
+                            <button id="btnNormalize" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-wand-magic-sparkles mr-1"></i> ${esc(t('tab_config_xml.normalizar_pontuacao', 'Normalizar pontuação'))}</button>
                         </div>
                         <div id="encResult" class="text-sm mt-3"></div>
                     </div>
@@ -73,12 +71,12 @@ const { state, $, $$, esc, toast } = window.AppCore;
     // exportações anteriores e registra quando cada uma foi gerada).
     function xmlFileName() {
         const nome = (state.catalogo.items.find(i => i.typeKey === 'IDENTIFICACAO' && i.fields && i.fields.titulo) || {}).fields;
-        const safe = (nome && nome.titulo ? nome.titulo : 'curriculo').replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, '-').toLowerCase();
+        const safe = (nome && nome.titulo ? nome.titulo : t('tab_config_pdf_report.curriculo_fallback', 'curriculo')).replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, '-').toLowerCase();
         return `curriculo-${safe}-${fileStamp()}.xml`;
     }
     // Ata os botões da exportação XML (usado dentro de renderConfig).
     export function wireExportLattes() {
-        const xmlStatus = (t) => { const el = $('#xmlStatus'); if (el) el.textContent = t; };
+        const xmlStatus = (txt) => { const el = $('#xmlStatus'); if (el) el.textContent = txt; };
         function generateLattesXml() {
             const cfg = Storage.loadSettings() || {};
             const xml = LattesXMLExport.build(state.catalogo.items, { numeroIdentificador: cfg.lattesId || '' });
@@ -93,28 +91,28 @@ const { state, $, $$, esc, toast } = window.AppCore;
         }).length;
         const dl = $('#btnXmlDownload');
         if (dl) dl.addEventListener('click', () => {
-            xmlStatus('Gerando XML…');
+            xmlStatus(t('tab_config_xml.gerando_xml', 'Gerando XML…'));
             try {
                 const { bytes } = generateLattesXml();
                 const blob = new Blob([bytes], { type: 'application/xml' });
                 const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = xmlFileName(); a.click(); URL.revokeObjectURL(a.href);
-                xmlStatus(`XML gerado (${xmlExportaveis()} item(ns) exportado(s)).`);
+                xmlStatus(t('tab_config_xml.xml_gerado', 'XML gerado ({n} item(ns) exportado(s)).', { n: xmlExportaveis() }));
                 xmlConsistencyToast();
-            } catch (e) { xmlStatus(''); toast('Falha ao gerar XML: ' + e.message, 'erro'); }
+            } catch (e) { xmlStatus(''); toast(t('tab_config_xml.falha_gerar', 'Falha ao gerar XML: {erro}', { erro: e.message }), 'erro'); }
         });
         const sv = $('#btnXmlSave');
         if (sv) sv.addEventListener('click', async () => {
-            if (!Storage.hasDirectory()) { toast('Configure um diretório abaixo para salvar na pasta.', 'aviso'); return; }
-            xmlStatus('Gerando e salvando XML…');
+            if (!Storage.hasDirectory()) { toast(t('tab_config_xml.configure_diretorio', 'Configure um diretório abaixo para salvar na pasta.'), 'aviso'); return; }
+            xmlStatus(t('tab_config_xml.gerando_salvando_xml', 'Gerando e salvando XML…'));
             try {
                 const folder = LattesTypes.lattesXmlFolder();
                 const nomeArquivo = xmlFileName();
                 const { bytes } = generateLattesXml();
                 await Storage.writeFile(nomeArquivo, bytes, folder);
-                xmlStatus(`Salvo em “${folder}/${nomeArquivo}” (${xmlExportaveis()} item(ns)).`);
-                toast(`XML salvo em “${folder}/${nomeArquivo}”.`, 'ok');
+                xmlStatus(t('tab_config_xml.salvo_em', 'Salvo em “{caminho}” ({n} item(ns)).', { caminho: `${folder}/${nomeArquivo}`, n: xmlExportaveis() }));
+                toast(t('tab_config_xml.xml_salvo_toast', 'XML salvo em “{caminho}”.', { caminho: `${folder}/${nomeArquivo}` }), 'ok');
                 xmlConsistencyToast();
-            } catch (e) { xmlStatus(''); toast('Falha ao salvar XML: ' + e.message, 'erro'); }
+            } catch (e) { xmlStatus(''); toast(t('tab_config_xml.falha_salvar', 'Falha ao salvar XML: {erro}', { erro: e.message }), 'erro'); }
         });
     }
 
@@ -134,7 +132,7 @@ const { state, $, $$, esc, toast } = window.AppCore;
     function renderXmlResult(res) {
         const box = $('#xmlResult');
         if (!res.items.length) {
-            box.innerHTML = `<p class="text-sm text-gray-500 italic">Nenhum item reconhecido no XML.</p>`;
+            box.innerHTML = `<p class="text-sm text-gray-500 italic">${esc(t('tab_config_xml.nenhum_item', 'Nenhum item reconhecido no XML.'))}</p>`;
             return;
         }
         const sigMap = existingSignatureMap();
@@ -146,16 +144,16 @@ const { state, $, $$, esc, toast } = window.AppCore;
 
         box.innerHTML = `
             <div class="mb-3">
-                ${res.titular ? `<p class="text-sm mb-1">Titular: <strong>${esc(res.titular)}</strong></p>` : ''}
-                <p class="text-sm mb-1">${res.items.length} itens reconhecidos — <strong class="text-green-700 dark:text-green-400">${novos} novos</strong>, ${jaCat} já catalogado(s).</p>
+                ${res.titular ? `<p class="text-sm mb-1">${t('tab_config_xml.titular', 'Titular: <strong>{nome}</strong>', { nome: esc(res.titular) })}</p>` : ''}
+                <p class="text-sm mb-1">${t('tab_config_xml.resumo_reconhecidos', '{total} itens reconhecidos — <strong class="text-green-700 dark:text-green-400">{novos} novos</strong>, {existentes} já catalogado(s).', { total: res.items.length, novos, existentes: jaCat })}</p>
                 <div class="flex flex-wrap gap-1">${resumo}</div>
             </div>
             <div class="flex items-center gap-2 mb-2 flex-wrap">
-                <button id="btnSelNovos" class="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600">Selecionar novos</button>
-                <button id="btnSelAll" class="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600">Todos</button>
-                <button id="btnSelNone" class="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600">Nenhum</button>
+                <button id="btnSelNovos" class="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600">${esc(t('tab_config_bibtex.selecionar_novos', 'Selecionar novos'))}</button>
+                <button id="btnSelAll" class="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600">${esc(t('tab_config_bibtex.todos', 'Todos'))}</button>
+                <button id="btnSelNone" class="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600">${esc(t('tab_config_bibtex.nenhum', 'Nenhum'))}</button>
                 <button id="btnImport" class="ml-auto px-4 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm font-semibold">
-                    <i class="fa-solid fa-download mr-1"></i> Importar selecionados
+                    <i class="fa-solid fa-download mr-1"></i> ${esc(t('tab_config_bibtex.importar_selecionados', 'Importar selecionados'))}
                 </button>
             </div>
             <div class="space-y-1 scroll-area max-h-[60vh] overflow-y-auto pr-1">
@@ -164,8 +162,8 @@ const { state, $, $$, esc, toast } = window.AppCore;
                     return `<label class="flex items-start gap-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded p-2 text-sm ${dup ? 'opacity-60' : ''}">
                         <input type="checkbox" class="xmlchk mt-1" data-idx="${idx}" ${dup ? '' : 'checked'}>
                         <span class="min-w-0">
-                            <span class="font-medium">${esc(it.fields.titulo || it.fields.curso || '(sem título)')}</span>
-                            <span class="block text-xs text-gray-500">${esc(LattesTypes.label(it.typeKey))} ${it.fields.ano ? '· ' + esc(it.fields.ano) : ''} ${dup ? '· <em>já catalogado</em>' : ''}</span>
+                            <span class="font-medium">${esc(it.fields.titulo || it.fields.curso || t('tab_config_bibtex.sem_titulo', '(sem título)'))}</span>
+                            <span class="block text-xs text-gray-500">${esc(LattesTypes.label(it.typeKey))} ${it.fields.ano ? '· ' + esc(it.fields.ano) : ''} ${dup ? `· <em>${esc(t('tab_config_bibtex.ja_catalogado', 'já catalogado'))}</em>` : ''}</span>
                         </span>
                     </label>`;
                 }).join('')}
@@ -181,7 +179,7 @@ const { state, $, $$, esc, toast } = window.AppCore;
 
     async function importSelected() {
         const chosen = $$('.xmlchk').filter(c => c.checked).map(c => parseInt(c.dataset.idx, 10));
-        if (!chosen.length) { toast('Nenhum item selecionado.', 'aviso'); return; }
+        if (!chosen.length) { toast(t('tab_config_bibtex.nenhum_selecionado', 'Nenhum item selecionado.'), 'aviso'); return; }
         // Feedback de progresso + botão desabilitado durante a importação —
         // igual ao padrão já usado na busca do ORCID/migração pro Google
         // Drive (sem isto, um clique duplo no meio de uma importação de
@@ -213,7 +211,7 @@ const { state, $, $$, esc, toast } = window.AppCore;
                         ex.lattesRef = src.lattesRef; ex.updatedAt = window.AppCore.nowISO();
                         await window.AppCore.persistItem(ex);
                         atualizados++; feito++;
-                        if (btn) btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-1"></i> Importando… (${feito}/${chosen.length})`;
+                        if (btn) btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-1"></i> ${esc(t('tab_config_bibtex.importando_progresso', 'Importando… ({feito}/{total})', { feito, total: chosen.length }))}`;
                         continue;
                     }
                 }
@@ -229,7 +227,7 @@ const { state, $, $$, esc, toast } = window.AppCore;
                     else ignorados++;
                     registrar(match);
                     feito++;
-                    if (btn) btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-1"></i> Importando… (${feito}/${chosen.length})`;
+                    if (btn) btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-1"></i> ${esc(t('tab_config_bibtex.importando_progresso', 'Importando… ({feito}/{total})', { feito, total: chosen.length }))}`;
                     continue;
                 }
                 const item = {
@@ -243,10 +241,13 @@ const { state, $, $$, esc, toast } = window.AppCore;
                 await window.AppCore.persistItem(item);
                 registrar(item);
                 n++; feito++;
-                if (btn) btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-1"></i> Importando… (${feito}/${chosen.length})`;
+                if (btn) btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-1"></i> ${esc(t('tab_config_bibtex.importando_progresso', 'Importando… ({feito}/{total})', { feito, total: chosen.length }))}`;
             }
-            const extras = [atualizados ? `${atualizados} atualizado(s)` : '', ignorados ? `${ignorados} já existente(s) ignorado(s)` : ''].filter(Boolean).join(', ');
-            toast(`${n} item(ns) importado(s)${extras ? ' — ' + extras : ''}.`, 'ok');
+            const extras = [
+                atualizados ? t('tab_config_xml.n_atualizados', '{n} atualizado(s)', { n: atualizados }) : '',
+                ignorados ? t('tab_config_xml.n_ja_existentes', '{n} já existente(s) ignorado(s)', { n: ignorados }) : '',
+            ].filter(Boolean).join(', ');
+            toast(t('tab_config_xml.itens_importados', '{n} item(ns) importado(s){extras}.', { n, extras: extras ? ' — ' + extras : '' }), 'ok');
             xmlConsistencyToast();
             renderXmlResult(state.importacoes.lattes);
             window.AppCore.renderItemList();

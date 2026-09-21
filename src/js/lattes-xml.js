@@ -31,6 +31,10 @@
    campo que o exportador grava, o importador lê de volta.
    ========================================================================== */
 window.LattesXML = (function () {
+    // window.AppCore só existe em tempo de execução (este arquivo carrega
+    // ANTES de app-core.js) — só é lido dentro de parse(), chamada bem
+    // depois do boot (ao selecionar um arquivo XML em Configurações).
+    const t = (chave, padrao, vars) => window.AppCore.t(chave, padrao, vars);
 
     /* ------------------------------ helpers ------------------------------ */
     function attrs(el) {
@@ -422,7 +426,7 @@ window.LattesXML = (function () {
         const errors = [];
         const doc = new DOMParser().parseFromString(xmlText, 'application/xml');
         if (doc.querySelector('parsererror')) {
-            return { items: [], summary: {}, errors: ['XML inválido ou corrompido.'] };
+            return { items: [], summary: {}, errors: [t('lattes_xml.invalido', 'XML inválido ou corrompido.')] };
         }
 
         const items = [];
@@ -452,7 +456,7 @@ window.LattesXML = (function () {
                         const d = h.flat ? {} : groupByPrefix(el, 'DETALHAMENTO');
                         const tk = (typeof h.typeKey === 'function') ? h.typeKey(el, b, d) : h.typeKey;
                         add(tk, h.map(el, b, d), el);
-                    } catch (e) { errors.push(`${tag}: ${e.message}`); }
+                    } catch (e) { errors.push(t('lattes_xml.erro_secao', '{tag}: {erro}', { tag, erro: e.message })); }
                 }
             });
         });
@@ -680,7 +684,7 @@ window.LattesXML = (function () {
                 }
             }
         }
-        } catch (e) { errors.push('Atividades da atuação: ' + e.message); }
+        } catch (e) { errors.push(t('lattes_xml.erro_atividades_atuacao', 'Atividades da atuação: {erro}', { erro: e.message })); }
 
         // 6c) Projetos de pesquisa (PROJETO-DE-PESQUISA, aninhado na atuação)
         const NATUREZA_PROJETO_HUMANO = { DESENVOLVIMENTO: 'Desenvolvimento', EXTENSAO: 'Extensão', PESQUISA: 'Pesquisa', OUTRA: 'Outra' };
@@ -726,7 +730,7 @@ window.LattesXML = (function () {
                 qtdDoutorado: a['NUMERO-DOUTORADO'] || '', qtdTecnicoNivelMedio: a['NUMERO_TECNICO_NIVEL_MEDIO'] || '',
             }, el);
         }
-        } catch (e) { errors.push('Projetos: ' + e.message); }
+        } catch (e) { errors.push(t('lattes_xml.erro_projetos', 'Projetos: {erro}', { erro: e.message })); }
 
         // 7) Dados gerais: identificação, endereço, idiomas, áreas, resumo, licenças…
         try {
@@ -803,7 +807,7 @@ window.LattesXML = (function () {
                 dataInicio: dateISO(a['DATA-INICIO-LICENCA']), dataFim: dateISO(a['DATA-FIM-LICENCA']),
             }, el);
         }
-        } catch (e) { errors.push('Dados gerais: ' + e.message); }
+        } catch (e) { errors.push(t('lattes_xml.erro_dados_gerais', 'Dados gerais: {erro}', { erro: e.message })); }
 
         // Titular
         const dg = doc.getElementsByTagName('DADOS-GERAIS')[0];

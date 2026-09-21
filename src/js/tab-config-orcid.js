@@ -24,7 +24,7 @@
 import { dadosItemHtml } from './tab-config-shared.js';
 import { itemSignature, existingSignatureMap } from './tab-config-dedup.js';
 
-const { state, $, $$, esc, toast } = window.AppCore;
+const { state, $, $$, esc, toast, t } = window.AppCore;
 
 
     /* =====================================================================
@@ -57,8 +57,8 @@ const { state, $, $$, esc, toast } = window.AppCore;
 
     export function orcidImportItemHtml() {
         const perfil = (state.catalogo.items.find(i => i.typeKey === 'IDENTIFICACAO') || {}).fields || {};
-        return dadosItemHtml('fa-brands fa-orcid', 'ORCID (online)',
-            'Busca as obras públicas registradas no seu ORCID iD (API pública — nenhuma senha é necessária) e lista para você escolher quais importar, do mesmo jeito que a importação do XML do Lattes. Os autores só saem se o próprio autor tiver um nome público registrado no ORCID daquela obra — quando faltar, complete depois de importar. O tipo de cada obra é inferido automaticamente e pode precisar de ajuste.', `
+        return dadosItemHtml('fa-brands fa-orcid', t('tab_config_orcid.titulo', 'ORCID (online)'),
+            t('tab_config_orcid.ajuda', 'Busca as obras públicas registradas no seu ORCID iD (API pública — nenhuma senha é necessária) e lista para você escolher quais importar, do mesmo jeito que a importação do XML do Lattes. Os autores só saem se o próprio autor tiver um nome público registrado no ORCID daquela obra — quando faltar, complete depois de importar. O tipo de cada obra é inferido automaticamente e pode precisar de ajuste.'), `
                 <div class="flex flex-wrap items-end gap-2">
                     <div>
                         <label class="block text-xs font-semibold mb-1" for="orcidInput">ORCID iD</label>
@@ -66,7 +66,7 @@ const { state, $, $$, esc, toast } = window.AppCore;
                                class="text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 w-48">
                     </div>
                     <button id="btnOrcidBuscar" class="px-3 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm font-semibold">
-                        <i class="fa-solid fa-magnifying-glass mr-1"></i> Buscar publicações
+                        <i class="fa-solid fa-magnifying-glass mr-1"></i> ${esc(t('tab_config_orcid.buscar_publicacoes', 'Buscar publicações'))}
                     </button>
                 </div>
                 <div id="orcidResult" class="mt-3"></div>`);
@@ -152,11 +152,11 @@ const { state, $, $$, esc, toast } = window.AppCore;
     // o formato for inválido ou a consulta falhar.
     async function fetchOrcidWorks(orcid) {
         const clean = String(orcid || '').trim().toUpperCase();
-        if (!/^\d{4}-\d{4}-\d{4}-\d{3}[\dX]$/.test(clean)) throw new Error('ORCID iD inválido — use o formato 0000-0000-0000-0000.');
+        if (!/^\d{4}-\d{4}-\d{4}-\d{3}[\dX]$/.test(clean)) throw new Error(t('tab_config_orcid.id_invalido', 'ORCID iD inválido — use o formato 0000-0000-0000-0000.'));
         let resp;
         try { resp = await fetch(`https://pub.orcid.org/v3.0/${clean}/works`, { headers: { 'Accept': 'application/json' } }); }
-        catch (_) { throw new Error('Não foi possível conectar ao ORCID — verifique sua conexão com a internet.'); }
-        if (!resp.ok) throw new Error(`ORCID retornou um erro (HTTP ${resp.status}) — confira se o ORCID iD existe e é público.`);
+        catch (_) { throw new Error(t('tab_config_orcid.erro_conexao', 'Não foi possível conectar ao ORCID — verifique sua conexão com a internet.')); }
+        if (!resp.ok) throw new Error(t('tab_config_orcid.erro_http', 'ORCID retornou um erro (HTTP {status}) — confira se o ORCID iD existe e é público.', { status: resp.status }));
         const data = await resp.json();
         const groups = Array.isArray(data.group) ? data.group : [];
         const summaries = groups.map((g) => (g['work-summary'] && g['work-summary'][0]) || null).filter(Boolean);
@@ -168,20 +168,20 @@ const { state, $, $$, esc, toast } = window.AppCore;
 
     function renderOrcidResult(items) {
         const box = $('#orcidResult');
-        if (!items.length) { box.innerHTML = `<p class="text-sm text-gray-500 italic">Nenhuma obra pública encontrada para esse ORCID iD.</p>`; return; }
+        if (!items.length) { box.innerHTML = `<p class="text-sm text-gray-500 italic">${esc(t('tab_config_orcid.nenhuma_obra', 'Nenhuma obra pública encontrada para esse ORCID iD.'))}</p>`; return; }
         const sigMap = existingSignatureMap();
         const isDup = (it) => (LattesTypes.isSingleton(it.typeKey) && state.catalogo.items.some((x) => x.typeKey === it.typeKey)) || sigMap.has(itemSignature(it.typeKey, it.fields || {}));
         const novos = items.filter((it) => !isDup(it)).length;
         box.innerHTML = `
             <div class="mb-3">
-                <p class="text-sm mb-1">${items.length} obra(s) encontrada(s) — <strong class="text-green-700 dark:text-green-400">${novos} novas</strong>, ${items.length - novos} já catalogada(s).</p>
+                <p class="text-sm mb-1">${t('tab_config_orcid.resumo_encontradas', '{total} obra(s) encontrada(s) — <strong class="text-green-700 dark:text-green-400">{novos} novas</strong>, {existentes} já catalogada(s).', { total: items.length, novos, existentes: items.length - novos })}</p>
             </div>
             <div class="flex items-center gap-2 mb-2 flex-wrap">
-                <button id="btnOrcidSelNovos" class="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600">Selecionar novos</button>
-                <button id="btnOrcidSelAll" class="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600">Todos</button>
-                <button id="btnOrcidSelNone" class="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600">Nenhum</button>
+                <button id="btnOrcidSelNovos" class="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600">${esc(t('tab_config_bibtex.selecionar_novos', 'Selecionar novos'))}</button>
+                <button id="btnOrcidSelAll" class="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600">${esc(t('tab_config_bibtex.todos', 'Todos'))}</button>
+                <button id="btnOrcidSelNone" class="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600">${esc(t('tab_config_bibtex.nenhum', 'Nenhum'))}</button>
                 <button id="btnOrcidImport" class="ml-auto px-4 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm font-semibold">
-                    <i class="fa-solid fa-download mr-1"></i> Importar selecionados
+                    <i class="fa-solid fa-download mr-1"></i> ${esc(t('tab_config_bibtex.importar_selecionados', 'Importar selecionados'))}
                 </button>
             </div>
             <div class="space-y-1 scroll-area max-h-[60vh] overflow-y-auto pr-1">
@@ -190,8 +190,8 @@ const { state, $, $$, esc, toast } = window.AppCore;
                     return `<label class="flex items-start gap-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded p-2 text-sm ${dup ? 'opacity-60' : ''}">
                         <input type="checkbox" class="orcidchk mt-1" data-idx="${idx}" ${dup ? '' : 'checked'}>
                         <span class="min-w-0">
-                            <span class="font-medium">${esc(it.fields.titulo || '(sem título)')}</span>
-                            <span class="block text-xs text-gray-500">${esc(LattesTypes.label(it.typeKey))} ${it.fields.ano ? '· ' + esc(it.fields.ano) : ''} ${dup ? '· <em>já catalogado</em>' : ''}</span>
+                            <span class="font-medium">${esc(it.fields.titulo || t('tab_config_bibtex.sem_titulo', '(sem título)'))}</span>
+                            <span class="block text-xs text-gray-500">${esc(LattesTypes.label(it.typeKey))} ${it.fields.ano ? '· ' + esc(it.fields.ano) : ''} ${dup ? `· <em>${esc(t('tab_config_bibtex.ja_catalogado', 'já catalogado'))}</em>` : ''}</span>
                         </span>
                     </label>`;
                 }).join('')}
@@ -205,7 +205,7 @@ const { state, $, $$, esc, toast } = window.AppCore;
 
     async function importOrcidSelected() {
         const chosen = $$('.orcidchk').filter((c) => c.checked).map((c) => parseInt(c.dataset.idx, 10));
-        if (!chosen.length) { toast('Nenhum item selecionado.', 'aviso'); return; }
+        if (!chosen.length) { toast(t('tab_config_bibtex.nenhum_selecionado', 'Nenhum item selecionado.'), 'aviso'); return; }
         // Feedback de progresso + botão desabilitado — ver comentário em
         // importSelected() (importação do XML), mesmo padrão.
         const btn = $('#btnOrcidImport');
@@ -217,7 +217,7 @@ const { state, $, $$, esc, toast } = window.AppCore;
             for (const idx of chosen) {
                 const src = state.importacoes.orcid[idx];
                 const sig = itemSignature(src.typeKey, src.fields || {});
-                if (sig && sigMap.has(sig)) { ignorados++; feito++; if (btn) btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-1"></i> Importando… (${feito}/${chosen.length})`; continue; } // já existe (mesma assinatura) — não duplica
+                if (sig && sigMap.has(sig)) { ignorados++; feito++; if (btn) btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-1"></i> ${esc(t('tab_config_bibtex.importando_progresso', 'Importando… ({feito}/{total})', { feito, total: chosen.length }))}`; continue; } // já existe (mesma assinatura) — não duplica
                 const item = {
                     id: window.AppCore.uid(), createdAt: window.AppCore.nowISO(), updatedAt: window.AppCore.nowISO(),
                     lattesItem: true, typeKey: src.typeKey, categoryKey: src.categoryKey,
@@ -227,9 +227,10 @@ const { state, $, $$, esc, toast } = window.AppCore;
                 await window.AppCore.persistItem(item);
                 if (sig) sigMap.set(sig, item);
                 n++; feito++;
-                if (btn) btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-1"></i> Importando… (${feito}/${chosen.length})`;
+                if (btn) btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-1"></i> ${esc(t('tab_config_bibtex.importando_progresso', 'Importando… ({feito}/{total})', { feito, total: chosen.length }))}`;
             }
-            toast(`${n} item(ns) importado(s) do ORCID${ignorados ? ` — ${ignorados} já existente(s) ignorado(s)` : ''}.`, 'ok');
+            const ignoradosSufixo = ignorados ? t('tab_config_bibtex.ja_existentes_sufixo', ' — {n} já existente(s) ignorado(s)', { n: ignorados }) : '';
+            toast(t('tab_config_orcid.itens_importados', '{n} item(ns) importado(s) do ORCID{sufixo}.', { n, sufixo: ignoradosSufixo }), 'ok');
             renderOrcidResult(state.importacoes.orcid);
             window.AppCore.renderItemList();
         } finally {
@@ -242,7 +243,7 @@ const { state, $, $$, esc, toast } = window.AppCore;
         if (!btn) return;
         btn.addEventListener('click', async () => {
             const input = $('#orcidInput');
-            btn.disabled = true; btn.textContent = 'Buscando…';
+            btn.disabled = true; btn.textContent = t('tab_rsc.buscando', 'Buscando…');
             try {
                 const items = await fetchOrcidWorks(input.value);
                 state.importacoes.orcid = items;
@@ -251,7 +252,7 @@ const { state, $, $$, esc, toast } = window.AppCore;
                 $('#orcidResult').innerHTML = '';
                 toast(e.message, 'erro');
             } finally {
-                btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-magnifying-glass mr-1"></i> Buscar publicações';
+                btn.disabled = false; btn.innerHTML = `<i class="fa-solid fa-magnifying-glass mr-1"></i> ${esc(t('tab_config_orcid.buscar_publicacoes', 'Buscar publicações'))}`;
             }
         });
     }

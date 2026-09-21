@@ -51,7 +51,7 @@ window.TabCatalogar = (function () {
         state, $, $$, esc, toast, anoDe, sortByYear,
         isImageExt, isVideoExt, isArchiveExt, NA_VALUE,
         elegivelAoLattes, itemsUsingValue, normNome, validateField,
-        setFieldError, associateLabels, isFieldDisabled,
+        setFieldError, associateLabels, isFieldDisabled, t, tp,
     } = window.AppCore;
 
     // Uma opção de select/checkboxes/skilllevels pode vir como string simples
@@ -77,24 +77,24 @@ window.TabCatalogar = (function () {
                     <div class="flex items-center justify-between mb-3">
                         <h2 class="text-lg font-bold flex items-center gap-2">
                             <i aria-hidden="true" class="fa-solid fa-file-lines text-red-600"></i>
-                            Visualização do arquivo
+                            ${esc(t('tab_catalogar.visualizacao_arquivo', 'Visualização do arquivo'))}
                         </h2>
                         <div class="flex gap-1">
-                            <button type="button" id="pdfNewTab" title="Abrir em nova aba" class="w-8 h-8 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 hidden"><i class="fa-solid fa-up-right-from-square"></i></button>
-                            <button type="button" id="pdfClose" title="Fechar" class="w-8 h-8 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 hidden"><i class="fa-solid fa-xmark"></i></button>
+                            <button type="button" id="pdfNewTab" title="${esc(t('tab_catalogar.abrir_nova_aba', 'Abrir em nova aba'))}" class="w-8 h-8 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 hidden"><i class="fa-solid fa-up-right-from-square"></i></button>
+                            <button type="button" id="pdfClose" title="${esc(t('tab_catalogar.fechar', 'Fechar'))}" class="w-8 h-8 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 hidden"><i class="fa-solid fa-xmark"></i></button>
                         </div>
                     </div>
                     <div class="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-900 flex items-center justify-center" style="height: 85vh; min-height: 560px">
                         <div id="pdfEmpty" class="h-full flex flex-col items-center justify-center text-center text-gray-500 dark:text-gray-400 p-6">
                             <i class="fa-regular fa-file-lines text-5xl mb-3"></i>
-                            <p class="text-sm">O arquivo (PDF ou imagem) aparece aqui ao anexá-lo no formulário<br>ou ao abrir um item com evidência (aba <strong>Conformidade</strong>).</p>
+                            <p class="text-sm">${t('tab_catalogar.pdf_vazio', 'O arquivo (PDF ou imagem) aparece aqui ao anexá-lo no formulário<br>ou ao abrir um item com evidência (aba <strong>Conformidade</strong>).')}</p>
                         </div>
                         <div id="pdfNoPreview" class="hidden h-full flex flex-col items-center justify-center text-center text-gray-500 dark:text-gray-400 p-6">
                             <i class="fa-solid fa-file-zipper text-5xl mb-3"></i>
-                            <p class="text-sm">Sem pré-visualização para este tipo de arquivo.<br>Use “Abrir em nova aba” para baixá-lo.</p>
+                            <p class="text-sm">${t('tab_catalogar.sem_preview', 'Sem pré-visualização para este tipo de arquivo.<br>Use “Abrir em nova aba” para baixá-lo.')}</p>
                         </div>
-                        <iframe id="pdfFrame" class="w-full h-full hidden" title="Pré-visualização do arquivo"></iframe>
-                        <img id="pdfImg" class="max-w-full max-h-full object-contain hidden" alt="Pré-visualização da imagem">
+                        <iframe id="pdfFrame" class="w-full h-full hidden" title="${esc(t('tab_catalogar.preview_arquivo_titulo', 'Pré-visualização do arquivo'))}"></iframe>
+                        <img id="pdfImg" class="max-w-full max-h-full object-contain hidden" alt="${esc(t('tab_catalogar.preview_imagem_alt', 'Pré-visualização da imagem'))}">
                     </div>
                     <p id="pdfPanelName" class="text-xs text-gray-500 mt-1 truncate"></p>
                 </section>
@@ -140,10 +140,10 @@ window.TabCatalogar = (function () {
 
         box.innerHTML = `
         <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm bg-sky-50 dark:bg-sky-900/10 border border-sky-200 dark:border-sky-800 rounded px-3 py-2">
-            <span class="font-semibold">Publicar</span>
-            ${doLattes ? `<label class="flex items-center gap-1.5"><input type="checkbox" id="visExportarLattes" ${exportarLattes ? 'checked' : ''}> <i aria-hidden="true" class="fa-solid fa-file-export"></i> Lattes</label>` : ''}
-            <label class="flex items-center gap-1.5"><input type="checkbox" id="visPublicarWeb" ${publicarWeb ? 'checked' : ''}> <i aria-hidden="true" class="fa-solid fa-globe"></i> Web</label>
-            ${doRsc ? `<label class="flex items-center gap-1.5"><input type="checkbox" id="rscConta" ${rsc.conta ? 'checked' : ''}> <i aria-hidden="true" class="fa-solid fa-award"></i> usar para RSC</label>` : ''}
+            <span class="font-semibold">${esc(t('tab_catalogar.publicar', 'Publicar'))}</span>
+            ${doLattes ? `<label class="flex items-center gap-1.5"><input type="checkbox" id="visExportarLattes" ${exportarLattes ? 'checked' : ''}> <i aria-hidden="true" class="fa-solid fa-file-export"></i> ${esc(t('tab_catalogar.publicar_lattes', 'Lattes'))}</label>` : ''}
+            <label class="flex items-center gap-1.5"><input type="checkbox" id="visPublicarWeb" ${publicarWeb ? 'checked' : ''}> <i aria-hidden="true" class="fa-solid fa-globe"></i> ${esc(t('tab_catalogar.publicar_web', 'Web'))}</label>
+            ${doRsc ? `<label class="flex items-center gap-1.5"><input type="checkbox" id="rscConta" ${rsc.conta ? 'checked' : ''}> <i aria-hidden="true" class="fa-solid fa-award"></i> ${esc(t('tab_catalogar.publicar_rsc', 'usar para RSC'))}</label>` : ''}
         </div>`;
 
         const expChk = $('#visExportarLattes');
@@ -213,26 +213,26 @@ window.TabCatalogar = (function () {
             <div class="lg:col-span-5 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 space-y-3">
                 <h2 class="text-lg font-bold flex items-center gap-2">
                     <i aria-hidden="true" class="fa-solid fa-file-circle-plus text-govbr-600 dark:text-unifesp-400"></i>
-                    <span id="formTitulo">${editing ? 'Editar item' : 'Novo item'}</span>
+                    <span id="formTitulo">${editing ? esc(t('tab_catalogar.editar_item', 'Editar item')) : esc(t('tab_catalogar.novo_item', 'Novo item'))}</span>
                 </h2>
                 <div id="draftBanner"></div>
                 <div class="grid md:grid-cols-2 gap-3">
                     <div id="evidenceBlock" class="bg-govbr-50 dark:bg-gray-900 border border-govbr-100 dark:border-gray-700 rounded px-3 py-2 transition-shadow">
-                        <label class="block text-xs font-semibold mb-2" for="pdfInput"><i aria-hidden="true" class="fa-solid fa-file-arrow-up text-govbr-600 dark:text-unifesp-400 mr-1"></i> <span id="pdfInputLabel">Evidências</span></label>
+                        <label class="block text-xs font-semibold mb-2" for="pdfInput"><i aria-hidden="true" class="fa-solid fa-file-arrow-up text-govbr-600 dark:text-unifesp-400 mr-1"></i> <span id="pdfInputLabel">${esc(t('tab_catalogar.evidencias', 'Evidências'))}</span></label>
                         <div class="flex items-center gap-2">
-                            <button type="button" id="btnEvInbox" title="Bandeja de entrada: anexar próximo arquivo pendente" class="relative w-[72px] h-[72px] shrink-0 rounded border border-govbr-200 dark:border-gray-600 text-govbr-700 dark:text-unifesp-300 hover:bg-govbr-100 dark:hover:bg-gray-700 flex items-center justify-center disabled:opacity-40">
+                            <button type="button" id="btnEvInbox" title="${esc(t('tab_catalogar.bandeja_titulo', 'Bandeja de entrada: anexar próximo arquivo pendente'))}" class="relative w-[72px] h-[72px] shrink-0 rounded border border-govbr-200 dark:border-gray-600 text-govbr-700 dark:text-unifesp-300 hover:bg-govbr-100 dark:hover:bg-gray-700 flex items-center justify-center disabled:opacity-40">
                                 <i aria-hidden="true" class="fa-solid fa-inbox text-[3em]"></i>
                                 <span id="inboxBadge" class="hidden absolute -bottom-2 -right-2 min-w-[24px] h-6 px-1.5 bg-govbr-600 dark:bg-unifesp-600 text-white text-[15px] leading-6 rounded-full text-center"></span>
                             </button>
-                            <button type="button" id="btnEvFiles" title="Escolher arquivos (PDF, imagem, vídeo ou zip/tar.gz)" class="relative w-[72px] h-[72px] shrink-0 rounded border border-govbr-200 dark:border-gray-600 text-govbr-700 dark:text-unifesp-300 hover:bg-govbr-100 dark:hover:bg-gray-700 flex items-center justify-center">
+                            <button type="button" id="btnEvFiles" title="${esc(t('tab_catalogar.escolher_arquivos_titulo', 'Escolher arquivos (PDF, imagem, vídeo ou zip/tar.gz)'))}" class="relative w-[72px] h-[72px] shrink-0 rounded border border-govbr-200 dark:border-gray-600 text-govbr-700 dark:text-unifesp-300 hover:bg-govbr-100 dark:hover:bg-gray-700 flex items-center justify-center">
                                 <i aria-hidden="true" class="fa-solid fa-magnifying-glass text-[3em]"></i>
                                 <i aria-hidden="true" class="fa-solid fa-plus absolute -bottom-1.5 -right-1.5 w-[21px] h-[21px] text-[13px] leading-[21px] bg-govbr-600 dark:bg-unifesp-600 text-white rounded-full text-center"></i>
                             </button>
-                            <button type="button" id="btnEvUrl" title="Inserir evidência por link (URL)" class="relative w-[72px] h-[72px] shrink-0 rounded border border-govbr-200 dark:border-gray-600 text-govbr-700 dark:text-unifesp-300 hover:bg-govbr-100 dark:hover:bg-gray-700 flex items-center justify-center">
+                            <button type="button" id="btnEvUrl" title="${esc(t('tab_catalogar.inserir_link_titulo', 'Inserir evidência por link (URL)'))}" class="relative w-[72px] h-[72px] shrink-0 rounded border border-govbr-200 dark:border-gray-600 text-govbr-700 dark:text-unifesp-300 hover:bg-govbr-100 dark:hover:bg-gray-700 flex items-center justify-center">
                                 <i aria-hidden="true" class="fa-solid fa-pen text-[3em]"></i>
                                 <span aria-hidden="true" class="absolute -bottom-2 -right-2 px-1.5 bg-govbr-600 dark:bg-unifesp-600 text-white text-[12px] leading-[20px] rounded">URL</span>
                             </button>
-                            <button type="button" id="btnEvDrive" title="Selecionar um arquivo já existente no Google Drive" class="hidden relative w-[72px] h-[72px] shrink-0 rounded border border-govbr-200 dark:border-gray-600 text-govbr-700 dark:text-unifesp-300 hover:bg-govbr-100 dark:hover:bg-gray-700 flex items-center justify-center disabled:opacity-40">
+                            <button type="button" id="btnEvDrive" title="${esc(t('tab_catalogar.selecionar_drive_titulo', 'Selecionar um arquivo já existente no Google Drive'))}" class="hidden relative w-[72px] h-[72px] shrink-0 rounded border border-govbr-200 dark:border-gray-600 text-govbr-700 dark:text-unifesp-300 hover:bg-govbr-100 dark:hover:bg-gray-700 flex items-center justify-center disabled:opacity-40">
                                 <i aria-hidden="true" class="fa-brands fa-google-drive text-[2.4em]"></i>
                                 <i aria-hidden="true" class="fa-solid fa-plus absolute -bottom-1.5 -right-1.5 w-[21px] h-[21px] text-[13px] leading-[21px] bg-govbr-600 dark:bg-unifesp-600 text-white rounded-full text-center"></i>
                             </button>
@@ -240,19 +240,19 @@ window.TabCatalogar = (function () {
                         <input type="file" id="pdfInput" multiple accept="application/pdf,image/jpeg,image/png,image/gif,image/webp,video/mp4,video/webm,video/quicktime,video/x-msvideo,video/x-matroska,application/zip,application/x-zip-compressed,application/gzip,application/x-gzip,application/x-tar" class="hidden">
                         <div id="evUrlRow" class="hidden mt-2 flex gap-1.5">
                             <input type="url" id="evUrlInput" placeholder="https://…" class="flex-1 text-sm px-2 py-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900">
-                            <button type="button" id="evUrlAdd" class="text-xs px-2 py-1 rounded bg-govbr-600 dark:bg-unifesp-700 text-white">Adicionar</button>
-                            <button type="button" id="evUrlCancel" class="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600">Cancelar</button>
+                            <button type="button" id="evUrlAdd" class="text-xs px-2 py-1 rounded bg-govbr-600 dark:bg-unifesp-700 text-white">${esc(t('tab_catalogar.adicionar', 'Adicionar'))}</button>
+                            <button type="button" id="evUrlCancel" class="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600">${esc(t('tab_catalogar.cancelar', 'Cancelar'))}</button>
                         </div>
-                        <p id="evHint" class="hidden text-xs text-gray-500 mt-2">Arraste e solte, cole (Ctrl+V) ou use os botões acima — PDF, imagem, vídeo, link ou zip/tar.gz. Marque <strong>“pública”</strong> em <em>quantas</em> evidências quiser (0 ou mais). Use ↑ ↓ para reordenar. A <strong>tag</strong> categoriza o documento (ex.: Certificado, Declaração…).</p>
+                        <p id="evHint" class="hidden text-xs text-gray-500 mt-2">${t('tab_catalogar.evidencias_ajuda', 'Arraste e solte, cole (Ctrl+V) ou use os botões acima — PDF, imagem, vídeo, link ou zip/tar.gz. Marque <strong>“pública”</strong> em <em>quantas</em> evidências quiser (0 ou mais). Use ↑ ↓ para reordenar. A <strong>tag</strong> categoriza o documento (ex.: Certificado, Declaração…).')}</p>
                         <ul id="evList" class="mt-2 space-y-1"></ul>
                     </div>
                     <div class="space-y-3">
                         <div>
-                            <label class="block text-xs font-semibold mb-1" for="selCategoria">Categoria</label>
+                            <label class="block text-xs font-semibold mb-1" for="selCategoria">${esc(t('tab_catalogar.categoria', 'Categoria'))}</label>
                             <select id="selCategoria" class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900"></select>
                         </div>
                         <div id="tipoWrap" class="hidden">
-                            <label class="block text-xs font-semibold mb-1" for="selTipo">Tipo do item</label>
+                            <label class="block text-xs font-semibold mb-1" for="selTipo">${esc(t('tab_catalogar.tipo_item', 'Tipo do item'))}</label>
                             <select id="selTipo" class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900"></select>
                         </div>
                     </div>
@@ -268,30 +268,30 @@ window.TabCatalogar = (function () {
                 <div id="rscBlock" class="space-y-3"></div>
 
                 <p id="idiomasObsEvidencia" class="hidden text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded px-2 py-1.5">
-                    <i aria-hidden="true" class="fa-solid fa-circle-info mr-1"></i> Para cadastrar a evidência de <strong>cursos</strong>, use o tipo <strong>02 Formação → Formação complementar</strong>; para <strong>certificados de proficiência</strong>, use <strong>16 Certificações</strong>.
+                    <i aria-hidden="true" class="fa-solid fa-circle-info mr-1"></i> ${t('tab_catalogar.idiomas_obs_evidencia', 'Para cadastrar a evidência de <strong>cursos</strong>, use o tipo <strong>02 Formação → Formação complementar</strong>; para <strong>certificados de proficiência</strong>, use <strong>16 Certificações</strong>.')}
                 </p>
 
                 <div class="space-y-1">
-                    <label class="block text-xs font-semibold" for="notasGerais">Anotações livres</label>
-                    <textarea id="notasGerais" name="notasGerais" rows="3" maxlength="4000" placeholder="Escreva aqui suas conquistas, aprendizados ou impacto da atividade. Este é um campo livre e não será exportado para o Lattes ou publicado." class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900">${esc(item && item.notasGerais || '')}</textarea>
+                    <label class="block text-xs font-semibold" for="notasGerais">${esc(t('tab_catalogar.anotacoes_livres', 'Anotações livres'))}</label>
+                    <textarea id="notasGerais" name="notasGerais" rows="3" maxlength="4000" placeholder="${esc(t('tab_catalogar.anotacoes_placeholder', 'Escreva aqui suas conquistas, aprendizados ou impacto da atividade. Este é um campo livre e não será exportado para o Lattes ou publicado.'))}" class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900">${esc(item && item.notasGerais || '')}</textarea>
                 </div>
 
                 <p id="idInfo" class="text-xs text-gray-500"></p>
 
                 <div class="flex gap-2 pt-1 flex-wrap">
-                    <button type="submit" class="px-6 py-3 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-base font-semibold hover:opacity-90" title="Atalho: Ctrl+S (Cmd+S no Mac)">
-                        <i aria-hidden="true" class="fa-solid fa-floppy-disk mr-1"></i> ${editing ? 'Salvar alterações' : 'Salvar'}
+                    <button type="submit" class="px-6 py-3 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-base font-semibold hover:opacity-90" title="${esc(t('tab_catalogar.atalho_salvar_titulo', 'Atalho: Ctrl+S (Cmd+S no Mac)'))}">
+                        <i aria-hidden="true" class="fa-solid fa-floppy-disk mr-1"></i> ${editing ? esc(t('tab_catalogar.salvar_alteracoes', 'Salvar alterações')) : esc(t('tab_catalogar.salvar', 'Salvar'))}
                     </button>
-                    <button type="button" id="btnSalvarNovo" class="px-6 py-3 rounded border border-gray-300 dark:border-gray-600 text-base" title="Salva e abre um novo item na mesma categoria/tipo. Atalho: Ctrl+Enter (Cmd+Enter no Mac), quando não há um item em edição">
-                        <i aria-hidden="true" class="fa-solid fa-plus mr-1"></i> Salvar e novo
+                    <button type="button" id="btnSalvarNovo" class="px-6 py-3 rounded border border-gray-300 dark:border-gray-600 text-base" title="${esc(t('tab_catalogar.salvar_novo_titulo', 'Salva e abre um novo item na mesma categoria/tipo. Atalho: Ctrl+Enter (Cmd+Enter no Mac), quando não há um item em edição'))}">
+                        <i aria-hidden="true" class="fa-solid fa-plus mr-1"></i> ${esc(t('tab_catalogar.salvar_novo', 'Salvar e novo'))}
                     </button>
-                    ${editing ? `<button type="button" id="btnSalvarProximo" class="px-6 py-3 rounded border border-gray-300 dark:border-gray-600 text-base" title="Salva e abre o próximo item da mesma categoria (ordem sequencial e circular). Atalho: Ctrl+Enter (Cmd+Enter no Mac)">
-                        <i aria-hidden="true" class="fa-solid fa-forward mr-1"></i> Salvar e próximo
+                    ${editing ? `<button type="button" id="btnSalvarProximo" class="px-6 py-3 rounded border border-gray-300 dark:border-gray-600 text-base" title="${esc(t('tab_catalogar.salvar_proximo_titulo', 'Salva e abre o próximo item da mesma categoria (ordem sequencial e circular). Atalho: Ctrl+Enter (Cmd+Enter no Mac)'))}">
+                        <i aria-hidden="true" class="fa-solid fa-forward mr-1"></i> ${esc(t('tab_catalogar.salvar_proximo', 'Salvar e próximo'))}
                     </button>` : ''}
-                    <button type="button" id="btnLimpar" class="px-6 py-3 rounded border border-gray-300 dark:border-gray-600 text-base" title="Limpa o formulário e começa um novo item em branco">
-                        <i aria-hidden="true" class="fa-solid fa-eraser mr-1"></i> Limpar
+                    <button type="button" id="btnLimpar" class="px-6 py-3 rounded border border-gray-300 dark:border-gray-600 text-base" title="${esc(t('tab_catalogar.limpar_titulo', 'Limpa o formulário e começa um novo item em branco'))}">
+                        <i aria-hidden="true" class="fa-solid fa-eraser mr-1"></i> ${esc(t('tab_catalogar.limpar', 'Limpar'))}
                     </button>
-                    <button type="button" id="btnCancelar" class="px-6 py-3 rounded border border-gray-300 dark:border-gray-600 text-base ${editing ? '' : 'hidden'}">Cancelar</button>
+                    <button type="button" id="btnCancelar" class="px-6 py-3 rounded border border-gray-300 dark:border-gray-600 text-base ${editing ? '' : 'hidden'}">${esc(t('tab_catalogar.cancelar', 'Cancelar'))}</button>
                 </div>
             </div>
             ${datalistsHtml()}`;
@@ -299,7 +299,7 @@ window.TabCatalogar = (function () {
         // Categoria (select nativo) — placeholder em branco: item novo só mostra
         // os campos depois de Categoria e Tipo escolhidos explicitamente.
         const selCat = $('#selCategoria');
-        selCat.innerHTML = `<option value="">— Selecione —</option>` + LattesTypes.categories
+        selCat.innerHTML = `<option value="">${esc(t('tab_catalogar.selecione', '— Selecione —'))}</option>` + LattesTypes.categories
             .filter(c => !c.rscOnly || state.rsc.enabled)   // categoria RSC só com o módulo ligado
             .map(c => `<option value="${c.key}">${esc(c.num + '. ' + c.label)}</option>`).join('');
         if (currentCat) selCat.value = currentCat;
@@ -314,7 +314,7 @@ window.TabCatalogar = (function () {
         };
         function renderTipoOptions() {
             const sel = $('#selTipo'); if (!sel) return;
-            let html = `<option value="">— Selecione —</option>`, last = null, open = false;
+            let html = `<option value="">${esc(t('tab_catalogar.selecione', '— Selecione —'))}</option>`, last = null, open = false;
             tipoOptions.forEach(o => {
                 if (o.group !== last) {
                     if (open) html += `</optgroup>`;
@@ -449,16 +449,16 @@ window.TabCatalogar = (function () {
             const accept = (def && def.accept) || window.AppCore.EVID_ACCEPT_DEFAULT;
             const inp = $('#pdfInput'); if (inp) inp.accept = accept;
             const lbl = $('#pdfInputLabel');
-            if (lbl) lbl.textContent = accept === 'image/jpeg,image/png' ? 'Foto (JPEG ou PNG)'
-                : (def && (def.key === 'DOCUMENTO_PESSOAL' || def.key === 'ENDERECO') ? 'Comprovante (PDF ou imagem)' : 'Evidências (PDF, imagem, vídeo, link ou zip/tar.gz)');
+            if (lbl) lbl.textContent = accept === 'image/jpeg,image/png' ? t('tab_catalogar.foto_label', 'Foto (JPEG ou PNG)')
+                : (def && (def.key === 'DOCUMENTO_PESSOAL' || def.key === 'ENDERECO') ? t('tab_catalogar.comprovante_label', 'Comprovante (PDF ou imagem)') : t('tab_catalogar.evidencias_label', 'Evidências (PDF, imagem, vídeo, link ou zip/tar.gz)'));
             const btnDrive = $('#btnEvDrive');
             if (btnDrive) {
                 btnDrive.classList.toggle('hidden', Storage.storageMode() !== 'gdrive');
                 const semChave = !APP_CONFIG.googlePickerApiKey;
                 btnDrive.disabled = semChave;
                 btnDrive.title = semChave
-                    ? 'Recurso ainda não configurado neste site (falta a Chave de API do Picker em config.js)'
-                    : 'Selecionar um arquivo já existente no Google Drive';
+                    ? t('tab_catalogar.drive_sem_chave', 'Recurso ainda não configurado neste site (falta a Chave de API do Picker em config.js)')
+                    : t('tab_catalogar.selecionar_drive_titulo', 'Selecionar um arquivo já existente no Google Drive');
             }
         }
 
@@ -487,7 +487,7 @@ window.TabCatalogar = (function () {
                 // registro em vez de criar/editar o outro.
                 state.catalogo.editingId = match ? match.id : null;
                 const idInfo = $('#idInfo');
-                if (idInfo) idInfo.textContent = match ? `ID: ${match.id}` : `O ID será gerado ao salvar (prefixo “${state.idPrefix}”).`;
+                if (idInfo) idInfo.textContent = match ? t('tab_catalogar.id_info', 'ID: {id}', { id: match.id }) : t('tab_catalogar.id_sera_gerado', 'O ID será gerado ao salvar (prefixo “{prefixo}”).', { prefixo: state.idPrefix });
                 state.catalogo.evEditing = match ? window.AppCore.evListFromItem(match) : [];
                 renderEvList();
                 if (state.catalogo.evEditing.length) showPdfForItem(match); else clearPdf();
@@ -553,13 +553,13 @@ window.TabCatalogar = (function () {
         if (btnProximo) btnProximo.addEventListener('click', () => { state.ui.saveAndNext = true; form.requestSubmit(); });
         $('#btnCancelar').addEventListener('click', () => { state.catalogo.editingId = null; state.catalogo.evEditing = []; state.ui.formDirty = false; buildForm(undefined, { focus: true }); });
         $('#btnLimpar').addEventListener('click', () => {
-            if (state.ui.formDirty && !confirm('Limpar os dados não salvos deste formulário?')) return;
+            if (state.ui.formDirty && !confirm(t('tab_catalogar.confirmar_limpar', 'Limpar os dados não salvos deste formulário?'))) return;
             state.catalogo.editingId = null; state.catalogo.evEditing = []; state.ui.formDirty = false;
             buildForm(undefined, { focus: true });
         });
 
         state.catalogo.editingId = editing ? item.id : null;
-        $('#idInfo').textContent = editing ? `ID: ${item.id}` : `O ID será gerado ao salvar (prefixo “${state.idPrefix}”).`;
+        $('#idInfo').textContent = editing ? t('tab_catalogar.id_info', 'ID: {id}', { id: item.id }) : t('tab_catalogar.id_sera_gerado', 'O ID será gerado ao salvar (prefixo “{prefixo}”).', { prefixo: state.idPrefix });
 
         // Painel lateral do PDF: mostra evidência do item em edição, ou limpa
         if (editing && state.catalogo.evEditing.length) showPdfForItem(item);
@@ -592,9 +592,11 @@ window.TabCatalogar = (function () {
     // valores já usados no catálogo.
     const AUTOCOMPLETE_KEYS = ['autor', 'cidade', 'editora', 'entidade', 'evento', 'financiador', 'instituicao', 'orgao', 'periodico', 'evidenciaTag'];
     const VOCAB_LABELS = {
-        autor: 'Autores', cidade: 'Cidades', editora: 'Editoras', entidade: 'Entidades', evento: 'Eventos',
-        financiador: 'Financiadores / Agências', instituicao: 'Instituições', orgao: 'Órgãos',
-        periodico: 'Periódicos / Revistas', evidenciaTag: 'Tags de evidências',
+        autor: t('tab_catalogar.vocab.autor', 'Autores'), cidade: t('tab_catalogar.vocab.cidade', 'Cidades'),
+        editora: t('tab_catalogar.vocab.editora', 'Editoras'), entidade: t('tab_catalogar.vocab.entidade', 'Entidades'),
+        evento: t('tab_catalogar.vocab.evento', 'Eventos'), financiador: t('tab_catalogar.vocab.financiador', 'Financiadores / Agências'),
+        instituicao: t('tab_catalogar.vocab.instituicao', 'Instituições'), orgao: t('tab_catalogar.vocab.orgao', 'Órgãos'),
+        periodico: t('tab_catalogar.vocab.periodico', 'Periódicos / Revistas'), evidenciaTag: t('tab_catalogar.vocab.evidencia_tag', 'Tags de evidências'),
     };
     // Tags sugeridas por padrão para categorizar evidências (documentos anexados).
     // Qualquer outro valor digitado pelo usuário também é aprendido (collectSuggestions).
@@ -632,24 +634,24 @@ window.TabCatalogar = (function () {
     // em um lugar só" um valor já presente em itens lançados.
     async function renameFieldValue(key, from, to) {
         const f = String(from == null ? '' : from).trim();
-        const t = String(to == null ? '' : to).trim();
-        if (!f) { toast('Selecione o valor a renomear.', 'aviso'); return; }
-        if (!t) { toast('Informe o novo valor.', 'aviso'); return; }
-        if (f === t) { toast('O novo valor é igual ao atual.', 'aviso'); return; }
+        const novo = String(to == null ? '' : to).trim();
+        if (!f) { toast(t('tab_catalogar.selecione_valor_renomear', 'Selecione o valor a renomear.'), 'aviso'); return; }
+        if (!novo) { toast(t('tab_catalogar.informe_novo_valor', 'Informe o novo valor.'), 'aviso'); return; }
+        if (f === novo) { toast(t('tab_catalogar.novo_valor_igual', 'O novo valor é igual ao atual.'), 'aviso'); return; }
         const alvo = itemsUsingValue(key, f);
         const label = VOCAB_LABELS[key] || key;
-        if (!confirm(`Renomear em ${label}:\n\n"${f}"\n→ "${t}"\n\nSerá aplicado a ${alvo.length} item(ns) e a lista de sugestões. Os JSONs no diretório serão regravados. Continuar?`)) return;
+        if (!confirm(t('tab_catalogar.confirmar_renomear', 'Renomear em {label}:\n\n"{de}"\n→ "{para}"\n\nSerá aplicado a {n} item(ns) e a lista de sugestões. Os JSONs no diretório serão regravados. Continuar?', { label, de: f, para: novo, n: alvo.length }))) return;
 
         if (key === 'evidenciaTag') {
-            alvo.forEach(it => (it.evidencias || []).forEach(e => { if (String(e.tag == null ? '' : e.tag).trim() === f) e.tag = t; }));
+            alvo.forEach(it => (it.evidencias || []).forEach(e => { if (String(e.tag == null ? '' : e.tag).trim() === f) e.tag = novo; }));
         } else if (key === 'autor') {
             alvo.forEach(it => {
                 const fl = it.fields || {};
-                if (Array.isArray(fl.autoresLista)) fl.autoresLista.forEach(a => { if (a && String(a.nomeCompleto || '').trim() === f) a.nomeCompleto = t; });
-                if (fl.autores) fl.autores = String(fl.autores).split(';').map(n => (n.trim() === f ? t : n.trim())).filter(Boolean).join('; ');
+                if (Array.isArray(fl.autoresLista)) fl.autoresLista.forEach(a => { if (a && String(a.nomeCompleto || '').trim() === f) a.nomeCompleto = novo; });
+                if (fl.autores) fl.autores = String(fl.autores).split(';').map(n => (n.trim() === f ? novo : n.trim())).filter(Boolean).join('; ');
             });
         } else {
-            alvo.forEach(it => { it.fields[key] = t; });
+            alvo.forEach(it => { it.fields[key] = novo; });
         }
         window.AppCore.saveCatalog();
 
@@ -663,7 +665,7 @@ window.TabCatalogar = (function () {
 
         // Atualiza a lista curada: remove o antigo, garante o novo.
         const set = new Set((state.vocab[key] || []).map(s => String(s).trim()).filter(Boolean));
-        set.delete(f); set.add(t);
+        set.delete(f); set.add(novo);
         state.vocab[key] = Array.from(set).sort((a, b) => a.localeCompare(b, 'pt-BR'));
         window.AppCore.saveVocab();
 
@@ -678,8 +680,8 @@ window.TabCatalogar = (function () {
             const inner = outer.querySelector(`details[data-vockey="${key}"]`);
             if (inner) { inner.open = true; inner.scrollIntoView({ block: 'nearest' }); }
         }
-        if (falhas) toast(`Renomeado em ${alvo.length} item(ns), mas ${falhas} JSON(s) não puderam ser regravados (verifique o diretório).`, 'aviso');
-        else toast(`"${f}" → "${t}" aplicado a ${alvo.length} item(ns).`, 'ok');
+        if (falhas) toast(t('tab_catalogar.renomeado_com_falhas', 'Renomeado em {n} item(ns), mas {falhas} JSON(s) não puderam ser regravados (verifique o diretório).', { n: alvo.length, falhas }), 'aviso');
+        else toast(t('tab_catalogar.renomeado_ok', '"{de}" → "{para}" aplicado a {n} item(ns).', { de: f, para: novo, n: alvo.length }), 'ok');
     }
 
     // Campo "repeater": lista de linhas com colunas próprias (ex.: Equipe do
@@ -695,10 +697,10 @@ window.TabCatalogar = (function () {
         }).filter(Boolean).join(' · ');
     }
     function repeaterListHtml(f, rows) {
-        if (!rows.length) return `<li class="text-xs text-gray-500 dark:text-gray-400 italic">Nenhum item adicionado.</li>`;
+        if (!rows.length) return `<li class="text-xs text-gray-500 dark:text-gray-400 italic">${esc(t('tab_catalogar.repeater_vazio', 'Nenhum item adicionado.'))}</li>`;
         return rows.map((row, i) => `<li class="flex items-center gap-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded px-2 py-1 text-sm" data-repeater-row="${i}">
-            <span class="flex-1 min-w-0 truncate">${esc(repeaterRowLabel(f, row) || '(sem descrição)')}</span>
-            <button type="button" data-repeater-del="${f.key}" data-idx="${i}" title="Remover" class="w-8 h-8 shrink-0 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-red-600"><i aria-hidden="true" class="fa-solid fa-trash"></i></button>
+            <span class="flex-1 min-w-0 truncate">${esc(repeaterRowLabel(f, row) || t('tab_catalogar.repeater_sem_descricao', '(sem descrição)'))}</span>
+            <button type="button" data-repeater-del="${f.key}" data-idx="${i}" title="${esc(t('tab_catalogar.remover', 'Remover'))}" class="w-8 h-8 shrink-0 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-red-600"><i aria-hidden="true" class="fa-solid fa-trash"></i></button>
         </li>`).join('');
     }
     function repeaterColInput(fkey, c) {
@@ -774,7 +776,7 @@ window.TabCatalogar = (function () {
                 if (!desc) return `<label class="flex items-center gap-1.5 text-sm">${cb} ${esc(lbl)}</label>`;
                 return `<label class="flex items-start gap-1.5 text-sm w-full">${cb}
                     <span>${esc(lbl)}
-                        <details class="mt-0.5"><summary class="text-xs text-govbr-700 dark:text-unifesp-400 cursor-pointer select-none">Ver definição legal</summary>
+                        <details class="mt-0.5"><summary class="text-xs text-govbr-700 dark:text-unifesp-400 cursor-pointer select-none">${esc(t('tab_catalogar.ver_definicao_legal', 'Ver definição legal'))}</summary>
                             <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 max-w-2xl">${esc(desc)}</p></details>
                     </span></label>`;
             }).join('')}
@@ -815,14 +817,18 @@ window.TabCatalogar = (function () {
         // estado pra tecnologia assistiva, que mapeia `required` como
         // aria-required automaticamente).
         const sel = (lvl, lbl, nivel, extra) => `<select data-areatree="${lvl}" aria-label="${esc(nivel)}" ${extra || ''} class="${base}"><option value="">${lbl}</option></select>`;
-        const resumo = val ? esc(val) : 'Nenhuma selecionada — clique para escolher';
+        const resumo = val ? esc(val) : esc(t('tab_catalogar.areatree_nenhuma', 'Nenhuma selecionada — clique para escolher'));
+        const grandeAreaLabel = t('tab_catalogar.areatree_grande_area', 'Grande área');
+        const areaLabel = t('tab_catalogar.areatree_area', 'Área');
+        const subareaLabel = t('tab_catalogar.areatree_subarea', 'Subárea');
+        const especialidadeLabel = t('tab_catalogar.areatree_especialidade', 'Especialidade');
         return `<details class="w-full">
             <summary class="cursor-pointer select-none text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 truncate">${resumo}</summary>
             <div data-areatree-group class="space-y-1.5 mt-1.5">
-                ${sel('g', '— Grande área —', 'Grande área', req)}
-                ${sel('a', '— Área —', 'Área')}
-                ${sel('s', '— Subárea —', 'Subárea')}
-                ${sel('e', '— Especialidade —', 'Especialidade')}
+                ${sel('g', esc(t('tab_catalogar.areatree_grande_area_opt', '— Grande área —')), grandeAreaLabel, req)}
+                ${sel('a', esc(t('tab_catalogar.areatree_area_opt', '— Área —')), areaLabel)}
+                ${sel('s', esc(t('tab_catalogar.areatree_subarea_opt', '— Subárea —')), subareaLabel)}
+                ${sel('e', esc(t('tab_catalogar.areatree_especialidade_opt', '— Especialidade —')), especialidadeLabel)}
             </div>
         </details>`;
     }
@@ -834,11 +840,11 @@ window.TabCatalogar = (function () {
         const opts = window.CNAE_SETORES || [];
         // aria-label próprio por select — mesmo motivo do areatree acima:
         // sem isto, só o 1º select tinha nome acessível.
-        const sel = (i) => `<select data-setor="${i}" aria-label="Setor ${i}" class="${base}">
-            <option value="">— Setor ${i} —</option>
+        const sel = (i) => `<select data-setor="${i}" aria-label="${esc(t('tab_catalogar.setor_aria', 'Setor {n}', { n: i }))}" class="${base}">
+            <option value="">${esc(t('tab_catalogar.setor_opt', '— Setor {n} —', { n: i }))}</option>
             ${opts.map(o => `<option value="${esc(o)}" ${chosen[i - 1] === o ? 'selected' : ''}>${esc(o)}</option>`).join('')}
         </select>`;
-        const resumo = chosen.length ? esc(chosen.join('; ')) : 'Nenhum selecionado — clique para escolher';
+        const resumo = chosen.length ? esc(chosen.join('; ')) : esc(t('tab_catalogar.setor_nenhum', 'Nenhum selecionado — clique para escolher'));
         return `<details class="w-full">
             <summary class="cursor-pointer select-none text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 truncate">${resumo}</summary>
             <div class="space-y-1.5 mt-1.5">${[1, 2, 3].map(sel).join('')}</div>
@@ -858,7 +864,7 @@ window.TabCatalogar = (function () {
             <ul data-repeater-list="${f.key}" class="space-y-1 mb-1.5">${repeaterListHtml(f, rows)}</ul>
             <div class="flex flex-wrap items-center gap-1.5">
                 ${f.columns.map(c => repeaterColInput(f.key, c)).join('')}
-                <button type="button" data-repeater-add="${f.key}" class="px-2 py-1.5 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-xs whitespace-nowrap"><i aria-hidden="true" class="fa-solid fa-plus"></i> ${esc(f.addLabel || 'Adicionar')}</button>
+                <button type="button" data-repeater-add="${f.key}" class="px-2 py-1.5 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-xs whitespace-nowrap"><i aria-hidden="true" class="fa-solid fa-plus"></i> ${esc(f.addLabel || t('tab_catalogar.adicionar', 'Adicionar'))}</button>
             </div>
         </div>`;
     }
@@ -879,7 +885,7 @@ window.TabCatalogar = (function () {
         const na = String(val) === NA_VALUE;
         return `<div class="flex items-center gap-2">
             <input type="url" name="${f.key}" value="${na ? '' : esc(val)}" ${req} autocomplete="off" ${RO} data-validate="url" maxlength="300" placeholder="https://…" class="${base} flex-1 ${na ? 'opacity-50' : ''}" ${na ? 'disabled' : ''}>
-            <label class="flex items-center gap-1 text-xs shrink-0 whitespace-nowrap" title="Marque quando não há URL. Conta como preenchido; na exportação XML vai em branco.">
+            <label class="flex items-center gap-1 text-xs shrink-0 whitespace-nowrap" title="${esc(t('tab_catalogar.na_url_titulo', 'Marque quando não há URL. Conta como preenchido; na exportação XML vai em branco.'))}">
                 <input type="checkbox" data-na="${f.key}" ${na ? 'checked' : ''}> N/A
             </label>
         </div>`;
@@ -890,35 +896,35 @@ window.TabCatalogar = (function () {
         // (issue #5). Feedback de carregamento/erro fica no <p> abaixo.
         return `<div class="flex items-center gap-2">
             <input type="text" name="doi" value="${esc(val)}" autocomplete="off" ${RO} data-validate="doi" maxlength="500" placeholder="${esc(f.placeholder || '10.xxxx/xxxxx')}" class="${base} flex-1">
-            <button type="button" data-crossref-btn class="px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 text-xs whitespace-nowrap shrink-0"><i aria-hidden="true" class="fa-solid fa-magnifying-glass mr-1"></i>Buscar metadados</button>
+            <button type="button" data-crossref-btn class="px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 text-xs whitespace-nowrap shrink-0"><i aria-hidden="true" class="fa-solid fa-magnifying-glass mr-1"></i>${esc(t('tab_catalogar.buscar_metadados', 'Buscar metadados'))}</button>
         </div>
         <p class="text-xs text-gray-500 mt-0.5" data-crossref-status></p>`;
     }
     function fieldGeneric(f, val, req, base) {
-        const t = (f.type === 'url' ? 'url' : (f.type === 'number' ? 'number' : (f.type === 'date' ? 'date' : 'text')));
-        const listAttr = (t === 'text' && AUTOCOMPLETE_KEYS.includes(f.key)) ? `list="dl-${f.key}"` : '';
+        const inputType = (f.type === 'url' ? 'url' : (f.type === 'number' ? 'number' : (f.type === 'date' ? 'date' : 'text')));
+        const listAttr = (inputType === 'text' && AUTOCOMPLETE_KEYS.includes(f.key)) ? `list="dl-${f.key}"` : '';
         let vkind = '';
         if (f.validate) vkind = f.validate;
         else if (f.key === 'issn' || f.key === 'isbn' || f.key === 'doi') vkind = f.key;
-        else if (t === 'url') vkind = 'url';
+        else if (inputType === 'url') vkind = 'url';
         const vAttr = vkind ? `data-validate="${vkind}"` : '';
         const ph = f.placeholder || (f.key === 'issn' ? '0000-0000'
-            : f.key === 'isbn' ? 'ISBN-10 ou ISBN-13'
-            : t === 'url' ? 'https://…' : '');
-        const extra = t === 'number' ? 'min="0" step="any"'
-            : `maxlength="${f.maxlength || (t === 'url' ? 300 : 500)}"`;
+            : f.key === 'isbn' ? t('tab_catalogar.isbn_placeholder', 'ISBN-10 ou ISBN-13')
+            : inputType === 'url' ? 'https://…' : '');
+        const extra = inputType === 'number' ? 'min="0" step="any"'
+            : `maxlength="${f.maxlength || (inputType === 'url' ? 300 : 500)}"`;
         if (f.na) {
             // Campo + "N/A" (Não se aplica), mesmo padrão do campo URL:
             // conta como preenchido; vai em branco numa futura exportação.
             const na = String(val) === NA_VALUE;
             return `<div class="flex items-center gap-2">
-                <input type="${t}" name="${f.key}" value="${na ? '' : esc(val)}" ${req} autocomplete="off" ${RO} ${listAttr} ${vAttr} ${extra} placeholder="${esc(ph)}" class="${base} flex-1 ${na ? 'opacity-50' : ''}" ${na ? 'disabled' : ''}>
-                <label class="flex items-center gap-1 text-xs shrink-0 whitespace-nowrap" title="Marque quando não se aplica. Conta como preenchido.">
+                <input type="${inputType}" name="${f.key}" value="${na ? '' : esc(val)}" ${req} autocomplete="off" ${RO} ${listAttr} ${vAttr} ${extra} placeholder="${esc(ph)}" class="${base} flex-1 ${na ? 'opacity-50' : ''}" ${na ? 'disabled' : ''}>
+                <label class="flex items-center gap-1 text-xs shrink-0 whitespace-nowrap" title="${esc(t('tab_catalogar.na_titulo', 'Marque quando não se aplica. Conta como preenchido.'))}">
                     <input type="checkbox" data-na="${f.key}" ${na ? 'checked' : ''}> N/A
                 </label>
             </div>`;
         }
-        return `<input type="${t}" name="${f.key}" value="${esc(val)}" ${req} autocomplete="off" ${RO} ${listAttr} ${vAttr} ${extra} placeholder="${esc(ph)}" class="${base}">`;
+        return `<input type="${inputType}" name="${f.key}" value="${esc(val)}" ${req} autocomplete="off" ${RO} ${listAttr} ${vAttr} ${extra} placeholder="${esc(ph)}" class="${base}">`;
     }
 
     function fieldHtml(f, val, compact) {
@@ -1167,7 +1173,7 @@ window.TabCatalogar = (function () {
                     if (c.required && !v) ok = false;
                     row[c.key] = v;
                 });
-                if (!ok) { toast('Preencha os campos obrigatórios do item antes de adicionar.', 'aviso'); return; }
+                if (!ok) { toast(t('tab_catalogar.repeater_obrigatorios', 'Preencha os campos obrigatórios do item antes de adicionar.'), 'aviso'); return; }
                 const rows = getRows(); rows.push(row); setRows(rows);
                 f.columns.forEach(c => {
                     const el = wrap.querySelector(`[data-repeater-input="${f.key}:${c.key}"]`);
@@ -1189,12 +1195,12 @@ window.TabCatalogar = (function () {
        ===================================================================== */
     async function fetchCrossrefMetadata(doi) {
         const clean = String(doi || '').trim().replace(/^\s*(https?:\/\/)?(dx\.)?doi\.org\//i, '').trim();
-        if (!/^10\.\d{4,9}\/\S+$/.test(clean)) throw new Error('Preencha um DOI válido (formato 10.xxxx/sufixo) antes de buscar.');
+        if (!/^10\.\d{4,9}\/\S+$/.test(clean)) throw new Error(t('tab_catalogar.doi_invalido', 'Preencha um DOI válido (formato 10.xxxx/sufixo) antes de buscar.'));
         let resp;
         try { resp = await fetch(`https://api.crossref.org/works/${encodeURIComponent(clean)}`, { headers: { 'Accept': 'application/json' } }); }
-        catch (_) { throw new Error('Não foi possível conectar ao Crossref — verifique sua conexão com a internet.'); }
-        if (resp.status === 404) throw new Error('DOI não encontrado no Crossref.');
-        if (!resp.ok) throw new Error(`Crossref retornou um erro (HTTP ${resp.status}).`);
+        catch (_) { throw new Error(t('tab_catalogar.crossref_erro_conexao', 'Não foi possível conectar ao Crossref — verifique sua conexão com a internet.')); }
+        if (resp.status === 404) throw new Error(t('tab_catalogar.crossref_nao_encontrado', 'DOI não encontrado no Crossref.'));
+        if (!resp.ok) throw new Error(t('tab_catalogar.crossref_erro_http', 'Crossref retornou um erro (HTTP {status}).', { status: resp.status }));
         const data = await resp.json();
         return (data && data.message) || {};
     }
@@ -1245,13 +1251,13 @@ window.TabCatalogar = (function () {
         btn.addEventListener('click', async () => {
             const doiInput = container.querySelector('[name="doi"]');
             const original = btn.innerHTML;
-            btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i>Buscando…';
+            btn.disabled = true; btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-1"></i>${esc(t('tab_catalogar.buscando', 'Buscando…'))}`;
             setStatus('');
             try {
                 const message = await fetchCrossrefMetadata(doiInput ? doiInput.value : '');
                 const novos = crossrefToFields(def, message);
                 const chaves = Object.keys(novos);
-                if (!chaves.length) { setStatus('Nenhum dado aproveitável encontrado para esse DOI.', true); return; }
+                if (!chaves.length) { setStatus(t('tab_catalogar.crossref_sem_dados', 'Nenhum dado aproveitável encontrado para esse DOI.'), true); return; }
 
                 const estaPreenchido = (k) => {
                     if (k === 'autoresLista') {
@@ -1266,7 +1272,7 @@ window.TabCatalogar = (function () {
                 let substituir = true;
                 if (conflitantes.length) {
                     const rotulos = conflitantes.map((k) => (def.fields.find((f) => f.key === k) || {}).label || k).join(', ');
-                    substituir = confirm(`${conflitantes.length} campo(s) já preenchido(s) (${rotulos}). Substituir também esses pelos dados do Crossref?`);
+                    substituir = confirm(t('tab_catalogar.crossref_confirmar_substituir', '{n} campo(s) já preenchido(s) ({rotulos}). Substituir também esses pelos dados do Crossref?', { n: conflitantes.length, rotulos }));
                 }
                 let aplicados = 0;
                 chaves.forEach((k) => {
@@ -1280,7 +1286,7 @@ window.TabCatalogar = (function () {
                     if (el) { el.value = novos[k]; aplicados++; }
                 });
                 state.ui.formDirty = true;
-                setStatus(`${aplicados} campo(s) preenchido(s) a partir do Crossref.`);
+                setStatus(t('tab_catalogar.crossref_aplicados', '{n} campo(s) preenchido(s) a partir do Crossref.', { n: aplicados }));
             } catch (e) {
                 setStatus(e.message, true);
             } finally {
@@ -1323,11 +1329,11 @@ window.TabCatalogar = (function () {
         const findG = () => DATA.find(x => x.n === g.value);
         const findA = () => { const G = findG(); return G ? G.a.find(x => x.n === a.value) : null; };
         const findS = () => { const A = findA(); return A ? A.s.find(x => x.n === s.value) : null; };
-        const refillA = cur => { const G = findG(); fill(a, '— Área —', G ? G.a.map(x => x.n) : [], cur); a.disabled = !G; };
-        const refillS = cur => { const A = findA(); fill(s, '— Subárea —', A ? A.s.map(x => x.n) : [], cur); s.disabled = !A; };
-        const refillE = cur => { const S = findS(); fill(e, '— Especialidade —', S ? S.e : [], cur); e.disabled = !S; };
+        const refillA = cur => { const G = findG(); fill(a, t('tab_catalogar.areatree_area_opt', '— Área —'), G ? G.a.map(x => x.n) : [], cur); a.disabled = !G; };
+        const refillS = cur => { const A = findA(); fill(s, t('tab_catalogar.areatree_subarea_opt', '— Subárea —'), A ? A.s.map(x => x.n) : [], cur); s.disabled = !A; };
+        const refillE = cur => { const S = findS(); fill(e, t('tab_catalogar.areatree_especialidade_opt', '— Especialidade —'), S ? S.e : [], cur); e.disabled = !S; };
 
-        fill(g, '— Grande área —', DATA.map(x => x.n), vals.grandeArea);
+        fill(g, t('tab_catalogar.areatree_grande_area_opt', '— Grande área —'), DATA.map(x => x.n), vals.grandeArea);
         refillA(vals.area); refillS(vals.subarea); refillE(vals.especialidade);
 
         g.addEventListener('change', () => { refillA(''); refillS(''); refillE(''); });
@@ -1418,9 +1424,9 @@ window.TabCatalogar = (function () {
         const faltando = def.fields.filter(f => f.required && !fields[f.key]);
         if (!faltando.length) return true;
         let first = null;
-        faltando.forEach(f => { const el = fieldControl(form, f); if (el) { setFieldError(el, 'Campo obrigatório.'); if (!first) first = el; } });
+        faltando.forEach(f => { const el = fieldControl(form, f); if (el) { setFieldError(el, t('tab_catalogar.campo_obrigatorio', 'Campo obrigatório.')); if (!first) first = el; } });
         if (first) { first.focus(); first.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
-        toast('Preencha os campos obrigatórios destacados: ' + faltando.map(f => f.label).join(', '), 'aviso');
+        toast(t('tab_catalogar.preencha_obrigatorios', 'Preencha os campos obrigatórios destacados: {campos}', { campos: faltando.map(f => f.label).join(', ') }), 'aviso');
         return false;
     }
     // Fase 2 de validateItemFields: coerência de anos — fim não pode ser
@@ -1434,8 +1440,9 @@ window.TabCatalogar = (function () {
         const ini = _yr(fields[inicioKey]), fim = _yr(fields.anoFim);
         if (!(ini && fim && fim < ini)) return true;
         const el = fieldControl(form, { key: 'anoFim' });
-        if (el) { setFieldError(el, 'O ano de fim não pode ser anterior ao de início.'); el.focus(); el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
-        toast('O ano de fim não pode ser anterior ao de início.', 'aviso');
+        const msgAnoFim = t('tab_catalogar.ano_fim_anterior', 'O ano de fim não pode ser anterior ao de início.');
+        if (el) { setFieldError(el, msgAnoFim); el.focus(); el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+        toast(msgAnoFim, 'aviso');
         return false;
     }
     // Fase 3 de validateItemFields: formatos específicos (ISSN/ISBN/DOI/URL) e números ≥ 0
@@ -1460,8 +1467,8 @@ window.TabCatalogar = (function () {
             } else if (f.type === 'number' && raw !== '' && raw != null) {
                 if (isNaN(Number(raw)) || Number(raw) < 0) {
                     const el = fieldControl(form, f);
-                    if (el) { setFieldError(el, 'Informe um número ≥ 0.'); el.focus(); el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
-                    toast(`${f.label}: informe um número válido (≥ 0).`, 'aviso');
+                    if (el) { setFieldError(el, t('tab_catalogar.numero_invalido', 'Informe um número ≥ 0.')); el.focus(); el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+                    toast(t('tab_catalogar.numero_invalido_campo', '{label}: informe um número válido (≥ 0).', { label: f.label }), 'aviso');
                     return false;
                 }
             }
@@ -1540,7 +1547,7 @@ window.TabCatalogar = (function () {
         if (typeKey === 'IDIOMAS' && fields.titulo) {
             const outroComMesmoIdioma = state.catalogo.items.find(i => i.typeKey === 'IDIOMAS' && (!editing || i.id !== editing.id) && (i.fields || {}).titulo === fields.titulo);
             if (outroComMesmoIdioma) {
-                toast(`"${fields.titulo}" já está cadastrado. Edite o item existente em vez de cadastrar outro.`, 'erro');
+                toast(t('tab_catalogar.idioma_ja_cadastrado', '"{idioma}" já está cadastrado. Edite o item existente em vez de cadastrar outro.', { idioma: fields.titulo }), 'erro');
                 return;
             }
         }
@@ -1549,7 +1556,7 @@ window.TabCatalogar = (function () {
             const key = dupKey(typeKey, fields);
             if (key) {
                 const dup = state.catalogo.items.find(i => i.typeKey === typeKey && dupKey(i.typeKey, i.fields) === key);
-                if (dup && !confirm(`Já existe um item parecido:\n"${LattesTypes.itemTitle(dup)}".\n\nDeseja cadastrar mesmo assim?`)) return;
+                if (dup && !confirm(t('tab_catalogar.confirmar_item_parecido', 'Já existe um item parecido:\n"{titulo}".\n\nDeseja cadastrar mesmo assim?', { titulo: LattesTypes.itemTitle(dup) }))) return;
             }
         }
         const item = editing || {
@@ -1604,7 +1611,7 @@ window.TabCatalogar = (function () {
                 if (semDir) { naoGravadas++; continue; }
                 const basename = ev.basename || newBase();
                 try { await Storage.writeAttachment(basename, ev.file, subdir, ev.ext); }
-                catch (e) { toast('Falha ao gravar evidência "' + ev.name + '": ' + e.message, 'aviso'); continue; }
+                catch (e) { toast(t('tab_catalogar.falha_gravar_evidencia', 'Falha ao gravar evidência "{nome}": {erro}', { nome: ev.name, erro: e.message }), 'aviso'); continue; }
                 evOut.push({ basename, ext: ev.ext, name: ev.name, publica: !!ev.publica, tag: ev.tag || '' });
                 // veio da bandeja de entrada (diretamente, ou via Picker do
                 // Google Drive escolhendo um arquivo que já estava lá)
@@ -1628,8 +1635,8 @@ window.TabCatalogar = (function () {
             try { await Storage.moveInboxToProcessed(nm); movidos++; }
             catch (_) { falhasMove++; }
         }
-        if (movidos) toast(`${movidos} arquivo(s) da bandeja movido(s) para “Processados”.`, 'ok');
-        if (falhasMove) toast(`${falhasMove} arquivo(s) da bandeja não puderam ser movidos.`, 'aviso');
+        if (movidos) toast(t('tab_catalogar.movidos_para_processados', '{n} arquivo(s) da bandeja movido(s) para “Processados”.', { n: movidos }), 'ok');
+        if (falhasMove) toast(t('tab_catalogar.falha_mover_bandeja', '{n} arquivo(s) da bandeja não puderam ser movidos.', { n: falhasMove }), 'aviso');
         // "pública" é livre: 0..N evidências podem estar marcadas
         item.evidencias = evOut;
         item.hasPdf = evOut.length > 0;
@@ -1637,14 +1644,14 @@ window.TabCatalogar = (function () {
         item.pdfName = pub ? pub.name : null;
         item.fileExt = pub ? pub.ext : null;
         if (naoGravadas) {
-            toast(`${naoGravadas} evidência(s) não registrada(s): configure um diretório em Configurações e anexe novamente.`, 'aviso');
+            toast(t('tab_catalogar.evidencias_nao_registradas', '{n} evidência(s) não registrada(s): configure um diretório em Configurações e anexe novamente.', { n: naoGravadas }), 'aviso');
         }
 
         await window.AppCore.persistItem(item);
         // Feedback com o local de gravação (subpasta da categoria)
-        const local = Storage.hasDirectory() ? ` em “${subdir}/”` : '';
-        toast((editing ? 'Item atualizado' : 'Item adicionado') + local + '.', 'ok');
-        if (encResid) toast(`Atenção: ${encResid} caractere(s) fora do ISO-8859-1 permanecem (ex.: emoji) — na exportação ao Lattes virarão entidades XML.`, 'aviso');
+        const local = Storage.hasDirectory() ? t('tab_catalogar.item_salvo_local', ' em “{subdir}/”', { subdir }) : '';
+        toast((editing ? t('tab_catalogar.item_atualizado', 'Item atualizado') : t('tab_catalogar.item_adicionado', 'Item adicionado')) + local + '.', 'ok');
+        if (encResid) toast(t('tab_catalogar.aviso_encoding', 'Atenção: {n} caractere(s) fora do ISO-8859-1 permanecem (ex.: emoji) — na exportação ao Lattes virarão entidades XML.', { n: encResid }), 'aviso');
 
         // Lembra a última categoria/tipo (agiliza cadastro em série) e persiste
         state.catalogo.lastCat = item.categoryKey; state.catalogo.lastType = item.typeKey;
@@ -1656,7 +1663,7 @@ window.TabCatalogar = (function () {
         // para revisar/anexar evidência. "Salvar e novo": abre um item em branco
         // (mesma cat/tipo). "Salvar e próximo": abre o item seguinte dentro da
         // MESMA CATEGORIA (ordem sequencial e circular — ver itemsDaCategoria).
-        if (saveNext && !proximoAlvo) toast('Não há outro item nessa categoria para navegar.', 'info');
+        if (saveNext && !proximoAlvo) toast(t('tab_catalogar.sem_outro_item_categoria', 'Não há outro item nessa categoria para navegar.'), 'info');
         if (proximoAlvo) buildForm(proximoAlvo, { focus: false });
         else if (!saveNew) buildForm(state.catalogo.items.find(i => i.id === item.id), { focus: false });
         else buildForm(undefined, { focus: true, keepType: true });
@@ -1729,10 +1736,10 @@ window.TabCatalogar = (function () {
                 const catKey = editingItem ? editingItem.categoryKey : null;
                 const alvo = e.key === 'ArrowDown' ? nextItemAfter(state.catalogo.editingId, catKey) : prevItemBefore(state.catalogo.editingId, catKey);
                 if (!alvo) {
-                    toast('Não há outro item nessa categoria para navegar.', 'info');
+                    toast(t('tab_catalogar.sem_outro_item_categoria', 'Não há outro item nessa categoria para navegar.'), 'info');
                     return;
                 }
-                if (state.ui.formDirty && !confirm('Há alterações não salvas no formulário. Sair mesmo assim?')) return;
+                if (state.ui.formDirty && !confirm(t('tab_catalogar.confirmar_sair_nao_salvo', 'Há alterações não salvas no formulário. Sair mesmo assim?'))) return;
                 buildForm(alvo, { focus: false });
             }
         });

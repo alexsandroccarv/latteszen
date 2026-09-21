@@ -26,7 +26,7 @@
    circular entre os dois arquivos. Nenhuma mudança de conteúdo, só saiu
    do arquivo único original.
    ========================================================================== */
-const { state, $, $$, esc } = window.AppCore;
+const { state, $, $$, esc, t } = window.AppCore;
 
         // Entre a seção de seleção do tipo e o formulário de cadastro do
         // idioma: lista os idiomas já cadastrados (ordem alfabética), cada
@@ -44,10 +44,10 @@ const { state, $, $$, esc } = window.AppCore;
             if (!cadastrados.length) { bloco.classList.add('hidden'); bloco.innerHTML = ''; return; }
             bloco.classList.remove('hidden');
             bloco.innerHTML = `<div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded p-3">
-                <p class="text-xs font-semibold mb-1.5"><i aria-hidden="true" class="fa-solid fa-language mr-1"></i> Idiomas já cadastrados</p>
+                <p class="text-xs font-semibold mb-1.5"><i aria-hidden="true" class="fa-solid fa-language mr-1"></i> ${esc(t('tab_catalogar_cadastrados.idiomas_titulo', 'Idiomas já cadastrados'))}</p>
                 <ul class="text-sm space-y-1">${cadastrados.map(i => `<li class="flex items-center justify-between gap-2">
                     <span>${esc(i.fields.titulo)}</span>
-                    <button type="button" data-editar-idioma="${esc(i.id)}" class="text-xs underline text-govbr-700 dark:text-unifesp-300">Editar</button>
+                    <button type="button" data-editar-idioma="${esc(i.id)}" class="text-xs underline text-govbr-700 dark:text-unifesp-300">${esc(t('tab_catalogar_cadastrados.editar', 'Editar'))}</button>
                 </li>`).join('')}</ul>
             </div>`;
             $$('[data-editar-idioma]', bloco).forEach(btn => {
@@ -85,12 +85,12 @@ const { state, $, $$, esc } = window.AppCore;
             if (!areas.length) { bloco.classList.add('hidden'); bloco.innerHTML = ''; return; }
             bloco.classList.remove('hidden');
             bloco.innerHTML = `<div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded p-3">
-                <p class="text-xs font-semibold mb-1.5"><i aria-hidden="true" class="fa-solid fa-list-ol mr-1"></i> Áreas de atuação já cadastradas — ▲▼ define a ordem de exportação</p>
+                <p class="text-xs font-semibold mb-1.5"><i aria-hidden="true" class="fa-solid fa-list-ol mr-1"></i> ${esc(t('tab_catalogar_cadastrados.areas_titulo', 'Áreas de atuação já cadastradas — ▲▼ define a ordem de exportação'))}</p>
                 <ul class="text-sm space-y-1">${areas.map((i, idx) => `<li class="flex items-center gap-2">
-                    <button type="button" data-area-up="${esc(i.id)}" title="Subir" class="w-8 h-8 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 shrink-0 disabled:opacity-30" ${idx === 0 ? 'disabled' : ''}><i class="fa-solid fa-arrow-up"></i></button>
-                    <button type="button" data-area-down="${esc(i.id)}" title="Descer" class="w-8 h-8 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 shrink-0 disabled:opacity-30" ${idx === areas.length - 1 ? 'disabled' : ''}><i class="fa-solid fa-arrow-down"></i></button>
+                    <button type="button" data-area-up="${esc(i.id)}" title="${esc(t('tab_catalogar_cadastrados.subir', 'Subir'))}" class="w-8 h-8 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 shrink-0 disabled:opacity-30" ${idx === 0 ? 'disabled' : ''}><i class="fa-solid fa-arrow-up"></i></button>
+                    <button type="button" data-area-down="${esc(i.id)}" title="${esc(t('tab_catalogar_cadastrados.descer', 'Descer'))}" class="w-8 h-8 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 shrink-0 disabled:opacity-30" ${idx === areas.length - 1 ? 'disabled' : ''}><i class="fa-solid fa-arrow-down"></i></button>
                     <span class="flex-1 min-w-0 truncate">${esc(LattesTypes.itemTitle(i))}</span>
-                    <button type="button" data-editar-area="${esc(i.id)}" class="text-xs underline text-govbr-700 dark:text-unifesp-300 shrink-0">Editar</button>
+                    <button type="button" data-editar-area="${esc(i.id)}" class="text-xs underline text-govbr-700 dark:text-unifesp-300 shrink-0">${esc(t('tab_catalogar_cadastrados.editar', 'Editar'))}</button>
                 </li>`).join('')}</ul>
             </div>`;
             $$('[data-area-up]', bloco).forEach(btn => btn.addEventListener('click', () => {

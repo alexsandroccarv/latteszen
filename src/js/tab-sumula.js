@@ -38,7 +38,7 @@
    manual (mesmo escopo sugerido na issue).
    ========================================================================== */
 window.TabSumula = (function () {
-    const { state, $, esc, toast, itemYear, sortByYear } = window.AppCore;
+    const { state, $, esc, toast, itemYear, sortByYear, t } = window.AppCore;
 
     // Nome e ORCID vêm da Identificação (Configurações › Perfil) — evita
     // duplicar esse cadastro aqui (mesmo princípio já usado pelo RSC pro
@@ -53,18 +53,18 @@ window.TabSumula = (function () {
         const c = cfg || {};
         const perfil = perfilIdentificacao();
         return `<section class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 mb-4">
-            <h3 class="font-bold text-sm mb-2 flex items-center gap-2"><i class="fa-solid fa-id-card text-govbr-600 dark:text-unifesp-400"></i> Súmula: Dados pessoais</h3>
-            <p class="text-xs text-gray-500 mb-2">Nome e ORCID vêm da <strong>Identificação</strong> (Configurações › Perfil): ${esc(perfil.titulo || '—')}${perfil.orcid ? ` · ORCID ${esc(perfil.orcid)}` : ''}.</p>
+            <h3 class="font-bold text-sm mb-2 flex items-center gap-2"><i class="fa-solid fa-id-card text-govbr-600 dark:text-unifesp-400"></i> ${esc(t('tab_sumula.dados_pessoais_titulo', 'Súmula: Dados pessoais'))}</h3>
+            <p class="text-xs text-gray-500 mb-2">${t('tab_sumula.dados_pessoais_ajuda', 'Nome e ORCID vêm da <strong>Identificação</strong> (Configurações › Perfil): {nome}{orcid}.', { nome: esc(perfil.titulo || '—'), orcid: perfil.orcid ? ` · ORCID ${esc(perfil.orcid)}` : '' })}</p>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
-                <div><label class="block text-xs font-semibold mb-1" for="sumula-linkLattes">Link do Currículo Lattes</label>
+                <div><label class="block text-xs font-semibold mb-1" for="sumula-linkLattes">${esc(t('tab_sumula.link_lattes', 'Link do Currículo Lattes'))}</label>
                     <input id="sumula-linkLattes" type="text" value="${esc(c.linkLattes || '')}" placeholder="http://lattes.cnpq.br/..." class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900"></div>
-                <div><label class="block text-xs font-semibold mb-1" for="sumula-linkWebOfScience">Link Web of Science (opcional)</label>
+                <div><label class="block text-xs font-semibold mb-1" for="sumula-linkWebOfScience">${esc(t('tab_sumula.link_wos', 'Link Web of Science (opcional)'))}</label>
                     <input id="sumula-linkWebOfScience" type="text" value="${esc(c.linkWebOfScience || '')}" class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900"></div>
-                <div><label class="block text-xs font-semibold mb-1" for="sumula-linkGoogleScholar">Link Google Scholar / MyCitation (opcional)</label>
+                <div><label class="block text-xs font-semibold mb-1" for="sumula-linkGoogleScholar">${esc(t('tab_sumula.link_scholar', 'Link Google Scholar / MyCitation (opcional)'))}</label>
                     <input id="sumula-linkGoogleScholar" type="text" value="${esc(c.linkGoogleScholar || '')}" class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900"></div>
             </div>
             <div class="flex gap-2 mt-3">
-                <button id="btnSaveSumulaCfg" class="px-3 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm"><i class="fa-solid fa-floppy-disk mr-1"></i> Salvar</button>
+                <button id="btnSaveSumulaCfg" class="px-3 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm"><i class="fa-solid fa-floppy-disk mr-1"></i> ${esc(t('tab_catalogar.salvar', 'Salvar'))}</button>
             </div>
         </section>`;
     }
@@ -79,7 +79,7 @@ window.TabSumula = (function () {
             state.sumula.cfg = cfg;
             const s = Storage.loadSettings(); s.sumula = cfg; Storage.saveSettings(s);
             window.AppCore.persistirSumula();
-            toast('Configuração da Súmula FAPESP salva.', 'ok');
+            toast(t('tab_sumula.config_salva', 'Configuração da Súmula FAPESP salva.'), 'ok');
             render();
         });
     }
@@ -153,16 +153,17 @@ window.TabSumula = (function () {
         const c = cfg || {};
         const perfil = perfilIdentificacao();
         const L = [];
-        L.push(`Nome: ${perfil.titulo || '—'}`);
-        L.push(`Orcid (obrigatório): ${perfil.orcid || '—'}`);
-        L.push(`Currículo Lattes: ${c.linkLattes || '—'}`);
-        if (c.linkWebOfScience) L.push(`Web of Science: ${c.linkWebOfScience}`);
-        if (c.linkGoogleScholar) L.push(`MyCitation (Google Scholar): ${c.linkGoogleScholar}`);
+        L.push(t('tab_sumula.modelo_nome', 'Nome: {v}', { v: perfil.titulo || '—' }));
+        L.push(t('tab_sumula.modelo_orcid', 'Orcid (obrigatório): {v}', { v: perfil.orcid || '—' }));
+        L.push(t('tab_sumula.modelo_lattes', 'Currículo Lattes: {v}', { v: c.linkLattes || '—' }));
+        if (c.linkWebOfScience) L.push(t('tab_sumula.modelo_wos', 'Web of Science: {v}', { v: c.linkWebOfScience }));
+        if (c.linkGoogleScholar) L.push(t('tab_sumula.modelo_scholar', 'MyCitation (Google Scholar): {v}', { v: c.linkGoogleScholar }));
         L.push('');
 
-        L.push('1) Formação');
+        const nadaDeclarar = t('tab_sumula.nada_a_declarar', 'NADA A DECLARAR');
+        L.push(t('tab_sumula.secao1_titulo', '1) Formação'));
         const form = formacaoItens();
-        if (!form.length) L.push('NADA A DECLARAR');
+        if (!form.length) L.push(nadaDeclarar);
         else form.forEach(i => {
             const f = i.fields || {};
             const inst = f.instituicao ? ` — ${f.instituicao}` : '';
@@ -170,14 +171,14 @@ window.TabSumula = (function () {
         });
         L.push('');
 
-        L.push('1.1) Formação – Informações Adicionais');
-        L.push('[Se aplicável: interrupções/afastamentos por prole, deficiência, incapacidade temporária ou cuidados intensivos (Portaria PR nº 171/2024) — inclua também a consulta prévia de elegibilidade. Caso contrário: NADA A DECLARAR.]');
+        L.push(t('tab_sumula.secao1_1_titulo', '1.1) Formação – Informações Adicionais'));
+        L.push(t('tab_sumula.secao1_1_ajuda', '[Se aplicável: interrupções/afastamentos por prole, deficiência, incapacidade temporária ou cuidados intensivos (Portaria PR nº 171/2024) — inclua também a consulta prévia de elegibilidade. Caso contrário: NADA A DECLARAR.]'));
         L.push('');
 
-        L.push('2) Histórico Profissional/Acadêmico');
-        L.push('[Até 3 principais posições profissionais/acadêmicas (datas e instituições), atividades associativas, empreendedorismo/startups e distinções acadêmicas. Sugestão a partir do catálogo — ajuste livremente:]');
+        L.push(t('tab_sumula.secao2_titulo', '2) Histórico Profissional/Acadêmico'));
+        L.push(t('tab_sumula.secao2_ajuda', '[Até 3 principais posições profissionais/acadêmicas (datas e instituições), atividades associativas, empreendedorismo/startups e distinções acadêmicas. Sugestão a partir do catálogo — ajuste livremente:]'));
         const hist = historicoProfissionalItens(3);
-        if (!hist.length) L.push('NADA A DECLARAR');
+        if (!hist.length) L.push(nadaDeclarar);
         else hist.forEach(i => {
             const f = i.fields || {};
             const per = periodoTexto(f);
@@ -185,25 +186,25 @@ window.TabSumula = (function () {
         });
         const premios = premiosItens();
         if (premios.length) {
-            L.push('Prêmios e distinções:');
+            L.push(t('tab_sumula.premios_distincoes', 'Prêmios e distinções:'));
             premios.forEach(i => L.push(`• ${LattesTypes.itemTitle(i)} — ${(i.fields || {}).entidade || ''}${itemYear(i) ? ` (${itemYear(i)})` : ''}`));
         }
         L.push('');
 
-        L.push('3) Contribuições à Ciência (Científicas, Tecnológicas ou de Inovação)');
-        L.push('[Até 5 pesquisas/produtos mais relevantes dos últimos 5 anos, com a justificativa da escolha (impacto e relevância) em até 5 linhas cada. Sugestão a partir do catálogo — troque pelos que julgar mais relevantes:]');
+        L.push(t('tab_sumula.secao3_titulo', '3) Contribuições à Ciência (Científicas, Tecnológicas ou de Inovação)'));
+        L.push(t('tab_sumula.secao3_ajuda', '[Até 5 pesquisas/produtos mais relevantes dos últimos 5 anos, com a justificativa da escolha (impacto e relevância) em até 5 linhas cada. Sugestão a partir do catálogo — troque pelos que julgar mais relevantes:]'));
         const contrib = contribuicoesItens(5, 5);
-        if (!contrib.length) L.push('NADA A DECLARAR');
+        if (!contrib.length) L.push(nadaDeclarar);
         else contrib.forEach(i => {
             L.push(`• ${LattesTypes.itemTitle(i)}${itemYear(i) ? ` (${itemYear(i)})` : ''}`);
-            L.push('  Justificativa: [preencha aqui — impacto e relevância para os projetos de pesquisa em andamento/propostos]');
+            L.push(t('tab_sumula.justificativa_placeholder', '  Justificativa: [preencha aqui — impacto e relevância para os projetos de pesquisa em andamento/propostos]'));
         });
         L.push('');
 
-        L.push('4) Financiamentos à Pesquisa');
-        L.push('[Até 5 financiamentos mais relevantes, vigentes ou concluídos, como Pesquisador Responsável/Principal. Sugestão a partir do catálogo:]');
+        L.push(t('tab_sumula.secao4_titulo', '4) Financiamentos à Pesquisa'));
+        L.push(t('tab_sumula.secao4_ajuda', '[Até 5 financiamentos mais relevantes, vigentes ou concluídos, como Pesquisador Responsável/Principal. Sugestão a partir do catálogo:]'));
         const financ = financiamentosItens(5);
-        if (!financ.length) L.push('NADA A DECLARAR');
+        if (!financ.length) L.push(nadaDeclarar);
         else financ.forEach(i => {
             const f = i.fields || {};
             const per = periodoTexto(f);
@@ -211,29 +212,29 @@ window.TabSumula = (function () {
         });
         L.push('');
 
-        L.push('5) Indicadores Quantitativos');
+        L.push(t('tab_sumula.secao5_titulo', '5) Indicadores Quantitativos'));
         const ind = indicadoresQuantitativos();
-        L.push(`1) Livros publicados: ${ind.livros}`);
-        L.push(`2) Publicações em periódicos com seletiva política editorial: ${ind.periodicos}`);
-        L.push(`3) Capítulos de livros: ${ind.capitulos}`);
-        L.push(`4.a) Dissertações de Mestrado orientadas e já defendidas: ${ind.mestradoConcluidas}`);
-        L.push(`4.b) Dissertações de Mestrado em andamento: ${ind.mestradoAndamento}`);
-        L.push(`5.a) Teses de Doutorado orientadas e já defendidas: ${ind.doutoradoConcluidas}`);
-        L.push(`5.b) Teses de Doutorado em andamento: ${ind.doutoradoAndamento}`);
-        L.push(`6.a) Supervisões de Pós-Doutorado concluídas: ${ind.posDocConcluidas}`);
-        L.push(`6.b) Supervisões de Pós-Doutorado em andamento: ${ind.posDocAndamento}`);
-        L.push('7) Citações recebidas na literatura científica internacional (Web of Science, Scopus ou Google Scholar): [preencha manualmente — não calculado automaticamente]');
-        L.push(`8) Patentes solicitadas, concedidas e licenciadas: ${ind.patentes} no total [o catálogo não distingue solicitada/concedida/licenciada — detalhe manualmente, se necessário]`);
-        L.push('9) Produtos desenvolvidos e lançados no mercado: [preencha manualmente, ou NADA A DECLARAR]');
-        L.push('10) Processos otimizados implementados em empresas ou organizações sociais: [preencha manualmente, ou NADA A DECLARAR]');
-        L.push('11) Empresas criadas ou apoiadas: [preencha manualmente, ou NADA A DECLARAR]');
-        L.push('12) Consultorias técnicas e científicas relevantes: [preencha manualmente, ou NADA A DECLARAR]');
+        L.push(t('tab_sumula.ind_livros', '1) Livros publicados: {n}', { n: ind.livros }));
+        L.push(t('tab_sumula.ind_periodicos', '2) Publicações em periódicos com seletiva política editorial: {n}', { n: ind.periodicos }));
+        L.push(t('tab_sumula.ind_capitulos', '3) Capítulos de livros: {n}', { n: ind.capitulos }));
+        L.push(t('tab_sumula.ind_mestrado_concluidas', '4.a) Dissertações de Mestrado orientadas e já defendidas: {n}', { n: ind.mestradoConcluidas }));
+        L.push(t('tab_sumula.ind_mestrado_andamento', '4.b) Dissertações de Mestrado em andamento: {n}', { n: ind.mestradoAndamento }));
+        L.push(t('tab_sumula.ind_doutorado_concluidas', '5.a) Teses de Doutorado orientadas e já defendidas: {n}', { n: ind.doutoradoConcluidas }));
+        L.push(t('tab_sumula.ind_doutorado_andamento', '5.b) Teses de Doutorado em andamento: {n}', { n: ind.doutoradoAndamento }));
+        L.push(t('tab_sumula.ind_posdoc_concluidas', '6.a) Supervisões de Pós-Doutorado concluídas: {n}', { n: ind.posDocConcluidas }));
+        L.push(t('tab_sumula.ind_posdoc_andamento', '6.b) Supervisões de Pós-Doutorado em andamento: {n}', { n: ind.posDocAndamento }));
+        L.push(t('tab_sumula.ind_citacoes', '7) Citações recebidas na literatura científica internacional (Web of Science, Scopus ou Google Scholar): [preencha manualmente — não calculado automaticamente]'));
+        L.push(t('tab_sumula.ind_patentes', '8) Patentes solicitadas, concedidas e licenciadas: {n} no total [o catálogo não distingue solicitada/concedida/licenciada — detalhe manualmente, se necessário]', { n: ind.patentes }));
+        L.push(t('tab_sumula.ind_produtos', '9) Produtos desenvolvidos e lançados no mercado: [preencha manualmente, ou NADA A DECLARAR]'));
+        L.push(t('tab_sumula.ind_processos', '10) Processos otimizados implementados em empresas ou organizações sociais: [preencha manualmente, ou NADA A DECLARAR]'));
+        L.push(t('tab_sumula.ind_empresas', '11) Empresas criadas ou apoiadas: [preencha manualmente, ou NADA A DECLARAR]'));
+        L.push(t('tab_sumula.ind_consultorias', '12) Consultorias técnicas e científicas relevantes: [preencha manualmente, ou NADA A DECLARAR]'));
         L.push('');
 
-        L.push('6) Outras Informações Relevantes');
-        L.push('6.a) [Outras informações biográficas relevantes dos últimos 10 anos — experiência e competência na área ou em empreendedorismo e inovação.]');
-        L.push('6.b) [Experiência internacional em pesquisa após o doutoramento — participação em redes internacionais de colaboração com resultados publicados.]');
-        L.push('6.c) [Prêmios, distinções e honrarias, se não cobertos na seção 2.]');
+        L.push(t('tab_sumula.secao6_titulo', '6) Outras Informações Relevantes'));
+        L.push(t('tab_sumula.secao6a', '6.a) [Outras informações biográficas relevantes dos últimos 10 anos — experiência e competência na área ou em empreendedorismo e inovação.]'));
+        L.push(t('tab_sumula.secao6b', '6.b) [Experiência internacional em pesquisa após o doutoramento — participação em redes internacionais de colaboração com resultados publicados.]'));
+        L.push(t('tab_sumula.secao6c', '6.c) [Prêmios, distinções e honrarias, se não cobertos na seção 2.]'));
 
         return L.join('\n');
     }
@@ -250,7 +251,7 @@ window.TabSumula = (function () {
         return `${LattesTypes.sumulaFapespFolder()}/${dd}${mm}${yyyy}`;
     }
     function nomeArquivoSumula() {
-        const safe = sanitizeArquivo(perfilIdentificacao().titulo) || 'Pesquisador';
+        const safe = sanitizeArquivo(perfilIdentificacao().titulo) || t('tab_sumula.pesquisador_fallback', 'Pesquisador');
         const hoje = new Date();
         const dd = String(hoje.getDate()).padStart(2, '0');
         const mm = String(hoje.getMonth() + 1).padStart(2, '0');
@@ -267,7 +268,7 @@ window.TabSumula = (function () {
     function sumulaDocxBody(texto) {
         const D = window.LzDocx;
         const parts = [];
-        parts.push(D.heading('Súmula Curricular — FAPESP', 1));
+        parts.push(D.heading(t('tab_sumula.docx_titulo', 'Súmula Curricular — FAPESP'), 1));
         const perfil = perfilIdentificacao();
         const subtitulo = [perfil.titulo, perfil.orcid ? `ORCID ${perfil.orcid}` : ''].filter(Boolean).join(' — ');
         if (subtitulo) parts.push(D.para(subtitulo, { italic: true, size: 18 }));
@@ -281,26 +282,26 @@ window.TabSumula = (function () {
         return parts.join('');
     }
     async function exportarSumula(cfg) {
-        if (!Storage.hasDirectory()) { toast('Configure um diretório em Configurações para exportar.', 'aviso'); return; }
+        if (!Storage.hasDirectory()) { toast(t('tab_rsc.configure_diretorio', 'Configure um diretório em Configurações para exportar.'), 'aviso'); return; }
         // Botão desabilitado durante a exportação — mesmo padrão do RSC
         // (tab-rsc.js, exportarRsc), pra consistência entre os dois módulos.
         const btn = $('#btnSumulaExportar');
         const original = btn ? btn.innerHTML : '';
-        if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Gerando…'; }
+        if (btn) { btn.disabled = true; btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-1"></i> ${esc(t('tab_sumula.gerando', 'Gerando…'))}`; }
         try {
             const folder = pastaExportacaoHoje();
             const texto = (state.sumula.texto && state.sumula.texto.trim()) ? state.sumula.texto : sumulaModelo(cfg);
             const bytes = window.LzDocx.buildDocx(sumulaDocxBody(texto));
             await Storage.writeFile(nomeArquivoSumula(), bytes, folder);
-            toast(`Súmula Curricular exportada em "${folder}/".`, 'ok');
-        } catch (e) { toast('Falha ao exportar: ' + e.message, 'erro'); }
+            toast(t('tab_sumula.exportado_sucesso', 'Súmula Curricular exportada em "{pasta}/".', { pasta: folder }), 'ok');
+        } catch (e) { toast(t('tab_rsc.falha_exportar', 'Falha ao exportar: {erro}', { erro: e.message }), 'erro'); }
         finally { if (btn) { btn.disabled = false; btn.innerHTML = original; } }
     }
 
     function render() {
         const panel = $('#tab-sumula');
         if (!state.sumula.enabled) {
-            panel.innerHTML = `<p class="text-sm text-gray-500 italic py-8 text-center">Módulo Súmula Curricular FAPESP desabilitado. Habilite em <strong>Configurações › Súmula Curricular FAPESP</strong>.</p>`;
+            panel.innerHTML = `<p class="text-sm text-gray-500 italic py-8 text-center">${t('tab_sumula.modulo_desabilitado', 'Módulo Súmula Curricular FAPESP desabilitado. Habilite em <strong>Configurações › Súmula Curricular FAPESP</strong>.')}</p>`;
             return;
         }
         const cfg = state.sumula.cfg || {};
@@ -309,16 +310,16 @@ window.TabSumula = (function () {
 
             <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 mb-4">
                 <div class="flex items-center justify-between gap-2 mb-1 flex-wrap">
-                    <h3 class="font-bold text-sm">Texto da Súmula Curricular</h3>
-                    <button id="btnSumulaModeloPadrao" class="px-2 py-1 rounded border border-gray-300 dark:border-gray-600 text-xs"><i class="fa-solid fa-arrows-rotate mr-1"></i> Preencher com modelo automático</button>
+                    <h3 class="font-bold text-sm">${esc(t('tab_sumula.texto_titulo', 'Texto da Súmula Curricular'))}</h3>
+                    <button id="btnSumulaModeloPadrao" class="px-2 py-1 rounded border border-gray-300 dark:border-gray-600 text-xs"><i class="fa-solid fa-arrows-rotate mr-1"></i> ${esc(t('tab_rsc.preencher_modelo_automatico', 'Preencher com modelo automático'))}</button>
                 </div>
-                <p class="text-xs text-gray-500 mb-2">Organizado nas 6 seções exigidas pela FAPESP (<a href="https://fapesp.br/sumula" target="_blank" rel="noopener" class="underline">roteiro oficial</a>), com sugestões pré-preenchidas a partir do catálogo — revise, edite e complete antes de exportar. <strong>Não é um documento oficial pronto para submissão.</strong> Lembre-se: até 4 páginas A-4 (a FAPESP descarta o excedente).</p>
-                <textarea id="sumulaTexto" rows="20" placeholder="Clique em “Preencher com modelo automático” para começar…" class="w-full text-sm px-3 py-2 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 font-mono leading-relaxed">${esc(state.sumula.texto || '')}</textarea>
+                <p class="text-xs text-gray-500 mb-2">${t('tab_sumula.texto_ajuda', 'Organizado nas 6 seções exigidas pela FAPESP (<a href="https://fapesp.br/sumula" target="_blank" rel="noopener" class="underline">roteiro oficial</a>), com sugestões pré-preenchidas a partir do catálogo — revise, edite e complete antes de exportar. <strong>Não é um documento oficial pronto para submissão.</strong> Lembre-se: até 4 páginas A-4 (a FAPESP descarta o excedente).')}</p>
+                <textarea id="sumulaTexto" rows="20" placeholder="${esc(t('tab_sumula.texto_placeholder', 'Clique em “Preencher com modelo automático” para começar…'))}" class="w-full text-sm px-3 py-2 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 font-mono leading-relaxed">${esc(state.sumula.texto || '')}</textarea>
                 <p id="sumulaTextoSalvo" class="text-xs text-gray-400 mt-1 h-4"></p>
             </div>
 
             <div class="flex gap-2 flex-wrap mt-4">
-                <button id="btnSumulaExportar" class="px-3 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm"><i class="fa-solid fa-file-export mr-1"></i> Gerar Súmula Curricular (docx)</button>
+                <button id="btnSumulaExportar" class="px-3 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm"><i class="fa-solid fa-file-export mr-1"></i> ${esc(t('tab_sumula.gerar_docx', 'Gerar Súmula Curricular (docx)'))}</button>
             </div>`;
 
         wireSumulaCfgSection();
@@ -331,15 +332,15 @@ window.TabSumula = (function () {
             state.sumula.texto = area.value;
             const s = Storage.loadSettings(); s.sumulaTexto = state.sumula.texto; Storage.saveSettings(s);
             window.AppCore.persistirSumula();
-            if (info) { info.textContent = 'Salvo.'; clearTimeout(info._t); info._t = setTimeout(() => { info.textContent = ''; }, 1500); }
+            if (info) { info.textContent = t('tab_rsc.salvo', 'Salvo.'); clearTimeout(info._t); info._t = setTimeout(() => { info.textContent = ''; }, 1500); }
         };
         area.addEventListener('input', () => { clearTimeout(saveTimer); saveTimer = setTimeout(salvar, 500); });
         area.addEventListener('blur', () => { clearTimeout(saveTimer); salvar(); });
         $('#btnSumulaModeloPadrao').addEventListener('click', () => {
-            if (area.value.trim() && !confirm('Isso substitui o texto atual pelo modelo automático. Continuar?')) return;
+            if (area.value.trim() && !confirm(t('tab_sumula.confirmar_substituir', 'Isso substitui o texto atual pelo modelo automático. Continuar?'))) return;
             area.value = sumulaModelo(cfg);
             salvar();
-            toast('Súmula preenchida com o modelo automático.', 'ok');
+            toast(t('tab_sumula.preenchida_modelo', 'Súmula preenchida com o modelo automático.'), 'ok');
         });
     }
 

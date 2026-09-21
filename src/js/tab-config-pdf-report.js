@@ -26,7 +26,7 @@
    ========================================================================== */
 import { dadosItemHtml, fileStamp } from './tab-config-shared.js';
 
-const { state, $, $$, esc, toast } = window.AppCore;
+const { state, $, $$, esc, toast, t } = window.AppCore;
 
 // Uma checkbox por categoria (01-21) — mesma trava rscOnly já usada em
 // Catalogar (tab-catalogar.js: `.filter(c => !c.rscOnly || state.rsc.enabled)`),
@@ -45,85 +45,85 @@ function categoriasCheckboxesHtml() {
 }
 
 export function pdfReportExportItemHtml() {
-    return dadosItemHtml('fa-solid fa-file-pdf', 'Relatório completo (PDF)',
-        'Um único arquivo PDF pronto para impressão/encadernação: capa, sumário com paginação, um Memorial (se você preencher um em Catalogar → Dados gerais), o currículo completo e, em anexo, as evidências marcadas como "pública" — mescladas de verdade dentro do PDF, não só citadas.', `
+    return dadosItemHtml('fa-solid fa-file-pdf', t('tab_config_pdf_report.titulo', 'Relatório completo (PDF)'),
+        t('tab_config_pdf_report.ajuda', 'Um único arquivo PDF pronto para impressão/encadernação: capa, sumário com paginação, um Memorial (se você preencher um em Catalogar → Dados gerais), o currículo completo e, em anexo, as evidências marcadas como "pública" — mescladas de verdade dentro do PDF, não só citadas.'), `
             <fieldset class="text-sm mb-2">
-                <legend class="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Quais itens considerar</legend>
+                <legend class="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">${esc(t('tab_config_pdf_report.quais_itens', 'Quais itens considerar'))}</legend>
                 <label class="flex items-center gap-2 mb-1">
                     <input type="radio" name="pdfReportEscopo" id="pdfReportEscopoTodos" value="todos" checked>
-                    Catálogo inteiro
+                    ${esc(t('tab_config_pdf_report.catalogo_inteiro', 'Catálogo inteiro'))}
                 </label>
                 <label class="flex items-center gap-2">
                     <input type="radio" name="pdfReportEscopo" id="pdfReportEscopoWeb" value="web">
-                    Só os itens marcados para "Publicar na Web"
+                    ${esc(t('tab_config_pdf_report.so_publicar_web', 'Só os itens marcados para "Publicar na Web"'))}
                 </label>
             </fieldset>
             <fieldset class="text-sm mb-2">
-                <legend class="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">O que incluir no relatório</legend>
+                <legend class="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">${esc(t('tab_config_pdf_report.o_que_incluir', 'O que incluir no relatório'))}</legend>
                 <label class="flex items-center gap-2 mb-1">
                     <input type="radio" name="pdfReportConteudo" id="pdfReportConteudoCompleto" value="completo" checked>
-                    Currículo completo (com evidências)
+                    ${esc(t('tab_config_pdf_report.curriculo_completo', 'Currículo completo (com evidências)'))}
                 </label>
                 <label class="flex items-center gap-2 mb-1">
                     <input type="radio" name="pdfReportConteudo" id="pdfReportConteudoSemEvidencias" value="sem-evidencias">
-                    Apenas currículo (sem evidências)
+                    ${esc(t('tab_config_pdf_report.apenas_curriculo', 'Apenas currículo (sem evidências)'))}
                 </label>
                 <label class="flex items-center gap-2 mb-1">
                     <input type="radio" name="pdfReportConteudo" id="pdfReportConteudoApenasEvidencias" value="apenas-evidencias">
-                    Apenas evidências (sem o texto do currículo)
+                    ${esc(t('tab_config_pdf_report.apenas_evidencias', 'Apenas evidências (sem o texto do currículo)'))}
                 </label>
                 <label class="flex items-center gap-2">
                     <input type="radio" name="pdfReportConteudo" id="pdfReportConteudoPersonalizado" value="personalizado">
-                    Personalizado (escolher categorias)
+                    ${esc(t('tab_config_pdf_report.personalizado', 'Personalizado (escolher categorias)'))}
                 </label>
             </fieldset>
             <fieldset id="pdfReportCategoriasWrap" class="hidden text-sm mb-2 border border-gray-200 dark:border-gray-700 rounded p-2">
-                <legend class="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1 px-1">Categorias a incluir</legend>
+                <legend class="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1 px-1">${esc(t('tab_config_pdf_report.categorias_incluir', 'Categorias a incluir'))}</legend>
                 <div class="flex gap-3 text-xs mb-1.5">
-                    <button type="button" id="pdfReportCategoriasTodas" class="underline hover:no-underline">Selecionar todas</button>
-                    <button type="button" id="pdfReportCategoriasNenhuma" class="underline hover:no-underline">Limpar seleção</button>
+                    <button type="button" id="pdfReportCategoriasTodas" class="underline hover:no-underline">${esc(t('tab_config_pdf_report.selecionar_todas', 'Selecionar todas'))}</button>
+                    <button type="button" id="pdfReportCategoriasNenhuma" class="underline hover:no-underline">${esc(t('tab_config_pdf_report.limpar_selecao', 'Limpar seleção'))}</button>
                 </div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-1 text-xs max-h-48 overflow-y-auto">
                     ${categoriasCheckboxesHtml()}
                 </div>
             </fieldset>
             <fieldset class="text-sm mb-2">
-                <legend class="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Ordenar por data, dentro de cada categoria</legend>
+                <legend class="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">${esc(t('tab_config_pdf_report.ordenar_por_data', 'Ordenar por data, dentro de cada categoria'))}</legend>
                 <label class="flex items-center gap-2 mb-1">
                     <input type="radio" name="pdfReportOrdem" id="pdfReportOrdemDesc" value="desc" checked>
-                    Mais recentes primeiro (decrescente)
+                    ${esc(t('tab_config_pdf_report.ordem_desc', 'Mais recentes primeiro (decrescente)'))}
                 </label>
                 <label class="flex items-center gap-2">
                     <input type="radio" name="pdfReportOrdem" id="pdfReportOrdemAsc" value="asc">
-                    Mais antigas primeiro (crescente)
+                    ${esc(t('tab_config_pdf_report.ordem_asc', 'Mais antigas primeiro (crescente)'))}
                 </label>
             </fieldset>
             <fieldset class="text-sm mb-2">
-                <legend class="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Anexos — evidências</legend>
+                <legend class="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">${esc(t('tab_config_pdf_report.anexos_evidencias', 'Anexos — evidências'))}</legend>
                 <label class="flex items-center gap-2">
                     <input type="checkbox" id="pdfReportPaginasDivisao">
-                    Incluir uma página de divisão para cada categoria de evidências
+                    ${esc(t('tab_config_pdf_report.pagina_divisao', 'Incluir uma página de divisão para cada categoria de evidências'))}
                 </label>
-                <span class="block text-xs text-gray-500 dark:text-gray-400 mt-0.5">Sem marcar, as evidências de cada categoria vão direto pro primeiro item — só o sumário aponta certo pra onde cada uma começa.</span>
+                <span class="block text-xs text-gray-500 dark:text-gray-400 mt-0.5">${esc(t('tab_config_pdf_report.pagina_divisao_ajuda', 'Sem marcar, as evidências de cada categoria vão direto pro primeiro item — só o sumário aponta certo pra onde cada uma começa.'))}</span>
             </fieldset>
             <fieldset class="text-sm mb-2">
-                <legend class="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">Modelo de diagramação</legend>
+                <legend class="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">${esc(t('tab_config_pdf_report.modelo_diagramacao', 'Modelo de diagramação'))}</legend>
                 <label class="flex items-start gap-2 mb-1.5">
                     <input type="radio" name="pdfReportModelo" id="pdfReportModeloA" value="A" checked class="mt-0.5">
                     <span>
-                        <strong>A — Editorial sóbrio</strong>
-                        <span class="block text-xs text-gray-500 dark:text-gray-400">Títulos em fonte serifada, cabeçalho com o nome e a seção em toda página, sumário com pontilhado guia até o número.</span>
+                        <strong>${esc(t('tab_config_pdf_report.modelo_a_titulo', 'A — Editorial sóbrio'))}</strong>
+                        <span class="block text-xs text-gray-500 dark:text-gray-400">${esc(t('tab_config_pdf_report.modelo_a_desc', 'Títulos em fonte serifada, cabeçalho com o nome e a seção em toda página, sumário com pontilhado guia até o número.'))}</span>
                     </span>
                 </label>
                 <label class="flex items-start gap-2">
                     <input type="radio" name="pdfReportModelo" id="pdfReportModeloB" value="B" class="mt-0.5">
                     <span>
-                        <strong>B — Índice lateral colorido</strong>
-                        <span class="block text-xs text-gray-500 dark:text-gray-400">Cada categoria ganha uma cor fixa; uma faixa lateral colorida em toda página ajuda a achar a seção folheando o PDF impresso, e cada item ganha um selo de contador + data.</span>
+                        <strong>${esc(t('tab_config_pdf_report.modelo_b_titulo', 'B — Índice lateral colorido'))}</strong>
+                        <span class="block text-xs text-gray-500 dark:text-gray-400">${esc(t('tab_config_pdf_report.modelo_b_desc', 'Cada categoria ganha uma cor fixa; uma faixa lateral colorida em toda página ajuda a achar a seção folheando o PDF impresso, e cada item ganha um selo de contador + data.'))}</span>
                     </span>
                 </label>
             </fieldset>
-            <button id="btnPdfReportGerar" class="px-3 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm"><i class="fa-solid fa-file-pdf mr-1"></i> Gerar relatório (PDF)</button>
+            <button id="btnPdfReportGerar" class="px-3 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm"><i class="fa-solid fa-file-pdf mr-1"></i> ${esc(t('tab_config_pdf_report.gerar_relatorio', 'Gerar relatório (PDF)'))}</button>
             <p id="pdfReportStatus" class="text-xs text-gray-500 mt-2"></p>`);
 }
 
@@ -157,7 +157,7 @@ export function wirePdfReportExport() {
     const btn = $('#btnPdfReportGerar');
     if (!btn) return;
     wirePdfReportConteudoToggle();
-    const status = (t) => { const el = $('#pdfReportStatus'); if (el) el.textContent = t; };
+    const status = (txt) => { const el = $('#pdfReportStatus'); if (el) el.textContent = txt; };
     btn.addEventListener('click', async () => {
         const incluirTodos = $('#pdfReportEscopoTodos').checked;
         const ordemAsc = $('#pdfReportOrdemAsc').checked;
@@ -170,12 +170,12 @@ export function wirePdfReportExport() {
             ? $$('.pdfReportCategoria').filter((c) => c.checked).map((c) => c.value)
             : null;
         if (conteudo === 'personalizado' && !categorias.length) {
-            toast('Selecione pelo menos uma categoria em "Personalizado" antes de gerar o relatório.', 'aviso');
+            toast(t('tab_config_pdf_report.selecione_categoria', 'Selecione pelo menos uma categoria em "Personalizado" antes de gerar o relatório.'), 'aviso');
             return;
         }
         const original = btn.innerHTML;
         btn.disabled = true;
-        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Gerando relatório… (pode levar alguns minutos)';
+        btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-1"></i> ${esc(t('tab_config_pdf_report.gerando_relatorio', 'Gerando relatório… (pode levar alguns minutos)'))}`;
         status('');
         try {
             // window.LzPdfReport pode nunca ter sido definido se js/pdf-report.js
@@ -186,11 +186,11 @@ export function wirePdfReportExport() {
             // críptico ("Cannot read properties of undefined (reading
             // 'gerar')"), sem indicar a causa nem o que fazer.
             if (!window.LzPdfReport) {
-                throw new Error('O gerador de PDF não carregou (js/pdf-report.js). Verifique sua conexão e se alguma extensão do navegador (bloqueador de anúncios/rastreadores) não está bloqueando o arquivo, depois recarregue a página.');
+                throw new Error(t('tab_config_pdf_report.pdf_lib_nao_carregou', 'O gerador de PDF não carregou (js/pdf-report.js). Verifique sua conexão e se alguma extensão do navegador (bloqueador de anúncios/rastreadores) não está bloqueando o arquivo, depois recarregue a página.'));
             }
             const bytes = await window.LzPdfReport.gerar({ incluirTodos, incluirCurriculo, incluirEvidencias, categorias, ordemAsc, modelo, paginasDivisao });
             const nomeItem = state.catalogo.items.find((i) => i.typeKey === 'IDENTIFICACAO' && i.fields && i.fields.titulo);
-            const safe = (nomeItem && nomeItem.fields.titulo ? nomeItem.fields.titulo : 'curriculo').replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, '-').toLowerCase();
+            const safe = (nomeItem && nomeItem.fields.titulo ? nomeItem.fields.titulo : t('tab_config_pdf_report.curriculo_fallback', 'curriculo')).replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, '-').toLowerCase();
             const nomeArquivo = `relatorio-completo-${safe}-${fileStamp()}.pdf`;
             baixarArquivoBinario(nomeArquivo, bytes, 'application/pdf');
             // Além do download, guarda uma cópia na pasta "Relatórios" do
@@ -205,16 +205,17 @@ export function wirePdfReportExport() {
                     await Storage.writeFile(nomeArquivo, bytes, LattesTypes.relatoriosFolder());
                     salvoNoDiretorio = true;
                 } catch (e) {
-                    avisoDiretorio = ` (baixado, mas não foi possível salvar na pasta "Relatórios": ${e.message})`;
+                    avisoDiretorio = t('tab_config_pdf_report.aviso_falha_salvar', ' (baixado, mas não foi possível salvar na pasta "Relatórios": {erro})', { erro: e.message });
                 }
             }
+            const salvoSufixo = t('tab_config_pdf_report.salvo_relatorios_sufixo', ' e salvo na pasta "Relatórios"');
             status(Storage.hasDirectory()
-                ? `Relatório gerado${salvoNoDiretorio ? ' e salvo na pasta "Relatórios"' : avisoDiretorio}.`
-                : `Relatório gerado — sem diretório configurado, não há onde salvar uma cópia (só o download)${incluirEvidencias ? ', e evidências em arquivo (PDF/imagem) não puderam ser anexadas (só evidências em link, se houver)' : ''}.`);
-            toast(`Relatório completo (PDF) gerado${salvoNoDiretorio ? ' e salvo na pasta "Relatórios"' : ''}.`, avisoDiretorio ? 'aviso' : 'ok');
+                ? t('tab_config_pdf_report.status_gerado', 'Relatório gerado{sufixo}.', { sufixo: salvoNoDiretorio ? salvoSufixo : avisoDiretorio })
+                : t('tab_config_pdf_report.status_gerado_sem_dir', 'Relatório gerado — sem diretório configurado, não há onde salvar uma cópia (só o download){evidenciasAviso}.', { evidenciasAviso: incluirEvidencias ? t('tab_config_pdf_report.evidencias_nao_anexadas', ', e evidências em arquivo (PDF/imagem) não puderam ser anexadas (só evidências em link, se houver)') : '' }));
+            toast(t('tab_config_pdf_report.toast_gerado', 'Relatório completo (PDF) gerado{sufixo}.', { sufixo: salvoNoDiretorio ? salvoSufixo : '' }), avisoDiretorio ? 'aviso' : 'ok');
         } catch (e) {
             status('');
-            toast('Falha ao gerar o relatório: ' + e.message, 'erro');
+            toast(t('tab_config_pdf_report.falha_gerar', 'Falha ao gerar o relatório: {erro}', { erro: e.message }), 'erro');
         } finally {
             btn.disabled = false;
             btn.innerHTML = original;
