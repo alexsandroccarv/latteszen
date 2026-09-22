@@ -222,21 +222,33 @@ const { state, $, $$, esc, normNome, t, formatarNumero } = window.AppCore;
         recompute();
     }
 
-    // Normaliza ano/data-completa para dd/mm/aaaa (usado no período do RSC).
-    // 'aaaa' vira 01/01/aaaa (início) ou 31/12/aaaa (fim). ISO aaaa-mm-dd também.
+    // Normaliza ano/data-completa para dd/mm/aaaa (usado no período do RSC —
+    // item.rsc.dataInicio/dataFim, consumido por LzRSC.parseBR, sempre nesse
+    // formato). 'aaaa' vira 01/01/aaaa (início) ou 31/12/aaaa (fim).
+    // Duas origens possíveis pra `v`: 1) o CANÔNICO de um campo `datebr` do
+    // próprio item (aaaa/mmaaaa/ddmmaaaa, sem separador, sempre ordem
+    // dia-mês-ano — ver collectRsc/fld abaixo, que já lê o canônico, não o
+    // texto exibido no campo); 2) "Data de abrangência (final)", um campo de
+    // texto solto em Configurações › RSC, sempre dd/mm/aaaa OU aaaa (não
+    // passa pela máscara/locale de datebr). ISO aaaa-mm-dd também aceito
+    // (legado).
     function _rscToBR(v, endOfYear) {
         const s = String(v == null ? '' : v).trim();
         if (!s) return '';
         if (/^\d{2}\/\d{2}\/\d{4}$/.test(s)) return s;
         let m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/); if (m) return `${m[3]}/${m[2]}/${m[1]}`;
-        m = s.match(/^(\d{2})\/(\d{4})$/); // mm/aaaa
-        if (m) {
-            if (!endOfYear) return `01/${m[1]}/${m[2]}`;
-            const ultimoDia = new Date(Number(m[2]), Number(m[1]), 0).getDate();
-            return `${String(ultimoDia).padStart(2, '0')}/${m[1]}/${m[2]}`;
-        }
-        m = s.match(/^(\d{4})$/); if (m) return endOfYear ? `31/12/${s}` : `01/01/${s}`;
+        m = s.match(/^(\d{2})\/(\d{4})$/); // mm/aaaa (com separador — Data de abrangência)
+        if (m) return _ultimoOuPrimeiroDia(m[1], m[2], endOfYear);
+        const d = s.replace(/\D/g, '');
+        if (d.length === 8) return `${d.slice(0, 2)}/${d.slice(2, 4)}/${d.slice(4)}`; // ddmmaaaa canônico
+        if (d.length === 6) return _ultimoOuPrimeiroDia(d.slice(0, 2), d.slice(2), endOfYear); // mmaaaa canônico
+        if (d.length === 4) return endOfYear ? `31/12/${d}` : `01/01/${d}`; // aaaa
         return '';
+    }
+    function _ultimoOuPrimeiroDia(mm, aaaa, endOfYear) {
+        if (!endOfYear) return `01/${mm}/${aaaa}`;
+        const ultimoDia = new Date(Number(aaaa), Number(mm), 0).getDate();
+        return `${String(ultimoDia).padStart(2, '0')}/${mm}/${aaaa}`;
     }
     // Lê a camada RSC do formulário → objeto rsc (ou {conta:false}). O período
     // (início/fim) é derivado dos campos de data do próprio item, não mais de
@@ -250,7 +262,11 @@ const { state, $, $$, esc, normNome, t, formatarNumero } = window.AppCore;
         if (!conta) return null;
         const val = id => { const el = form.querySelector('#' + id); return el ? el.value.trim() : ''; };
         const chk = id => { const el = form.querySelector('#' + id); return !!(el && el.checked); };
-        const fld = name => { const el = form.elements ? form.elements[name] : null; return (el && typeof el.value === 'string') ? el.value.trim() : ''; };
+        // anoInicio/anoFim/ano são campos `datebr` — lê o CANÔNICO
+        // (data-canonico, sempre dd-mm-aaaa, ver fieldDateBr/wireDateBr em
+        // tab-catalogar.js), não o texto exibido (que pode estar em mm/dd
+        // conforme o locale ativo) — senão _rscToBR interpretaria errado.
+        const fld = name => { const el = form.elements ? form.elements[name] : null; return el ? (el.dataset.canonico || '') : ''; };
         const dataAbrangencia = (state.rsc.cfg && state.rsc.cfg.dataAbrangenciaFinal) || '';
         return {
             conta: conta.checked,

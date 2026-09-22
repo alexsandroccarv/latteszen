@@ -930,7 +930,7 @@ window.Storage = (function () {
     const MODULOS_CONFIG = ['nuvem-palavras', 'rsc', 'sumula', 'geral', 'publicar', 'acessibilidade'];
     function ehArquivoDeConfiguracao(name) {
         return name === 'catalogo.json' || name === SETTINGS_FILE || name.indexOf('latteszen-') === 0
-            || MODULOS_CONFIG.some((m) => name === `${m}.json`);
+            || MODULOS_CONFIG.some((m) => name === nomeArquivoModulo(m));
     }
 
     // Varre uma lista de "raízes" no Google Drive — cada raiz é
@@ -1130,7 +1130,24 @@ window.Storage = (function () {
        "Exportar configurações" deixar de ser necessário: basta reconectar
        ao mesmo diretório/Google Drive pra ter tudo de volta.
        ----------------------------------------------------------------- */
-    function nomeArquivoModulo(modulo) { return `${modulo}.json`; }
+    // Nome do arquivo de cada módulo no disco: RSC e Súmula ficam sempre em
+    // português (RSC-PCCTAE, Súmula Curricular FAPESP — siglas/nomes de
+    // programas brasileiros, sem tradução em nenhum outro lugar do app, ver
+    // cabeçalho de i18n-en.js); os demais acompanham o locale ativo, mesma
+    // lógica dos nomes de pasta (LattesTypes/allFolders()). O padrão de
+    // cada t() é o próprio nome atual — uma instalação pt-br já existente
+    // continua lendo/escrevendo o MESMO arquivo de sempre, sem migração.
+    const NOMES_MODULO_TRADUZIVEIS = {
+        'geral': () => t('storage.modulo.geral', 'geral'),
+        'acessibilidade': () => t('storage.modulo.acessibilidade', 'acessibilidade'),
+        'nuvem-palavras': () => t('storage.modulo.nuvem_palavras', 'nuvem-palavras'),
+        'publicar': () => t('storage.modulo.publicar', 'publicar'),
+    };
+    function nomeBaseModulo(modulo) {
+        const traduzir = NOMES_MODULO_TRADUZIVEIS[modulo];
+        return traduzir ? traduzir() : modulo;
+    }
+    function nomeArquivoModulo(modulo) { return `${nomeBaseModulo(modulo)}.json`; }
     async function readConfigModule(modulo) {
         if (!hasDirectory()) return null;
         return lerJsonDaRaiz(nomeArquivoModulo(modulo));
@@ -1144,9 +1161,10 @@ window.Storage = (function () {
         clearTimeout(moduloWriteTimers[modulo]);
         moduloWriteTimers[modulo] = setTimeout(() => {
             // writeJson() já acrescenta ".json" sozinho (mesmo padrão de
-            // SETTINGS_FILE_BASE) — passar nomeArquivoModulo() aqui (que já
-            // tem a extensão) gravaria "rsc.json.json".
-            writeJson(modulo, dados).catch(() => {});
+            // SETTINGS_FILE_BASE) — por isso nomeBaseModulo() aqui (SEM a
+            // extensão, ao contrário de nomeArquivoModulo(), que já tem —
+            // passar esta gravaria "rsc.json.json").
+            writeJson(nomeBaseModulo(modulo), dados).catch(() => {});
         }, 800);
     }
     // Restaura um módulo: 1) tenta o arquivo próprio dele; 2) sem ele, tenta

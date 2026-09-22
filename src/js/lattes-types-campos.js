@@ -66,6 +66,12 @@ const F_DINI = { key: 'anoInicio', label: t('campos.f_dini.label', 'Data de iní
 const F_DFIM = { key: 'anoFim', label: t('campos.f_dfim.label', 'Data de fim (vazio = atual)'), type: 'datebr' };
 const F_PAIS = { key: 'pais', label: t('campos.f_pais.label', 'País'), type: 'select', options: window.PAISES, default: 'Brasil' };
 const F_IDIOMA = { key: 'idioma', label: t('campos.f_idioma.label', 'Idioma'), type: 'select', options: window.IDIOMAS };
+// Níveis do campo `skilllevels` (um <select> Bom/Razoável/Pouco por
+// habilidade — ver fieldSkillLevels em tab-catalogar.js): mesmo esquema
+// {value,label} de opcoes(), usado tanto pelos tipos que passam `levels`
+// explicitamente (IDIOMAS, AL_IDIOMAS) quanto pelo fallback padrão de
+// fieldSkillLevels quando um campo skilllevels não define `levels`.
+const NIVEL_HABILIDADE_OPTIONS = opcoes('nivel_habilidade', ['Bom', 'Razoável', 'Pouco']);
 // Opções de "Meio de divulgação" (Livros/Capítulos) — enum MEIO-DE-DIVULGACAO
 // do schema Lattes, exceto WEB (não usada na tela real para estes tipos).
 const MEIO_DIVULGACAO_OPTIONS = opcoes('meio_divulgacao', ['Impresso', 'Meio magnético', 'Meio digital', 'Filme', 'Hipertexto', 'Outro', 'Impresso e mídia eletrônica']);
@@ -318,4 +324,4 @@ const TOPOGRAFIA_FIELDS = [
 
 /* ---- Definição global dos TIPOS (por chave) ---- */
 
-export { opcoes, F_TITULO, F_ANO, F_DOI, F_URL, F_AUTORES, F_INST, F_FINAL, F_CIDADE, F_NATUREZA, F_AINI, F_AFIM, F_DINI, F_DFIM, F_PAIS, F_IDIOMA, MEIO_DIVULGACAO_OPTIONS, periodoComSituacao, NIVEIS_FORMACAO, nivelExcept, NATUREZA_PROJETO_OPTIONS, SITUACAO_PROJETO_OPTIONS, FINANCIADOR_NATUREZA_OPTIONS, QTD_ALUNOS_BASE, QTD_TECNICO, QTD_FUNDAMENTAL, QTD_MEDIO, projetoEquipeField, institucaoColumns, projetoInstituicoesEnvolvidasField, projetoFinanciadoresField, projetoInstituicaoExecucaoFields, projetoProducoesField, projetoOrientacoesField, projetoFieldsPadrao, ACOES_INOVADORAS_NIVEIS, TEMATICA_PROJETO_ENSINO, PROJETO_ENSINO_FIELDS, AL_ENT, AL_PAPEL, AL_FREQ, AL_IMP, AL_LOCAL, AL_ANO, alNome, alCertificacaoFields, alFiliacaoFields, FORMATO_APARICAO_OPCOES, alImprensaFields, alConcursoFields, PROD_AUTORES_LISTA, PROD_PALAVRAS_AREA_SETORES_OUTRAS, CULTIVAR_FIELDS, PI_FIELDS, TOPOGRAFIA_FIELDS };
+export { opcoes, F_TITULO, F_ANO, F_DOI, F_URL, F_AUTORES, F_INST, F_FINAL, F_CIDADE, F_NATUREZA, F_AINI, F_AFIM, F_DINI, F_DFIM, F_PAIS, F_IDIOMA, NIVEL_HABILIDADE_OPTIONS, MEIO_DIVULGACAO_OPTIONS, periodoComSituacao, NIVEIS_FORMACAO, nivelExcept, NATUREZA_PROJETO_OPTIONS, SITUACAO_PROJETO_OPTIONS, FINANCIADOR_NATUREZA_OPTIONS, QTD_ALUNOS_BASE, QTD_TECNICO, QTD_FUNDAMENTAL, QTD_MEDIO, projetoEquipeField, institucaoColumns, projetoInstituicoesEnvolvidasField, projetoFinanciadoresField, projetoInstituicaoExecucaoFields, projetoProducoesField, projetoOrientacoesField, projetoFieldsPadrao, ACOES_INOVADORAS_NIVEIS, TEMATICA_PROJETO_ENSINO, PROJETO_ENSINO_FIELDS, AL_ENT, AL_PAPEL, AL_FREQ, AL_IMP, AL_LOCAL, AL_ANO, alNome, alCertificacaoFields, alFiliacaoFields, FORMATO_APARICAO_OPCOES, alImprensaFields, alConcursoFields, PROD_AUTORES_LISTA, PROD_PALAVRAS_AREA_SETORES_OUTRAS, CULTIVAR_FIELDS, PI_FIELDS, TOPOGRAFIA_FIELDS };

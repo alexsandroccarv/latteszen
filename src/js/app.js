@@ -40,7 +40,7 @@
        aqui por referência, então o restante deste arquivo continua usando
        os mesmos identificadores de sempre, sem precisar reescrever nada. */
     const {
-        state, $, $$, esc, toast, anoDe, isImageExt, isVideoExt, isArchiveExt, NA_VALUE, itemYear, sortByYear, publicarWebOk,
+        state, $, $$, esc, toast, anoDe, migrarDatasItem, isImageExt, isVideoExt, isArchiveExt, NA_VALUE, itemYear, sortByYear, publicarWebOk,
         elegivelAoLattes, itemsUsingValue, normNome,
         validateISSN, validateISBN, validateISBNorISSN, validateDOI, validateURL, validateField,
         setFieldError, associateLabels, isFieldDisabled, evCount, descState, t, tp,
@@ -306,6 +306,10 @@
             ? await Storage.retentarFalhasSincronizacao(detalhesParaRetentar, onProgress)
             : await Storage.scanDirectory(onProgress);
         const byId = new Map(state.catalogo.items.map(i => [i.id, i]));
+        // Migra campos `datebr` dos itens recém-lidos do diretório/Drive
+        // (podem vir de uma sincronização anterior, antes desta migração —
+        // ver AppCore.migrarDatasItem) antes de mesclar no catálogo.
+        found.forEach(migrarDatasItem);
         found.forEach(f => byId.set(f.id, f));
         state.catalogo.items = Array.from(byId.values());
         saveCatalog();
@@ -960,6 +964,9 @@
                 }
                 changed = true;
             }
+            // Campos `datebr` gravados com separador (ou ISO legado) antes
+            // desta versão — ver AppCore.migrarDatasItem.
+            if (migrarDatasItem(i)) changed = true;
             // Carimba a versão do esquema (para migrações futuras)
             if (i.schemaVersion !== SCHEMA_VERSION) { i.schemaVersion = SCHEMA_VERSION; changed = true; }
         });

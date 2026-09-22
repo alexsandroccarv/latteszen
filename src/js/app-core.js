@@ -147,10 +147,63 @@ window.AppCore = (function () {
         if (!res.exact) toast(t('app_core.pasta_mais_proxima', 'Abrindo a pasta mais próxima já existente — nenhum arquivo foi enviado aqui ainda.'), 'info');
     }
 
-    // Extrai o ANO de um campo de data completa (dd/mm/aaaa, mm/aaaa ou aaaa).
-    // Usado em toda parte que precisa só do ano (dedup, ordenação, RSC) — o
-    // valor guardado pode ter dia/mês, mas eles nunca vão para o XML Lattes.
-    function anoDe(v) { const m = String(v == null ? '' : v).match(/\d{4}/); return m ? m[0] : ''; }
+    // Extrai o ANO de um campo `datebr` (aaaa, mmaaaa ou ddmmaaaa — formato
+    // canônico sem separador gravado no item, ver fieldDateBr/collectFields
+    // em tab-catalogar.js; tolera também "dd/mm/aaaa"/"mm/aaaa" de itens
+    // salvos antes desta migração, já que o replace abaixo tira qualquer
+    // separador antes de olhar o tamanho). Usado em toda parte que precisa
+    // só do ano (dedup, ordenação, RSC) — os dígitos de dia/mês podem
+    // existir no valor guardado, mas nunca vão para o XML Lattes (só ANO).
+    // O ano são sempre os ÚLTIMOS 4 dígitos, nunca "os primeiros 4 dígitos
+    // encontrados" (o bug do regex /\d{4}/ antigo, que quebrava assim que o
+    // separador sumisse: "21092026" batia com "2109", não com "2026").
+    function anoDe(v) {
+        const d = String(v == null ? '' : v).replace(/\D/g, '');
+        return d.length >= 4 ? d.slice(-4) : '';
+    }
+    // Campo `datebr`: dígitos CANÔNICOS (sempre ordem dd-mm-aaaa, sem
+    // separador — o que fica gravado no item) <-> dígitos de EXIBIÇÃO (a
+    // ordem/separador que aparece no campo de texto, conforme o locale
+    // ativo — ver fieldDateBr/wireDateBr em tab-catalogar.js e _rscToBR em
+    // tab-catalogar-rsc.js). Só a forma de 8 dígitos (data completa) tem
+    // ordem dia/mês ambígua entre locales — aaaa (4) e mmaaaa (6) são os
+    // mesmos dígitos nos dois sentidos, não precisam de troca.
+    function datebrParaCanonico(digitosExibidos, locale) {
+        const d = String(digitosExibidos || '').replace(/\D/g, '').slice(0, 8);
+        return (locale === 'en' && d.length > 6) ? (d.slice(2, 4) + d.slice(0, 2) + d.slice(4)) : d;
+    }
+    function datebrParaExibicao(canonico, locale) {
+        const c = String(canonico || '').replace(/\D/g, '').slice(0, 8);
+        const d = (locale === 'en' && c.length > 6) ? (c.slice(2, 4) + c.slice(0, 2) + c.slice(4)) : c;
+        if (d.length > 6) return `${d.slice(0, 2)}/${d.slice(2, 4)}/${d.slice(4)}`;
+        if (d.length > 4) return `${d.slice(0, 2)}/${d.slice(2)}`;
+        return d;
+    }
+    // Migra os campos `datebr` de UM item pro formato canônico sem
+    // separador (ver datebrParaCanonico/datebrParaExibicao acima) — roda ao
+    // carregar o catálogo (boot, dentro de migrarItens() em app.js, e
+    // sincronização com diretório/Drive, ver syncFromDirectory em app.js),
+    // pra itens salvos antes desta migração (que guardavam "dd/mm/aaaa" ou
+    // o legado ISO "aaaa-mm-dd" por extenso). Idempotente: rodar de novo
+    // num item já migrado não muda nada (não há mais separador pra tirar).
+    // Devolve true se mudou algo (pro `changed`/saveCatalog() de
+    // migrarItens()). window.LattesTypes já está carregado quando isto roda
+    // de verdade (script anterior a app-core.js no index.html; função só é
+    // CHAMADA bem depois, nunca no carregamento do módulo).
+    function migrarDatasItem(item) {
+        const def = window.LattesTypes && window.LattesTypes.getType && window.LattesTypes.getType(item.typeKey);
+        if (!def || !def.fields || !item.fields) return false;
+        let changed = false;
+        def.fields.forEach(f => {
+            if (f.type !== 'datebr') return;
+            const v = item.fields[f.key];
+            if (v == null || v === '') return;
+            const iso = String(v).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+            const novo = iso ? `${iso[3]}${iso[2]}${iso[1]}` : String(v).replace(/\D/g, '').slice(0, 8);
+            if (novo !== v) { item.fields[f.key] = novo; changed = true; }
+        });
+        return changed;
+    }
     function isImageExt(ext) { return /^(jpe?g|png|gif|webp)$/i.test(ext || ''); }
     function isVideoExt(ext) { return /^(mp4|webm|mov|avi|mkv)$/i.test(ext || ''); }
     function isArchiveExt(ext) { return /^(zip|tar|gz|tgz)$/i.test(ext || ''); }
@@ -397,7 +450,7 @@ window.AppCore = (function () {
     }
 
     return {
-        state, $, $$, esc, toast, openGDriveFolder, anoDe, isImageExt, isVideoExt, isArchiveExt, NA_VALUE, itemYear, sortByYear, publicarWebOk,
+        state, $, $$, esc, toast, openGDriveFolder, anoDe, datebrParaCanonico, datebrParaExibicao, migrarDatasItem, isImageExt, isVideoExt, isArchiveExt, NA_VALUE, itemYear, sortByYear, publicarWebOk,
         elegivelAoLattes, itemsUsingValue, normNome,
         validateISSN, validateISBN, validateISBNorISSN, validateDOI, validateURL, validateField,
         setFieldError, associateLabels, isFieldDisabled, evCount, descState,
