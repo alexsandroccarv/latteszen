@@ -49,7 +49,7 @@ window.TabConfig = (function () {
         itemsUsingValue, evCount,
         buildForm, fieldHtml, wireValidators, wireCounters, wireDateBr, wireConditional, wireNA, wireAreaTree, wireRepeater,
         collectFields, normalizeEncoding, validateItemFields, collectSuggestions, renameFieldValue,
-        AUTOCOMPLETE_KEYS, VOCAB_LABELS,
+        AUTOCOMPLETE_KEYS, VOCAB_LABELS, t, tp,
     } = window.AppCore;
 
     // Aviso persistente exibido logo após uma migração local → Google Drive
@@ -65,7 +65,7 @@ window.TabConfig = (function () {
     // recursiva, pasta por pasta) — por isso um contador corrente, não uma
     // barra de "n de total", mesmo padrão já usado em migrateLocalToGoogleDrive.
     function statusSincronizandoHtml(n) {
-        return `<span class="text-gray-500"><i aria-hidden="true" class="fa-solid fa-spinner fa-spin mr-1"></i> Sincronizando itens já existentes na pasta… (${n} encontrado${n === 1 ? '' : 's'} até agora)</span>`;
+        return `<span class="text-gray-500"><i aria-hidden="true" class="fa-solid fa-spinner fa-spin mr-1"></i> ${esc(tp('tab_config.sincronizando_progresso', n, { um: 'Sincronizando itens já existentes na pasta… ({n} encontrado até agora)', outros: 'Sincronizando itens já existentes na pasta… ({n} encontrados até agora)' }))}</span>`;
     }
 
     // Junta os itens de uma lista em texto, cortando numa quantidade máxima
@@ -75,7 +75,7 @@ window.TabConfig = (function () {
     function listarComLimite(itens, max) {
         const visiveis = itens.slice(0, max);
         const resto = itens.length - visiveis.length;
-        return visiveis.join(', ') + (resto > 0 ? ` e mais ${resto}` : '');
+        return visiveis.join(', ') + (resto > 0 ? t('tab_config.e_mais_n', ' e mais {n}', { n: resto }) : '');
     }
 
     // Resume o `detalhes` de uma sincronização incompleta (pastas que não
@@ -93,11 +93,11 @@ window.TabConfig = (function () {
         arquivos.forEach((d) => { const chave = d.pastaCaminho || '(raiz)'; porPasta.set(chave, (porPasta.get(chave) || 0) + 1); });
         const partes = [];
         if (pastas.length) {
-            partes.push(`${pastas.length} pasta(s) não puderam ser abertas: ${listarComLimite(pastas.map((p) => `"${seguro(p.caminho)}"`), 5)}`);
+            partes.push(t('tab_config.pastas_nao_abertas', '{n} pasta(s) não puderam ser abertas: {lista}', { n: pastas.length, lista: listarComLimite(pastas.map((p) => `"${seguro(p.caminho)}"`), 5) }));
         }
         if (arquivos.length) {
             const porPastaTxt = listarComLimite(Array.from(porPasta.entries()).map(([caminho, n]) => `"${seguro(caminho)}" (${n})`), 5);
-            partes.push(`${arquivos.length} arquivo(s) não puderam ser lidos, em: ${porPastaTxt}`);
+            partes.push(t('tab_config.arquivos_nao_lidos', '{n} arquivo(s) não puderam ser lidos, em: {lista}', { n: arquivos.length, lista: porPastaTxt }));
         }
         return partes.join(' ');
     }
@@ -115,30 +115,30 @@ window.TabConfig = (function () {
         if (!detalhes || !detalhes.length) { container.innerHTML = ''; return; }
         container.innerHTML = `<div class="text-amber-700 dark:text-amber-400">
             <p>${resumoFalhasSinc(detalhes, esc)}</p>
-            <button type="button" id="btnRetentarFalhasSync" class="underline hover:no-underline mt-1">Tentar sincronizar de novo só o que falhou</button>
+            <button type="button" id="btnRetentarFalhasSync" class="underline hover:no-underline mt-1">${esc(t('tab_config.tentar_sincronizar_novo', 'Tentar sincronizar de novo só o que falhou'))}</button>
         </div>`;
         const btn = container.querySelector('#btnRetentarFalhasSync');
         if (!btn) return;
         btn.addEventListener('click', async () => {
             btn.disabled = true;
             const originalLabel = btn.textContent;
-            btn.textContent = 'Tentando de novo…';
+            btn.textContent = t('tab_config.tentando_de_novo', 'Tentando de novo…');
             try {
                 const resultado = await window.AppCore.syncFromDirectory((n) => {
-                    btn.textContent = `Tentando de novo… (${n} recuperado(s) até agora)`;
+                    btn.textContent = t('tab_config.tentando_de_novo_progresso', 'Tentando de novo… ({n} recuperado(s) até agora)', { n });
                 }, detalhes);
                 if (resultado.encontrados) window.AppCore.renderItemList();
                 if (resultado.falhas) {
                     mostrarAvisoFalhasSync(container, resultado.detalhes);
-                    toast(`Ainda faltou sincronizar ${resultado.falhas} item(ns) — veja os detalhes na tela.`, 'aviso');
+                    toast(t('tab_config.ainda_faltou_sincronizar', 'Ainda faltou sincronizar {n} item(ns) — veja os detalhes na tela.', { n: resultado.falhas }), 'aviso');
                 } else {
                     container.innerHTML = '';
-                    toast('Tudo sincronizado agora.', 'ok');
+                    toast(t('tab_config.tudo_sincronizado', 'Tudo sincronizado agora.'), 'ok');
                 }
             } catch (e) {
                 btn.disabled = false;
                 btn.textContent = originalLabel;
-                toast('Falha ao tentar sincronizar de novo: ' + e.message, 'erro');
+                toast(t('tab_config.falha_sincronizar_novo', 'Falha ao tentar sincronizar de novo: {erro}', { erro: e.message }), 'erro');
             }
         });
     }
@@ -169,11 +169,11 @@ window.TabConfig = (function () {
     // verdade, não só herdar o alternador de claro/escuro).
     const THEME_DEFAULT = 'govbr';
     const THEME_PRESETS = [
-        { value: 'govbr', label: 'lattesZen dia', font: "'Rawline',system-ui,sans-serif" },
-        { value: 'padrao', label: 'lattesZen noite', font: "system-ui,sans-serif" },
+        { value: 'govbr', label: t('tab_config.tema_lattes_dia', 'lattesZen dia'), font: "'Rawline',system-ui,sans-serif" },
+        { value: 'padrao', label: t('tab_config.tema_lattes_noite', 'lattesZen noite'), font: "system-ui,sans-serif" },
         { value: 'catppuccin-latte', label: 'Catppuccin Latte', font: "'Nunito',system-ui,sans-serif" },
         { value: 'catppuccin-mocha', label: 'Catppuccin Mocha', font: "'Nunito',system-ui,sans-serif" },
-        { value: 'dracula', label: 'Drácula', font: "'Fira Sans',system-ui,sans-serif" },
+        { value: 'dracula', label: t('tab_config.tema_dracula', 'Drácula'), font: "'Fira Sans',system-ui,sans-serif" },
         { value: 'github-light', label: 'GitHub Light', font: "system-ui,sans-serif" },
         { value: 'github-dark', label: 'GitHub Dark', font: "system-ui,sans-serif" },
         { value: 'rose-pine-dawn', label: 'Rosé Pine Dawn', font: "'Quicksand',system-ui,sans-serif" },
@@ -184,14 +184,14 @@ window.TabConfig = (function () {
         return `
             <section id="temaSection" class="scroll-mt-20 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
                 <h2 class="text-lg font-bold mb-2 flex items-center gap-2">
-                    <i aria-hidden="true" class="fa-solid fa-palette text-govbr-600 dark:text-unifesp-400"></i> Tema
+                    <i aria-hidden="true" class="fa-solid fa-palette text-govbr-600 dark:text-unifesp-400"></i> ${esc(t('tab_config.tema_titulo', 'Tema'))}
                 </h2>
                 <div class="space-y-2">
-                    <label for="themeSelect" class="block text-sm">Escolha um tema</label>
+                    <label for="themeSelect" class="block text-sm">${esc(t('tab_config.escolha_tema', 'Escolha um tema'))}</label>
                     <select id="themeSelect" class="w-full px-3 py-2 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-govbr-400">
                         ${THEME_PRESETS.map(p => `<option value="${esc(p.value)}" style="font-family:${p.font}">${esc(p.label)}</option>`).join('')}
                     </select>
-                    <p class="text-xs text-gray-500 dark:text-gray-400">O tema é aplicado ao app inteiro (cabeçalho, abas, botões, rodapé) e fica salvo neste navegador. "lattesZen dia" é o padrão.</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">${t('tab_config.tema_ajuda', 'O tema é aplicado ao app inteiro (cabeçalho, abas, botões, rodapé) e fica salvo neste navegador. "{padrao}" é o padrão.', { padrao: t('tab_config.tema_lattes_dia', 'lattesZen dia') })}</p>
                 </div>
             </section>`;
     }
@@ -235,9 +235,9 @@ window.TabConfig = (function () {
     // Backup completo (catálogo + configurações) em JSON — itens "lattesZen
     // (JSON)" das páginas "Importar"/"Exportar".
     function jsonImportItemHtml() {
-        return dadosItemHtml('fa-solid fa-file-code', 'lattesZen (JSON)',
-            'Importa um arquivo JSON gerado pelo "Exportar catálogo" — restaura todo o catálogo (metadados) e as configurações do sistema (prefixo do identificador, listas de autocomplete, RSC-PCCTAE) num navegador novo.', `
-                <label class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm cursor-pointer inline-flex items-center gap-1.5"><i class="fa-solid fa-upload"></i> Importar catálogo
+        return dadosItemHtml('fa-solid fa-file-code', t('tab_config.json_titulo', 'lattesZen (JSON)'),
+            t('tab_config.json_import_ajuda', 'Importa um arquivo JSON gerado pelo "Exportar catálogo" — restaura todo o catálogo (metadados) e as configurações do sistema (prefixo do identificador, listas de autocomplete, RSC-PCCTAE) num navegador novo.'), `
+                <label class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm cursor-pointer inline-flex items-center gap-1.5"><i class="fa-solid fa-upload"></i> ${esc(t('tab_config.importar_catalogo', 'Importar catálogo'))}
                     <input type="file" id="importJson" accept="application/json" class="hidden">
                 </label>`);
     }
@@ -248,11 +248,11 @@ window.TabConfig = (function () {
         // "alterações desde o último backup" só é relevante pra quem ainda
         // não tem diretório (só localStorage, sem esse mecanismo).
         const backupDetail = dirName
-            ? 'Em dia — itens e configurações sincronizam automaticamente com o diretório'
-            : (sinceBackup ? `${sinceBackup} alteraç${sinceBackup === 1 ? 'ão' : 'ões'} desde o último backup` : 'Em dia — sem alterações desde o último backup');
-        return dadosItemHtml('fa-solid fa-file-code', 'lattesZen (JSON)',
-            'Exporte todo o catálogo (metadados) e as configurações do sistema (prefixo do identificador, listas de autocomplete, RSC-PCCTAE) num único arquivo JSON — útil pra levar tudo de uma vez a outro computador, ou pra quem ainda não configurou um diretório. Com um diretório configurado, itens e configurações já se auto-salvam lá a cada mudança (basta reescanear o diretório pra recuperar tudo), então este export é um extra, não uma necessidade. Com diretório, o arquivo também é salvo automaticamente na subpasta "Cópia de segurança".', `
-                <button id="btnExport" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-download mr-1"></i> Exportar catálogo</button>
+            ? t('tab_config.backup_em_dia_com_dir', 'Em dia — itens e configurações sincronizam automaticamente com o diretório')
+            : (sinceBackup ? tp('tab_config.backup_alteracoes', sinceBackup, { um: '{n} alteração desde o último backup', outros: '{n} alterações desde o último backup' }) : t('tab_config.backup_em_dia_sem_dir', 'Em dia — sem alterações desde o último backup'));
+        return dadosItemHtml('fa-solid fa-file-code', t('tab_config.json_titulo', 'lattesZen (JSON)'),
+            t('tab_config.json_export_ajuda', 'Exporte todo o catálogo (metadados) e as configurações do sistema (prefixo do identificador, listas de autocomplete, RSC-PCCTAE) num único arquivo JSON — útil pra levar tudo de uma vez a outro computador, ou pra quem ainda não configurou um diretório. Com um diretório configurado, itens e configurações já se auto-salvam lá a cada mudança (basta reescanear o diretório pra recuperar tudo), então este export é um extra, não uma necessidade. Com diretório, o arquivo também é salvo automaticamente na subpasta "Cópia de segurança".'), `
+                <button id="btnExport" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-download mr-1"></i> ${esc(t('tab_config.exportar_catalogo', 'Exportar catálogo'))}</button>
                 <p id="backupStatusHint" class="text-xs text-gray-500 dark:text-gray-400 mt-1.5">${esc(backupDetail)}</p>`);
     }
 
@@ -266,7 +266,7 @@ window.TabConfig = (function () {
     function importarSectionHtml() {
         return `
             <section id="importXmlSection" class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-                <h2 class="text-lg font-bold mb-3 flex items-center gap-2"><i aria-hidden="true" class="fa-solid fa-file-import text-govbr-600 dark:text-unifesp-400"></i> Importar</h2>
+                <h2 class="text-lg font-bold mb-3 flex items-center gap-2"><i aria-hidden="true" class="fa-solid fa-file-import text-govbr-600 dark:text-unifesp-400"></i> ${esc(t('tab_config.importar', 'Importar'))}</h2>
                 <div class="space-y-3">
                     ${xmlImportItemHtml()}
                     ${orcidImportItemHtml()}
@@ -278,7 +278,7 @@ window.TabConfig = (function () {
     function exportarSectionHtml(dirName) {
         return `
             <section id="backupSection" class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-                <h2 class="text-lg font-bold mb-3 flex items-center gap-2"><i aria-hidden="true" class="fa-solid fa-file-export text-govbr-600 dark:text-unifesp-400"></i> Exportar</h2>
+                <h2 class="text-lg font-bold mb-3 flex items-center gap-2"><i aria-hidden="true" class="fa-solid fa-file-export text-govbr-600 dark:text-unifesp-400"></i> ${esc(t('tab_config.exportar', 'Exportar'))}</h2>
                 <div class="space-y-3">
                     ${bibExportItemHtml()}
                     ${jsonExportItemHtml(dirName)}
@@ -298,10 +298,10 @@ window.TabConfig = (function () {
     function rscSectionHtml() {
         return `<section id="rscSection" class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
             <h2 class="text-lg font-bold mb-2 flex items-center gap-2"><i class="fa-solid fa-award text-govbr-600 dark:text-unifesp-400"></i> RSC-PCCTAE</h2>
-            <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">Reconhecimento de Saberes e Competências (Decreto nº 13.048/2026). Quando habilitado, cada item elegível ganha uma camada com os dados do RSC, e surge a aba <strong>RSC</strong> (simulador) — os dados da pessoa servidora (cargo, SIAPE, contatos etc.) são preenchidos lá. Uso individual.</p>
+            <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">${t('tab_config.rsc_descricao', 'Reconhecimento de Saberes e Competências (Decreto nº 13.048/2026). Quando habilitado, cada item elegível ganha uma camada com os dados do RSC, e surge a aba <strong>RSC</strong> (simulador) — os dados da pessoa servidora (cargo, SIAPE, contatos etc.) são preenchidos lá. Uso individual.')}</p>
             <label class="flex items-center gap-2 text-sm">
                 <input type="checkbox" id="rscEnable" ${state.rsc.enabled ? 'checked' : ''}>
-                <span>Habilitar módulo <strong>RSC-PCCTAE</strong></span>
+                <span>${t('tab_config.habilitar_modulo_rsc', 'Habilitar módulo <strong>RSC-PCCTAE</strong>')}</span>
             </label>
         </section>`;
     }
@@ -312,7 +312,7 @@ window.TabConfig = (function () {
             const s = Storage.loadSettings(); s.rscEnabled = state.rsc.enabled; Storage.saveSettings(s);
             window.AppCore.persistirRsc();
             window.AppCore.applyRscVisibility();
-            toast(state.rsc.enabled ? 'Módulo RSC habilitado.' : 'Módulo RSC desabilitado.', 'ok');
+            toast(state.rsc.enabled ? t('tab_config.rsc_habilitado', 'Módulo RSC habilitado.') : t('tab_config.rsc_desabilitado', 'Módulo RSC desabilitado.'), 'ok');
         });
     }
 
@@ -323,10 +323,10 @@ window.TabConfig = (function () {
     function sumulaSectionHtml() {
         return `<section id="sumulaSection" class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
             <h2 class="text-lg font-bold mb-2 flex items-center gap-2"><i class="fa-solid fa-file-lines text-govbr-600 dark:text-unifesp-400"></i> Súmula Curricular FAPESP</h2>
-            <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">Gera, a partir do catálogo, uma base de texto organizada no modelo de Súmula Curricular exigido pela FAPESP em processos de bolsas/auxílios (não é um documento oficial pronto para submissão — é um ponto de partida a revisar e ajustar). Quando habilitado, surge a aba <strong>Súmula FAPESP</strong>.</p>
+            <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">${t('tab_config.sumula_descricao', 'Gera, a partir do catálogo, uma base de texto organizada no modelo de Súmula Curricular exigido pela FAPESP em processos de bolsas/auxílios (não é um documento oficial pronto para submissão — é um ponto de partida a revisar e ajustar). Quando habilitado, surge a aba <strong>Súmula FAPESP</strong>.')}</p>
             <label class="flex items-center gap-2 text-sm">
                 <input type="checkbox" id="sumulaEnable" ${state.sumula.enabled ? 'checked' : ''}>
-                <span>Habilitar módulo <strong>Súmula Curricular FAPESP</strong></span>
+                <span>${t('tab_config.habilitar_modulo_sumula', 'Habilitar módulo <strong>Súmula Curricular FAPESP</strong>')}</span>
             </label>
         </section>`;
     }
@@ -337,7 +337,7 @@ window.TabConfig = (function () {
             const s = Storage.loadSettings(); s.sumulaEnabled = state.sumula.enabled; Storage.saveSettings(s);
             window.AppCore.persistirSumula();
             window.AppCore.applySumulaVisibility();
-            toast(state.sumula.enabled ? 'Módulo Súmula Curricular FAPESP habilitado.' : 'Módulo Súmula Curricular FAPESP desabilitado.', 'ok');
+            toast(state.sumula.enabled ? t('tab_config.sumula_habilitada', 'Módulo Súmula Curricular FAPESP habilitado.') : t('tab_config.sumula_desabilitada', 'Módulo Súmula Curricular FAPESP desabilitado.'), 'ok');
         });
     }
 
@@ -347,11 +347,11 @@ window.TabConfig = (function () {
     // app-core.js/state.pubWebEnabled).
     function pubWebSectionHtml() {
         return `<section id="pubWebSection" class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-            <h2 class="text-lg font-bold mb-2 flex items-center gap-2"><i class="fa-solid fa-globe text-govbr-600 dark:text-unifesp-400"></i> Publicar na Web</h2>
-            <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">Gera uma página pública do currículo (com o que estiver marcado como "pública") e permite publicá-la num site. Desabilitar aqui só esconde a aba <strong>Publicar</strong> — nada é apagado.</p>
+            <h2 class="text-lg font-bold mb-2 flex items-center gap-2"><i class="fa-solid fa-globe text-govbr-600 dark:text-unifesp-400"></i> ${esc(t('tab_config.publicar_web_titulo', 'Publicar na Web'))}</h2>
+            <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">${t('tab_config.publicar_web_descricao', 'Gera uma página pública do currículo (com o que estiver marcado como "pública") e permite publicá-la num site. Desabilitar aqui só esconde a aba <strong>Publicar</strong> — nada é apagado.')}</p>
             <label class="flex items-center gap-2 text-sm">
                 <input type="checkbox" id="pubWebEnable" ${state.pubWebEnabled ? 'checked' : ''}>
-                <span>Habilitar aba <strong>Publicar na Web</strong></span>
+                <span>${t('tab_config.habilitar_aba_publicar', 'Habilitar aba <strong>Publicar na Web</strong>')}</span>
             </label>
         </section>`;
     }
@@ -362,7 +362,7 @@ window.TabConfig = (function () {
             const s = Storage.loadSettings(); s.pubWebEnabled = state.pubWebEnabled; Storage.saveSettings(s);
             window.AppCore.persistirGeral();
             window.AppCore.applyPublicarVisibility();
-            toast(state.pubWebEnabled ? 'Aba "Publicar na Web" habilitada.' : 'Aba "Publicar na Web" desabilitada.', 'ok');
+            toast(state.pubWebEnabled ? t('tab_config.publicar_web_habilitada', 'Aba "Publicar na Web" habilitada.') : t('tab_config.publicar_web_desabilitada', 'Aba "Publicar na Web" desabilitada.'), 'ok');
         });
     }
     // Duas listas configuráveis que a aba "Linha do tempo" usa para montar a
@@ -372,19 +372,19 @@ window.TabConfig = (function () {
     function nuvemPalavrasSectionHtml() {
         return `
         <section class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-            <h2 class="text-lg font-bold mb-2 flex items-center gap-2"><i class="fa-solid fa-cloud text-govbr-600 dark:text-unifesp-400"></i> Nuvem de palavras</h2>
-            <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">Personalize a nuvem de palavras da aba <strong>Gráficos</strong>, montada a partir dos títulos, palavras-chave e área de conhecimento dos seus itens.</p>
+            <h2 class="text-lg font-bold mb-2 flex items-center gap-2"><i class="fa-solid fa-cloud text-govbr-600 dark:text-unifesp-400"></i> ${esc(t('tab_config.nuvem_palavras_titulo', 'Nuvem de palavras'))}</h2>
+            <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">${t('tab_config.nuvem_palavras_descricao', 'Personalize a nuvem de palavras da aba <strong>Gráficos</strong>, montada a partir dos títulos, palavras-chave e área de conhecimento dos seus itens.')}</p>
             <div class="mb-3">
-                <label class="block text-xs font-semibold mb-1" for="nuvemExclusaoInput">Palavras excluídas</label>
-                <textarea id="nuvemExclusaoInput" rows="2" placeholder="Separe por ponto e vírgula (;), vírgula (,) ou uma por linha" class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900">${esc((state.linhaTempo.nuvemExclusao || []).join('; '))}</textarea>
-                <p class="text-xs text-gray-500 mt-1">Termos que nunca devem aparecer na nuvem (ex.: uma sigla genérica, o nome da sua instituição). Separe por ponto e vírgula, vírgula ou quebra de linha.</p>
+                <label class="block text-xs font-semibold mb-1" for="nuvemExclusaoInput">${esc(t('tab_config.palavras_excluidas', 'Palavras excluídas'))}</label>
+                <textarea id="nuvemExclusaoInput" rows="2" placeholder="${esc(t('tab_config.separador_placeholder', 'Separe por ponto e vírgula (;), vírgula (,) ou uma por linha'))}" class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900">${esc((state.linhaTempo.nuvemExclusao || []).join('; '))}</textarea>
+                <p class="text-xs text-gray-500 mt-1">${esc(t('tab_config.palavras_excluidas_ajuda', 'Termos que nunca devem aparecer na nuvem (ex.: uma sigla genérica, o nome da sua instituição). Separe por ponto e vírgula, vírgula ou quebra de linha.'))}</p>
             </div>
             <div class="mb-3">
-                <label class="block text-xs font-semibold mb-1" for="nuvemCompostasInput">Palavras compostas</label>
-                <textarea id="nuvemCompostasInput" rows="2" placeholder="Separe por ponto e vírgula (;), vírgula (,) ou uma por linha — ex.: tech talks; machine learning" class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900">${esc((state.linhaTempo.nuvemCompostas || []).join('; '))}</textarea>
-                <p class="text-xs text-gray-500 mt-1">Termos de mais de uma palavra que devem aparecer juntos na nuvem (ex.: "tech talks"), em vez de contados palavra a palavra. Separe por ponto e vírgula, vírgula ou quebra de linha.</p>
+                <label class="block text-xs font-semibold mb-1" for="nuvemCompostasInput">${esc(t('tab_config.palavras_compostas', 'Palavras compostas'))}</label>
+                <textarea id="nuvemCompostasInput" rows="2" placeholder="${esc(t('tab_config.separador_placeholder_composta', 'Separe por ponto e vírgula (;), vírgula (,) ou uma por linha — ex.: tech talks; machine learning'))}" class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900">${esc((state.linhaTempo.nuvemCompostas || []).join('; '))}</textarea>
+                <p class="text-xs text-gray-500 mt-1">${esc(t('tab_config.palavras_compostas_ajuda', 'Termos de mais de uma palavra que devem aparecer juntos na nuvem (ex.: "tech talks"), em vez de contados palavra a palavra. Separe por ponto e vírgula, vírgula ou quebra de linha.'))}</p>
             </div>
-            <button id="btnSalvarNuvemListas" class="px-3 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm"><i class="fa-solid fa-floppy-disk mr-1"></i> Salvar listas da nuvem</button>
+            <button id="btnSalvarNuvemListas" class="px-3 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm"><i class="fa-solid fa-floppy-disk mr-1"></i> ${esc(t('tab_config.salvar_listas_nuvem', 'Salvar listas da nuvem'))}</button>
         </section>`;
     }
     function wireNuvemPalavrasSection() {
@@ -403,7 +403,7 @@ window.TabConfig = (function () {
             s.nuvemCompostas = state.linhaTempo.nuvemCompostas;
             Storage.saveSettings(s);
             window.AppCore.persistirNuvem();
-            toast('Listas da nuvem de palavras salvas.', 'ok');
+            toast(t('tab_config.listas_nuvem_salvas', 'Listas da nuvem de palavras salvas.'), 'ok');
         });
     }
 
@@ -411,11 +411,12 @@ window.TabConfig = (function () {
     // página (cfgGroup) quanto pelo menu lateral (cfgSidebarHtml), pra manter
     // os dois sempre em sincronia (mesma ordem, mesmo ícone, mesmo id).
     const CFG_GROUPS = [
-        { id: 'grp-armazenamento', icon: 'fa-folder-tree', label: 'Armazenamento' },
-        { id: 'grp-importar', icon: 'fa-file-import', label: 'Importar' },
-        { id: 'grp-exportar', icon: 'fa-file-export', label: 'Exportar' },
-        { id: 'grp-opcionais', icon: 'fa-puzzle-piece', label: 'Recursos opcionais' },
-        { id: 'grp-risco', icon: 'fa-triangle-exclamation', label: 'Zona de risco' },
+        { id: 'grp-armazenamento', icon: 'fa-folder-tree', label: t('tab_config.grupo_armazenamento', 'Armazenamento') },
+        { id: 'grp-importar', icon: 'fa-file-import', label: t('tab_config.importar', 'Importar') },
+        { id: 'grp-exportar', icon: 'fa-file-export', label: t('tab_config.exportar', 'Exportar') },
+        { id: 'grp-opcionais', icon: 'fa-puzzle-piece', label: t('tab_config.grupo_opcionais', 'Recursos opcionais') },
+        { id: 'grp-modulos', icon: 'fa-layer-group', label: t('tab_config.grupo_modulos', 'Módulos') },
+        { id: 'grp-risco', icon: 'fa-triangle-exclamation', label: t('tab_config.grupo_risco', 'Zona de risco') },
     ];
     // Cabeçalho de grupo das Configurações (título dentro da própria página) —
     // recebe uma entrada de CFG_GROUPS.
@@ -423,7 +424,7 @@ window.TabConfig = (function () {
         return `<h2 id="${g.id}" class="lg:col-span-2 text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 flex items-center gap-2 pt-1 pb-1 border-b border-gray-200 dark:border-gray-700"><i class="fa-solid ${g.icon}"></i> ${esc(g.label)}</h2>`;
     }
 
-    // Menu lateral de Configurações: as 4 seções viram páginas independentes
+    // Menu lateral de Configurações: as 6 seções viram páginas independentes
     // (só uma visível por vez, ver render()) — clicar troca qual está ativa
     // (state.ui.cfgActiveGroup) e re-renderiza. No celular vira uma barra
     // horizontal rolável (ver .cfg-sidebar no CSS/classes abaixo).
@@ -447,7 +448,7 @@ window.TabConfig = (function () {
             // configurado a troca de página não acontece (mesmo padrão do
             // guard de switchTab() em app.js).
             if (window.AppCore.cfgGroupGated(groupId)) {
-                toast('Configure um diretório de armazenamento em Configurações › Armazenamento antes de usar esta seção.', 'aviso');
+                toast(t('app.diretorio_necessario_toast', 'Configure um diretório de armazenamento em Configurações › Armazenamento antes de usar esta seção.'), 'aviso');
                 return;
             }
             state.ui.cfgActiveGroup = groupId;
@@ -462,11 +463,11 @@ window.TabConfig = (function () {
         return `<li class="flex items-center justify-between gap-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded px-3 py-2 text-sm">
             <div class="min-w-0">
                 <div class="font-medium truncate">${esc(LattesTypes.itemTitle(item))}</div>
-                <div class="text-xs text-gray-500">${esc(LattesTypes.categoryLabel(item.categoryKey))} · excluído há ${dias} dia${dias === 1 ? '' : 's'}</div>
+                <div class="text-xs text-gray-500">${esc(LattesTypes.categoryLabel(item.categoryKey))} · ${esc(tp('tab_config.excluido_ha_dias', dias, { um: 'excluído há {n} dia', outros: 'excluído há {n} dias' }))}</div>
             </div>
             <div class="flex gap-1.5 shrink-0">
-                <button data-restaurar="${item.id}" class="px-2.5 py-1.5 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-xs whitespace-nowrap"><i class="fa-solid fa-rotate-left mr-1"></i> Restaurar</button>
-                <button data-purgar="${item.id}" class="px-2.5 py-1.5 rounded border border-red-300 dark:border-red-700 text-red-700 dark:text-red-400 text-xs whitespace-nowrap"><i class="fa-solid fa-trash mr-1"></i> Excluir definitivamente</button>
+                <button data-restaurar="${item.id}" class="px-2.5 py-1.5 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-xs whitespace-nowrap"><i class="fa-solid fa-rotate-left mr-1"></i> ${esc(t('app.restaurar', 'Restaurar'))}</button>
+                <button data-purgar="${item.id}" class="px-2.5 py-1.5 rounded border border-red-300 dark:border-red-700 text-red-700 dark:text-red-400 text-xs whitespace-nowrap"><i class="fa-solid fa-trash mr-1"></i> ${esc(t('tab_config.excluir_definitivamente', 'Excluir definitivamente'))}</button>
             </div>
         </li>`;
     }
@@ -474,36 +475,36 @@ window.TabConfig = (function () {
         return `
             <section class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
                 <h2 class="text-lg font-bold mb-2 flex items-center gap-2">
-                    <i class="fa-solid fa-trash-can text-govbr-600 dark:text-unifesp-400"></i> Lixeira <span class="text-sm font-normal text-gray-500">(${state.catalogo.trash.length})</span>
+                    <i class="fa-solid fa-trash-can text-govbr-600 dark:text-unifesp-400"></i> ${esc(t('tab_config.lixeira_titulo', 'Lixeira'))} <span class="text-sm font-normal text-gray-500">(${state.catalogo.trash.length})</span>
                 </h2>
-                <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">Itens excluídos ficam aqui por até ${window.AppCore.TRASH_RETENTION_DIAS} dias antes de serem removidos definitivamente. Os arquivos (quando há diretório configurado) vão para a pasta “${esc(LattesTypes.lixeiraFolder())}”, não são apagados na hora.</p>
+                <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">${t('tab_config.lixeira_descricao', 'Itens excluídos ficam aqui por até {dias} dias antes de serem removidos definitivamente. Os arquivos (quando há diretório configurado) vão para a pasta “{pasta}”, não são apagados na hora.', { dias: window.AppCore.TRASH_RETENTION_DIAS, pasta: esc(LattesTypes.lixeiraFolder()) })}</p>
                 ${state.catalogo.trash.length ? `
                 <div class="flex justify-end mb-2">
-                    <button id="btnEsvaziarLixeira" class="px-3 py-1.5 rounded border border-red-300 dark:border-red-700 text-red-700 dark:text-red-400 text-xs"><i class="fa-solid fa-trash mr-1"></i> Esvaziar lixeira</button>
+                    <button id="btnEsvaziarLixeira" class="px-3 py-1.5 rounded border border-red-300 dark:border-red-700 text-red-700 dark:text-red-400 text-xs"><i class="fa-solid fa-trash mr-1"></i> ${esc(t('tab_config.esvaziar_lixeira', 'Esvaziar lixeira'))}</button>
                 </div>
                 <ul class="space-y-2">${state.catalogo.trash.map(trashItemRowHtml).join('')}</ul>` : `
-                <p class="text-sm text-gray-500 italic">A lixeira está vazia.</p>`}
+                <p class="text-sm text-gray-500 italic">${esc(t('tab_config.lixeira_vazia', 'A lixeira está vazia.'))}</p>`}
             </section>`;
     }
     function wireLixeiraSection() {
         $$('[data-restaurar]').forEach(b => b.addEventListener('click', async () => {
             await window.AppCore.restoreItem(b.dataset.restaurar);
-            toast('Item restaurado.', 'ok');
+            toast(t('tab_config.item_restaurado', 'Item restaurado.'), 'ok');
             window.AppCore.renderItemList();
             render();
         }));
         $$('[data-purgar]').forEach(b => b.addEventListener('click', async () => {
             const item = state.catalogo.trash.find(i => i.id === b.dataset.purgar);
-            if (item && !confirm(`Excluir definitivamente "${LattesTypes.itemTitle(item)}"? Esta ação não pode ser desfeita.`)) return;
+            if (item && !confirm(t('tab_config.confirmar_excluir_definitivo', 'Excluir definitivamente "{titulo}"? Esta ação não pode ser desfeita.', { titulo: LattesTypes.itemTitle(item) }))) return;
             await window.AppCore.purgeTrashItem(b.dataset.purgar);
-            toast('Item excluído definitivamente.', 'ok');
+            toast(t('tab_config.item_excluido_definitivo', 'Item excluído definitivamente.'), 'ok');
             render();
         }));
         const btnEmpty = $('#btnEsvaziarLixeira');
         if (btnEmpty) btnEmpty.addEventListener('click', async () => {
-            if (!confirm(`Excluir definitivamente os ${state.catalogo.trash.length} item(ns) da lixeira? Esta ação não pode ser desfeita.`)) return;
+            if (!confirm(t('tab_config.confirmar_esvaziar_lixeira', 'Excluir definitivamente os {n} item(ns) da lixeira? Esta ação não pode ser desfeita.', { n: state.catalogo.trash.length }))) return;
             await window.AppCore.emptyTrash();
-            toast('Lixeira esvaziada.', 'ok');
+            toast(t('tab_config.lixeira_esvaziada', 'Lixeira esvaziada.'), 'ok');
             render();
         });
     }
@@ -521,10 +522,10 @@ window.TabConfig = (function () {
         const pendente = Storage.loadPendingGDriveMigration();
         if (!pendente) return '';
         return `<div id="gdriveMigrationPendente" class="text-sm mt-3 p-3 rounded border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-300">
-            <p><i aria-hidden="true" class="fa-solid fa-triangle-exclamation mr-1"></i> Uma migração para o Google Drive (pasta "${esc(pendente.pasta)}") ficou incompleta — a pasta local ainda é a que está em uso. A pasta do Drive pode ter recebido uma cópia parcial dos arquivos.</p>
+            <p><i aria-hidden="true" class="fa-solid fa-triangle-exclamation mr-1"></i> ${t('tab_config.migracao_gdrive_pendente', 'Uma migração para o Google Drive (pasta "{pasta}") ficou incompleta — a pasta local ainda é a que está em uso. A pasta do Drive pode ter recebido uma cópia parcial dos arquivos.', { pasta: esc(pendente.pasta) })}</p>
             <div class="flex flex-wrap gap-2 mt-2">
-                <button id="btnResumeGDriveMigration" class="px-3 py-1.5 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-xs"><i class="fa-solid fa-rotate-right mr-1"></i> Retomar migração</button>
-                <button id="btnDiscardGDriveMigration" class="px-3 py-1.5 rounded border border-amber-400 dark:border-amber-600 text-xs">Descartar aviso</button>
+                <button id="btnResumeGDriveMigration" class="px-3 py-1.5 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-xs"><i class="fa-solid fa-rotate-right mr-1"></i> ${esc(t('tab_config.retomar_migracao', 'Retomar migração'))}</button>
+                <button id="btnDiscardGDriveMigration" class="px-3 py-1.5 rounded border border-amber-400 dark:border-amber-600 text-xs">${esc(t('tab_config.descartar_aviso', 'Descartar aviso'))}</button>
             </div>
             <p id="gdriveMigrationPendenteStatus" class="text-xs mt-1"></p>
         </div>`;
@@ -543,13 +544,13 @@ window.TabConfig = (function () {
         try {
             await Storage.ensureSubdirs(LattesTypes.allFolders()); // cria a estrutura de pastas
             try { await Storage.ensureInbox(); } catch (_) {}      // garante a subpasta "Processados" da Caixa de Entrada
-            if (statusEl) statusEl.innerHTML = '<span class="text-gray-500">Copiando arquivos da pasta local para o Google Drive…</span>';
+            if (statusEl) statusEl.innerHTML = `<span class="text-gray-500">${esc(t('tab_config.copiando_local_para_drive', 'Copiando arquivos da pasta local para o Google Drive…'))}</span>`;
             const copiados = await Storage.migrateLocalToGoogleDrive((n, name) => {
-                if (statusEl) statusEl.innerHTML = `<span class="text-gray-500">Copiando arquivos… (${n} até agora — ${esc(name)})</span>`;
+                if (statusEl) statusEl.innerHTML = `<span class="text-gray-500">${esc(t('tab_config.copiando_progresso', 'Copiando arquivos… ({n} até agora — {nome})', { n, nome: name }))}</span>`;
             });
             Storage.commitGDriveConnection(); // só agora o Drive vira o back-end ativo de verdade (persistido)
             state.dirHealth = null; // acabou de trocar de armazenamento; revalidada no próximo render
-            let msg = `Migração concluída: ${copiados} arquivo(s) copiado(s) para o Google Drive.`;
+            let msg = t('tab_config.migracao_concluida', 'Migração concluída: {n} arquivo(s) copiado(s) para o Google Drive.', { n: copiados });
             let tipoToast = 'ok';
             let detalhesFalha = null;
             try {
@@ -557,17 +558,17 @@ window.TabConfig = (function () {
                 const { encontrados, falhas, detalhes } = await window.AppCore.syncFromDirectory((n) => {
                     if (statusEl) statusEl.innerHTML = statusSincronizandoHtml(n);
                 });
-                if (encontrados) msg += ` ${encontrados} item(ns) sincronizado(s).`;
-                if (falhas) { msg += ` Atenção: ${falhas} item(ns) não puderam ser lidos — veja os detalhes na tela.`; tipoToast = 'aviso'; detalhesFalha = detalhes; }
+                if (encontrados) msg += ' ' + t('tab_config.itens_sincronizados', '{n} item(ns) sincronizado(s).', { n: encontrados });
+                if (falhas) { msg += ' ' + t('tab_config.atencao_itens_nao_lidos', 'Atenção: {n} item(ns) não puderam ser lidos — veja os detalhes na tela.', { n: falhas }); tipoToast = 'aviso'; detalhesFalha = detalhes; }
             } catch (_) {}
             toast(msg, tipoToast);
-            gdriveMigrationNotice = 'Migração concluída. A partir de agora, todas as atualizações do lattesZen ocorrem no Google Drive — a pasta local não será mais usada pelo app. Confira na pasta do Drive se os arquivos foram copiados corretamente; depois disso, a pasta local pode ser excluída com segurança.';
+            gdriveMigrationNotice = t('tab_config.migracao_notice', 'Migração concluída. A partir de agora, todas as atualizações do lattesZen ocorrem no Google Drive — a pasta local não será mais usada pelo app. Confira na pasta do Drive se os arquivos foram copiados corretamente; depois disso, a pasta local pode ser excluída com segurança.');
             window.AppCore.renderItemList();
             await render();
             mostrarAvisoFalhasSync($('#syncStatus'), detalhesFalha);
         } catch (e) {
             Storage.discardGDriveConnection();
-            toast('Falha na migração — a pasta local continua sendo usada normalmente. ' + e.message, 'erro');
+            toast(t('tab_config.falha_migracao', 'Falha na migração — a pasta local continua sendo usada normalmente. {erro}', { erro: e.message }), 'erro');
             render(); // já mostra o banner "migração pendente" (Retomar/Descartar) em vez do estado antigo
         }
     }
@@ -602,13 +603,13 @@ window.TabConfig = (function () {
             const temGDrivePickerKey = !!APP_CONFIG.googlePickerApiKey;
             let html = `
                 <p class="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-full px-2.5 py-1 mb-3">
-                    <i aria-hidden="true" class="fa-solid fa-triangle-exclamation"></i> Diretório: Não configurado ainda
+                    <i aria-hidden="true" class="fa-solid fa-triangle-exclamation"></i> ${esc(t('tab_config.diretorio_nao_configurado', 'Diretório: Não configurado ainda'))}
                 </p>
                 <div class="mb-3">
-                    <p class="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">${passo++}. Isto é uma primeira configuração, ou você já tem um diretório (local ou no Drive) com itens?</p>
+                    <p class="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">${passo++}. ${esc(t('tab_config.wizard_pergunta_1', 'Isto é uma primeira configuração, ou você já tem um diretório (local ou no Drive) com itens?'))}</p>
                     <div class="flex flex-wrap gap-2">
-                        ${modoBtn('novo', 'Primeira configuração')}
-                        ${modoBtn('existente', 'Já tenho um diretório')}
+                        ${modoBtn('novo', t('tab_config.primeira_configuracao', 'Primeira configuração'))}
+                        ${modoBtn('existente', t('tab_config.ja_tenho_diretorio', 'Já tenho um diretório'))}
                     </div>
                 </div>`;
             // Prefixo do identificador dos arquivos: só faz sentido definir ao
@@ -619,21 +620,28 @@ window.TabConfig = (function () {
             if (dirWizardModo === 'novo') {
                 html += `
                 <div class="mb-4 pb-4 border-b border-gray-200 dark:border-gray-700">
-                    <h3 class="text-sm font-bold mb-1">${passo++}. Prefixo do identificador dos arquivos</h3>
-                    <p class="text-xs text-gray-500 mb-2">Os arquivos são nomeados como <code class="bg-gray-200 dark:bg-gray-700 px-1 rounded">prefixo-XXX.pdf</code> (3 alfanuméricos). Prefixo de até 3 caracteres (letras minúsculas/números). Só precisa definir uma vez — depois de configurar o diretório, esta opção some daqui.</p>
+                    <h3 class="text-sm font-bold mb-1">${passo++}. ${esc(t('tab_config.prefixo_titulo', 'Prefixo do identificador dos arquivos'))}</h3>
+                    <p class="text-xs text-gray-500 mb-2">${t('tab_config.prefixo_ajuda', 'Os arquivos são nomeados como <code class="bg-gray-200 dark:bg-gray-700 px-1 rounded">prefixo-XXX.pdf</code> (3 alfanuméricos). Prefixo de até 3 caracteres (letras minúsculas/números). Só precisa definir uma vez — depois de configurar o diretório, esta opção some daqui.')}</p>
                     <div class="flex items-center gap-2">
                         <input id="idPrefix" type="text" maxlength="3" value="${esc(state.idPrefix)}" class="w-20 text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 font-mono">
-                        <span class="text-xs text-gray-500">Exemplo: <code id="idPrefixEx" class="bg-gray-200 dark:bg-gray-700 px-1 rounded">${esc(state.idPrefix)}-k7p</code></span>
-                        <button id="btnSavePrefix" class="ml-auto px-3 py-1.5 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm"><i class="fa-solid fa-floppy-disk mr-1"></i> Salvar prefixo</button>
+                        <span class="text-xs text-gray-500">${t('tab_config.exemplo_prefixo', 'Exemplo: <code id="idPrefixEx" class="bg-gray-200 dark:bg-gray-700 px-1 rounded">{prefixo}-k7p</code>', { prefixo: esc(state.idPrefix) })}</span>
+                        <button id="btnSavePrefix" class="ml-auto px-3 py-1.5 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm"><i class="fa-solid fa-floppy-disk mr-1"></i> ${esc(t('tab_config.salvar_prefixo', 'Salvar prefixo'))}</button>
                     </div>
+                </div>
+                <div class="mb-4 pb-4 border-b border-gray-200 dark:border-gray-700">
+                    <h3 class="text-sm font-bold mb-1">${passo++}. ${esc(t('tab_config.idioma_titulo', 'Idioma'))}</h3>
+                    <p class="text-xs text-gray-500 mb-2">${esc(t('tab_config.idioma_ajuda', 'Idioma da estrutura de pastas e do restante do app. Só precisa definir uma vez, antes das pastas serem criadas — depois de configurar o diretório, esta opção some daqui.'))}</p>
+                    <select id="wizLocale" class="text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900">
+                        ${window.AppCore.localesDisponiveis().map(loc => `<option value="${esc(loc)}" ${loc === state.locale ? 'selected' : ''}>${esc(window.AppCore.nomeLocale(loc))}</option>`).join('')}
+                    </select>
                 </div>`;
             }
             if (dirWizardModo) {
                 html += `
                 <div class="mb-3">
-                    <p class="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">${passo++}. Onde ficam os arquivos?</p>
+                    <p class="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">${passo++}. ${esc(t('tab_config.onde_ficam_arquivos', 'Onde ficam os arquivos?'))}</p>
                     <div class="flex flex-wrap gap-2">
-                        ${tipoBtn('local', 'Pasta no computador')}
+                        ${tipoBtn('local', t('tab_config.pasta_no_computador', 'Pasta no computador'))}
                         ${tipoBtn('remoto', 'Google Drive')}
                     </div>
                 </div>`;
@@ -641,10 +649,10 @@ window.TabConfig = (function () {
             if (dirWizardModo && dirWizardTipo === 'local') {
                 html += `
                 <div class="flex flex-wrap gap-2">
-                    <button id="btnChooseDir" class="px-3 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm" ${Storage.supportsFS ? '' : 'disabled'}><i class="fa-solid fa-folder mr-1"></i> Escolher pasta</button>
+                    <button id="btnChooseDir" class="px-3 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm" ${Storage.supportsFS ? '' : 'disabled'}><i class="fa-solid fa-folder mr-1"></i> ${esc(t('tab_config.escolher_pasta', 'Escolher pasta'))}</button>
                 </div>
-                ${Storage.supportsFS ? '' : '<p class="text-xs text-red-600 font-semibold mt-1">Pasta local não funciona neste navegador (em celular, nenhum navegador suporta — nem trocando de app; no computador, funciona só em Chrome ou Edge). Volte e escolha "Google Drive" em vez disso.</p>'}
-                ${dirWizardModo === 'existente' ? '<p class="text-xs text-gray-500 mt-1">"Escolher pasta" abre o seletor do sistema — selecione a pasta que você já usa; o nome dela é usado automaticamente, não precisa digitar nada.</p>' : ''}`;
+                ${Storage.supportsFS ? '' : `<p class="text-xs text-red-600 font-semibold mt-1">${esc(t('tab_config.pasta_local_nao_suportada', 'Pasta local não funciona neste navegador (em celular, nenhum navegador suporta — nem trocando de app; no computador, funciona só em Chrome ou Edge). Volte e escolha "Google Drive" em vez disso.'))}</p>`}
+                ${dirWizardModo === 'existente' ? `<p class="text-xs text-gray-500 mt-1">${esc(t('tab_config.escolher_pasta_ajuda', '"Escolher pasta" abre o seletor do sistema — selecione a pasta que você já usa; o nome dela é usado automaticamente, não precisa digitar nada.'))}</p>` : ''}`;
             }
             if (dirWizardModo && dirWizardTipo === 'remoto') {
                 const gdriveDisabled = !APP_CONFIG.googleDriveClientId || (dirWizardModo === 'existente' && !temGDrivePickerKey);
@@ -653,16 +661,16 @@ window.TabConfig = (function () {
                 <div class="flex flex-wrap gap-2 mb-2">
                     <input id="gdrivePasta" type="text" placeholder="Pasta (ex.: lattesZen)" value="lattesZen" class="text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900">
                 </div>` : `
-                <p class="text-xs text-gray-500 mb-2">Ao clicar, um seletor do Google Drive abre para você escolher a pasta que já usa — o nome dela é usado automaticamente, não precisa digitar nada.${temGDrivePickerKey ? '' : ' <span class="text-red-600 font-semibold">Recurso ainda não configurado neste site (falta a Chave de API do Picker em config.js).</span>'}</p>`}
+                <p class="text-xs text-gray-500 mb-2">${t('tab_config.gdrive_seletor_ajuda', 'Ao clicar, um seletor do Google Drive abre para você escolher a pasta que já usa — o nome dela é usado automaticamente, não precisa digitar nada.{avisoChave}', { avisoChave: temGDrivePickerKey ? '' : ` <span class="text-red-600 font-semibold">${esc(t('tab_config.picker_nao_configurado', 'Recurso ainda não configurado neste site (falta a Chave de API do Picker em config.js).'))}</span>` })}</p>`}
                 <p class="text-xs text-gray-500 mb-2">
-                    O lattesZen só acessa os arquivos que ele mesmo cria (escopo <code class="bg-gray-200 dark:bg-gray-700 px-1 rounded">drive.file</code>) — nunca o restante do seu Drive.
-                    ${APP_CONFIG.googleDriveClientId ? '' : '<span class="text-red-600 font-semibold">Recurso ainda não configurado neste site (falta o Client ID do Google Cloud Console em config.js).</span>'}
+                    ${t('tab_config.gdrive_escopo_ajuda', 'O lattesZen só acessa os arquivos que ele mesmo cria (escopo <code class="bg-gray-200 dark:bg-gray-700 px-1 rounded">drive.file</code>) — nunca o restante do seu Drive.')}
+                    ${APP_CONFIG.googleDriveClientId ? '' : `<span class="text-red-600 font-semibold">${esc(t('tab_config.client_id_nao_configurado', 'Recurso ainda não configurado neste site (falta o Client ID do Google Cloud Console em config.js).'))}</span>`}
                 </p>
                 <div class="flex flex-wrap gap-2">
-                    <button id="btnGDriveConnect" class="px-3 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm" ${gdriveDisabled ? 'disabled' : ''}><i class="fa-brands fa-google mr-1"></i> ${dirWizardModo === 'existente' ? 'Selecionar pasta existente e conectar' : 'Conectar ao Google Drive'}</button>
-                    ${dirWizardModo === 'existente' ? `<button id="btnGDriveMigrate" class="px-3 py-2 rounded border border-govbr-600 dark:border-unifesp-400 text-govbr-700 dark:text-unifesp-300 text-sm" ${gdriveDisabled ? 'disabled' : ''}><i class="fa-solid fa-cloud-arrow-up mr-1"></i> Migrar meus arquivos e conectar</button>` : ''}
+                    <button id="btnGDriveConnect" class="px-3 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm" ${gdriveDisabled ? 'disabled' : ''}><i class="fa-brands fa-google mr-1"></i> ${dirWizardModo === 'existente' ? esc(t('tab_config.selecionar_pasta_conectar', 'Selecionar pasta existente e conectar')) : esc(t('tab_config.conectar_gdrive', 'Conectar ao Google Drive'))}</button>
+                    ${dirWizardModo === 'existente' ? `<button id="btnGDriveMigrate" class="px-3 py-2 rounded border border-govbr-600 dark:border-unifesp-400 text-govbr-700 dark:text-unifesp-300 text-sm" ${gdriveDisabled ? 'disabled' : ''}><i class="fa-solid fa-cloud-arrow-up mr-1"></i> ${esc(t('tab_config.migrar_conectar', 'Migrar meus arquivos e conectar'))}</button>` : ''}
                 </div>
-                ${dirWizardModo === 'existente' ? `<p class="text-xs text-gray-500 mt-1">"Selecionar pasta existente e conectar" abre o seletor do Drive pra você escolher a pasta que já usa. "Migrar meus arquivos e conectar" pede pra você escolher a pasta local atual e copia tudo para a pasta do Drive escolhida no seletor (existente, ou nova pelo botão "Nova pasta" do próprio seletor) antes de trocar.</p>` : ''}
+                ${dirWizardModo === 'existente' ? `<p class="text-xs text-gray-500 mt-1">${t('tab_config.gdrive_existente_ajuda', '"Selecionar pasta existente e conectar" abre o seletor do Drive pra você escolher a pasta que já usa. "Migrar meus arquivos e conectar" pede pra você escolher a pasta local atual e copia tudo para a pasta do Drive escolhida no seletor (existente, ou nova pelo botão "Nova pasta" do próprio seletor) antes de trocar.')}</p>` : ''}
                 <div id="gdriveStatus" class="text-sm mt-2"></div>`;
             }
             dirSectionHtml = html;
@@ -680,12 +688,12 @@ window.TabConfig = (function () {
             // aqui era redundante e confundia com uma troca direta, que não
             // é o que ele faz).
             dirSectionHtml = `
-                <p class="text-sm mb-1">Pasta atual: <strong id="dirNameLbl">${esc(dirName)}</strong></p>
+                <p class="text-sm mb-1">${t('tab_config.pasta_atual', 'Pasta atual: <strong id="dirNameLbl">{nome}</strong>', { nome: esc(dirName) })}</p>
                 <p class="text-sm mb-3" id="dirHealthStatus">${window.AppCore.dirHealthStatusHtml()}</p>
                 <div class="flex flex-wrap gap-2">
-                    <button id="btnSync" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-rotate mr-1"></i> Sincronizar do diretório</button>
-                    <button id="btnCheckDir" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-stethoscope mr-1"></i> Verificar pasta</button>
-                    <button id="btnForget" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-link-slash mr-1"></i> Esquecer diretório de armazenamento</button>
+                    <button id="btnSync" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-rotate mr-1"></i> ${esc(t('tab_config.sincronizar_diretorio', 'Sincronizar do diretório'))}</button>
+                    <button id="btnCheckDir" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-stethoscope mr-1"></i> ${esc(t('tab_config.verificar_pasta', 'Verificar pasta'))}</button>
+                    <button id="btnForget" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-link-slash mr-1"></i> ${esc(t('tab_config.esquecer_diretorio', 'Esquecer diretório de armazenamento'))}</button>
                 </div>
                 <div id="syncStatus" class="text-sm mt-2"></div>`;
         }
@@ -711,16 +719,15 @@ window.TabConfig = (function () {
                 <div data-cfg-page="${CFG_GROUPS[0].id}" class="grid grid-cols-1 gap-6 ${cfgAtiva === CFG_GROUPS[0].id ? '' : 'hidden'}">
                 ${cfgGroup(CFG_GROUPS[0])}
                 <section id="dirSection" class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-                    <h2 class="text-lg font-bold mb-2 flex items-center gap-2"><i class="fa-solid fa-folder-open text-govbr-600 dark:text-unifesp-400"></i> Diretório de armazenamento</h2>
+                    <h2 class="text-lg font-bold mb-2 flex items-center gap-2"><i class="fa-solid fa-folder-open text-govbr-600 dark:text-unifesp-400"></i> ${esc(t('tab_config.diretorio_armazenamento_titulo', 'Diretório de armazenamento'))}</h2>
                     <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
-                        Cada item catalogado é salvo aqui como <code class="text-xs bg-gray-200 dark:bg-gray-700 px-1 rounded">ID.pdf</code> +
-                        <code class="text-xs bg-gray-200 dark:bg-gray-700 px-1 rounded">ID.json</code>.
-                        ${Storage.supportsFS ? '' : '<span class="text-amber-700 dark:text-amber-400 font-semibold">Este navegador não suporta pasta local (celular, ou Safari/Firefox no computador) — use o Google Drive abaixo.</span>'}
+                        ${t('tab_config.diretorio_armazenamento_desc', 'Cada item catalogado é salvo aqui como <code class="text-xs bg-gray-200 dark:bg-gray-700 px-1 rounded">ID.pdf</code> + <code class="text-xs bg-gray-200 dark:bg-gray-700 px-1 rounded">ID.json</code>.')}
+                        ${Storage.supportsFS ? '' : `<span class="text-amber-700 dark:text-amber-400 font-semibold">${esc(t('tab_config.navegador_sem_pasta_local', 'Este navegador não suporta pasta local (celular, ou Safari/Firefox no computador) — use o Google Drive abaixo.'))}</span>`}
                     </p>
                     ${dirSectionHtml}
                     ${gdriveMigrationNotice ? `<div id="gdriveMigrationNotice" class="text-sm mt-3 p-3 rounded border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-300">
                         <i class="fa-solid fa-triangle-exclamation mr-1"></i> ${esc(gdriveMigrationNotice)}
-                        <button id="btnDismissGDriveNotice" class="block mt-1 text-xs underline">Entendi, dispensar</button>
+                        <button id="btnDismissGDriveNotice" class="block mt-1 text-xs underline">${esc(t('tab_config.entendi_dispensar', 'Entendi, dispensar'))}</button>
                     </div>` : ''}
                     ${pendingGDriveMigrationHtml()}
                 </section>
@@ -738,26 +745,20 @@ window.TabConfig = (function () {
 
                 <div data-cfg-page="${CFG_GROUPS[3].id}" class="grid grid-cols-1 lg:grid-cols-2 gap-6 ${cfgAtiva === CFG_GROUPS[3].id ? '' : 'hidden'}">
                 ${cfgGroup(CFG_GROUPS[3])}
-                ${rscSectionHtml()}
-                ${sumulaSectionHtml()}
                 ${pubWebSectionHtml()}
                 ${nuvemPalavrasSectionHtml()}
 
                 <details id="detListasAutocomplete" class="lg:col-span-2 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
                     <summary class="text-lg font-bold mb-2 flex items-center gap-2 cursor-pointer select-none">
                         <i aria-hidden="true" class="fa-solid fa-angle-right text-sm text-gray-400"></i>
-                        <i class="fa-solid fa-list-check text-govbr-600 dark:text-unifesp-400"></i> Listas de autocomplete
+                        <i class="fa-solid fa-list-check text-govbr-600 dark:text-unifesp-400"></i> ${esc(t('tab_config.listas_autocomplete_titulo', 'Listas de autocomplete'))}
                     </summary>
                     <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
-                        Listas de sugestões dos campos (Instituições, Financiadores/Agências, etc.). Valores já usados no catálogo
-                        aparecem automaticamente. Estas listas são <strong>apenas para visualização</strong> — a única forma de
-                        alterá-las é a função <strong>Renomear em todos os itens</strong>, garantindo consistência com os itens já lançados.
+                        ${t('tab_config.listas_autocomplete_desc', 'Listas de sugestões dos campos (Instituições, Financiadores/Agências, etc.). Valores já usados no catálogo aparecem automaticamente. Estas listas são <strong>apenas para visualização</strong> — a única forma de alterá-las é a função <strong>Renomear em todos os itens</strong>, garantindo consistência com os itens já lançados.')}
                     </p>
                     <p class="text-xs text-gray-500 dark:text-gray-400 mb-3 flex items-start gap-2">
                         <i aria-hidden="true" class="fa-solid fa-wand-magic-sparkles text-govbr-600 dark:text-unifesp-400 mt-0.5"></i>
-                        <span>Para <strong>corrigir/normalizar</strong> um valor (ex.: padronizar o nome de uma instituição), use
-                        <strong>Renomear em todos os itens</strong> dentro de cada lista: o novo valor é aplicado a todos os itens que
-                        usam o antigo, e os arquivos JSON no diretório são regravados.</span>
+                        <span>${t('tab_config.renomear_ajuda', 'Para <strong>corrigir/normalizar</strong> um valor (ex.: padronizar o nome de uma instituição), use <strong>Renomear em todos os itens</strong> dentro de cada lista: o novo valor é aplicado a todos os itens que usam o antigo, e os arquivos JSON no diretório são regravados.')}</span>
                     </p>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-2 items-start">
                         ${AUTOCOMPLETE_KEYS.map(k => `
@@ -768,22 +769,22 @@ window.TabConfig = (function () {
                                 </summary>
                                 <div class="p-2 border-b border-gray-200 dark:border-gray-700 bg-gray-100/60 dark:bg-gray-900/40">
                                     <p class="text-[11px] font-medium text-gray-600 dark:text-gray-300 mb-1.5">
-                                        <i aria-hidden="true" class="fa-solid fa-arrows-turn-right mr-1"></i> Renomear em todos os itens
+                                        <i aria-hidden="true" class="fa-solid fa-arrows-turn-right mr-1"></i> ${esc(t('tab_config.renomear_em_todos', 'Renomear em todos os itens'))}
                                     </p>
                                     <div class="flex flex-wrap items-center gap-2">
                                         <select data-renfrom="${k}" class="text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 flex-1 min-w-[10rem]">
-                                            <option value="">— valor atual —</option>
+                                            <option value="">${esc(t('tab_config.valor_atual_opt', '— valor atual —'))}</option>
                                             ${collectSuggestions(k).map(v => `<option value="${esc(v)}">${esc(v)}</option>`).join('')}
                                         </select>
                                         <span class="text-gray-400" aria-hidden="true">→</span>
-                                        <input type="text" data-rento="${k}" placeholder="Novo valor (normalizado)" class="text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 flex-1 min-w-[10rem]">
-                                        <button type="button" data-rename="${k}" class="px-3 py-1.5 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm whitespace-nowrap disabled:opacity-40" disabled>Aplicar</button>
+                                        <input type="text" data-rento="${k}" placeholder="${esc(t('tab_config.novo_valor_placeholder', 'Novo valor (normalizado)'))}" class="text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 flex-1 min-w-[10rem]">
+                                        <button type="button" data-rename="${k}" class="px-3 py-1.5 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm whitespace-nowrap disabled:opacity-40" disabled>${esc(t('tab_config.aplicar', 'Aplicar'))}</button>
                                     </div>
                                     <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-1" data-rencount="${k}"></p>
                                 </div>
                                 <div class="p-2">
-                                    <p class="text-[11px] text-gray-500 dark:text-gray-400 mb-1"><i aria-hidden="true" class="fa-solid fa-eye mr-1"></i> Somente leitura — use “Renomear” acima para alterar.</p>
-                                    <textarea id="vocab-${k}" rows="6" readonly tabindex="-1" aria-label="Sugestões de ${esc(VOCAB_LABELS[k] || k)} (somente leitura)" class="w-full text-sm px-2 py-1.5 rounded border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 font-mono cursor-default resize-none focus:outline-none">${esc(collectSuggestions(k).join('\n'))}</textarea>
+                                    <p class="text-[11px] text-gray-500 dark:text-gray-400 mb-1"><i aria-hidden="true" class="fa-solid fa-eye mr-1"></i> ${t('tab_config.somente_leitura_ajuda', 'Somente leitura — use “Renomear” acima para alterar.')}</p>
+                                    <textarea id="vocab-${k}" rows="6" readonly tabindex="-1" aria-label="${esc(t('tab_config.sugestoes_aria', 'Sugestões de {label} (somente leitura)', { label: VOCAB_LABELS[k] || k }))}" class="w-full text-sm px-2 py-1.5 rounded border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 font-mono cursor-default resize-none focus:outline-none">${esc(collectSuggestions(k).join('\n'))}</textarea>
                                 </div>
                             </details>`).join('')}
                     </div>
@@ -793,9 +794,15 @@ window.TabConfig = (function () {
 
                 <div data-cfg-page="${CFG_GROUPS[4].id}" class="grid grid-cols-1 lg:grid-cols-2 gap-6 ${cfgAtiva === CFG_GROUPS[4].id ? '' : 'hidden'}">
                 ${cfgGroup(CFG_GROUPS[4])}
+                ${rscSectionHtml()}
+                ${sumulaSectionHtml()}
+                </div>
+
+                <div data-cfg-page="${CFG_GROUPS[5].id}" class="grid grid-cols-1 lg:grid-cols-2 gap-6 ${cfgAtiva === CFG_GROUPS[5].id ? '' : 'hidden'}">
+                ${cfgGroup(CFG_GROUPS[5])}
                 ${lixeiraSectionHtml()}
                 <section class="bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800 p-4">
-                    <button id="btnClear" class="px-3 py-2 rounded bg-red-600 text-white text-sm"><i class="fa-solid fa-trash mr-1"></i> Limpar catálogo (índice local)</button>
+                    <button id="btnClear" class="px-3 py-2 rounded bg-red-600 text-white text-sm"><i class="fa-solid fa-trash mr-1"></i> ${esc(t('tab_config.limpar_catalogo', 'Limpar catálogo (índice local)'))}</button>
                 </section>
                 </div>
                 </div>
@@ -829,7 +836,14 @@ window.TabConfig = (function () {
             state.idPrefix = window.AppCore.sanitizePrefix($('#idPrefix').value);
             const s = Storage.loadSettings(); s.idPrefix = state.idPrefix; Storage.saveSettings(s);
             window.AppCore.persistirGeral();
-            toast(`Prefixo definido: "${state.idPrefix}". Novos arquivos: ${state.idPrefix}-XXX.`, 'ok');
+            toast(t('tab_config.prefixo_definido', 'Prefixo definido: "{prefixo}". Novos arquivos: {prefixo}-XXX.', { prefixo: state.idPrefix }), 'ok');
+            render();
+        });
+        const wizLocale = $('#wizLocale');
+        if (wizLocale) wizLocale.addEventListener('change', () => {
+            state.locale = window.AppCore.setLocale(wizLocale.value);
+            const s = Storage.loadSettings(); s.locale = state.locale; Storage.saveSettings(s);
+            window.AppCore.persistirGeral();
             render();
         });
         const btnChooseDir = $('#btnChooseDir');
@@ -843,19 +857,19 @@ window.TabConfig = (function () {
                 // outro computador, ou reconfigurando após limpar o navegador),
                 // o catálogo local não precisa esperar um clique extra em
                 // "Sincronizar do diretório" pra aparecer.
-                let msg = 'Diretório configurado (estrutura de pastas criada).';
+                let msg = t('tab_config.diretorio_configurado', 'Diretório configurado (estrutura de pastas criada).');
                 let tipoToast = 'ok';
                 const originalChooseDirLabel = btnChooseDir.innerHTML;
                 let detalhesFalha = null;
                 try {
                     const { encontrados, configRestaurada, falhas, detalhes } = await window.AppCore.syncFromDirectory((n) => {
-                        btnChooseDir.innerHTML = `<i aria-hidden="true" class="fa-solid fa-spinner fa-spin mr-1"></i> Sincronizando… (${n} até agora)`;
+                        btnChooseDir.innerHTML = `<i aria-hidden="true" class="fa-solid fa-spinner fa-spin mr-1"></i> ${esc(t('tab_config.sincronizando_ate_agora', 'Sincronizando… ({n} até agora)', { n }))}`;
                     });
                     msg += encontrados
-                        ? ` ${encontrados} item(ns) já cadastrado(s) na pasta foram sincronizados automaticamente.`
-                        : ' Pasta vazia — pronta para uso.';
-                    if (configRestaurada) msg += ' Configurações do sistema também restauradas.';
-                    if (falhas) { msg += ` Atenção: ${falhas} item(ns) não puderam ser lidos.`; tipoToast = 'aviso'; detalhesFalha = detalhes; }
+                        ? ' ' + t('tab_config.itens_ja_cadastrados_sincronizados', '{n} item(ns) já cadastrado(s) na pasta foram sincronizados automaticamente.', { n: encontrados })
+                        : ' ' + t('tab_config.pasta_vazia_pronta', 'Pasta vazia — pronta para uso.');
+                    if (configRestaurada) msg += ' ' + t('tab_config.config_tambem_restauradas', 'Configurações do sistema também restauradas.');
+                    if (falhas) { msg += ' ' + t('tab_config.atencao_itens_nao_lidos_simples', 'Atenção: {n} item(ns) não puderam ser lidos.', { n: falhas }); tipoToast = 'aviso'; detalhesFalha = detalhes; }
                 } catch (_) {
                 } finally {
                     btnChooseDir.innerHTML = originalChooseDirLabel;
@@ -871,10 +885,10 @@ window.TabConfig = (function () {
             const originalSyncLabel = btnSync.innerHTML;
             try {
                 const { encontrados, configRestaurada, falhas, detalhes } = await window.AppCore.syncFromDirectory((n) => {
-                    btnSync.innerHTML = `<i aria-hidden="true" class="fa-solid fa-spinner fa-spin mr-1"></i> Sincronizando… (${n} até agora)`;
+                    btnSync.innerHTML = `<i aria-hidden="true" class="fa-solid fa-spinner fa-spin mr-1"></i> ${esc(t('tab_config.sincronizando_ate_agora', 'Sincronizando… ({n} até agora)', { n }))}`;
                 });
-                let msg = `${encontrados} arquivo(s) .json lido(s) do diretório.${configRestaurada ? ' Configurações do sistema atualizadas.' : ''}`;
-                if (falhas) msg += ` Atenção: ${falhas} item(ns) não puderam ser lidos — veja os detalhes na tela.`;
+                let msg = t('tab_config.arquivos_json_lidos', '{n} arquivo(s) .json lido(s) do diretório.{configTxt}', { n: encontrados, configTxt: configRestaurada ? ' ' + t('tab_config.config_atualizadas', 'Configurações do sistema atualizadas.') : '' });
+                if (falhas) msg += ' ' + t('tab_config.atencao_itens_nao_lidos', 'Atenção: {n} item(ns) não puderam ser lidos — veja os detalhes na tela.', { n: falhas });
                 toast(msg, falhas ? 'aviso' : 'ok');
                 window.AppCore.renderItemList();
                 await render();
@@ -891,7 +905,7 @@ window.TabConfig = (function () {
             state.dirHealth = null;
             dirWizardModo = null; dirWizardTipo = null; // volta o assistente pro início
             window.AppCore.renderDirBanner();
-            toast('Diretório esquecido — escolha um novo diretório ou pasta no Drive abaixo.', 'ok');
+            toast(t('tab_config.diretorio_esquecido', 'Diretório esquecido — escolha um novo diretório ou pasta no Drive abaixo.'), 'ok');
             render();
         });
         $$('[data-wizard-modo]').forEach(btn => {
@@ -903,8 +917,8 @@ window.TabConfig = (function () {
         const btnCheckDir = $('#btnCheckDir');
         if (btnCheckDir) btnCheckDir.addEventListener('click', async () => {
             await window.AppCore.checkDirHealth({ requestIfNeeded: true });
-            if (state.dirHealth && state.dirHealth.ok) toast('Pasta acessível.', 'ok');
-            else toast('Não foi possível acessar a pasta — verifique se ela ainda existe e se a permissão foi concedida.', 'erro');
+            if (state.dirHealth && state.dirHealth.ok) toast(t('tab_config.pasta_acessivel', 'Pasta acessível.'), 'ok');
+            else toast(t('tab_config.pasta_nao_acessivel', 'Não foi possível acessar a pasta — verifique se ela ainda existe e se a permissão foi concedida.'), 'erro');
             render();
         });
         const btnGDriveConnect = $('#btnGDriveConnect');
@@ -913,8 +927,8 @@ window.TabConfig = (function () {
             const statusEl = $('#gdriveStatus');
             btnGDriveConnect.disabled = true;
             if (statusEl) statusEl.innerHTML = existente
-                ? '<span class="text-gray-500">Conectando… (autorize na janela do Google e escolha sua pasta no seletor)</span>'
-                : '<span class="text-gray-500">Conectando… (autorize na janela do Google)</span>';
+                ? `<span class="text-gray-500">${esc(t('tab_config.conectando_existente', 'Conectando… (autorize na janela do Google e escolha sua pasta no seletor)'))}</span>`
+                : `<span class="text-gray-500">${esc(t('tab_config.conectando_novo', 'Conectando… (autorize na janela do Google)'))}</span>`;
             try {
                 const cfg = existente ? { pickExisting: true } : { pasta: $('#gdrivePasta').value.trim() || 'lattesZen' };
                 const resultado = await Storage.connectGoogleDrive(cfg);
@@ -922,7 +936,7 @@ window.TabConfig = (function () {
                 await Storage.ensureSubdirs(LattesTypes.allFolders()); // cria a estrutura de pastas
                 try { await Storage.ensureInbox(); } catch (_) {}      // garante a subpasta "Processados" da Caixa de Entrada
                 state.dirHealth = null; // acabou de conectar; revalidada no próximo render
-                let msg = existente ? `Conectado à pasta "${resultado.pasta}" no Google Drive.` : 'Conectado ao Google Drive (estrutura de pastas criada).';
+                let msg = existente ? t('tab_config.conectado_pasta', 'Conectado à pasta "{pasta}" no Google Drive.', { pasta: resultado.pasta }) : t('tab_config.conectado_gdrive_novo', 'Conectado ao Google Drive (estrutura de pastas criada).');
                 let tipoToast = 'ok';
                 // Biblioteca grande + celular pode levar um tempo real pra
                 // sincronizar (uma requisição por pasta/arquivo) — sem isto,
@@ -937,10 +951,10 @@ window.TabConfig = (function () {
                         if (statusEl) statusEl.innerHTML = statusSincronizandoHtml(n);
                     });
                     msg += encontrados
-                        ? ` ${encontrados} item(ns) já cadastrado(s) na pasta foram sincronizados automaticamente.`
-                        : ' Pasta vazia — pronta para uso.';
-                    if (configRestaurada) msg += ' Configurações do sistema também restauradas.';
-                    if (falhas) { msg += ` Atenção: ${falhas} item(ns) não puderam ser lidos — veja os detalhes na tela.`; tipoToast = 'aviso'; detalhesFalha = detalhes; }
+                        ? ' ' + t('tab_config.itens_ja_cadastrados_sincronizados', '{n} item(ns) já cadastrado(s) na pasta foram sincronizados automaticamente.', { n: encontrados })
+                        : ' ' + t('tab_config.pasta_vazia_pronta', 'Pasta vazia — pronta para uso.');
+                    if (configRestaurada) msg += ' ' + t('tab_config.config_tambem_restauradas', 'Configurações do sistema também restauradas.');
+                    if (falhas) { msg += ' ' + t('tab_config.atencao_itens_nao_lidos', 'Atenção: {n} item(ns) não puderam ser lidos — veja os detalhes na tela.', { n: falhas }); tipoToast = 'aviso'; detalhesFalha = detalhes; }
                 } catch (_) {}
                 toast(msg, tipoToast);
                 window.AppCore.renderItemList();
@@ -948,16 +962,13 @@ window.TabConfig = (function () {
                 mostrarAvisoFalhasSync($('#syncStatus'), detalhesFalha);
             } catch (e) {
                 if (statusEl) statusEl.innerHTML = `<span class="text-red-700 dark:text-red-400"><i aria-hidden="true" class="fa-solid fa-triangle-exclamation mr-1"></i> ${esc(e.message)}</span>`;
-                toast('Falha ao conectar: ' + e.message, 'erro');
+                toast(t('tab_config.falha_conectar', 'Falha ao conectar: {erro}', { erro: e.message }), 'erro');
                 btnGDriveConnect.disabled = false;
             }
         });
         const btnGDriveMigrate = $('#btnGDriveMigrate');
         if (btnGDriveMigrate) btnGDriveMigrate.addEventListener('click', async () => {
-            const aviso = 'Isso copia TODOS os arquivos da pasta local atual para uma pasta no seu Google Drive (a pasta local não é apagada durante a cópia).\n\n' +
-                'Ao terminar, o lattesZen passa a usar o Google Drive — TODAS as atualizações futuras (novos itens, edições, anexos) vão para lá, não mais para a pasta local.\n\n' +
-                'Depois de conferir que os arquivos foram copiados corretamente, você pode excluir a pasta local com segurança.\n\n' +
-                'Deseja continuar?';
+            const aviso = t('tab_config.aviso_migracao_gdrive', 'Isso copia TODOS os arquivos da pasta local atual para uma pasta no seu Google Drive (a pasta local não é apagada durante a cópia).\n\nAo terminar, o lattesZen passa a usar o Google Drive — TODAS as atualizações futuras (novos itens, edições, anexos) vão para lá, não mais para a pasta local.\n\nDepois de conferir que os arquivos foram copiados corretamente, você pode excluir a pasta local com segurança.\n\nDeseja continuar?');
             if (!confirm(aviso)) return;
             const statusEl = $('#gdriveStatus');
             btnGDriveMigrate.disabled = true;
@@ -967,10 +978,10 @@ window.TabConfig = (function () {
                 // arquivos e conectar" ainda não tem uma pasta local pra
                 // migrar — pede pra escolher agora, antes de conectar.
                 if (!Storage.hasDirectory()) {
-                    if (statusEl) statusEl.innerHTML = '<span class="text-gray-500">Escolha a pasta local com os seus arquivos…</span>';
+                    if (statusEl) statusEl.innerHTML = `<span class="text-gray-500">${esc(t('tab_config.escolha_pasta_local', 'Escolha a pasta local com os seus arquivos…'))}</span>`;
                     await Storage.chooseDirectory();
                 }
-                if (statusEl) statusEl.innerHTML = '<span class="text-gray-500">Conectando… (autorize na janela do Google e escolha a pasta de destino no seletor)</span>';
+                if (statusEl) statusEl.innerHTML = `<span class="text-gray-500">${esc(t('tab_config.conectando_destino', 'Conectando… (autorize na janela do Google e escolha a pasta de destino no seletor)'))}</span>`;
                 // deferCommit: true — só passa a valer pra valer (persistido,
                 // usado por restoreDirectory() no próximo boot) depois que a
                 // cópia terminar com sucesso, lá em runGDriveMigrationCopy()
@@ -986,7 +997,7 @@ window.TabConfig = (function () {
             } catch (e) {
                 if (e.name === 'AbortError') { btnGDriveMigrate.disabled = false; if (btnGDriveConnect) btnGDriveConnect.disabled = false; return; } // cancelou o seletor de pasta
                 Storage.discardGDriveConnection();
-                toast('Falha ao conectar/preparar a migração: ' + e.message, 'erro');
+                toast(t('tab_config.falha_conectar_preparar_migracao', 'Falha ao conectar/preparar a migração: {erro}', { erro: e.message }), 'erro');
                 btnGDriveMigrate.disabled = false;
                 if (btnGDriveConnect) btnGDriveConnect.disabled = false;
             }
@@ -1004,34 +1015,34 @@ window.TabConfig = (function () {
             const pending = Storage.loadPendingGDriveMigration();
             if (!pending) return;
             if (Storage.storageMode() !== 'local' || !Storage.hasDirectory()) {
-                toast('A pasta local original não está mais configurada aqui — não é possível retomar automaticamente. Descarte este aviso e, se quiser, repita a migração escolhendo a pasta de novo.', 'erro');
+                toast(t('tab_config.pasta_local_nao_configurada', 'A pasta local original não está mais configurada aqui — não é possível retomar automaticamente. Descarte este aviso e, se quiser, repita a migração escolhendo a pasta de novo.'), 'erro');
                 return;
             }
             const statusEl = $('#gdriveMigrationPendenteStatus');
             btnResumeGDriveMigration.disabled = true;
             try {
-                if (statusEl) statusEl.textContent = 'Reconectando ao Google Drive…';
+                if (statusEl) statusEl.textContent = t('tab_config.reconectando_gdrive', 'Reconectando ao Google Drive…');
                 await Storage.resumeGDriveConnection(pending);
                 await runGDriveMigrationCopy(statusEl);
             } catch (e) {
                 Storage.discardGDriveConnection();
                 if (statusEl) statusEl.textContent = '';
-                toast('Falha ao retomar a migração: ' + e.message, 'erro');
+                toast(t('tab_config.falha_retomar_migracao', 'Falha ao retomar a migração: {erro}', { erro: e.message }), 'erro');
                 btnResumeGDriveMigration.disabled = false;
             }
         });
         const btnDiscardGDriveMigration = $('#btnDiscardGDriveMigration');
         if (btnDiscardGDriveMigration) btnDiscardGDriveMigration.addEventListener('click', () => {
-            if (!confirm('Descartar o aviso de migração pendente? A pasta local continua sendo usada normalmente. Se a pasta do Google Drive já tiver recebido alguma cópia parcial, você pode apagá-la manualmente pelo drive.google.com — o lattesZen não vai tentar completá-la sozinho.')) return;
+            if (!confirm(t('tab_config.confirmar_descartar_migracao', 'Descartar o aviso de migração pendente? A pasta local continua sendo usada normalmente. Se a pasta do Google Drive já tiver recebido alguma cópia parcial, você pode apagá-la manualmente pelo drive.google.com — o lattesZen não vai tentar completá-la sozinho.'))) return;
             Storage.clearPendingGDriveMigration();
-            toast('Aviso de migração pendente descartado.', 'ok');
+            toast(t('tab_config.aviso_migracao_descartado', 'Aviso de migração pendente descartado.'), 'ok');
             render();
         });
 
         $('#btnExport').addEventListener('click', exportCatalog);
         $('#importJson').addEventListener('change', importCatalog);
         $('#btnClear').addEventListener('click', () => {
-            if (!confirm('Isto apaga TODO o índice local no navegador — itens catalogados, rascunho, prévia de importação, listas de autocomplete e as configurações do RSC-PCCTAE e da Súmula FAPESP. Os arquivos no diretório NÃO são removidos. Continuar?')) return;
+            if (!confirm(t('tab_config.confirmar_limpar_catalogo', 'Isto apaga TODO o índice local no navegador — itens catalogados, rascunho, prévia de importação, listas de autocomplete e as configurações do RSC-PCCTAE e da Súmula FAPESP. Os arquivos no diretório NÃO são removidos. Continuar?'))) return;
             state.catalogo.items = [];
             window.AppCore.saveCatalog();
             window.AppCore.clearDraft();                 // rascunho não salvo (lz_draft)
@@ -1050,7 +1061,7 @@ window.TabConfig = (function () {
             window.AppCore.persistirRsc();
             window.AppCore.persistirSumula();
             window.AppCore.resetBackupReminder();        // zera o contador de backup
-            toast('Índice local limpo (itens, listas, RSC e Súmula FAPESP).', 'ok');
+            toast(t('tab_config.indice_limpo', 'Índice local limpo (itens, listas, RSC e Súmula FAPESP).'), 'ok');
             window.AppCore.renderItemList();
             render();               // re-renderiza a aba (Perfil, listas, RSC, contadores)
         });
@@ -1063,7 +1074,7 @@ window.TabConfig = (function () {
             const refresh = () => {
                 const f = sel.value.trim();
                 if (btn) btn.disabled = !f;
-                if (cnt) cnt.textContent = f ? `${itemsUsingValue(k, f).length} item(ns) usam este valor.` : '';
+                if (cnt) cnt.textContent = f ? t('tab_config.itens_usam_valor', '{n} item(ns) usam este valor.', { n: itemsUsingValue(k, f).length }) : '';
             };
             sel.addEventListener('change', () => {
                 if (toEl && sel.value.trim()) toEl.value = sel.value.trim(); // pré-preenche p/ editar
@@ -1093,18 +1104,18 @@ window.TabConfig = (function () {
         const box = $('#encResult');
         const probs = scanEncoding();
         if (!probs.length) {
-            box.innerHTML = `<p class="text-green-700 dark:text-green-400"><i class="fa-solid fa-circle-check"></i> Todos os ${state.catalogo.items.length} itens são 100% compatíveis com ISO-8859-1. Prontos para exportar ao Lattes.</p>`;
+            box.innerHTML = `<p class="text-green-700 dark:text-green-400"><i class="fa-solid fa-circle-check"></i> ${esc(t('tab_config.todos_compativeis_iso', 'Todos os {n} itens são 100% compatíveis com ISO-8859-1. Prontos para exportar ao Lattes.', { n: state.catalogo.items.length }))}</p>`;
             return;
         }
         box.innerHTML = `
-            <p class="text-amber-700 dark:text-amber-400 mb-2"><i class="fa-solid fa-triangle-exclamation"></i> ${probs.length} item(ns) com caracteres fora do ISO-8859-1:</p>
+            <p class="text-amber-700 dark:text-amber-400 mb-2"><i class="fa-solid fa-triangle-exclamation"></i> ${esc(t('tab_config.itens_fora_iso', '{n} item(ns) com caracteres fora do ISO-8859-1:', { n: probs.length }))}</p>
             <div class="space-y-1 max-h-60 overflow-y-auto">
                 ${probs.map(p => `<div class="text-xs bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded px-2 py-1">
                     <span class="font-medium">${esc(LattesTypes.itemTitle(p.item))}</span>
-                    <span class="text-gray-500">— caracteres: ${p.chars.map(c => `<code>${esc(c)}</code>(U+${c.codePointAt(0).toString(16).toUpperCase().padStart(4,'0')})`).join(' ')}</span>
+                    <span class="text-gray-500">${t('tab_config.caracteres_lista', '— caracteres: {lista}', { lista: p.chars.map(c => `<code>${esc(c)}</code>(U+${c.codePointAt(0).toString(16).toUpperCase().padStart(4,'0')})`).join(' ') })}</span>
                 </div>`).join('')}
             </div>
-            <p class="text-xs text-gray-500 mt-2">Use “Normalizar pontuação” para converter os casos comuns. Os que restarem serão exportados como entidades numéricas XML (válidas no Lattes).</p>`;
+            <p class="text-xs text-gray-500 mt-2">${t('tab_config.normalizar_ajuda', 'Use “Normalizar pontuação” para converter os casos comuns. Os que restarem serão exportados como entidades numéricas XML (válidas no Lattes).')}</p>`;
     }
 
     async function normalizarPontuacao() {
@@ -1120,7 +1131,7 @@ window.TabConfig = (function () {
             });
             if (changed) { i.updatedAt = window.AppCore.nowISO(); alterados++; }
         });
-        if (!alterados) { toast('Nada a normalizar — pontuação já compatível.', 'ok'); verificarCodificacao(); return; }
+        if (!alterados) { toast(t('tab_config.nada_a_normalizar', 'Nada a normalizar — pontuação já compatível.'), 'ok'); verificarCodificacao(); return; }
         window.AppCore.saveCatalog();
         // regrava os JSON no diretório, se configurado
         if (Storage.hasDirectory()) {
@@ -1128,7 +1139,7 @@ window.TabConfig = (function () {
                 try { await Storage.writeJson(i.id, i, LattesTypes.categoryFolder(i.categoryKey)); } catch (_) {}
             }
         }
-        toast(`Pontuação normalizada em ${alterados} item(ns).`, 'ok');
+        toast(t('tab_config.pontuacao_normalizada', 'Pontuação normalizada em {n} item(ns).', { n: alterados }), 'ok');
         window.AppCore.renderItemList();
         verificarCodificacao();
     }
@@ -1158,10 +1169,10 @@ window.TabConfig = (function () {
             try {
                 await Storage.writeJson(nome, data, LattesTypes.backupFolder());
                 window.AppCore.resetBackupReminder();
-                toast(`Backup salvo em "${LattesTypes.backupFolder()}/${nome}.json".`, 'ok');
+                toast(t('tab_config.backup_salvo', 'Backup salvo em "{caminho}".', { caminho: `${LattesTypes.backupFolder()}/${nome}.json` }), 'ok');
                 return;
             } catch (e) {
-                toast('Falha ao salvar no diretório: ' + e.message + ' — baixando arquivo.', 'aviso');
+                toast(t('tab_config.falha_salvar_diretorio', 'Falha ao salvar no diretório: {erro} — baixando arquivo.', { erro: e.message }), 'aviso');
             }
         }
         // Sem diretório (ou falha): baixa o arquivo
@@ -1190,7 +1201,7 @@ window.TabConfig = (function () {
         try {
             const data = JSON.parse(await file.text());
             const items = Array.isArray(data) ? data : data.items;
-            if (!Array.isArray(items)) throw new Error('Formato inválido.');
+            if (!Array.isArray(items)) throw new Error(t('tab_config.formato_invalido', 'Formato inválido.'));
             const byId = new Map(state.catalogo.items.map(i => [i.id, i]));
             items.forEach(i => { if (i && i.id) { sanitizeImportedItem(i); byId.set(i.id, i); } });
             state.catalogo.items = Array.from(byId.values());
@@ -1204,6 +1215,7 @@ window.TabConfig = (function () {
                 Storage.saveSettings(merged);
                 state.vocab = merged.vocab || {};
                 state.idPrefix = window.AppCore.sanitizePrefix(merged.idPrefix || 'lz');
+                state.locale = window.AppCore.setLocale(merged.locale || state.locale);
                 state.catalogo.lastCat = merged.lastCat || '';
                 state.catalogo.lastType = merged.lastType || '';
                 state.rsc.enabled = !!merged.rscEnabled;
@@ -1217,10 +1229,10 @@ window.TabConfig = (function () {
                 window.AppCore.applyPublicarVisibility();
                 restaurouConfig = true;
             }
-            toast(`${items.length} item(ns) importado(s) do JSON.${restaurouConfig ? ' Configurações do sistema restauradas.' : ''}`, 'ok');
+            toast(t('tab_config.itens_importados_json', '{n} item(ns) importado(s) do JSON.{sufixo}', { n: items.length, sufixo: restaurouConfig ? ' ' + t('tab_config.config_restauradas', 'Configurações do sistema restauradas.') : '' }), 'ok');
             window.AppCore.renderItemList();
             render();
-        } catch (err) { toast('Falha ao importar: ' + err.message, 'erro'); }
+        } catch (err) { toast(t('tab_config.falha_importar', 'Falha ao importar: {erro}', { erro: err.message }), 'erro'); }
         e.target.value = '';
     }
 

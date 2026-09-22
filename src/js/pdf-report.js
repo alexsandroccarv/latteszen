@@ -43,6 +43,10 @@ window.LzPdfReport = (function () {
     // do usuário, bem depois do carregamento de todos os módulos) — nunca
     // no topo deste arquivo, que carrega ANTES de app-core.js (ver ordem
     // dos <script> em index.html, mesmo motivo de vários módulos de aba).
+    // i18n (preparação): mesmo motivo — t() só é chamado dentro de funções
+    // executadas depois do boot completo (gerar() e o que ela chama).
+    const t = (chave, padrao, vars) => window.AppCore.t(chave, padrao, vars);
+    const formatarData = (data, opcoes) => window.AppCore.formatarData(data, opcoes);
 
     const PDF_LIB_URL = 'https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js';
     let pdfLibPromise = null;
@@ -52,8 +56,8 @@ window.LzPdfReport = (function () {
         pdfLibPromise = new Promise((resolve, reject) => {
             const s = document.createElement('script');
             s.src = PDF_LIB_URL;
-            s.onload = () => window.PDFLib ? resolve(window.PDFLib) : reject(new Error('pdf-lib carregou, mas window.PDFLib não apareceu.'));
-            s.onerror = () => { pdfLibPromise = null; reject(new Error('Não foi possível carregar a biblioteca de PDF (verifique sua conexão com a internet).')); };
+            s.onload = () => window.PDFLib ? resolve(window.PDFLib) : reject(new Error(t('pdf_report.erro_pdflib_nao_apareceu', 'pdf-lib carregou, mas window.PDFLib não apareceu.')));
+            s.onerror = () => { pdfLibPromise = null; reject(new Error(t('pdf_report.erro_pdflib_conexao', 'Não foi possível carregar a biblioteca de PDF (verifique sua conexão com a internet).'))); };
             document.head.appendChild(s);
         });
         return pdfLibPromise;
@@ -506,11 +510,11 @@ window.LzPdfReport = (function () {
         escritor.espaco(10);
         desenharLinhaFina();
 
-        const dataTxt = new Date().toLocaleDateString('pt-BR');
+        const dataTxt = formatarData(new Date());
         const segmentos = [
-            { texto: `Curriculum Vitae gerado em ${dataTxt} com apoio do software livre ` },
+            { texto: t('pdf_report.rodape_gerado_em', 'Curriculum Vitae gerado em {data} com apoio do software livre ', { data: dataTxt }) },
             { texto: 'lattesZen', url: 'https://github.com/alexsandroccarv/latteszen' },
-            { texto: ' desenvolvido por ' },
+            { texto: t('pdf_report.rodape_desenvolvido_por', ' desenvolvido por ') },
             { texto: 'Alexsandro Cardoso Carvalho', url: 'https://ccarvalho.net' },
             { texto: '.' },
         ];
@@ -626,7 +630,7 @@ window.LzPdfReport = (function () {
                 canvas.getContext('2d').drawImage(img, 0, 0);
                 resolve(canvas.toDataURL('image/png'));
             };
-            img.onerror = () => reject(new Error('Falha ao decodificar a imagem.'));
+            img.onerror = () => reject(new Error(t('pdf_report.erro_decodificar_imagem', 'Falha ao decodificar a imagem.')));
             img.src = dataUri;
         });
     }
@@ -816,7 +820,7 @@ window.LzPdfReport = (function () {
     // chama encolher a área da evidência (imagem/PDF) por essa mesma
     // medida em vez de desenhar por cima.
     function linhaEvidenciaDisponivelEm(anexo) {
-        return `Evidência disponível em: ${anexo.caminho || anexo.name}`;
+        return t('pdf_report.evidencia_disponivel_em', 'Evidência disponível em: {caminho}', { caminho: anexo.caminho || anexo.name });
     }
     function desenharRodapeEvidencia(pagina, fontes, escritor, anexo) {
         const xBase = MARGIN + escritor.margemExtra + escritor.deslocamentoX;
@@ -866,9 +870,9 @@ window.LzPdfReport = (function () {
             // categoria por conta própria).
             if (contextoB) {
                 if (grupo.sec && grupo.sec.num) {
-                    Object.assign(contextoB, { cor: corDaCategoria(grupo.sec.num), num: grupo.sec.num, label: `Anexo | ${grupo.sec.label}`, corTexto: undefined });
+                    Object.assign(contextoB, { cor: corDaCategoria(grupo.sec.num), num: grupo.sec.num, label: t('pdf_report.anexo_categoria', 'Anexo | {categoria}', { categoria: grupo.sec.label }), corTexto: undefined });
                 } else {
-                    Object.assign(contextoB, { cor: CINZA_CLARO_ANEXOS, num: null, label: `Anexo | ${grupo.sec.label}`, corTexto: TEXTO_ESCURO_ANEXOS });
+                    Object.assign(contextoB, { cor: CINZA_CLARO_ANEXOS, num: null, label: t('pdf_report.anexo_categoria', 'Anexo | {categoria}', { categoria: grupo.sec.label }), corTexto: TEXTO_ESCURO_ANEXOS });
                 }
             }
             if (paginasDivisao) desenharDivisoria(pdfDoc, fontes, grupo.entrada.titulo, indicesDivisoria, modelo, grupo.sec);
@@ -902,7 +906,7 @@ window.LzPdfReport = (function () {
                         escritor.novaPagina();
                         desenharIdentificacaoItem(escritor, fontes, modelo, item);
                         escritor.espaco(8);
-                        escritor.paragrafo(`Arquivo do tipo ".${anexo.ext}" não pode ser incluído dentro do PDF — consulte a pasta/Google Drive configurado para abri-lo.`, { cor: fontes.corMuted });
+                        escritor.paragrafo(t('pdf_report.tipo_arquivo_nao_suportado', 'Arquivo do tipo ".{ext}" não pode ser incluído dentro do PDF — consulte a pasta/Google Drive configurado para abri-lo.', { ext: anexo.ext }), { cor: fontes.corMuted });
                         desenharRodapeEvidencia(escritor.pagina, fontes, escritor, anexo);
                         registrarPrimeiraPagina();
                     }
@@ -910,18 +914,18 @@ window.LzPdfReport = (function () {
                     escritor.novaPagina();
                     desenharIdentificacaoItem(escritor, fontes, modelo, item);
                     escritor.espaco(8);
-                    escritor.paragrafo(`Não foi possível incluir este arquivo automaticamente (${e.message || 'formato inválido'}).`, { cor: fontes.corMuted });
+                    escritor.paragrafo(t('pdf_report.erro_incluir_arquivo', 'Não foi possível incluir este arquivo automaticamente ({motivo}).', { motivo: e.message || t('pdf_report.formato_invalido', 'formato inválido') }), { cor: fontes.corMuted });
                     desenharRodapeEvidencia(escritor.pagina, fontes, escritor, anexo);
                     registrarPrimeiraPagina();
                 }
             }
         }
         if (linksNota.length) {
-            if (contextoB) Object.assign(contextoB, { cor: CINZA_CLARO_ANEXOS, num: null, label: 'Anexos', corTexto: TEXTO_ESCURO_ANEXOS });
+            if (contextoB) Object.assign(contextoB, { cor: CINZA_CLARO_ANEXOS, num: null, label: t('pdf_report.anexos', 'Anexos'), corTexto: TEXTO_ESCURO_ANEXOS });
             if (paginasDivisao) desenharDivisoria(pdfDoc, fontes, entradaLinks.titulo, indicesDivisoria, modelo, null);
             escritor.novaPagina();
             if (entradaLinks) entradaLinks.paginaIndex = escritor.numeroPagina;
-            escritor.linha('Evidências em link (endereço na web, sem arquivo para anexar)', { negrito: true, tamanho: 12 });
+            escritor.linha(t('pdf_report.evidencias_em_link', 'Evidências em link (endereço na web, sem arquivo para anexar)'), { negrito: true, tamanho: 12 });
             escritor.espaco(6);
             linksNota.forEach(({ item, anexo }) => {
                 desenharIdentificacaoItem(escritor, fontes, modelo, item);
@@ -938,7 +942,7 @@ window.LzPdfReport = (function () {
     // (Catalogar → Dados gerais), repassados por buildPublicModel.
     function linhasContatoCapa(model) {
         const linhas = [];
-        if (model.orcid) linhas.push(`ORCID: ${model.orcid}`);
+        if (model.orcid) linhas.push(t('pdf_report.rotulo_orcid', 'ORCID: {orcid}', { orcid: model.orcid }));
         if (model.telefone) linhas.push(model.telefone);
         if (model.email) linhas.push(model.email);
         return linhas;
@@ -1131,7 +1135,7 @@ window.LzPdfReport = (function () {
 
         if (model.orcid) {
             y -= 4;
-            const seguro = sanitizarTexto(fontes.regular, `ORCID: ${model.orcid}`);
+            const seguro = sanitizarTexto(fontes.regular, t('pdf_report.rotulo_orcid', 'ORCID: {orcid}', { orcid: model.orcid }));
             const w = fontes.regular.widthOfTextAtSize(seguro, 9);
             pagina.drawText(seguro, { x: cxTexto - w / 2, y, size: 9, font: fontes.regular, color: fontes.corTextoCapaMuted });
             y -= 16;
@@ -1247,7 +1251,7 @@ window.LzPdfReport = (function () {
     function desenharContracapa(pdfDoc, fontes, model) {
         const pagina = pdfDoc.addPage([PAGE_W, PAGE_H]);
         pagina.drawRectangle({ x: 0, y: 0, width: PAGE_W, height: PAGE_H, color: fontes.corCapaFundo });
-        const linhas = [model.nome, 'Relatório completo gerado com lattesZen', 'https://github.com/alexsandroccarv/latteszen'];
+        const linhas = [model.nome, t('pdf_report.contracapa_gerado_com', 'Relatório completo gerado com lattesZen'), 'https://github.com/alexsandroccarv/latteszen'];
         let y = PAGE_H / 2 + 20;
         linhas.forEach((l, i) => {
             const tamanho = i === 0 ? 16 : 10;
@@ -1280,7 +1284,7 @@ window.LzPdfReport = (function () {
         const xBase = modelo === 'B' ? SIDEBAR_W + 46 : MARGIN;
         let paginaIdx = 0, pagina = paginasReservadas[0], y = PAGE_H - MARGIN;
         const tituloFonte = fontes.tituloFonte;
-        pagina.drawText(sanitizarTexto(tituloFonte, 'Sumário'), { x: xBase, y, size: 20, font: tituloFonte, color: fontes.corTexto });
+        pagina.drawText(sanitizarTexto(tituloFonte, t('pdf_report.sumario', 'Sumário')), { x: xBase, y, size: 20, font: tituloFonte, color: fontes.corTexto });
         y -= 40;
         entradas.forEach((e) => {
             if (y < MARGIN + ALTURA_ENTRADA_SUMARIO) {
@@ -1419,7 +1423,7 @@ window.LzPdfReport = (function () {
         // correspondente (ver atribuirNumeracaoItens acima), mesmo no modo
         // "apenas evidências" (onde o Currículo nem chega a ser desenhado).
         atribuirNumeracaoItens(model);
-        pdfDoc.setTitle(`Relatório completo — ${model.nome}`);
+        pdfDoc.setTitle(t('pdf_report.titulo_documento', 'Relatório completo — {nome}', { nome: model.nome }));
         pdfDoc.setAuthor(model.nome);
         pdfDoc.setProducer('lattesZen');
         pdfDoc.setCreator('lattesZen (https://github.com/alexsandroccarv/latteszen)');
@@ -1471,19 +1475,19 @@ window.LzPdfReport = (function () {
         }
 
         // 1) Capa
-        const subtituloCapa = incluirCurriculo ? 'Curriculum Vitae' : 'Evidências';
+        const subtituloCapa = incluirCurriculo ? t('pdf_report.subtitulo_capa_cv', 'Curriculum Vitae') : t('pdf_report.subtitulo_capa_evidencias', 'Evidências');
         desenharCapa(pdfDoc, fontes, modelo, model, subtituloCapa, fotoImg);
 
         // 2) Sumário — reserva as páginas agora (o texto entra por último,
         //    quando os índices de página de cada seção já são conhecidos).
         const entradasSumario = [];
         let entradaMemorial = null;
-        if (memorialTexto) { entradaMemorial = { titulo: 'Memorial', nivel: 0, paginaIndex: null }; entradasSumario.push(entradaMemorial); }
+        if (memorialTexto) { entradaMemorial = { titulo: t('pdf_report.memorial', 'Memorial'), nivel: 0, paginaIndex: null }; entradasSumario.push(entradaMemorial); }
         // "Currículo completo" virou "Curriculum Vitae" SÓ no sumário (pedido
         // do Alexsandro) — sem número de página (o Currículo ocupa páginas
         // demais pra um número só fazer sentido; as categorias logo abaixo,
         // uma por uma, já apontam pro lugar certo de cada uma).
-        if (incluirCurriculo) entradasSumario.push({ titulo: 'Curriculum Vitae', nivel: 0, paginaIndex: null });
+        if (incluirCurriculo) entradasSumario.push({ titulo: t('pdf_report.subtitulo_capa_cv', 'Curriculum Vitae'), nivel: 0, paginaIndex: null });
         const entradasPorSecao = new Map();
         if (incluirCurriculo) {
             model.secoes.forEach((sec) => {
@@ -1498,7 +1502,7 @@ window.LzPdfReport = (function () {
         // aquela categoria começa (preenchido lá na frente, junto do
         // conteúdo — ver anexarEvidencias()).
         if (temAnexos) {
-            entradasSumario.push({ titulo: 'Anexos', nivel: 0, paginaIndex: null });
+            entradasSumario.push({ titulo: t('pdf_report.anexos', 'Anexos'), nivel: 0, paginaIndex: null });
             let romanoIdx = 0;
             gruposAnexo.forEach((g) => {
                 romanoIdx += 1;
@@ -1506,12 +1510,12 @@ window.LzPdfReport = (function () {
                 // número da categoria, já zero-padded em LATTES_CATEGORIES,
                 // antes do nome — sem ele nas seções sem categoria própria,
                 // como "Outras atividades").
-                g.entrada = { titulo: `Anexo ${numeroRomano(romanoIdx)} - ${g.sec.num ? g.sec.num + ' ' : ''}${g.sec.label}`, nivel: 1, paginaIndex: null, num: g.sec.num };
+                g.entrada = { titulo: t('pdf_report.anexo_romano_categoria', 'Anexo {romano} - {categoria}', { romano: numeroRomano(romanoIdx), categoria: `${g.sec.num ? g.sec.num + ' ' : ''}${g.sec.label}` }), nivel: 1, paginaIndex: null, num: g.sec.num };
                 entradasSumario.push(g.entrada);
             });
             if (linksNota.length) {
                 romanoIdx += 1;
-                entradaLinks = { titulo: `Anexo ${numeroRomano(romanoIdx)} — Evidências em link`, nivel: 1, paginaIndex: null, num: null };
+                entradaLinks = { titulo: t('pdf_report.anexo_romano_evidencias_link', 'Anexo {romano} — Evidências em link', { romano: numeroRomano(romanoIdx) }), nivel: 1, paginaIndex: null, num: null };
                 entradasSumario.push(entradaLinks);
             }
         }
@@ -1545,9 +1549,9 @@ window.LzPdfReport = (function () {
 
         // 3) Memorial (só existe se houver texto e incluirCurriculo)
         if (memorialTexto) {
-            desenharDivisoria(pdfDoc, fontes, 'Memorial', indicesDivisoria, modelo, null);
-            contextoA.secao = 'Memorial';
-            Object.assign(contextoB, { cor: CINZA_NEUTRO, num: null, label: 'Memorial' });
+            desenharDivisoria(pdfDoc, fontes, t('pdf_report.memorial', 'Memorial'), indicesDivisoria, modelo, null);
+            contextoA.secao = t('pdf_report.memorial', 'Memorial');
+            Object.assign(contextoB, { cor: CINZA_NEUTRO, num: null, label: t('pdf_report.memorial', 'Memorial') });
             escritor.novaPagina();
             entradaMemorial.paginaIndex = escritor.numeroPagina;
             escritor.paragrafo(memorialTexto, { tamanho: 11, leading: 1.6 });
@@ -1559,11 +1563,11 @@ window.LzPdfReport = (function () {
         // número de página no sumário (ver entradasSumario acima), então não
         // há entrada pra atualizar aqui — só a página em si precisa existir.
         if (incluirCurriculo) {
-            contextoA.secao = 'Currículo completo';
-            Object.assign(contextoB, { cor: CINZA_NEUTRO, num: null, label: 'Currículo' });
+            contextoA.secao = t('pdf_report.curriculo_completo', 'Currículo completo');
+            Object.assign(contextoB, { cor: CINZA_NEUTRO, num: null, label: t('pdf_report.curriculo', 'Currículo') });
             escritor.novaPagina();
             if (!model.secoes.length) {
-                escritor.paragrafo('Nenhum item cadastrado ainda.', { cor: fontes.corMuted });
+                escritor.paragrafo(t('pdf_report.nenhum_item_cadastrado', 'Nenhum item cadastrado ainda.'), { cor: fontes.corMuted });
             }
             model.secoes.forEach((sec) => {
                 // Atualiza o contexto ANTES de desenhar qualquer coisa desta
@@ -1607,8 +1611,8 @@ window.LzPdfReport = (function () {
         // própria página de divisão (ver anexarEvidencias); sem, vai direto
         // pro primeiro item de cada categoria.
         if (temAnexos) {
-            contextoA.secao = 'Anexos — Evidências';
-            Object.assign(contextoB, { cor: CINZA_CLARO_ANEXOS, num: null, label: 'Anexos', corTexto: TEXTO_ESCURO_ANEXOS });
+            contextoA.secao = t('pdf_report.anexos_evidencias', 'Anexos — Evidências');
+            Object.assign(contextoB, { cor: CINZA_CLARO_ANEXOS, num: null, label: t('pdf_report.anexos', 'Anexos'), corTexto: TEXTO_ESCURO_ANEXOS });
             await anexarEvidencias(pdfDoc, PDFLib, escritor, fontes, modelo, gruposAnexo, linksNota, entradaLinks, paginasDivisao, indicesDivisoria, contextoB);
         }
 

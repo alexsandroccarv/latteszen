@@ -22,7 +22,7 @@
    das anteriores — lê estado/utilidades de window.AppCore.
    ========================================================================== */
 window.TabRsc = (function () {
-    const { state, $, $$, esc, toast, itemYear } = window.AppCore;
+    const { state, $, $$, esc, toast, itemYear, t, tp, formatarNumero } = window.AppCore;
 
     // Itens que contam para o RSC (elegíveis, marcados, com critério e não usados)
     function rscItensContados() {
@@ -48,39 +48,39 @@ window.TabRsc = (function () {
         // "title") — clicar mostra um toast com o texto completo, pra
         // funcionar em telas de toque e não depender do delay do tooltip
         // nativo do navegador.
-        const labelHtml = (forId, lbl, help) => `<label class="block text-xs font-semibold mb-1" for="${forId}">${esc(lbl)}${help ? ` <button type="button" class="rsc-help-btn text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 cursor-help" title="${esc(help)}" data-help="${esc(help)}" aria-label="Ajuda"><i class="fa-solid fa-circle-question"></i></button>` : ''}</label>`;
+        const labelHtml = (forId, lbl, help) => `<label class="block text-xs font-semibold mb-1" for="${forId}">${esc(lbl)}${help ? ` <button type="button" class="rsc-help-btn text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 cursor-help" title="${esc(help)}" data-help="${esc(help)}" aria-label="${esc(t('tab_rsc.ajuda_aria', 'Ajuda'))}"><i class="fa-solid fa-circle-question"></i></button>` : ''}</label>`;
         const inp = (k, lbl, ph, validateKind, help) => `<div>${labelHtml('rsc-' + k, lbl, help)}
             <input id="rsc-${k}" type="text" value="${esc(c[k] || '')}" placeholder="${esc(ph || '')}" ${validateKind ? `data-validate="${validateKind}"` : ''} class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900"></div>`;
-        const escOpts = LzRSC.ESCOLARIDADE.map(e => `<option value="${e.key}" ${c.escolaridade === e.key ? 'selected' : ''}>${esc(e.label)} (nível ${e.maxN}, IQ ${e.iq}%)</option>`).join('');
+        const escOpts = LzRSC.ESCOLARIDADE.map(e => `<option value="${e.key}" ${c.escolaridade === e.key ? 'selected' : ''}>${esc(t('tab_rsc.escolaridade_opcao', '{label} (nível {maxN}, IQ {iq}%)', { label: e.label, maxN: e.maxN, iq: e.iq }))}</option>`).join('');
         const nivelClassOpts = ['A', 'B', 'C', 'D', 'E'].map(n => `<option value="${n}" ${c.nivelClassificacao === n ? 'selected' : ''}>${n}</option>`).join('');
         return `<section class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 mb-4">
-            <h3 class="font-bold text-sm mb-2 flex items-center gap-2"><i class="fa-solid fa-id-card text-govbr-600 dark:text-unifesp-400"></i> RSC: Dados pessoais</h3>
+            <h3 class="font-bold text-sm mb-2 flex items-center gap-2"><i class="fa-solid fa-id-card text-govbr-600 dark:text-unifesp-400"></i> ${esc(t('tab_rsc.dados_pessoais_titulo', 'RSC: Dados pessoais'))}</h3>
             <div class="grid grid-cols-2 gap-2">
-                ${inp('cargo', 'Cargo', 'ex.: Assistente em Administração')}
-                ${inp('siape', 'SIAPE', '(opcional)')}
-                ${inp('lotacao', 'Lotação / unidade', '')}
-                ${inp('matriculaFuncional', 'Matrícula ou Funcional', '')}
+                ${inp('cargo', t('tab_rsc.cargo', 'Cargo'), t('tab_rsc.cargo_placeholder', 'ex.: Assistente em Administração'))}
+                ${inp('siape', t('tab_rsc.siape', 'SIAPE'), t('tab_rsc.opcional', '(opcional)'))}
+                ${inp('lotacao', t('tab_rsc.lotacao', 'Lotação / unidade'), '')}
+                ${inp('matriculaFuncional', t('tab_rsc.matricula', 'Matrícula ou Funcional'), '')}
                 <div>
-                    ${labelHtml('rsc-nivelClassificacao', 'Nível de Classificação')}
+                    ${labelHtml('rsc-nivelClassificacao', t('tab_rsc.nivel_classificacao', 'Nível de Classificação'))}
                     <select id="rsc-nivelClassificacao" class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900"><option value="">—</option>${nivelClassOpts}</select>
                 </div>
                 <div>
-                    ${labelHtml('rsc-escolaridade', 'Escolaridade atual (limita o nível máximo)')}
+                    ${labelHtml('rsc-escolaridade', t('tab_rsc.escolaridade_label', 'Escolaridade atual (limita o nível máximo)'))}
                     <select id="rsc-escolaridade" class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900"><option value="">—</option>${escOpts}</select>
                 </div>
-                ${inp('ingresso', 'Data de ingresso no cargo', '25/12/2026', 'dataCompleta')}
-                ${inp('funcaoEncargo', 'Direção ou Função', '')}
-                ${inp('dataInicioContagem', 'Início da contagem (RSC)', '25/12/2026', 'dataCompleta')}
-                ${inp('dataAbrangenciaFinal', 'Final da contagem (RSC)', '25/12/2026', 'dataCompleta', 'Data de corte do memorial/requerimento. Usada como fim do período em itens ainda em exercício (situação "Atual", sem data de fim própria) — sem ela, esses itens não têm o tempo decorrido contado.')}
-                ${inp('telefone', 'Telefone', '(11) 1234-5678', 'telefoneDDD')}
-                ${inp('email', 'E-mail', 'fulano@instituicao.br', 'email')}
+                ${inp('ingresso', t('tab_rsc.data_ingresso_cargo', 'Data de ingresso no cargo'), '25/12/2026', 'dataCompleta')}
+                ${inp('funcaoEncargo', t('tab_rsc.direcao_ou_funcao', 'Direção ou Função'), '')}
+                ${inp('dataInicioContagem', t('tab_rsc.inicio_contagem', 'Início da contagem (RSC)'), '25/12/2026', 'dataCompleta')}
+                ${inp('dataAbrangenciaFinal', t('tab_rsc.final_contagem', 'Final da contagem (RSC)'), '25/12/2026', 'dataCompleta', t('tab_rsc.final_contagem_ajuda', 'Data de corte do memorial/requerimento. Usada como fim do período em itens ainda em exercício (situação "Atual", sem data de fim própria) — sem ela, esses itens não têm o tempo decorrido contado.'))}
+                ${inp('telefone', t('tab_rsc.telefone', 'Telefone'), '(11) 1234-5678', 'telefoneDDD')}
+                ${inp('email', t('tab_rsc.email', 'E-mail'), 'fulano@instituicao.br', 'email')}
                 <div class="col-span-2 border-t border-gray-200 dark:border-gray-700 pt-2 mt-1 grid grid-cols-2 gap-2">
-                    ${inp('saldoAnterior', 'Saldo de pontuação de concessão anterior', '')}
-                    ${inp('processoAnterior', 'Nº do processo da concessão anterior (se houver)', '')}
+                    ${inp('saldoAnterior', t('tab_rsc.saldo_anterior', 'Saldo de pontuação de concessão anterior'), '')}
+                    ${inp('processoAnterior', t('tab_rsc.processo_anterior', 'Nº do processo da concessão anterior (se houver)'), '')}
                 </div>
             </div>
             <div class="flex gap-2 mt-3">
-                <button id="btnSaveRscCfg" class="px-3 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm"><i class="fa-solid fa-floppy-disk mr-1"></i> Salvar</button>
+                <button id="btnSaveRscCfg" class="px-3 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm"><i class="fa-solid fa-floppy-disk mr-1"></i> ${esc(t('tab_catalogar.salvar', 'Salvar'))}</button>
             </div>
         </section>`;
     }
@@ -108,19 +108,19 @@ window.TabRsc = (function () {
                 }
                 cfg[k] = v;
             });
-            if (temErro) { toast('Corrija os campos destacados antes de salvar.', 'erro'); return; }
+            if (temErro) { toast(t('tab_rsc.corrija_campos', 'Corrija os campos destacados antes de salvar.'), 'erro'); return; }
             cfg.escolaridade = $('#rsc-escolaridade').value;
             state.rsc.cfg = cfg;
             const s = Storage.loadSettings(); s.rsc = cfg; Storage.saveSettings(s);
             window.AppCore.persistirRsc();
-            toast('Configuração do RSC salva.', 'ok');
+            toast(t('tab_rsc.config_salva', 'Configuração do RSC salva.'), 'ok');
             render();
         });
     }
     function render() {
         const panel = $('#tab-rsc');
         if (!state.rsc.enabled) {
-            panel.innerHTML = `<p class="text-sm text-gray-500 italic py-8 text-center">Módulo RSC desabilitado. Habilite em <strong>Configurações › RSC-PCCTAE</strong>.</p>`;
+            panel.innerHTML = `<p class="text-sm text-gray-500 italic py-8 text-center">${t('tab_rsc.modulo_desabilitado', 'Módulo RSC desabilitado. Habilite em <strong>Configurações › RSC-PCCTAE</strong>.')}</p>`;
             return;
         }
         const cfg = state.rsc.cfg || {};
@@ -148,7 +148,7 @@ window.TabRsc = (function () {
                     const ano = itemYear(i);
                     return `<div class="flex items-center justify-between gap-2 text-sm border border-gray-100 dark:border-gray-700/60 rounded px-2 py-1">
                         <span class="min-w-0 font-medium">${ano ? esc(ano) + ' - ' : ''}${esc(LattesTypes.itemTitle(i))}</span>
-                        <span class="shrink-0 font-semibold text-amber-700 dark:text-amber-400 tabular-nums">${String(pi.pontos).replace('.', ',')}</span></div>`;
+                        <span class="shrink-0 font-semibold text-amber-700 dark:text-amber-400 tabular-nums">${formatarNumero(pi.pontos)}</span></div>`;
                 }).join('');
                 return `<div class="mb-2 last:mb-0">
                     <p class="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1">${c ? esc(c.item + '. ' + c.desc) : esc(critKey)}</p>
@@ -157,41 +157,41 @@ window.TabRsc = (function () {
             }).join('');
             return `
             <details class="border border-gray-200 dark:border-gray-700 rounded mb-2">
-                <summary class="cursor-pointer px-3 py-1.5 bg-gray-100 dark:bg-gray-800 text-sm font-medium">${esc(LzRSC.REQUISITOS[r] || 'Sem requisito')} <span class="text-xs text-gray-500">— ${pr.itens} ${pr.itens === 1 ? 'item' : 'itens'} · ${pr.criterios.size} ${pr.criterios.size === 1 ? 'critério' : 'critérios'} · <strong class="text-amber-700 dark:text-amber-400 tabular-nums">${String(pr.pontos).replace('.', ',')} pts</strong></span></summary>
+                <summary class="cursor-pointer px-3 py-1.5 bg-gray-100 dark:bg-gray-800 text-sm font-medium">${esc(LzRSC.REQUISITOS[r] || t('tab_rsc.sem_requisito', 'Sem requisito'))} <span class="text-xs text-gray-500">— ${esc(tp('tab_rsc.itens_contagem', pr.itens, { um: '{n} item', outros: '{n} itens' }))} · ${esc(tp('tab_rsc.criterios_contagem', pr.criterios.size, { um: '{n} critério', outros: '{n} critérios' }))} · <strong class="text-amber-700 dark:text-amber-400 tabular-nums">${formatarNumero(pr.pontos)} pts</strong></span></summary>
                 <div class="p-2">${criteriosHtml}</div>
             </details>`;
-        }).join('') || `<p class="text-sm text-gray-500 italic">Nenhum item marcado para o RSC ainda. Em Catalogar, marque “usar para RSC” na linha “Publicar”.</p>`;
+        }).join('') || `<p class="text-sm text-gray-500 italic">${esc(t('tab_rsc.nenhum_item_marcado', 'Nenhum item marcado para o RSC ainda. Em Catalogar, marque “usar para RSC” na linha “Publicar”.'))}</p>`;
 
         panel.innerHTML = `
             ${rscCfgSectionHtml(cfg)}
 
             <div class="bg-gradient-to-br from-govbr-600 to-govbr-800 dark:from-unifesp-700 dark:to-unifesp-900 text-white rounded-lg p-4 mb-4">
-                <p class="text-sm opacity-90">Nível alcançável</p>
+                <p class="text-sm opacity-90">${esc(t('tab_rsc.nivel_alcancavel', 'Nível alcançável'))}</p>
                 <p class="text-3xl font-bold">${esc(sim.nivelNome)}</p>
-                <p class="text-sm mt-1">Incentivo à Qualificação: <strong>${sim.iq}%</strong></p>
-                <p class="text-xs opacity-80 mt-2">${sim.total.toString().replace('.', ',')} pontos · ${sim.criteriosDistintos} critérios distintos</p>
-                ${cfg.escolaridade ? `<p class="text-xs opacity-80">Escolaridade limita a nível ${sim.capNivel}.</p>` : `<p class="text-xs opacity-90">⚠ Informe a escolaridade acima.</p>`}
+                <p class="text-sm mt-1">${esc(t('tab_rsc.incentivo_qualificacao', 'Incentivo à Qualificação:'))} <strong>${sim.iq}%</strong></p>
+                <p class="text-xs opacity-80 mt-2">${t('tab_rsc.pontos_criterios_resumo', '{pontos} pontos · {n} critérios distintos', { pontos: formatarNumero(sim.total), n: sim.criteriosDistintos })}</p>
+                ${cfg.escolaridade ? `<p class="text-xs opacity-80">${esc(t('tab_rsc.escolaridade_limita', 'Escolaridade limita a nível {nivel}.', { nivel: sim.capNivel }))}</p>` : `<p class="text-xs opacity-90">⚠ ${esc(t('tab_rsc.informe_escolaridade', 'Informe a escolaridade acima.'))}</p>`}
             </div>
 
-            <h3 class="font-bold mb-2">Itens contabilizados</h3>
+            <h3 class="font-bold mb-2">${esc(t('tab_rsc.itens_contabilizados', 'Itens contabilizados'))}</h3>
             ${listaHtml}
 
             <div class="flex gap-2 flex-wrap mb-4 mt-4">
-                <button id="btnRscPromptIA" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-wand-magic-sparkles mr-1"></i> Gerar prompt (IA)</button>
+                <button id="btnRscPromptIA" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-wand-magic-sparkles mr-1"></i> ${esc(t('tab_rsc.gerar_prompt_ia', 'Gerar prompt (IA)'))}</button>
             </div>
 
             <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 mb-4">
                 <div class="flex items-center justify-between gap-2 mb-1 flex-wrap">
-                    <h3 class="font-bold text-sm">Memorial (texto final)</h3>
-                    <button id="btnRscMemorialPadrao" class="px-2 py-1 rounded border border-gray-300 dark:border-gray-600 text-xs"><i class="fa-solid fa-arrows-rotate mr-1"></i> Preencher com modelo automático</button>
+                    <h3 class="font-bold text-sm">${esc(t('tab_rsc.memorial_titulo', 'Memorial (texto final)'))}</h3>
+                    <button id="btnRscMemorialPadrao" class="px-2 py-1 rounded border border-gray-300 dark:border-gray-600 text-xs"><i class="fa-solid fa-arrows-rotate mr-1"></i> ${esc(t('tab_rsc.preencher_modelo_automatico', 'Preencher com modelo automático'))}</button>
                 </div>
-                <p class="text-xs text-gray-500 mb-2">Cole aqui o texto devolvido por uma IA externa (a partir do <strong>Gerar prompt (IA)</strong> acima) ou escreva/edite manualmente. <strong>Gerar memorial</strong> exporta exatamente o que estiver neste campo — se deixar em branco, usa o modelo automático.</p>
-                <textarea id="rscMemorialTexto" rows="16" placeholder="Cole aqui o memorial gerado pela IA, ou escreva o seu…" class="w-full text-sm px-3 py-2 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 font-mono leading-relaxed">${esc(state.rsc.memorialTexto || '')}</textarea>
+                <p class="text-xs text-gray-500 mb-2">${t('tab_rsc.memorial_ajuda', 'Cole aqui o texto devolvido por uma IA externa (a partir do <strong>Gerar prompt (IA)</strong> acima) ou escreva/edite manualmente. <strong>Gerar memorial</strong> exporta exatamente o que estiver neste campo — se deixar em branco, usa o modelo automático.')}</p>
+                <textarea id="rscMemorialTexto" rows="16" placeholder="${esc(t('tab_rsc.memorial_placeholder', 'Cole aqui o memorial gerado pela IA, ou escreva o seu…'))}" class="w-full text-sm px-3 py-2 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 font-mono leading-relaxed">${esc(state.rsc.memorialTexto || '')}</textarea>
                 <p id="rscMemorialSalvo" class="text-xs text-gray-400 mt-1 h-4"></p>
             </div>
 
             <div class="flex gap-2 flex-wrap mt-4">
-                <button id="btnRscExportar" class="px-3 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm"><i class="fa-solid fa-file-export mr-1"></i> Gerar memorial, formulário e anexos</button>
+                <button id="btnRscExportar" class="px-3 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm"><i class="fa-solid fa-file-export mr-1"></i> ${esc(t('tab_rsc.gerar_memorial_formulario', 'Gerar memorial, formulário e anexos'))}</button>
             </div>`;
 
         wireRscCfgSection();
@@ -205,15 +205,15 @@ window.TabRsc = (function () {
             state.rsc.memorialTexto = memArea.value;
             const s = Storage.loadSettings(); s.rscMemorialTexto = state.rsc.memorialTexto; Storage.saveSettings(s);
             window.AppCore.persistirRsc();
-            if (memInfo) { memInfo.textContent = 'Salvo.'; clearTimeout(memInfo._t); memInfo._t = setTimeout(() => { memInfo.textContent = ''; }, 1500); }
+            if (memInfo) { memInfo.textContent = t('tab_rsc.salvo', 'Salvo.'); clearTimeout(memInfo._t); memInfo._t = setTimeout(() => { memInfo.textContent = ''; }, 1500); }
         };
         memArea.addEventListener('input', () => { clearTimeout(memSaveTimer); memSaveTimer = setTimeout(salvarMemorialTexto, 500); });
         memArea.addEventListener('blur', () => { clearTimeout(memSaveTimer); salvarMemorialTexto(); });
         $('#btnRscMemorialPadrao').addEventListener('click', () => {
-            if (memArea.value.trim() && !confirm('Isso substitui o texto atual do memorial pelo modelo automático. Continuar?')) return;
+            if (memArea.value.trim() && !confirm(t('tab_rsc.confirmar_substituir_memorial', 'Isso substitui o texto atual do memorial pelo modelo automático. Continuar?'))) return;
             memArea.value = rscMemorial(itens, sim, cfg);
             salvarMemorialTexto();
-            toast('Memorial preenchido com o modelo automático.', 'ok');
+            toast(t('tab_rsc.memorial_preenchido', 'Memorial preenchido com o modelo automático.'), 'ok');
         });
     }
     function downloadText(txt, nome, mime) {
@@ -222,22 +222,22 @@ window.TabRsc = (function () {
     }
     function rscMemorial(itens, sim, cfg) {
         const L = [];
-        L.push('MEMORIAL — RSC-PCCTAE'); L.push('='.repeat(40));
-        L.push(`Cargo: ${cfg.cargo || '—'}   Lotação: ${cfg.lotacao || '—'}   SIAPE: ${cfg.siape || '—'}`);
-        L.push(`Ingresso no cargo: ${cfg.ingresso || '—'}   Escolaridade: ${(LzRSC.escInfo(cfg.escolaridade) || {}).label || '—'}`);
-        L.push(`Nível pleiteável (simulado): ${sim.nivelNome} — ${sim.total.toString().replace('.', ',')} pontos, ${sim.criteriosDistintos} critérios.`);
+        L.push(t('tab_rsc.memorial_cabecalho', 'MEMORIAL — RSC-PCCTAE')); L.push('='.repeat(40));
+        L.push(t('tab_rsc.memorial_linha_cargo', 'Cargo: {cargo}   Lotação: {lotacao}   SIAPE: {siape}', { cargo: cfg.cargo || '—', lotacao: cfg.lotacao || '—', siape: cfg.siape || '—' }));
+        L.push(t('tab_rsc.memorial_linha_ingresso', 'Ingresso no cargo: {ingresso}   Escolaridade: {escolaridade}', { ingresso: cfg.ingresso || '—', escolaridade: (LzRSC.escInfo(cfg.escolaridade) || {}).label || '—' }));
+        L.push(t('tab_rsc.memorial_linha_nivel', 'Nível pleiteável (simulado): {nivel} — {pontos} pontos, {n} critérios.', { nivel: sim.nivelNome, pontos: formatarNumero(sim.total), n: sim.criteriosDistintos }));
         L.push('');
         for (let r = 1; r <= 6; r++) {
             const grp = itens.filter(i => { const c = LzRSC.criterio(i.rsc.criterio); return c && c.req === r; });
             if (!grp.length) continue;
-            L.push(`REQUISITO ${LzRSC.REQUISITOS[r]}`); L.push('-'.repeat(40));
+            L.push(t('tab_rsc.memorial_requisito_cabecalho', 'REQUISITO {req}', { req: LzRSC.REQUISITOS[r] })); L.push('-'.repeat(40));
             grp.forEach(i => {
                 const pi = LzRSC.pontosItem(i.rsc), c = pi.crit;
                 L.push(`• ${LattesTypes.itemTitle(i)}`);
-                L.push(`  Critério ${c.id}: ${c.desc}`);
-                const per = (i.rsc.dataInicio || i.rsc.dataFim) ? `  Período: ${i.rsc.dataInicio || '?'} a ${i.rsc.dataFim || '?'}.` : '';
-                L.push(`  ${per}  Pontos: ${String(pi.pontos).replace('.', ',')} (${pi.quantidade} × ${String(pi.unitario).replace('.', ',')}).`);
-                if (i.rsc.justificativa) L.push(`  Justificativa: ${i.rsc.justificativa}`);
+                L.push(t('tab_rsc.memorial_criterio_linha', '  Critério {id}: {desc}', { id: c.id, desc: c.desc }));
+                const per = (i.rsc.dataInicio || i.rsc.dataFim) ? t('tab_rsc.memorial_periodo_linha', '  Período: {inicio} a {fim}.', { inicio: i.rsc.dataInicio || '?', fim: i.rsc.dataFim || '?' }) : '';
+                L.push(t('tab_rsc.memorial_pontos_linha', '  {periodo}  Pontos: {pontos} ({quantidade} × {unitario}).', { periodo: per, pontos: formatarNumero(pi.pontos), quantidade: pi.quantidade, unitario: formatarNumero(pi.unitario) }));
+                if (i.rsc.justificativa) L.push(t('tab_rsc.memorial_justificativa_linha', '  Justificativa: {texto}', { texto: i.rsc.justificativa }));
                 L.push('');
             });
         }
@@ -247,14 +247,13 @@ window.TabRsc = (function () {
     // 608/2026 (modelo padrão do formulário de requerimento) — ligeiramente
     // diferente do texto usado no simulador (LzRSC.REQUISITOS).
     const REQUISITOS_FORM = {
-        1: 'I - Participação em grupos de trabalho, comissões, comitês, núcleos, representações ou similares',
-        2: 'II - Projetos institucionais, gestão, ensino, pesquisa, extensão, inovação ou assistência',
-        3: 'III - Premiações e reconhecimentos públicos',
-        4: 'IV - Responsabilidades técnico-administrativas e/ou especializadas',
-        5: 'V - Funções ou cargos de direção e assessoramento institucional',
-        6: 'VI - Produção, prospecção e difusão de conhecimento',
+        1: t('tab_rsc.requisito_form.1', 'I - Participação em grupos de trabalho, comissões, comitês, núcleos, representações ou similares'),
+        2: t('tab_rsc.requisito_form.2', 'II - Projetos institucionais, gestão, ensino, pesquisa, extensão, inovação ou assistência'),
+        3: t('tab_rsc.requisito_form.3', 'III - Premiações e reconhecimentos públicos'),
+        4: t('tab_rsc.requisito_form.4', 'IV - Responsabilidades técnico-administrativas e/ou especializadas'),
+        5: t('tab_rsc.requisito_form.5', 'V - Funções ou cargos de direção e assessoramento institucional'),
+        6: t('tab_rsc.requisito_form.6', 'VI - Produção, prospecção e difusão de conhecimento'),
     };
-    const NUM_PT = n => String(n).replace('.', ',');
 
     // Prompt master + dados categorizados (markdown) para gerar, com uma IA
     // externa (Claude, ChatGPT etc.), o texto de "Trajetória Profissional"
@@ -264,56 +263,56 @@ window.TabRsc = (function () {
     // dados pessoais enviados a uma ferramenta externa.
     function rscPromptIA(itens, sim, cfg) {
         const L = [];
-        L.push('# Prompt — Trajetória Profissional (Memorial Descritivo RSC-PCCTAE)');
+        L.push(t('tab_rsc.prompt_titulo', '# Prompt — Trajetória Profissional (Memorial Descritivo RSC-PCCTAE)'));
         L.push('');
-        L.push('Você é um assistente de escrita técnica. Redija, em primeira pessoa, o texto de **"Trajetória Profissional"** que fará parte do Memorial Descritivo do Reconhecimento de Saberes e Competências (RSC-PCCTAE), conforme o Art. 13 do Decreto nº 13.048/2026, usando como base os dados categorizados no final deste arquivo.');
+        L.push(t('tab_rsc.prompt_intro', 'Você é um assistente de escrita técnica. Redija, em primeira pessoa, o texto de **"Trajetória Profissional"** que fará parte do Memorial Descritivo do Reconhecimento de Saberes e Competências (RSC-PCCTAE), conforme o Art. 13 do Decreto nº 13.048/2026, usando como base os dados categorizados no final deste arquivo.'));
         L.push('');
-        L.push('## O que escrever');
-        L.push('Descreva de forma sucinta a trajetória profissional e as principais atividades exercidas, explicando como esse trabalho gerou os saberes e os resultados institucionais que justificam o nível de RSC pleiteado. É uma narrativa autoral, em prosa corrida — contando a história de aprendizado, conquistas e participação na instituição — e não um resumo burocrático, item a item, dos dados fornecidos.');
+        L.push(t('tab_rsc.prompt_secao_oque_escrever', '## O que escrever'));
+        L.push(t('tab_rsc.prompt_oque_escrever', 'Descreva de forma sucinta a trajetória profissional e as principais atividades exercidas, explicando como esse trabalho gerou os saberes e os resultados institucionais que justificam o nível de RSC pleiteado. É uma narrativa autoral, em prosa corrida — contando a história de aprendizado, conquistas e participação na instituição — e não um resumo burocrático, item a item, dos dados fornecidos.'));
         L.push('');
-        L.push('## Regras obrigatórias');
-        L.push('- Texto objetivo, entre **4.000 e 10.000 caracteres** (contando espaços).');
-        L.push('- Primeira pessoa, tom profissional e narrativo — parágrafos corridos, sem bullet points nem cabeçalhos dentro do texto final.');
-        L.push('- **Não inclua dados pessoais sensíveis**: nome completo, endereço, CPF, SIAPE, telefone, e-mail ou qualquer informação sobre terceiros. Escreva apenas sobre a trajetória profissional.');
-        L.push('- Baseie-se somente nos dados fornecidos abaixo — não invente atividades, datas ou resultados que não estejam neles.');
-        L.push('- Organize a narrativa como fizer mais sentido para contar a história (cronologicamente, por eixos temáticos, pelos requisitos do RSC…) — não precisa seguir a ordem em que os dados aparecem.');
+        L.push(t('tab_rsc.prompt_secao_regras', '## Regras obrigatórias'));
+        L.push(t('tab_rsc.prompt_regra_tamanho', '- Texto objetivo, entre **4.000 e 10.000 caracteres** (contando espaços).'));
+        L.push(t('tab_rsc.prompt_regra_pessoa', '- Primeira pessoa, tom profissional e narrativo — parágrafos corridos, sem bullet points nem cabeçalhos dentro do texto final.'));
+        L.push(t('tab_rsc.prompt_regra_dados_pessoais', '- **Não inclua dados pessoais sensíveis**: nome completo, endereço, CPF, SIAPE, telefone, e-mail ou qualquer informação sobre terceiros. Escreva apenas sobre a trajetória profissional.'));
+        L.push(t('tab_rsc.prompt_regra_dados_fornecidos', '- Baseie-se somente nos dados fornecidos abaixo — não invente atividades, datas ou resultados que não estejam neles.'));
+        L.push(t('tab_rsc.prompt_regra_organizacao', '- Organize a narrativa como fizer mais sentido para contar a história (cronologicamente, por eixos temáticos, pelos requisitos do RSC…) — não precisa seguir a ordem em que os dados aparecem.'));
         L.push('');
-        L.push('## Formato da resposta');
-        L.push('Devolva apenas o texto final da Trajetória Profissional, pronto para colar no Memorial. Sem comentários, explicações ou meta-texto antes ou depois.');
+        L.push(t('tab_rsc.prompt_secao_formato', '## Formato da resposta'));
+        L.push(t('tab_rsc.prompt_formato', 'Devolva apenas o texto final da Trajetória Profissional, pronto para colar no Memorial. Sem comentários, explicações ou meta-texto antes ou depois.'));
         L.push('');
         L.push('---');
         L.push('');
-        L.push('# Dados de entrada (documentos categorizados)');
+        L.push(t('tab_rsc.prompt_secao_dados_entrada', '# Dados de entrada (documentos categorizados)'));
         L.push('');
-        L.push('## Contexto profissional');
-        if (cfg.cargo) L.push(`- Cargo: ${cfg.cargo}`);
-        if (cfg.nivelClassificacao) L.push(`- Nível de classificação: ${cfg.nivelClassificacao}`);
-        if (cfg.funcaoEncargo) L.push(`- Função/encargo: ${cfg.funcaoEncargo}`);
-        if (cfg.lotacao) L.push(`- Lotação: ${cfg.lotacao}`);
-        if (cfg.ingresso) L.push(`- Data de ingresso na instituição: ${cfg.ingresso}`);
+        L.push(t('tab_rsc.prompt_secao_contexto', '## Contexto profissional'));
+        if (cfg.cargo) L.push(t('tab_rsc.prompt_dado_cargo', '- Cargo: {v}', { v: cfg.cargo }));
+        if (cfg.nivelClassificacao) L.push(t('tab_rsc.prompt_dado_nivel_classificacao', '- Nível de classificação: {v}', { v: cfg.nivelClassificacao }));
+        if (cfg.funcaoEncargo) L.push(t('tab_rsc.prompt_dado_funcao', '- Função/encargo: {v}', { v: cfg.funcaoEncargo }));
+        if (cfg.lotacao) L.push(t('tab_rsc.prompt_dado_lotacao', '- Lotação: {v}', { v: cfg.lotacao }));
+        if (cfg.ingresso) L.push(t('tab_rsc.prompt_dado_ingresso', '- Data de ingresso na instituição: {v}', { v: cfg.ingresso }));
         const escLabel = (LzRSC.escInfo(cfg.escolaridade) || {}).label;
-        if (escLabel) L.push(`- Escolaridade: ${escLabel}`);
+        if (escLabel) L.push(t('tab_rsc.prompt_dado_escolaridade', '- Escolaridade: {v}', { v: escLabel }));
         const nivelAlvo = sim.nivelAlcancavel || 0;
-        if (nivelAlvo) L.push(`- Nível de RSC pleiteado (simulado): RSC-${['I', 'II', 'III', 'IV', 'V', 'VI'][nivelAlvo - 1]} (${sim.nivelNome})`);
+        if (nivelAlvo) L.push(t('tab_rsc.prompt_dado_nivel_pleiteado', '- Nível de RSC pleiteado (simulado): RSC-{romano} ({nome})', { romano: ['I', 'II', 'III', 'IV', 'V', 'VI'][nivelAlvo - 1], nome: sim.nivelNome }));
         L.push('');
 
         const grupos = {};
         itens.forEach(i => { const c = LzRSC.criterio(i.rsc.criterio); const r = c ? c.req : 0; (grupos[r] = grupos[r] || []).push(i); });
-        L.push('## Atividades por requisito');
+        L.push(t('tab_rsc.prompt_secao_atividades', '## Atividades por requisito'));
         for (let r = 1; r <= 6; r++) {
             const grp = grupos[r] || [];
             if (!grp.length) continue;
             L.push('');
-            L.push(`### Requisito ${REQUISITOS_FORM[r]}`);
+            L.push(t('tab_rsc.prompt_requisito_cabecalho', '### Requisito {req}', { req: REQUISITOS_FORM[r] }));
             grp.forEach(i => {
                 const pi = LzRSC.pontosItem(i.rsc), c = pi.crit;
                 L.push('');
-                L.push(`- **Item**: ${LattesTypes.itemTitle(i)}`);
-                if (c) L.push(`  - Critério: ${c.desc}`);
+                L.push(t('tab_rsc.prompt_item', '- **Item**: {titulo}', { titulo: LattesTypes.itemTitle(i) }));
+                if (c) L.push(t('tab_rsc.prompt_item_criterio', '  - Critério: {desc}', { desc: c.desc }));
                 const per = (i.rsc.dataInicio || i.rsc.dataFim) ? `${i.rsc.dataInicio || '?'} a ${i.rsc.dataFim || '?'}` : '';
-                if (per) L.push(`  - Período: ${per}`);
-                if (i.rsc.papel) L.push(`  - Papel/função: ${i.rsc.papel}`);
-                if (i.rsc.justificativa) L.push(`  - Justificativa: ${i.rsc.justificativa}`);
+                if (per) L.push(t('tab_rsc.prompt_item_periodo', '  - Período: {periodo}', { periodo: per }));
+                if (i.rsc.papel) L.push(t('tab_rsc.prompt_item_papel', '  - Papel/função: {papel}', { papel: i.rsc.papel }));
+                if (i.rsc.justificativa) L.push(t('tab_rsc.prompt_item_justificativa', '  - Justificativa: {texto}', { texto: i.rsc.justificativa }));
             });
         }
         return L.join('\n');
@@ -329,7 +328,7 @@ window.TabRsc = (function () {
     // "RSC_NomeCompleto_ddmmyyyy.docx" — nome do servidor sem caracteres
     // inválidos em nome de arquivo, data de hoje no formato ddmmyyyy.
     function nomeArquivoFormulario() {
-        const safe = (nomeServidorAtual() || 'Servidor').replace(/[\\/:*?"<>|]/g, '').trim() || 'Servidor';
+        const safe = (nomeServidorAtual() || t('tab_rsc.servidor_fallback', 'Servidor')).replace(/[\\/:*?"<>|]/g, '').trim() || t('tab_rsc.servidor_fallback', 'Servidor');
         const hoje = new Date();
         const dd = String(hoje.getDate()).padStart(2, '0');
         const mm = String(hoje.getMonth() + 1).padStart(2, '0');
@@ -350,56 +349,56 @@ window.TabRsc = (function () {
         const nomesPorItem = {};
         anexos.forEach(a => { (nomesPorItem[a.it.id] = nomesPorItem[a.it.id] || []).push(nomeArquivoAnexo(a)); });
 
-        parts.push(D.heading('Requerimento de Reconhecimento de Saberes e Competências (RSC-PCCTAE)', 1));
-        parts.push(D.para('Modelo padrão conforme Anexo da Portaria MEC nº 608, de 7 de julho de 2026.', { italic: true, size: 18 }));
+        parts.push(D.heading(t('tab_rsc.form_titulo', 'Requerimento de Reconhecimento de Saberes e Competências (RSC-PCCTAE)'), 1));
+        parts.push(D.para(t('tab_rsc.form_subtitulo', 'Modelo padrão conforme Anexo da Portaria MEC nº 608, de 7 de julho de 2026.'), { italic: true, size: 18 }));
 
         // ---- 1. Identificação do Servidor ----
-        parts.push(D.heading('1. Identificação do Servidor', 2));
+        parts.push(D.heading(t('tab_rsc.form_secao1_titulo', '1. Identificação do Servidor'), 2));
         const classeMarcada = n => cfg.nivelClassificacao === n ? `(X) ${n}` : `( ) ${n}`;
         parts.push(D.table([
-            D.row([D.cell('Nome', { bold: true, width: 3000 }), D.cell(nomeServidor, { width: 6000 })]),
-            D.row([D.cell('Siape', { bold: true }), D.cell(cfg.siape || '')]),
-            D.row([D.cell('Cargo', { bold: true }), D.cell(cfg.cargo || '')]),
-            D.row([D.cell('Data de ingresso em Instituição Federal de Ensino', { bold: true }), D.cell(cfg.ingresso || '')]),
-            D.row([D.cell('Nível de Classificação', { bold: true }), D.cell(['A', 'B', 'C', 'D', 'E'].map(classeMarcada).join('   '))]),
-            D.row([D.cell('Lotação', { bold: true }), D.cell(cfg.lotacao || '')]),
-            D.row([D.cell('Função/Encargo (se houver)', { bold: true }), D.cell(cfg.funcaoEncargo || '')]),
-            D.row([D.cell('Telefone', { bold: true }), D.cell(cfg.telefone || '')]),
-            D.row([D.cell('E-mail', { bold: true }), D.cell(cfg.email || '')]),
+            D.row([D.cell(t('tab_rsc.form_nome', 'Nome'), { bold: true, width: 3000 }), D.cell(nomeServidor, { width: 6000 })]),
+            D.row([D.cell(t('tab_rsc.form_siape', 'Siape'), { bold: true }), D.cell(cfg.siape || '')]),
+            D.row([D.cell(t('tab_rsc.form_cargo', 'Cargo'), { bold: true }), D.cell(cfg.cargo || '')]),
+            D.row([D.cell(t('tab_rsc.form_data_ingresso', 'Data de ingresso em Instituição Federal de Ensino'), { bold: true }), D.cell(cfg.ingresso || '')]),
+            D.row([D.cell(t('tab_rsc.nivel_classificacao', 'Nível de Classificação'), { bold: true }), D.cell(['A', 'B', 'C', 'D', 'E'].map(classeMarcada).join('   '))]),
+            D.row([D.cell(t('tab_rsc.lotacao', 'Lotação'), { bold: true }), D.cell(cfg.lotacao || '')]),
+            D.row([D.cell(t('tab_rsc.form_funcao_encargo', 'Função/Encargo (se houver)'), { bold: true }), D.cell(cfg.funcaoEncargo || '')]),
+            D.row([D.cell(t('tab_rsc.telefone', 'Telefone'), { bold: true }), D.cell(cfg.telefone || '')]),
+            D.row([D.cell(t('tab_rsc.email', 'E-mail'), { bold: true }), D.cell(cfg.email || '')]),
         ], [3000, 6000]));
 
         // ---- 2. Informações do Requerimento ----
-        parts.push(D.heading('2. Informações do Requerimento', 2));
+        parts.push(D.heading(t('tab_rsc.form_secao2_titulo', '2. Informações do Requerimento'), 2));
         const nivelAlvo = sim.nivelAlcancavel || 0;
         const nivelMarcado = n => nivelAlvo === n ? `(X) RSC-${['I', 'II', 'III', 'IV', 'V', 'VI'][n - 1]}` : `( ) RSC-${['I', 'II', 'III', 'IV', 'V', 'VI'][n - 1]}`;
         const minPontos = nivelAlvo ? sim.niveis[nivelAlvo - 1].min.pontos : null;
         const excedente = minPontos != null ? Math.max(0, +(sim.total - minPontos).toFixed(2)) : 0;
         parts.push(D.table([
-            D.row([D.cell('Nível de RSC pretendido', { bold: true, width: 3000 }), D.cell([1, 2, 3, 4, 5, 6].map(nivelMarcado).join('   '), { width: 6000 })]),
-            D.row([D.cell('Pontuação mínima necessária', { bold: true }), D.cell(minPontos != null ? NUM_PT(minPontos) : '—')]),
-            D.row([D.cell('Pontuação total apresentada', { bold: true }), D.cell(NUM_PT(sim.total))]),
-            D.row([D.cell('Quantidade de critérios específicos utilizados', { bold: true }), D.cell(String(sim.criteriosDistintos))]),
-            D.row([D.cell('Pontuação total excedente (banco de pontos)', { bold: true }), D.cell(NUM_PT(excedente))]),
-            D.row([D.cell('Saldo de pontuação de concessão anterior', { bold: true }), D.cell(cfg.saldoAnterior || '')]),
-            D.row([D.cell('Número do processo relativo à concessão anterior (se houver)', { bold: true }), D.cell(cfg.processoAnterior || '')]),
+            D.row([D.cell(t('tab_rsc.form_nivel_pretendido', 'Nível de RSC pretendido'), { bold: true, width: 3000 }), D.cell([1, 2, 3, 4, 5, 6].map(nivelMarcado).join('   '), { width: 6000 })]),
+            D.row([D.cell(t('tab_rsc.form_pontuacao_minima', 'Pontuação mínima necessária'), { bold: true }), D.cell(minPontos != null ? formatarNumero(minPontos) : '—')]),
+            D.row([D.cell(t('tab_rsc.form_pontuacao_total', 'Pontuação total apresentada'), { bold: true }), D.cell(formatarNumero(sim.total))]),
+            D.row([D.cell(t('tab_rsc.form_qtd_criterios', 'Quantidade de critérios específicos utilizados'), { bold: true }), D.cell(String(sim.criteriosDistintos))]),
+            D.row([D.cell(t('tab_rsc.form_pontuacao_excedente', 'Pontuação total excedente (banco de pontos)'), { bold: true }), D.cell(formatarNumero(excedente))]),
+            D.row([D.cell(t('tab_rsc.saldo_anterior', 'Saldo de pontuação de concessão anterior'), { bold: true }), D.cell(cfg.saldoAnterior || '')]),
+            D.row([D.cell(t('tab_rsc.form_processo_anterior', 'Número do processo relativo à concessão anterior (se houver)'), { bold: true }), D.cell(cfg.processoAnterior || '')]),
         ], [3000, 6000]));
 
         // ---- 3. Descrição das Atividades por Requisito Legal ----
-        parts.push(D.heading('3. Descrição das Atividades por Requisito Legal', 2));
-        parts.push(D.para('Itens organizados conforme os requisitos do art. 4º, incisos I a VI, do Decreto do RSC-PCCTAE, vinculando cada atividade ao critério específico correspondente.', { size: 18 }));
+        parts.push(D.heading(t('tab_rsc.form_secao3_titulo', '3. Descrição das Atividades por Requisito Legal'), 2));
+        parts.push(D.para(t('tab_rsc.form_secao3_intro', 'Itens organizados conforme os requisitos do art. 4º, incisos I a VI, do Decreto do RSC-PCCTAE, vinculando cada atividade ao critério específico correspondente.'), { size: 18 }));
 
         const grupos = {};
         itens.forEach(i => { const c = LzRSC.criterio(i.rsc.criterio); const r = c ? c.req : 0; (grupos[r] = grupos[r] || []).push(i); });
         const colWidths = [900, 4300, 1600, 900, 1100, 1900];
         for (let r = 1; r <= 6; r++) {
-            parts.push(D.heading(`Critério ${REQUISITOS_FORM[r]}`, 3));
+            parts.push(D.heading(t('tab_rsc.form_criterio_heading', 'Critério {req}', { req: REQUISITOS_FORM[r] }), 3));
             const head = D.row([
-                D.cell('Nº do item', { bold: true, width: colWidths[0], shade: 'EEEEEE' }),
-                D.cell('Critério específico', { bold: true, width: colWidths[1], shade: 'EEEEEE' }),
-                D.cell('Unidade de medida', { bold: true, width: colWidths[2], shade: 'EEEEEE' }),
-                D.cell('Pontuação', { bold: true, width: colWidths[3], shade: 'EEEEEE' }),
-                D.cell('Pontuação obtida', { bold: true, width: colWidths[4], shade: 'EEEEEE' }),
-                D.cell('Documentos comprobatórios (anexos)', { bold: true, width: colWidths[5], shade: 'EEEEEE' }),
+                D.cell(t('tab_rsc.form_col_num_item', 'Nº do item'), { bold: true, width: colWidths[0], shade: 'EEEEEE' }),
+                D.cell(t('tab_rsc.form_col_criterio', 'Critério específico'), { bold: true, width: colWidths[1], shade: 'EEEEEE' }),
+                D.cell(t('tab_rsc.form_col_unidade', 'Unidade de medida'), { bold: true, width: colWidths[2], shade: 'EEEEEE' }),
+                D.cell(t('tab_rsc.form_col_pontuacao', 'Pontuação'), { bold: true, width: colWidths[3], shade: 'EEEEEE' }),
+                D.cell(t('tab_rsc.form_col_pontuacao_obtida', 'Pontuação obtida'), { bold: true, width: colWidths[4], shade: 'EEEEEE' }),
+                D.cell(t('tab_rsc.form_col_documentos', 'Documentos comprobatórios (anexos)'), { bold: true, width: colWidths[5], shade: 'EEEEEE' }),
             ]);
             const grp = grupos[r] || [];
             const rows = grp.length ? grp.map(i => {
@@ -408,28 +407,28 @@ window.TabRsc = (function () {
                     D.cell(String(c.item), { width: colWidths[0] }),
                     D.cell(c.desc, { width: colWidths[1] }),
                     D.cell(c.unidade, { width: colWidths[2] }),
-                    D.cell(NUM_PT(pi.unitario), { width: colWidths[3] }),
-                    D.cell(NUM_PT(pi.pontos), { width: colWidths[4] }),
+                    D.cell(formatarNumero(pi.unitario), { width: colWidths[3] }),
+                    D.cell(formatarNumero(pi.pontos), { width: colWidths[4] }),
                     D.cell((nomesPorItem[i.id] || []).join('; ') || '—', { width: colWidths[5] }),
                 ]);
-            }) : [D.row([D.cell('—  nenhum item cadastrado neste critério  —', { width: colWidths.slice(0, 5).reduce((a, b) => a + b, 0) }), D.cell('', { width: colWidths[5] })])];
-            const subtotal = D.row([D.cell('Subtotal', { bold: true, width: colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] }),
-                D.cell(NUM_PT((sim.porRequisito[r] || { pontos: 0 }).pontos), { bold: true, width: colWidths[4] }),
+            }) : [D.row([D.cell(t('tab_rsc.form_sem_item_criterio', '—  nenhum item cadastrado neste critério  —'), { width: colWidths.slice(0, 5).reduce((a, b) => a + b, 0) }), D.cell('', { width: colWidths[5] })])];
+            const subtotal = D.row([D.cell(t('tab_rsc.form_subtotal', 'Subtotal'), { bold: true, width: colWidths[0] + colWidths[1] + colWidths[2] + colWidths[3] }),
+                D.cell(formatarNumero((sim.porRequisito[r] || { pontos: 0 }).pontos), { bold: true, width: colWidths[4] }),
                 D.cell('', { width: colWidths[5] })]);
             parts.push(D.table([head, ...rows, subtotal], colWidths));
         }
-        parts.push(D.para([D.run('(Critério I + Critério II + Critério III + Critério IV + Critério V + Critério VI) TOTAL: ', { bold: true }), D.run(NUM_PT(sim.total))]));
-        parts.push(D.para(`À vista das informações apresentadas, totalizo ${NUM_PT(sim.total)} pontos e atendo aos critérios legais e regulamentares para o nível ${sim.nivelNome} do RSC-PCCTAE. Solicito a análise pela CRSC-PCCTAE.`));
+        parts.push(D.para([D.run(t('tab_rsc.form_total_rotulo', '(Critério I + Critério II + Critério III + Critério IV + Critério V + Critério VI) TOTAL: '), { bold: true }), D.run(formatarNumero(sim.total))]));
+        parts.push(D.para(t('tab_rsc.form_conclusao', 'À vista das informações apresentadas, totalizo {pontos} pontos e atendo aos critérios legais e regulamentares para o nível {nivel} do RSC-PCCTAE. Solicito a análise pela CRSC-PCCTAE.', { pontos: formatarNumero(sim.total), nivel: sim.nivelNome })));
 
         // ---- 4. Declaração de Conformidade Legal ----
-        parts.push(D.heading('4. Declaração de Conformidade Legal', 2));
-        parts.push(D.para('Declaro, para os fins previstos no Decreto regulamentador do RSC-PCCTAE, que:'));
-        parts.push(D.para('I - Todos os fatos apresentados ocorreram no exercício do cargo;'));
-        parts.push(D.para('II - Nenhuma atividade aqui declarada foi utilizada em requerimentos anteriores;'));
-        parts.push(D.para('III - Toda a documentação anexada é autêntica e comprova integralmente as atividades apresentadas; e'));
-        parts.push(D.para('IV - Tenho ciência de que informações falsas implicam responsabilidade administrativa, civil e penal.'));
+        parts.push(D.heading(t('tab_rsc.form_secao4_titulo', '4. Declaração de Conformidade Legal'), 2));
+        parts.push(D.para(t('tab_rsc.form_declaracao_intro', 'Declaro, para os fins previstos no Decreto regulamentador do RSC-PCCTAE, que:')));
+        parts.push(D.para(t('tab_rsc.form_declaracao_1', 'I - Todos os fatos apresentados ocorreram no exercício do cargo;')));
+        parts.push(D.para(t('tab_rsc.form_declaracao_2', 'II - Nenhuma atividade aqui declarada foi utilizada em requerimentos anteriores;')));
+        parts.push(D.para(t('tab_rsc.form_declaracao_3', 'III - Toda a documentação anexada é autêntica e comprova integralmente as atividades apresentadas; e')));
+        parts.push(D.para(t('tab_rsc.form_declaracao_4', 'IV - Tenho ciência de que informações falsas implicam responsabilidade administrativa, civil e penal.')));
         parts.push(D.para(' '));
-        parts.push(D.para('Assinatura: _______________________________________     Data: ____/____/________'));
+        parts.push(D.para(t('tab_rsc.form_assinatura', 'Assinatura: _______________________________________     Data: ____/____/________')));
 
         return parts.join('');
     }
@@ -496,7 +495,7 @@ window.TabRsc = (function () {
     function memorialDocxBody(texto, itens, anexos, cfg) {
         const D = window.LzDocx;
         const parts = [];
-        parts.push(D.heading('Memorial — RSC-PCCTAE', 1));
+        parts.push(D.heading(t('tab_rsc.memorial_docx_titulo', 'Memorial — RSC-PCCTAE'), 1));
         const subtitulo = [nomeServidorAtual(), cfg.cargo].filter(Boolean).join(' — ');
         if (subtitulo) parts.push(D.para(subtitulo, { italic: true, size: 18 }));
         parts.push(D.para(' '));
@@ -512,7 +511,7 @@ window.TabRsc = (function () {
         for (let r = 1; r <= 6; r++) {
             const grp = porRequisito[r] || [];
             if (!grp.length) continue;
-            parts.push(D.heading(`REQUISITO ${REQUISITOS_FORM[r]}`, 2));
+            parts.push(D.heading(t('tab_rsc.memorial_requisito_cabecalho', 'REQUISITO {req}', { req: REQUISITOS_FORM[r] }), 2));
 
             const porCriterio = {};
             grp.forEach(it => { (porCriterio[it.rsc.criterio] = porCriterio[it.rsc.criterio] || []).push(it); });
@@ -523,7 +522,7 @@ window.TabRsc = (function () {
                     const nums = (numerosPorItem[it.id] || []).map(numAnexo);
                     const prefixo = nums.length ? `${nums.join(', ')}: ` : '';
                     const periodo = (it.rsc.dataInicio || it.rsc.dataFim) ? ` (${it.rsc.dataInicio || '?'} a ${it.rsc.dataFim || '?'})` : '';
-                    const ch = (it.fields && it.fields.cargaHoraria) ? ` | Carga horária: ${it.fields.cargaHoraria}h` : '';
+                    const ch = (it.fields && it.fields.cargaHoraria) ? t('tab_rsc.carga_horaria_sufixo', ' | Carga horária: {h}h', { h: it.fields.cargaHoraria }) : '';
                     parts.push(D.para(`${prefixo}${LattesTypes.itemTitle(it)}${periodo}${ch}`));
                 });
             });
@@ -540,7 +539,7 @@ window.TabRsc = (function () {
     // formulário — tudo numa única pasta datada dentro de "Exportação/
     // RSC-PCCTAE", pronto pra juntar ao requerimento.
     async function exportarRsc(itens, sim, cfg) {
-        if (!Storage.hasDirectory()) { toast('Configure um diretório em Configurações para exportar.', 'aviso'); return; }
+        if (!Storage.hasDirectory()) { toast(t('tab_rsc.configure_diretorio', 'Configure um diretório em Configurações para exportar.'), 'aviso'); return; }
         // Feedback de progresso + botão desabilitado durante a exportação —
         // pode envolver dezenas de anexos (cada um lido e regravado), sem
         // nenhum sinal antes disto de que já estava em andamento.
@@ -549,10 +548,10 @@ window.TabRsc = (function () {
         if (btn) btn.disabled = true;
         try {
             const folder = pastaExportacaoHoje();
-            const nomeServidor = sanitizeArquivo(nomeServidorAtual()) || 'Servidor';
+            const nomeServidor = sanitizeArquivo(nomeServidorAtual()) || t('tab_rsc.servidor_fallback', 'Servidor');
             const ordenados = itensOrdenadosParaExportacao(itens);
             const anexos = listarAnexosNumerados(ordenados);
-            if (btn) btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Gerando memorial e formulário…';
+            if (btn) btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-1"></i> ${esc(t('tab_rsc.gerando_memorial_formulario', 'Gerando memorial e formulário…'))}`;
 
             const textoMemorial = (state.rsc.memorialTexto && state.rsc.memorialTexto.trim()) ? state.rsc.memorialTexto : rscMemorial(itens, sim, cfg);
             const memorialBytes = window.LzDocx.buildDocx(memorialDocxBody(textoMemorial, ordenados, anexos, cfg));
@@ -563,14 +562,15 @@ window.TabRsc = (function () {
 
             let nAnexos = 0;
             for (const a of anexos) {
-                if (btn) btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-1"></i> Copiando anexos… (${nAnexos}/${anexos.length})`;
+                if (btn) btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-1"></i> ${esc(t('tab_rsc.copiando_anexos', 'Copiando anexos… ({n}/{total})', { n: nAnexos, total: anexos.length }))}`;
                 const f = await Storage.readAttachmentFile(a.ev.basename, LattesTypes.categoryFolder(a.it.categoryKey), a.ev.ext);
                 if (!f) continue;
                 await Storage.writeFile(nomeArquivoAnexo(a), f, `${folder}/Anexos`);
                 nAnexos++;
             }
-            toast(`Memorial e formulário exportados em "${folder}/"${nAnexos ? ` (+ ${nAnexos} anexo${nAnexos === 1 ? '' : 's'} numerado${nAnexos === 1 ? '' : 's'} em "Anexos/")` : ''}.`, 'ok');
-        } catch (e) { toast('Falha ao exportar: ' + e.message, 'erro'); }
+            const anexosSufixo = nAnexos ? tp('tab_rsc.anexos_sufixo', nAnexos, { um: ' (+ {n} anexo numerado em "Anexos/")', outros: ' (+ {n} anexos numerados em "Anexos/")' }) : '';
+            toast(t('tab_rsc.exportado_sucesso', 'Memorial e formulário exportados em "{pasta}/"{sufixo}.', { pasta: folder, sufixo: anexosSufixo }), 'ok');
+        } catch (e) { toast(t('tab_rsc.falha_exportar', 'Falha ao exportar: {erro}', { erro: e.message }), 'erro'); }
         finally { if (btn) { btn.disabled = false; btn.innerHTML = original; } }
     }
 

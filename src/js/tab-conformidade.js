@@ -24,11 +24,12 @@
    carrega DEPOIS deste módulo) — por isso são lidos via `window.AppCore.xxx`
    dentro dos corpos das funções (tempo de clique), nunca desestruturados no
    topo do arquivo.
+   i18n (preparação): todo texto de exibição passa por t().
    ========================================================================== */
 window.TabConformidade = (function () {
     const {
         state, $, $$, esc, toast, anoDe, itemYear, sortByYear, publicarWebOk,
-        elegivelAoLattes, normNome, isFieldDisabled, descState,
+        elegivelAoLattes, normNome, isFieldDisabled, descState, t,
         isImageExt, isVideoExt, isArchiveExt, NA_VALUE,
     } = window.AppCore;
 
@@ -37,32 +38,32 @@ window.TabConformidade = (function () {
        ===================================================================== */
     // Recortes da lista (cartões de conformidade + filtro da lista)
     const VIEW_META = {
-        comprovados:  { cor: 'green', icone: 'fa-circle-check', titulo: 'Comprovados', desc: 'Com evidência anexada' },
-        semPdf:       { cor: 'red',   icone: 'fa-file-circle-xmark', titulo: 'Sem evidência', desc: 'Falta anexar comprovação' },
-        naoLattes:    { cor: 'purple', icone: 'fa-heart', titulo: 'Não-Lattes', desc: 'Itens pessoais' },
-        descObrig:    { cor: 'red', icone: 'fa-align-left', titulo: 'Obrigatórios pendentes', desc: 'Falta campo obrigatório' },
-        descOpcional: { cor: 'amber', icone: 'fa-align-left', titulo: 'Falta campo opcional', desc: 'Descrição incompleta (opcional)' },
-        descCompleta: { cor: 'green', icone: 'fa-align-left', titulo: 'Descrição completa', desc: 'Todos os campos preenchidos' },
-        rscUsavel:    { cor: 'amber', icone: 'fa-award', titulo: 'Usáveis para RSC', desc: 'Elegíveis dentro do período de uso' },
-        rscMarcado:   { cor: 'green', icone: 'fa-award', titulo: 'Marcados para RSC', desc: 'Já contabilizados no RSC' },
-        rscElegivel:  { cor: 'amber', icone: 'fa-award', titulo: 'Elegíveis para RSC', desc: 'Dentro do período, ainda não marcados' },
-        rscForaPeriodo: { cor: 'gray', icone: 'fa-award', titulo: 'RSC fora do período', desc: 'Fora do período de uso do RSC' },
-        chVerde:      { cor: 'green', icone: 'fa-clock', titulo: 'Com carga horária', desc: 'Carga horária preenchida' },
-        chVermelho:   { cor: 'red', icone: 'fa-clock', titulo: 'Sem carga horária', desc: 'Falta preencher a carga horária' },
-        chCinza:      { cor: 'gray', icone: 'fa-clock', titulo: 'Carga horária N/A', desc: 'Não se aplica' },
-        lattesPendente:   { cor: 'red', icone: 'fa-graduation-cap', titulo: 'Ainda não no Lattes', desc: 'Não enviado à Plataforma Lattes' },
-        lattesModificado: { cor: 'amber', icone: 'fa-graduation-cap', titulo: 'Modificado após o Lattes', desc: 'Editado localmente após ir ao Lattes' },
-        lattesEnviado:    { cor: 'green', icone: 'fa-graduation-cap', titulo: 'Já no Lattes', desc: 'Sem edições desde o envio' },
-        exportLattesSim:  { cor: 'green', icone: 'fa-file-export', titulo: 'Exportar p/ Lattes: sim', desc: 'Entra no XML gerado' },
-        exportLattesNao:  { cor: 'gray', icone: 'fa-file-export', titulo: 'Exportar p/ Lattes: não', desc: 'Fora do XML gerado' },
-        pubWebSim:        { cor: 'green', icone: 'fa-globe', titulo: 'Publicar na Web: sim', desc: 'Entra na página pública' },
-        pubWebNao:        { cor: 'gray', icone: 'fa-globe', titulo: 'Publicar na Web: não', desc: 'Fora da página pública' },
-        periodoInvalido:  { cor: 'red', icone: 'fa-calendar-xmark', titulo: 'Datas trocadas', desc: 'Fim antes do início' },
-        anoImplausivel:   { cor: 'red', icone: 'fa-triangle-exclamation', titulo: 'Ano suspeito', desc: 'Fora do intervalo esperado' },
-        semInstituicao:   { cor: 'red', icone: 'fa-building-circle-xmark', titulo: 'Sem instituição', desc: 'Falta informar a instituição' },
-        semIdentificador: { cor: 'amber', icone: 'fa-barcode', titulo: 'Sem ISSN/ISBN', desc: 'Falta identificador bibliográfico' },
-        possivelDuplicata: { cor: 'amber', icone: 'fa-copy', titulo: 'Possível duplicata', desc: 'Mesmo tipo, título e ano de outro item' },
-        semAutores:        { cor: 'amber', icone: 'fa-user-slash', titulo: 'Sem autores', desc: 'Falta preencher os autores' },
+        comprovados:  { cor: 'green', icone: 'fa-circle-check', titulo: t('tab_conformidade.view.comprovados.titulo', 'Comprovados'), desc: t('tab_conformidade.view.comprovados.desc', 'Com evidência anexada') },
+        semPdf:       { cor: 'red',   icone: 'fa-file-circle-xmark', titulo: t('tab_conformidade.view.sem_pdf.titulo', 'Sem evidência'), desc: t('tab_conformidade.view.sem_pdf.desc', 'Falta anexar comprovação') },
+        naoLattes:    { cor: 'purple', icone: 'fa-heart', titulo: t('tab_conformidade.view.nao_lattes.titulo', 'Não-Lattes'), desc: t('tab_conformidade.view.nao_lattes.desc', 'Itens pessoais') },
+        descObrig:    { cor: 'red', icone: 'fa-align-left', titulo: t('tab_conformidade.view.desc_obrig.titulo', 'Obrigatórios pendentes'), desc: t('tab_conformidade.view.desc_obrig.desc', 'Falta campo obrigatório') },
+        descOpcional: { cor: 'amber', icone: 'fa-align-left', titulo: t('tab_conformidade.view.desc_opcional.titulo', 'Falta campo opcional'), desc: t('tab_conformidade.view.desc_opcional.desc', 'Descrição incompleta (opcional)') },
+        descCompleta: { cor: 'green', icone: 'fa-align-left', titulo: t('tab_conformidade.view.desc_completa.titulo', 'Descrição completa'), desc: t('tab_conformidade.view.desc_completa.desc', 'Todos os campos preenchidos') },
+        rscUsavel:    { cor: 'amber', icone: 'fa-award', titulo: t('tab_conformidade.view.rsc_usavel.titulo', 'Usáveis para RSC'), desc: t('tab_conformidade.view.rsc_usavel.desc', 'Elegíveis dentro do período de uso') },
+        rscMarcado:   { cor: 'green', icone: 'fa-award', titulo: t('tab_conformidade.view.rsc_marcado.titulo', 'Marcados para RSC'), desc: t('tab_conformidade.view.rsc_marcado.desc', 'Já contabilizados no RSC') },
+        rscElegivel:  { cor: 'amber', icone: 'fa-award', titulo: t('tab_conformidade.view.rsc_elegivel.titulo', 'Elegíveis para RSC'), desc: t('tab_conformidade.view.rsc_elegivel.desc', 'Dentro do período, ainda não marcados') },
+        rscForaPeriodo: { cor: 'gray', icone: 'fa-award', titulo: t('tab_conformidade.view.rsc_fora_periodo.titulo', 'RSC fora do período'), desc: t('tab_conformidade.view.rsc_fora_periodo.desc', 'Fora do período de uso do RSC') },
+        chVerde:      { cor: 'green', icone: 'fa-clock', titulo: t('tab_conformidade.view.ch_verde.titulo', 'Com carga horária'), desc: t('tab_conformidade.view.ch_verde.desc', 'Carga horária preenchida') },
+        chVermelho:   { cor: 'red', icone: 'fa-clock', titulo: t('tab_conformidade.view.ch_vermelho.titulo', 'Sem carga horária'), desc: t('tab_conformidade.view.ch_vermelho.desc', 'Falta preencher a carga horária') },
+        chCinza:      { cor: 'gray', icone: 'fa-clock', titulo: t('tab_conformidade.view.ch_cinza.titulo', 'Carga horária N/A'), desc: t('tab_conformidade.view.ch_cinza.desc', 'Não se aplica') },
+        lattesPendente:   { cor: 'red', icone: 'fa-graduation-cap', titulo: t('tab_conformidade.view.lattes_pendente.titulo', 'Ainda não no Lattes'), desc: t('tab_conformidade.view.lattes_pendente.desc', 'Não enviado à Plataforma Lattes') },
+        lattesModificado: { cor: 'amber', icone: 'fa-graduation-cap', titulo: t('tab_conformidade.view.lattes_modificado.titulo', 'Modificado após o Lattes'), desc: t('tab_conformidade.view.lattes_modificado.desc', 'Editado localmente após ir ao Lattes') },
+        lattesEnviado:    { cor: 'green', icone: 'fa-graduation-cap', titulo: t('tab_conformidade.view.lattes_enviado.titulo', 'Já no Lattes'), desc: t('tab_conformidade.view.lattes_enviado.desc', 'Sem edições desde o envio') },
+        exportLattesSim:  { cor: 'green', icone: 'fa-file-export', titulo: t('tab_conformidade.view.export_lattes_sim.titulo', 'Exportar p/ Lattes: sim'), desc: t('tab_conformidade.view.export_lattes_sim.desc', 'Entra no XML gerado') },
+        exportLattesNao:  { cor: 'gray', icone: 'fa-file-export', titulo: t('tab_conformidade.view.export_lattes_nao.titulo', 'Exportar p/ Lattes: não'), desc: t('tab_conformidade.view.export_lattes_nao.desc', 'Fora do XML gerado') },
+        pubWebSim:        { cor: 'green', icone: 'fa-globe', titulo: t('tab_conformidade.view.pub_web_sim.titulo', 'Publicar na Web: sim'), desc: t('tab_conformidade.view.pub_web_sim.desc', 'Entra na página pública') },
+        pubWebNao:        { cor: 'gray', icone: 'fa-globe', titulo: t('tab_conformidade.view.pub_web_nao.titulo', 'Publicar na Web: não'), desc: t('tab_conformidade.view.pub_web_nao.desc', 'Fora da página pública') },
+        periodoInvalido:  { cor: 'red', icone: 'fa-calendar-xmark', titulo: t('tab_conformidade.view.periodo_invalido.titulo', 'Datas trocadas'), desc: t('tab_conformidade.view.periodo_invalido.desc', 'Fim antes do início') },
+        anoImplausivel:   { cor: 'red', icone: 'fa-triangle-exclamation', titulo: t('tab_conformidade.view.ano_implausivel.titulo', 'Ano suspeito'), desc: t('tab_conformidade.view.ano_implausivel.desc', 'Fora do intervalo esperado') },
+        semInstituicao:   { cor: 'red', icone: 'fa-building-circle-xmark', titulo: t('tab_conformidade.view.sem_instituicao.titulo', 'Sem instituição'), desc: t('tab_conformidade.view.sem_instituicao.desc', 'Falta informar a instituição') },
+        semIdentificador: { cor: 'amber', icone: 'fa-barcode', titulo: t('tab_conformidade.view.sem_identificador.titulo', 'Sem ISSN/ISBN'), desc: t('tab_conformidade.view.sem_identificador.desc', 'Falta identificador bibliográfico') },
+        possivelDuplicata: { cor: 'amber', icone: 'fa-copy', titulo: t('tab_conformidade.view.possivel_duplicata.titulo', 'Possível duplicata'), desc: t('tab_conformidade.view.possivel_duplicata.desc', 'Mesmo tipo, título e ano de outro item') },
+        semAutores:        { cor: 'amber', icone: 'fa-user-slash', titulo: t('tab_conformidade.view.sem_autores.titulo', 'Sem autores'), desc: t('tab_conformidade.view.sem_autores.desc', 'Falta preencher os autores') },
     };
     // Tipos que exigem evidência (ex.: Identificação, Texto inicial, Outras
     // informações e Conexões não exigem) — usado nas métricas de conformidade.
@@ -120,7 +121,7 @@ window.TabConformidade = (function () {
         const chip = (key, n) => {
             const m = VIEW_META[key];
             const active = state.ui.viewFilter === key;
-            return `<button type="button" data-view="${key}" data-tooltip="Filtrar: ${m.titulo}" aria-pressed="${active}"
+            return `<button type="button" data-view="${key}" data-tooltip="${t('tab_conformidade.filtrar_por', 'Filtrar: {titulo}', { titulo: m.titulo })}" aria-pressed="${active}"
                 class="text-left bg-white dark:bg-gray-900 border rounded px-3 py-2 hover:shadow transition ${active ? `border-${m.cor}-500 ring-2 ring-${m.cor}-500/40` : 'border-gray-200 dark:border-gray-700'}">
                 <span class="block text-xl font-bold text-${m.cor}-600 dark:text-${m.cor}-400">${n}</span>
                 <span class="block text-xs text-gray-600 dark:text-gray-400">${m.titulo}</span>
@@ -128,7 +129,7 @@ window.TabConformidade = (function () {
         };
         return `
             <div class="bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800 rounded-lg p-4 mb-5">
-                <h3 class="font-bold text-sm flex items-center gap-2 mb-3"><i aria-hidden="true" class="fa-solid fa-award text-amber-600"></i> RSC-PCCTAE — itens usáveis</h3>
+                <h3 class="font-bold text-sm flex items-center gap-2 mb-3"><i aria-hidden="true" class="fa-solid fa-award text-amber-600"></i> ${t('tab_conformidade.rsc_itens_usaveis', 'RSC-PCCTAE — itens usáveis')}</h3>
                 <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
                     ${chip('rscUsavel', usaveis.length)}
                     ${chip('rscMarcado', marcados)}
@@ -172,7 +173,7 @@ window.TabConformidade = (function () {
         const chip = (key) => {
             const m = VIEW_META[key];
             const active = state.ui.viewFilter === key;
-            return `<button type="button" data-view="${key}" data-tooltip="Filtrar: ${m.titulo}" aria-pressed="${active}"
+            return `<button type="button" data-view="${key}" data-tooltip="${t('tab_conformidade.filtrar_por', 'Filtrar: {titulo}', { titulo: m.titulo })}" aria-pressed="${active}"
                 class="text-left bg-white dark:bg-gray-900 border rounded px-3 py-2 hover:shadow transition ${active ? `border-${m.cor}-500 ring-2 ring-${m.cor}-500/40` : 'border-gray-200 dark:border-gray-700'}">
                 <span class="block text-xl font-bold text-${m.cor}-600 dark:text-${m.cor}-400">${count(key)}</span>
                 <span class="block text-xs text-gray-600 dark:text-gray-400">${m.titulo}</span>
@@ -181,31 +182,31 @@ window.TabConformidade = (function () {
 
         panel.innerHTML = `
             <div class="bg-gray-50 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700 rounded-lg p-4 mb-5">
-                <h3 class="font-bold text-sm flex items-center gap-2 mb-3"><i aria-hidden="true" class="fa-solid fa-chart-simple text-gray-500"></i> Conformidade</h3>
+                <h3 class="font-bold text-sm flex items-center gap-2 mb-3"><i aria-hidden="true" class="fa-solid fa-chart-simple text-gray-500"></i> ${t('tab_conformidade.conformidade', 'Conformidade')}</h3>
                 <div class="grid sm:grid-cols-2 gap-x-6 gap-y-3">
                     <div>
-                        <div class="flex justify-between text-sm mb-1"><span class="font-semibold"><i class="fa-solid fa-file-pdf text-gray-400 mr-1"></i>Conformidade documental (evidência)</span><span>${pct}% (${evG}/${total})</span></div>
-                        <div class="w-full h-3 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden flex" title="Verde: com evidência · Amarelo: evidência não pública · Vermelho: sem evidência">
+                        <div class="flex justify-between text-sm mb-1"><span class="font-semibold"><i class="fa-solid fa-file-pdf text-gray-400 mr-1"></i>${t('tab_conformidade.conformidade_documental', 'Conformidade documental (evidência)')}</span><span>${pct}% (${evG}/${total})</span></div>
+                        <div class="w-full h-3 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden flex" title="${t('tab_conformidade.legenda_evidencia', 'Verde: com evidência · Amarelo: evidência não pública · Vermelho: sem evidência')}">
                             <div class="h-full bg-green-500" style="width:${wEv(evG)}%"></div>
                             <div class="h-full bg-amber-500" style="width:${wEv(evA)}%"></div>
                             <div class="h-full bg-red-500" style="width:${wEv(evR)}%"></div>
                         </div>
-                        <p class="text-xs text-gray-500 mt-0.5">${evG} com evidência · ${evA} evidência não pública · ${evR} sem evidência</p>
+                        <p class="text-xs text-gray-500 mt-0.5">${t('tab_conformidade.resumo_evidencia', '{evG} com evidência · {evA} evidência não pública · {evR} sem evidência', { evG, evA, evR })}</p>
                     </div>
                     <div>
-                        <div class="flex justify-between text-sm mb-1"><span class="font-semibold"><i class="fa-solid fa-align-left text-gray-400 mr-1"></i>Descrição completa (campos)</span><span>${pctDesc}% (${descG}/${totalDesc})</span></div>
-                        <div class="w-full h-3 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden flex" title="Verde: completo · Amarelo: falta opcional · Vermelho: falta obrigatório">
+                        <div class="flex justify-between text-sm mb-1"><span class="font-semibold"><i class="fa-solid fa-align-left text-gray-400 mr-1"></i>${t('tab_conformidade.descricao_completa_campos', 'Descrição completa (campos)')}</span><span>${pctDesc}% (${descG}/${totalDesc})</span></div>
+                        <div class="w-full h-3 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden flex" title="${t('tab_conformidade.legenda_descricao', 'Verde: completo · Amarelo: falta opcional · Vermelho: falta obrigatório')}">
                             <div class="h-full bg-green-500" style="width:${wDesc(descG)}%"></div>
                             <div class="h-full bg-amber-500" style="width:${wDesc(descA)}%"></div>
                             <div class="h-full bg-red-500" style="width:${wDesc(descR)}%"></div>
                         </div>
-                        <p class="text-xs text-gray-500 mt-0.5">${descG} completos · ${descA} falta opcional · ${descR} falta obrigatório</p>
+                        <p class="text-xs text-gray-500 mt-0.5">${t('tab_conformidade.resumo_descricao', '{descG} completos · {descA} falta opcional · {descR} falta obrigatório', { descG, descA, descR })}</p>
                     </div>
                 </div>
             </div>
 
             <div id="outrasPendenciasBox" class="bg-gray-50 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700 rounded-lg p-4 mb-5">
-                <h3 class="font-bold text-sm flex items-center gap-2 mb-3"><i aria-hidden="true" class="fa-solid fa-list-check text-gray-500"></i> Pendências</h3>
+                <h3 class="font-bold text-sm flex items-center gap-2 mb-3"><i aria-hidden="true" class="fa-solid fa-list-check text-gray-500"></i> ${t('tab_conformidade.pendencias', 'Pendências')}</h3>
                 <div class="flex flex-wrap gap-2">
                     ${chip('semPdf')}${chip('descObrig')}${chip('chVermelho')}${chip('periodoInvalido')}${chip('anoImplausivel')}
                     ${chip('semInstituicao')}${chip('semIdentificador')}${chip('semAutores')}${chip('possivelDuplicata')}
@@ -218,29 +219,29 @@ window.TabConformidade = (function () {
                 <div class="px-4 py-3 bg-gray-100 dark:bg-gray-800 flex items-center justify-between gap-2 flex-wrap">
                     <h2 class="text-lg font-bold flex items-center gap-2">
                         <i aria-hidden="true" class="fa-solid fa-list text-govbr-600 dark:text-unifesp-400"></i>
-                        Itens <span id="itemCount" class="text-sm font-normal text-gray-500"></span>
+                        ${t('tab_conformidade.itens', 'Itens')} <span id="itemCount" class="text-sm font-normal text-gray-500"></span>
                         <span id="viewChip" class="hidden text-xs font-normal"></span>
                     </h2>
                     <div class="print:hidden flex items-center gap-2 flex-wrap">
                         <label class="text-xs text-gray-500 flex items-center gap-1">
-                            <i aria-hidden="true" class="fa-solid fa-arrow-down-wide-short"></i> Ordenar por ano
+                            <i aria-hidden="true" class="fa-solid fa-arrow-down-wide-short"></i> ${t('tab_conformidade.ordenar_por_ano', 'Ordenar por ano')}
                             <select id="sortOrder" class="text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900">
-                                <option value="desc">Decrescente (recente → antigo)</option>
-                                <option value="asc">Crescente (antigo → recente)</option>
+                                <option value="desc">${t('tab_conformidade.ordem_decrescente', 'Decrescente (recente → antigo)')}</option>
+                                <option value="asc">${t('tab_conformidade.ordem_crescente', 'Crescente (antigo → recente)')}</option>
                             </select>
                         </label>
-                        <input id="filterBox" type="search" placeholder="Filtrar..."
+                        <input id="filterBox" type="search" placeholder="${t('tab_conformidade.filtrar_placeholder', 'Filtrar...')}"
                                class="text-sm px-3 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 w-full sm:w-56">
                     </div>
                 </div>
                 <div class="print:hidden flex gap-2 px-3 pt-3 flex-wrap">
-                    <button id="btnExpandAll" class="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600">Expandir todas</button>
-                    <button id="btnCollapseAll" class="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600">Recolher todas</button>
-                    <button id="btnImprimir" class="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600 ml-auto"><i class="fa-solid fa-print mr-1"></i> Imprimir / PDF</button>
+                    <button id="btnExpandAll" class="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600">${t('tab_conformidade.expandir_todas', 'Expandir todas')}</button>
+                    <button id="btnCollapseAll" class="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600">${t('tab_conformidade.recolher_todas', 'Recolher todas')}</button>
+                    <button id="btnImprimir" class="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600 ml-auto"><i class="fa-solid fa-print mr-1"></i> ${t('tab_conformidade.imprimir_pdf', 'Imprimir / PDF')}</button>
                 </div>
                 <details id="itensSection" ${state.ui.itensAberto ? 'open' : ''}>
                     <summary class="cursor-pointer select-none px-3 py-2 mt-1 text-sm font-medium text-gray-600 dark:text-gray-300 flex items-center gap-2">
-                        <i aria-hidden="true" class="fa-solid fa-angle-right text-xs text-gray-400"></i> Ver itens
+                        <i aria-hidden="true" class="fa-solid fa-angle-right text-xs text-gray-400"></i> ${t('tab_conformidade.ver_itens', 'Ver itens')}
                     </summary>
                     <div id="itemList" class="p-3 space-y-3"></div>
                 </details>
@@ -309,7 +310,7 @@ window.TabConformidade = (function () {
         if (def && def.noEvidence) return '';
         const evid = Array.isArray(item.evidencias) ? item.evidencias : [];
         if (!evid.length) {
-            return `<span title="Sem evidência anexada" class="inline-flex items-center justify-center w-6 h-6 text-red-600 dark:text-red-500"><i class="fa-solid fa-file-circle-xmark"></i></span>`;
+            return `<span title="${t('tab_conformidade.sem_evidencia_anexada', 'Sem evidência anexada')}" class="inline-flex items-center justify-center w-6 h-6 text-red-600 dark:text-red-500"><i class="fa-solid fa-file-circle-xmark"></i></span>`;
         }
         const cor = evid.some(e => e.publica) ? 'text-green-600 dark:text-green-500' : 'text-amber-600 dark:text-amber-500';
         // Agrupa por tipo de ícone (pdf/imagem/vídeo/zip-tar.gz/link): mesmo
@@ -322,7 +323,7 @@ window.TabConformidade = (function () {
             g.count++; g.names.push(e.name || ''); if (e.publica) g.publica = true;
         });
         return Array.from(groups.entries()).map(([icon, g]) => {
-            const title = g.names.join(', ') + (g.publica ? ' (pública)' : '');
+            const title = g.names.join(', ') + (g.publica ? ` (${t('tab_conformidade.publica', 'pública')})` : '');
             const badge = g.count > 1 ? `<span class="absolute -bottom-1 -right-1 min-w-[14px] h-3.5 px-0.5 bg-gray-700 dark:bg-gray-300 text-white dark:text-gray-900 text-[9px] leading-[14px] rounded-full text-center">${g.count}</span>` : '';
             return `<button type="button" data-act="pdf" data-id="${item.id}" title="${esc(title)}" class="relative inline-flex items-center justify-center w-8 h-8 rounded hover:bg-gray-100 dark:hover:bg-gray-700 ${cor}"><i class="fa-solid ${icon}"></i>${badge}</button>`;
         }).join('');
@@ -381,9 +382,9 @@ window.TabConformidade = (function () {
     function rscIconHtml(item) {
         const estado = rscEstado(item);
         if (!estado) return '';
-        const title = estado === 'green' ? 'Marcado para uso no RSC'
-            : estado === 'amber' ? 'Dentro do período de uso do RSC — ainda não marcado'
-            : 'Fora do período de uso do RSC';
+        const title = estado === 'green' ? t('tab_conformidade.rsc_marcado_titulo', 'Marcado para uso no RSC')
+            : estado === 'amber' ? t('tab_conformidade.rsc_elegivel_titulo', 'Dentro do período de uso do RSC — ainda não marcado')
+            : t('tab_conformidade.rsc_fora_periodo_titulo', 'Fora do período de uso do RSC');
         const key = estado === 'green' ? 'rscMarcado' : estado === 'amber' ? 'rscElegivel' : 'rscForaPeriodo';
         return iconBtnHtml(key, estado, title, 'fa-award');
     }
@@ -402,9 +403,9 @@ window.TabConformidade = (function () {
     function lattesIconHtml(item) {
         const estado = lattesEstado(item);
         if (!estado) return '';
-        const title = estado === 'red' ? 'Ainda não está no Lattes'
-            : estado === 'amber' ? 'Está no Lattes, mas sofreu modificação local'
-            : 'Já está no Lattes';
+        const title = estado === 'red' ? t('tab_conformidade.lattes_pendente_titulo', 'Ainda não está no Lattes')
+            : estado === 'amber' ? t('tab_conformidade.lattes_modificado_titulo', 'Está no Lattes, mas sofreu modificação local')
+            : t('tab_conformidade.lattes_enviado_titulo', 'Já está no Lattes');
         const key = estado === 'red' ? 'lattesPendente' : estado === 'amber' ? 'lattesModificado' : 'lattesEnviado';
         return iconBtnHtml(key, estado, title, 'fa-graduation-cap');
     }
@@ -427,7 +428,7 @@ window.TabConformidade = (function () {
         const estado = cargaHorariaEstado(item);
         if (!estado) return '';
         const v = String((item.fields || {}).cargaHoraria || '').trim();
-        const title = estado === 'gray' ? 'Carga horária: não se aplica' : estado === 'green' ? 'Tem carga horária: ' + v : 'Sem carga horária';
+        const title = estado === 'gray' ? t('tab_conformidade.ch_na_titulo', 'Carga horária: não se aplica') : estado === 'green' ? t('tab_conformidade.ch_tem_titulo', 'Tem carga horária: {v}', { v }) : t('tab_conformidade.ch_sem_titulo', 'Sem carga horária');
         const key = estado === 'green' ? 'chVerde' : estado === 'red' ? 'chVermelho' : 'chCinza';
         return iconBtnHtml(key, estado, title, 'fa-clock');
     }
@@ -449,7 +450,7 @@ window.TabConformidade = (function () {
     }
     function periodoInvalidoIconHtml(item) {
         if (!isPeriodoInvalido(item)) return '';
-        return iconBtnHtml('periodoInvalido', 'red', 'Data de fim antes da data de início', 'fa-calendar-xmark');
+        return iconBtnHtml('periodoInvalido', 'red', t('tab_conformidade.periodo_invalido_titulo', 'Data de fim antes da data de início'), 'fa-calendar-xmark');
     }
     // Ano fora de um intervalo plausível (1950 até o ano que vem) — protege
     // contra erro de digitação (ex.: "2924" em vez de "2024") que hoje passa
@@ -469,7 +470,7 @@ window.TabConformidade = (function () {
     }
     function anoImplausivelIconHtml(item) {
         if (!isAnoImplausivel(item)) return '';
-        return iconBtnHtml('anoImplausivel', 'red', 'Ano fora do intervalo esperado (possível erro de digitação)', 'fa-triangle-exclamation');
+        return iconBtnHtml('anoImplausivel', 'red', t('tab_conformidade.ano_implausivel_titulo', 'Ano fora do intervalo esperado (possível erro de digitação)'), 'fa-triangle-exclamation');
     }
     // Sem instituição informada: o tipo tem campo "instituicao" (Atuação,
     // Formação, Projetos, Bancas...), mas está em branco. A própria lista de
@@ -485,7 +486,7 @@ window.TabConformidade = (function () {
     }
     function semInstituicaoIconHtml(item) {
         if (!isSemInstituicao(item)) return '';
-        return iconBtnHtml('semInstituicao', 'red', 'Instituição não informada', 'fa-building-circle-xmark');
+        return iconBtnHtml('semInstituicao', 'red', t('tab_conformidade.sem_instituicao_titulo', 'Instituição não informada'), 'fa-building-circle-xmark');
     }
     // Sem ISSN/ISBN: o tipo tem campo "issn" ou "isbn" (produção
     // bibliográfica), mas está em branco — identificador cada vez mais
@@ -501,7 +502,7 @@ window.TabConformidade = (function () {
     }
     function semIdentificadorIconHtml(item) {
         if (!isSemIdentificador(item)) return '';
-        return iconBtnHtml('semIdentificador', 'amber', 'Sem ISSN/ISBN', 'fa-barcode');
+        return iconBtnHtml('semIdentificador', 'amber', t('tab_conformidade.view.sem_identificador.titulo', 'Sem ISSN/ISBN'), 'fa-barcode');
     }
     // Sem autores: o tipo tem campo "autores" (textarea) ou "autoresLista"
     // (repeater), mas está em branco/sem nenhuma linha. Campo não obrigatório,
@@ -521,7 +522,7 @@ window.TabConformidade = (function () {
     }
     function semAutoresIconHtml(item) {
         if (!isSemAutores(item)) return '';
-        return iconBtnHtml('semAutores', 'amber', 'Sem autores preenchidos', 'fa-user-slash');
+        return iconBtnHtml('semAutores', 'amber', t('tab_conformidade.sem_autores_titulo', 'Sem autores preenchidos'), 'fa-user-slash');
     }
     // Possível duplicata: mesmo tipo + título (normalizado, ignora acento/
     // caixa) + ano aparecendo em mais de um item — pode vir de reimportação
@@ -545,7 +546,7 @@ window.TabConformidade = (function () {
     function isPossivelDuplicata(item) { return duplicataIds.has(item.id); }
     function duplicataIconHtml(item) {
         if (!isPossivelDuplicata(item)) return '';
-        return iconBtnHtml('possivelDuplicata', 'amber', 'Possível duplicata (mesmo tipo, título e ano de outro item)', 'fa-copy');
+        return iconBtnHtml('possivelDuplicata', 'amber', t('tab_conformidade.possivel_duplicata_titulo', 'Possível duplicata (mesmo tipo, título e ano de outro item)'), 'fa-copy');
     }
     // Ícone "Exportar para Lattes": verde (entra no XML), cinza (desmarcado
     // no item — fica de fora mesmo sendo de tipo/categoria exportável). Some
@@ -554,7 +555,7 @@ window.TabConformidade = (function () {
     function exportarLattesIconHtml(item) {
         if (!elegivelAoLattes(item.typeKey, item.categoryKey)) return '';
         const on = !(item.visibilidade && item.visibilidade.exportarLattes === false);
-        const title = on ? 'Exportado para o Lattes (XML)' : 'Fora da exportação para o Lattes (XML)';
+        const title = on ? t('tab_conformidade.export_lattes_sim_titulo', 'Exportado para o Lattes (XML)') : t('tab_conformidade.export_lattes_nao_titulo', 'Fora da exportação para o Lattes (XML)');
         return iconBtnHtml(on ? 'exportLattesSim' : 'exportLattesNao', on ? 'green' : 'gray', title, 'fa-file-export');
     }
     // Ícone "Publicar na Web": verde (entra na página HTML própria), cinza
@@ -563,13 +564,13 @@ window.TabConformidade = (function () {
     function publicarWebIconHtml(item) {
         if (LattesTypes.isPerfilType(item.typeKey)) return '';
         const on = publicarWebOk(item);
-        const title = on ? 'Publicado na página Web' : 'Fora da página Web (Publicar na Web)';
+        const title = on ? t('tab_conformidade.pub_web_sim_titulo', 'Publicado na página Web') : t('tab_conformidade.pub_web_nao_titulo', 'Fora da página Web (Publicar na Web)');
         return iconBtnHtml(on ? 'pubWebSim' : 'pubWebNao', on ? 'green' : 'gray', title, 'fa-globe');
     }
     // Ícone de descrição: reaproveita o estado de completude (descState).
     function descIconHtml(item) {
         const estado = descState(item);
-        const title = estado === 'green' ? 'Descrição completa' : estado === 'amber' ? 'Descrição incompleta (falta campo opcional)' : 'Sem descrição (falta campo obrigatório)';
+        const title = estado === 'green' ? t('tab_conformidade.view.desc_completa.titulo', 'Descrição completa') : estado === 'amber' ? t('tab_conformidade.desc_incompleta_titulo', 'Descrição incompleta (falta campo opcional)') : t('tab_conformidade.sem_descricao_titulo', 'Sem descrição (falta campo obrigatório)');
         const key = estado === 'green' ? 'descCompleta' : estado === 'amber' ? 'descOpcional' : 'descObrig';
         return iconBtnHtml(key, estado, title, 'fa-align-left');
     }
@@ -591,9 +592,9 @@ window.TabConformidade = (function () {
                         ${cargaHorariaIconHtml(i)}${periodoInvalidoIconHtml(i)}${anoImplausivelIconHtml(i)}${semInstituicaoIconHtml(i)}${semIdentificadorIconHtml(i)}${semAutoresIconHtml(i)}${duplicataIconHtml(i)}${rscIconHtml(i)}${lattesIconHtml(i)}${exportarLattesIconHtml(i)}${publicarWebIconHtml(i)}${descIconHtml(i)}
                         <span class="print:hidden contents">
                             ${sep}
-                            <button data-act="edit" data-id="${i.id}" title="Abrir / Editar" class="w-9 h-9 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-govbr-600 dark:text-unifesp-400"><i class="fa-solid fa-pen"></i></button>
-                            ${(LattesTypes.isSingleton(i.typeKey) || LattesTypes.singletonScopeField(i.typeKey)) ? '' : `<button data-act="dup" data-id="${i.id}" title="Duplicar" class="w-9 h-9 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400"><i class="fa-solid fa-clone"></i></button>`}
-                            <button data-act="del" data-id="${i.id}" title="Excluir" class="w-9 h-9 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-red-600"><i class="fa-solid fa-trash"></i></button>
+                            <button data-act="edit" data-id="${i.id}" title="${t('tab_conformidade.abrir_editar', 'Abrir / Editar')}" class="w-9 h-9 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-govbr-600 dark:text-unifesp-400"><i class="fa-solid fa-pen"></i></button>
+                            ${(LattesTypes.isSingleton(i.typeKey) || LattesTypes.singletonScopeField(i.typeKey)) ? '' : `<button data-act="dup" data-id="${i.id}" title="${t('tab_conformidade.duplicar', 'Duplicar')}" class="w-9 h-9 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400"><i class="fa-solid fa-clone"></i></button>`}
+                            <button data-act="del" data-id="${i.id}" title="${t('tab_conformidade.excluir', 'Excluir')}" class="w-9 h-9 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-red-600"><i class="fa-solid fa-trash"></i></button>
                         </span>
                     </div>
                 </div>
@@ -646,13 +647,13 @@ window.TabConformidade = (function () {
             const instKeys = Object.keys(byInst).sort((a, b) => {
                 if (a === SEM_INST) return 1;
                 if (b === SEM_INST) return -1;
-                return labelOf[a].localeCompare(labelOf[b], 'pt-BR', { sensitivity: 'base' });
+                return window.AppCore.compararTexto(labelOf[a], labelOf[b], { sensitivity: 'base' });
             });
             return instKeys.map(ik => `
                 <details open class="border border-gray-200 dark:border-gray-700/70 rounded-md">
                     <summary class="cursor-pointer select-none px-2.5 py-1.5 bg-gray-100/70 dark:bg-gray-800/80 text-sm font-semibold text-gray-700 dark:text-gray-200 flex items-center gap-2">
                         <i aria-hidden="true" class="fa-solid fa-building text-govbr-600 dark:text-unifesp-400 text-xs"></i>
-                        ${esc(ik === SEM_INST ? '(Sem instituição informada)' : labelOf[ik])}
+                        ${esc(ik === SEM_INST ? t('tab_conformidade.sem_instituicao_informada', '(Sem instituição informada)') : labelOf[ik])}
                         <span class="text-xs font-normal text-gray-500">(${byInst[ik].length})</span>
                     </summary>
                     <div class="p-1.5 space-y-1.5">${typesHtmlFor(byInst[ik], catKey)}</div>
@@ -688,7 +689,7 @@ window.TabConformidade = (function () {
             else {
                 const m = VIEW_META[view];
                 chip.className = `text-xs font-normal badge bg-${m.cor}-100 text-${m.cor}-800 dark:bg-${m.cor}-900/40 dark:text-${m.cor}-300`;
-                chip.innerHTML = `<i class="fa-solid ${m.icone}"></i> ${m.titulo} · <button type="button" id="viewClear" class="underline">ver todos</button>`;
+                chip.innerHTML = `<i class="fa-solid ${m.icone}"></i> ${m.titulo} · <button type="button" id="viewClear" class="underline">${t('tab_conformidade.ver_todos', 'ver todos')}</button>`;
                 const clr = $('#viewClear'); if (clr) clr.addEventListener('click', () => { state.ui.viewFilter = 'todos'; render(); });
             }
         }
@@ -701,8 +702,8 @@ window.TabConformidade = (function () {
 
         if (!items.length) {
             const vazio = !state.catalogo.items.length
-                ? 'Nenhum item ainda. Adicione pelo formulário ou importe o XML do Lattes.'
-                : (view === 'todos' ? 'Nenhum item corresponde ao filtro.' : 'Nenhum item neste recorte.');
+                ? t('tab_conformidade.vazio_sem_itens', 'Nenhum item ainda. Adicione pelo formulário ou importe o XML do Lattes.')
+                : (view === 'todos' ? t('tab_conformidade.vazio_sem_filtro', 'Nenhum item corresponde ao filtro.') : t('tab_conformidade.vazio_sem_recorte', 'Nenhum item neste recorte.'));
             list.innerHTML = `<p class="text-sm text-gray-500 italic py-6 text-center">${vazio}</p>`;
             return;
         }
@@ -728,9 +729,9 @@ window.TabConformidade = (function () {
         } else if (btn.dataset.act === 'dup') {
             await duplicateItem(id);
         } else if (btn.dataset.act === 'del') {
-            if (!confirm(`Mover "${LattesTypes.itemTitle(item)}" para a lixeira? Pode ser restaurado depois em Configurações › Lixeira.`)) return;
+            if (!confirm(t('tab_conformidade.confirmar_lixeira', 'Mover "{titulo}" para a lixeira? Pode ser restaurado depois em Configurações › Lixeira.', { titulo: LattesTypes.itemTitle(item) }))) return;
             await window.AppCore.deleteItem(id);
-            toast('Item movido para a lixeira.', 'ok');
+            toast(t('tab_conformidade.toast_movido_lixeira', 'Item movido para a lixeira.'), 'ok');
             renderItemList();
         }
     }
@@ -745,14 +746,14 @@ window.TabConformidade = (function () {
         const fields = Object.assign({}, orig.fields);
         const labelKey = ['titulo', 'orientando', 'candidato', 'especialidade', 'subarea', 'area', 'instituicao']
             .find(k => fields[k] && String(fields[k]).trim());
-        if (labelKey) fields[labelKey] = `${fields[labelKey]} (cópia)`;
+        if (labelKey) fields[labelKey] = t('tab_conformidade.sufixo_copia', '{valor} (cópia)', { valor: fields[labelKey] });
         const copy = {
             id: window.AppCore.uid(), createdAt: window.AppCore.nowISO(), updatedAt: window.AppCore.nowISO(), source: 'local',
             lattesItem: orig.lattesItem, typeKey: orig.typeKey, categoryKey: orig.categoryKey,
             fields, evidencias: [], hasPdf: false, pdfName: null, fileExt: null, lattesRef: null,
         };
         await window.AppCore.persistItem(copy);
-        toast('Item duplicado — revise os dados e anexe a evidência.', 'ok');
+        toast(t('tab_conformidade.toast_duplicado', 'Item duplicado — revise os dados e anexe a evidência.'), 'ok');
         renderItemList();
     }
 

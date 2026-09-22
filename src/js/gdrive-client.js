@@ -24,11 +24,17 @@
    app — storage.js usa isto como back-end alternativo à File System Access
    API (pasta local), operando só sobre arquivos que o próprio app cria
    (escopo drive.file — nunca o restante do Drive do usuário).
+
+   i18n (preparação): mensagens de erro voltadas ao usuário passam por
+   window.AppCore.t — só chamadas em resposta a uma ação do usuário ou
+   depois do boot completo do app (nunca no carregamento deste módulo),
+   então window.AppCore já existe.
    ========================================================================== */
 window.GDriveClient = (function () {
     const BASE = 'https://www.googleapis.com/drive/v3';
     const UPLOAD_BASE = 'https://www.googleapis.com/upload/drive/v3';
     const SCOPE = 'https://www.googleapis.com/auth/drive.file';
+    const t = (chave, padrao, vars) => window.AppCore.t(chave, padrao, vars);
 
     let clientId = null;
     let tokenClient = null;
@@ -46,7 +52,7 @@ window.GDriveClient = (function () {
             script.src = 'https://accounts.google.com/gsi/client';
             script.async = true;
             script.onload = () => resolve();
-            script.onerror = () => reject(new Error('Não foi possível carregar o script de autenticação do Google — verifique sua conexão.'));
+            script.onerror = () => reject(new Error(t('gdrive.erro_script_auth', 'Não foi possível carregar o script de autenticação do Google — verifique sua conexão.')));
             document.head.appendChild(script);
         });
     }
@@ -61,11 +67,11 @@ window.GDriveClient = (function () {
 
     function requestToken(prompt) {
         return new Promise(async (resolve, reject) => {
-            if (!clientId) { reject(new Error('Client ID do Google não configurado neste site.')); return; }
+            if (!clientId) { reject(new Error(t('gdrive.erro_sem_client_id', 'Client ID do Google não configurado neste site.'))); return; }
             let client;
             try { client = await ensureTokenClient(); } catch (e) { reject(e); return; }
             client.callback = (resp) => {
-                if (resp.error) { reject(new Error('Autorização do Google recusada ou cancelada (' + resp.error + ').')); return; }
+                if (resp.error) { reject(new Error(t('gdrive.erro_autorizacao_recusada', 'Autorização do Google recusada ou cancelada ({erro}).', { erro: resp.error }))); return; }
                 accessToken = resp.access_token;
                 tokenExpiresAt = Date.now() + (resp.expires_in || 3600) * 1000;
                 resolve(accessToken);
@@ -99,7 +105,7 @@ window.GDriveClient = (function () {
             const headers = Object.assign({ Authorization: `Bearer ${accessToken}` }, opts.headers || {});
             try { return await fetch(url, { method, headers, body: opts.body }); }
             catch (e) {
-                const err = new Error('Não foi possível conectar ao Google Drive — verifique sua conexão.');
+                const err = new Error(t('gdrive.erro_conexao', 'Não foi possível conectar ao Google Drive — verifique sua conexão.'));
                 err.isNetworkError = true;
                 throw err;
             }
@@ -113,7 +119,7 @@ window.GDriveClient = (function () {
         }
         if (opts.okStatuses && opts.okStatuses.includes(resp.status)) return resp;
         if (!resp.ok) {
-            const err = new Error(`Google Drive: ${method} → HTTP ${resp.status}`);
+            const err = new Error(t('gdrive.erro_http', 'Google Drive: {method} → HTTP {status}', { method, status: resp.status }));
             err.status = resp.status;
             throw err;
         }
@@ -255,8 +261,8 @@ window.GDriveClient = (function () {
         return new Promise((resolve, reject) => {
             if (window.google && window.google.picker) { resolve(); return; }
             const finish = () => {
-                if (!window.gapi) { reject(new Error('Não foi possível carregar o seletor de arquivos do Google.')); return; }
-                window.gapi.load('picker', { callback: resolve, onerror: () => reject(new Error('Não foi possível carregar o seletor de arquivos do Google.')) });
+                if (!window.gapi) { reject(new Error(t('gdrive.erro_picker_lib', 'Não foi possível carregar o seletor de arquivos do Google.'))); return; }
+                window.gapi.load('picker', { callback: resolve, onerror: () => reject(new Error(t('gdrive.erro_picker_lib', 'Não foi possível carregar o seletor de arquivos do Google.'))) });
             };
             if (window.gapi) { finish(); return; }
             const script = document.createElement('script');
@@ -265,7 +271,7 @@ window.GDriveClient = (function () {
             script.src = 'https://apis.google.com/js/api.js?hl=pt-BR';
             script.async = true;
             script.onload = finish;
-            script.onerror = () => reject(new Error('Não foi possível carregar o script do seletor de arquivos do Google — verifique sua conexão.'));
+            script.onerror = () => reject(new Error(t('gdrive.erro_script_picker', 'Não foi possível carregar o script do seletor de arquivos do Google — verifique sua conexão.')));
             document.head.appendChild(script);
         });
     }
@@ -273,7 +279,7 @@ window.GDriveClient = (function () {
     // o PRÓPRIO Drive e escolhe um arquivo já existente. Retorna
     // {id, name, mimeType} do arquivo escolhido, ou null se cancelado.
     async function pickFile(developerKey) {
-        if (!developerKey) throw new Error('Chave de API do Google (Picker) não configurada neste site.');
+        if (!developerKey) throw new Error(t('gdrive.erro_sem_picker_key', 'Chave de API do Google (Picker) não configurada neste site.'));
         await ensureFreshToken();
         await loadPickerLib();
         return new Promise((resolve, reject) => {
@@ -310,7 +316,7 @@ window.GDriveClient = (function () {
                     .setIncludeFolders(true)
                     .setSelectFolderEnabled(false)
                     .setEnableDrives(true)
-                    .setLabel('Drives compartilhados');
+                    .setLabel(t('gdrive.picker_label_drives_compartilhados', 'Drives compartilhados'));
                 const picker = new window.google.picker.PickerBuilder()
                     .addView(viewMeuDrive)
                     .addView(viewDrivesCompartilhados)
@@ -349,7 +355,7 @@ window.GDriveClient = (function () {
     // arquivos, mas o usuário só pode escolher uma pasta mesmo assim
     // (arquivos não são selecionáveis com essa flag).
     async function pickFolder(developerKey) {
-        if (!developerKey) throw new Error('Chave de API do Google (Picker) não configurada neste site.');
+        if (!developerKey) throw new Error(t('gdrive.erro_sem_picker_key', 'Chave de API do Google (Picker) não configurada neste site.'));
         await ensureFreshToken();
         await loadPickerLib();
         return new Promise((resolve, reject) => {
@@ -362,7 +368,7 @@ window.GDriveClient = (function () {
                     .setIncludeFolders(true)
                     .setSelectFolderEnabled(true)
                     .setEnableDrives(true)
-                    .setLabel('Drives compartilhados');
+                    .setLabel(t('gdrive.picker_label_drives_compartilhados', 'Drives compartilhados'));
                 const picker = new window.google.picker.PickerBuilder()
                     .addView(viewMeuDrive)
                     .addView(viewDrivesCompartilhados)

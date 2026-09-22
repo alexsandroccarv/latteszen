@@ -22,12 +22,13 @@
    da taxonomia Lattes, sem nenhuma mudança de conteúdo.
    ========================================================================== */
 import { QTD_TECNICO, projetoFieldsPadrao, PROJETO_ENSINO_FIELDS } from './lattes-types-campos.js';
+import { t } from './i18n.js';
 
 export const TYPES_04_PROJETOS = {
     // 04 Projetos
-    PROJETO_PESQUISA: { label: 'Projetos de pesquisa', fields: projetoFieldsPadrao(null, 'Nome do projeto', true) },
-    PROJETO_DESENVOLVIMENTO: { label: 'Projeto de desenvolvimento tecnológico', fields: projetoFieldsPadrao([QTD_TECNICO]) },
-    PROJETO_EXTENSAO: { label: 'Projeto de extensão', fields: projetoFieldsPadrao() },
-    PROJETO_ENSINO: { label: 'Projeto de ensino', fields: PROJETO_ENSINO_FIELDS },
-    PROJETO_OUTRO: { label: 'Outros tipos de projetos', fields: projetoFieldsPadrao() },
+    PROJETO_PESQUISA: { label: t('lattes.tipo.PROJETO_PESQUISA.label', 'Projetos de pesquisa'), fields: projetoFieldsPadrao(null, t('lattes.tipo.PROJETO_PESQUISA.campo.nome_do_projeto', 'Nome do projeto'), true) },
+    PROJETO_DESENVOLVIMENTO: { label: t('lattes.tipo.PROJETO_DESENVOLVIMENTO.label', 'Projeto de desenvolvimento tecnológico'), fields: projetoFieldsPadrao([QTD_TECNICO]) },
+    PROJETO_EXTENSAO: { label: t('lattes.tipo.PROJETO_EXTENSAO.label', 'Projeto de extensão'), fields: projetoFieldsPadrao() },
+    PROJETO_ENSINO: { label: t('lattes.tipo.PROJETO_ENSINO.label', 'Projeto de ensino'), fields: PROJETO_ENSINO_FIELDS },
+    PROJETO_OUTRO: { label: t('lattes.tipo.PROJETO_OUTRO.label', 'Outros tipos de projetos'), fields: projetoFieldsPadrao() },
 };

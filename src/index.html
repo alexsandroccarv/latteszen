@@ -146,12 +146,12 @@
             </div>
             <div class="flex items-center gap-3 shrink-0">
                 <div id="govBrLogo" class="bg-white rounded px-2 py-1.5 flex items-center shrink-0 dark:hidden">
-                    <img src="images/geral/gov_br.svg" alt="Governo Federal" class="h-5 w-auto" onerror="this.parentElement.style.display='none'">
+                    <img src="images/geral/gov_br.svg" alt="Governo Federal" class="h-5 w-auto" onerror="this.parentElement.style.display='none'" data-i18n-attrs='{"alt":"index.governo_federal"}'>
                 </div>
                 <!-- Configurações: mesma posição do templateZen (1ª linha do
                      cabeçalho, extrema direita) — continua sendo uma aba
                      normal (tab-btn/data-tab), só mudou de lugar visualmente. -->
-                <button id="headerConfigBtn" class="tab-btn text-white/90 hover:text-white transition-colors w-8 h-8 flex items-center justify-center rounded shrink-0" aria-pressed="false" aria-controls="tab-config" data-tab="config" title="Configurações" aria-label="Configurações">
+                <button id="headerConfigBtn" class="tab-btn text-white/90 hover:text-white transition-colors w-8 h-8 flex items-center justify-center rounded shrink-0" aria-pressed="false" aria-controls="tab-config" data-tab="config" title="Configurações" aria-label="Configurações" data-i18n-attrs='{"title":"index.configuracoes","aria-label":"index.configuracoes"}'>
                     <i aria-hidden="true" class="fa-solid fa-gear"></i>
                 </button>
             </div>
@@ -161,25 +161,25 @@
         <nav class="print:hidden bg-white dark:bg-gray-800 border-t border-govbr-700/20 dark:border-gray-700 px-2" role="tablist" aria-label="Seções">
             <div class="max-w-5xl flex gap-1 overflow-x-auto">
                 <button id="tabBtnInicio" class="tab-btn inline-flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-gray-600 dark:text-gray-300 hover:text-govbr-600 dark:hover:text-unifesp-400 whitespace-nowrap" role="tab" aria-selected="true" aria-controls="tab-inicio" data-tab="inicio">
-                    <i aria-hidden="true" class="fa-solid fa-house text-[1.75rem]"></i> Início
+                    <i aria-hidden="true" class="fa-solid fa-house text-[1.75rem]"></i> <span data-i18n="index.tab_inicio">Início</span>
                 </button>
                 <button id="tabBtnCatalogar" class="tab-btn inline-flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-gray-600 dark:text-gray-300 hover:text-govbr-600 dark:hover:text-unifesp-400 whitespace-nowrap" role="tab" aria-selected="false" aria-controls="tab-catalogar" data-tab="catalogar">
-                    <i aria-hidden="true" class="fa-solid fa-file-circle-plus text-[1.75rem]"></i> Catalogar
+                    <i aria-hidden="true" class="fa-solid fa-file-circle-plus text-[1.75rem]"></i> <span data-i18n="index.tab_catalogar">Catalogar</span>
                 </button>
                 <button id="tabBtnConformidade" class="tab-btn inline-flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-gray-600 dark:text-gray-300 hover:text-govbr-600 dark:hover:text-unifesp-400 whitespace-nowrap" role="tab" aria-selected="false" aria-controls="tab-conformidade" data-tab="conformidade">
-                    <i aria-hidden="true" class="fa-solid fa-clipboard-check text-[1.75rem]"></i> Conformidade
+                    <i aria-hidden="true" class="fa-solid fa-clipboard-check text-[1.75rem]"></i> <span data-i18n="index.tab_conformidade">Conformidade</span>
                 </button>
                 <button id="tabBtnLinhatempo" class="tab-btn inline-flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-gray-600 dark:text-gray-300 hover:text-govbr-600 dark:hover:text-unifesp-400 whitespace-nowrap" role="tab" aria-selected="false" aria-controls="tab-linhatempo" data-tab="linhatempo">
-                    <i aria-hidden="true" class="fa-solid fa-table-cells text-[1.75rem]"></i> Gráficos
+                    <i aria-hidden="true" class="fa-solid fa-table-cells text-[1.75rem]"></i> <span data-i18n="index.tab_graficos">Gráficos</span>
                 </button>
                 <button id="tabBtnPublicar" class="tab-btn inline-flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-gray-600 dark:text-gray-300 hover:text-govbr-600 dark:hover:text-unifesp-400 whitespace-nowrap" role="tab" aria-selected="false" aria-controls="tab-publicar" data-tab="publicar">
-                    <i aria-hidden="true" class="fa-solid fa-globe text-[1.75rem]"></i> Publicar na Web
+                    <i aria-hidden="true" class="fa-solid fa-globe text-[1.75rem]"></i> <span data-i18n="index.tab_publicar">Publicar na Web</span>
                 </button>
                 <button id="tabBtnRsc" class="tab-btn inline-flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-gray-600 dark:text-gray-300 hover:text-govbr-600 dark:hover:text-unifesp-400 whitespace-nowrap hidden" role="tab" aria-selected="false" aria-controls="tab-rsc" data-tab="rsc">
                     <i aria-hidden="true" class="fa-solid fa-award text-[1.75rem]"></i> RSC
                 </button>
                 <button id="tabBtnSumula" class="tab-btn inline-flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-gray-600 dark:text-gray-300 hover:text-govbr-600 dark:hover:text-unifesp-400 whitespace-nowrap hidden" role="tab" aria-selected="false" aria-controls="tab-sumula" data-tab="sumula">
-                    <i aria-hidden="true" class="fa-solid fa-file-lines text-[1.75rem]"></i> Súmula FAPESP
+                    <i aria-hidden="true" class="fa-solid fa-file-lines text-[1.75rem]"></i> <span data-i18n="index.tab_sumula">Súmula FAPESP</span>
                 </button>
             </div>
         </nav>
@@ -189,7 +189,7 @@
          movida/renomeada/apagada fora do app) — ver Storage.checkHealth(). -->
     <div id="dirHealthBanner" class="hidden print:hidden bg-red-600 text-white text-sm px-4 py-2 flex items-center justify-center gap-3 flex-wrap text-center">
         <span class="flex items-center gap-2"><i aria-hidden="true" class="fa-solid fa-triangle-exclamation"></i> <span id="dirHealthMsg"></span></span>
-        <button type="button" id="dirHealthGoto" class="underline whitespace-nowrap font-semibold">Verificar em Configurações</button>
+        <button type="button" id="dirHealthGoto" class="underline whitespace-nowrap font-semibold" data-i18n="index.verificar_em_configuracoes">Verificar em Configurações</button>
     </div>
 
     <!-- ============================ CONTEÚDO ============================ -->
@@ -212,15 +212,15 @@
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full" role="alertdialog" aria-modal="true" aria-labelledby="firstRunTitle">
             <div class="bg-govbr-600 dark:bg-gray-900 rounded-t-lg px-4 py-3 flex items-center gap-2">
                 <i aria-hidden="true" class="fa-solid fa-triangle-exclamation text-white"></i>
-                <h2 id="firstRunTitle" class="font-bold text-white">Antes de começar</h2>
+                <h2 id="firstRunTitle" class="font-bold text-white" data-i18n="index.antes_de_comecar">Antes de começar</h2>
             </div>
             <div class="p-4 space-y-3 text-sm text-gray-700 dark:text-gray-300">
-                <p>O <strong>lattesZen</strong> ainda está <strong>em desenvolvimento</strong>. Pode ter erros, funcionar diferente do esperado, ou mudar de uma hora para outra.</p>
-                <p><strong>Não nos responsabilizamos por nada</strong> — nem por perda de dados, nem por qualquer outro problema. <strong>Faça sempre uma cópia (backup) dos seus arquivos</strong> (veja Configurações › Backup).</p>
-                <p>Encontrou algo funcionando errado, faltando, ou tem uma sugestão? Abra uma <a href="https://github.com/alexsandroccarv/lattesZen/issues" target="_blank" rel="noopener" class="text-govbr-700 dark:text-unifesp-400 underline font-semibold">issue no repositório</a> e/ou mande uma mensagem.</p>
+                <p data-i18n-html="index.firstrun_p1">O <strong>lattesZen</strong> ainda está <strong>em desenvolvimento</strong>. Pode ter erros, funcionar diferente do esperado, ou mudar de uma hora para outra.</p>
+                <p data-i18n-html="index.firstrun_p2"><strong>Não nos responsabilizamos por nada</strong> — nem por perda de dados, nem por qualquer outro problema. <strong>Faça sempre uma cópia (backup) dos seus arquivos</strong> (veja Configurações › Backup).</p>
+                <p>Encontrou algo funcionando errado, faltando, ou tem uma sugestão? Abra uma <a href="https://github.com/alexsandroccarv/lattesZen/issues" target="_blank" rel="noopener" class="text-govbr-700 dark:text-unifesp-400 underline font-semibold" data-i18n="index.issue_no_repositorio">issue no repositório</a> e/ou mande uma mensagem.</p>
             </div>
             <div class="px-4 pb-4 flex justify-end">
-                <button type="button" id="btnFirstRunOk" class="px-4 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm font-semibold hover:opacity-90">Entendi</button>
+                <button type="button" id="btnFirstRunOk" class="px-4 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm font-semibold hover:opacity-90" data-i18n="index.entendi">Entendi</button>
             </div>
         </div>
     </div>
@@ -228,21 +228,21 @@
     <!-- ============================ RODAPÉ ============================ -->
     <footer class="bg-govbr-800 dark:bg-gray-950 border-t border-govbr-700 dark:border-gray-700 py-3 px-6 text-xs text-blue-100 dark:text-gray-400 flex flex-col sm:flex-row justify-between items-center shrink-0 gap-4 transition-colors duration-300">
         <div class="flex items-center gap-4 flex-wrap justify-center">
-            <a href="termodeuso.html" class="hover:text-white transition-colors flex items-center gap-1" title="Termo de uso" aria-label="Termo de uso"><i aria-hidden="true" class="fa-solid fa-file-contract"></i></a>
+            <a href="termodeuso.html" class="hover:text-white transition-colors flex items-center gap-1" title="Termo de uso" aria-label="Termo de uso" data-i18n-attrs='{"title":"index.termo_de_uso","aria-label":"index.termo_de_uso"}'><i aria-hidden="true" class="fa-solid fa-file-contract"></i></a>
             <span class="text-white/25 dark:text-gray-700">|</span>
-            <a href="privacidade.html" class="hover:text-white transition-colors flex items-center gap-1" title="Política de privacidade" aria-label="Política de privacidade"><i aria-hidden="true" class="fa-solid fa-shield-halved"></i></a>
+            <a href="privacidade.html" class="hover:text-white transition-colors flex items-center gap-1" title="Política de privacidade" aria-label="Política de privacidade" data-i18n-attrs='{"title":"index.politica_privacidade","aria-label":"index.politica_privacidade"}'><i aria-hidden="true" class="fa-solid fa-shield-halved"></i></a>
             <span class="text-white/25 dark:text-gray-700">|</span>
-            <a href="./ajuda.html" class="hover:text-white transition-colors flex items-center gap-1" title="Ajuda" aria-label="Ajuda"><i aria-hidden="true" class="fa-solid fa-circle-question"></i></a>
+            <a href="./ajuda.html" class="hover:text-white transition-colors flex items-center gap-1" title="Ajuda" aria-label="Ajuda" data-i18n-attrs='{"title":"tab_rsc.ajuda_aria","aria-label":"tab_rsc.ajuda_aria"}'><i aria-hidden="true" class="fa-solid fa-circle-question"></i></a>
             <span class="text-white/25 dark:text-gray-700">|</span>
-            <a href="sobre.html" class="hover:text-white transition-colors flex items-center gap-1" title="Sobre" aria-label="Sobre"><i aria-hidden="true" class="fa-solid fa-circle-info"></i></a>
+            <a href="sobre.html" class="hover:text-white transition-colors flex items-center gap-1" title="Sobre" aria-label="Sobre" data-i18n-attrs='{"title":"index.sobre","aria-label":"index.sobre"}'><i aria-hidden="true" class="fa-solid fa-circle-info"></i></a>
             <span class="text-white/25 dark:text-gray-700">|</span>
-            <button type="button" id="highContrastToggle" class="hover:text-white transition-colors flex items-center gap-1" aria-pressed="false" title="Alternar alto contraste">
-                <i aria-hidden="true" class="fa-solid fa-circle-half-stroke"></i> <span class="sr-only">Alto contraste</span>
+            <button type="button" id="highContrastToggle" class="hover:text-white transition-colors flex items-center gap-1" aria-pressed="false" title="Alternar alto contraste" data-i18n-attrs='{"title":"index.alternar_alto_contraste"}'>
+                <i aria-hidden="true" class="fa-solid fa-circle-half-stroke"></i> <span class="sr-only" data-i18n="index.alto_contraste">Alto contraste</span>
             </button>
             <span class="text-white/25 dark:text-gray-700">|</span>
-            <span class="flex items-center gap-1" role="group" aria-label="Tamanho da fonte">
-                <button type="button" id="fontDec" class="hover:text-white transition-colors flex items-center gap-1" title="Diminuir fonte" aria-label="Diminuir fonte"><i aria-hidden="true" class="fa-solid fa-magnifying-glass-minus"></i> A-</button>
-                <button type="button" id="fontInc" class="hover:text-white transition-colors flex items-center gap-1" title="Aumentar fonte" aria-label="Aumentar fonte"><i aria-hidden="true" class="fa-solid fa-magnifying-glass-plus"></i> A+</button>
+            <span class="flex items-center gap-1" role="group" aria-label="Tamanho da fonte" data-i18n-attrs='{"aria-label":"index.tamanho_fonte"}'>
+                <button type="button" id="fontDec" class="hover:text-white transition-colors flex items-center gap-1" title="Diminuir fonte" aria-label="Diminuir fonte" data-i18n-attrs='{"title":"index.diminuir_fonte","aria-label":"index.diminuir_fonte"}'><i aria-hidden="true" class="fa-solid fa-magnifying-glass-minus"></i> A-</button>
+                <button type="button" id="fontInc" class="hover:text-white transition-colors flex items-center gap-1" title="Aumentar fonte" aria-label="Aumentar fonte" data-i18n-attrs='{"title":"index.aumentar_fonte","aria-label":"index.aumentar_fonte"}'><i aria-hidden="true" class="fa-solid fa-magnifying-glass-plus"></i> A+</button>
             </span>
         </div>
         <div class="flex gap-3 items-center flex-wrap justify-center">
@@ -251,15 +251,15 @@
             </a>
             <span class="text-white/40 dark:text-gray-600">|</span>
             <a href="doe-um-cafe.html" class="hover:text-white hover:underline transition-colors flex items-center gap-1">
-                <i aria-hidden="true" class="fa-solid fa-mug-hot text-white/90 dark:text-unifesp-400"></i> Doe um café
+                <i aria-hidden="true" class="fa-solid fa-mug-hot text-white/90 dark:text-unifesp-400"></i> <span data-i18n="index.doe_um_cafe">Doe um café</span>
             </a>
             <span class="text-white/40 dark:text-gray-600">|</span>
-            <a href="https://www.gnu.org/licenses/agpl-3.0.html" target="_blank" rel="noopener" class="hover:text-white transition-colors flex items-center gap-1" title="Licença AGPLv3 (Free Software Foundation)">
+            <a href="https://www.gnu.org/licenses/agpl-3.0.html" target="_blank" rel="noopener" class="hover:text-white transition-colors flex items-center gap-1" title="Licença AGPLv3 (Free Software Foundation)" data-i18n-attrs='{"title":"index.licenca_agpl"}'>
                 <i aria-hidden="true" class="fa-solid fa-scale-balanced text-white/90 dark:text-unifesp-400"></i> AGPLv3
             </a>
             <span class="text-white/40 dark:text-gray-600">|</span>
-            <span class="flex items-center gap-1"><i aria-hidden="true" class="fa-solid fa-tag" title="Versão"></i> <a href="notas-de-versao.html" class="font-mono hover:text-white hover:underline transition-colors" title="Notas de versão"><span id="appVersion"></span></a></span>
-            <a href="https://github.com/alexsandroccarv/latteszen" target="_blank" rel="noopener" class="hover:text-white transition-colors flex items-center gap-1" title="Código-fonte (repositório no GitHub)" aria-label="Código-fonte (repositório no GitHub)">
+            <span class="flex items-center gap-1"><i aria-hidden="true" class="fa-solid fa-tag" title="Versão" data-i18n-attrs='{"title":"index.versao"}'></i> <a href="notas-de-versao.html" class="font-mono hover:text-white hover:underline transition-colors" title="Notas de versão" data-i18n-attrs='{"title":"index.notas_de_versao"}'><span id="appVersion"></span></a></span>
+            <a href="https://github.com/alexsandroccarv/latteszen" target="_blank" rel="noopener" class="hover:text-white transition-colors flex items-center gap-1" title="Código-fonte (repositório no GitHub)" aria-label="Código-fonte (repositório no GitHub)" data-i18n-attrs='{"title":"index.codigo_fonte","aria-label":"index.codigo_fonte"}'>
                 <i aria-hidden="true" class="fa-solid fa-code text-white/90 dark:text-unifesp-400"></i>
             </a>
         </div>
@@ -276,6 +276,7 @@
          documento) — só passa a ser adiado até o fim do parse do HTML, sem
          efeito aqui porque já são os últimos elementos antes de </body>. -->
     <script type="module" src="js/config.js"></script>
+    <script type="module" src="js/i18n-hydrate.js"></script>
     <script type="module" src="js/a11y.js"></script>
     <script type="module" src="js/analytics.js"></script>
     <script type="module" src="js/cookie-consent.js"></script>

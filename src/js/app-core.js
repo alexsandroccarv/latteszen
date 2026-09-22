@@ -24,6 +24,8 @@
    de um lado aparece do outro) e um punhado de utilidades sem estado próprio.
    Conforme mais abas forem extraídas de app.js, mais deve entrar aqui.
    ========================================================================== */
+import { t, tp, getLocale, setLocale, localesDisponiveis, nomeLocale, resolveLista, formatarData, formatarNumero, compararTexto } from './i18n.js';
+
 window.AppCore = (function () {
     /* ----------------------------- Estado ------------------------------- */
     const state = {
@@ -59,6 +61,11 @@ window.AppCore = (function () {
         },
         vocab: {},          // listas curadas de autocomplete (por chave de campo)
         idPrefix: 'lz',     // prefixo do ID dos arquivos (configurável, até 3 chars)
+        // Idioma escolhido na criação do diretório (mesmo padrão do
+        // idPrefix: definido uma vez, junto com a estrutura de pastas, e
+        // sincronizado no módulo "geral" — ver persistirGeral/syncFromDirectory
+        // em app.js). Ainda só pt-br existe (ver i18n.js).
+        locale: getLocale(),
         // Aba "Publicar na Web" — mesmo mecanismo do RSC (checkbox em
         // Configurações mostra/oculta a aba): padrão desabilitada na
         // primeira utilização (opt-in, como RSC/Súmula), e como os outros
@@ -112,7 +119,7 @@ window.AppCore = (function () {
             const fechar = document.createElement('button');
             fechar.type = 'button';
             fechar.className = 'shrink-0 leading-none opacity-80 hover:opacity-100';
-            fechar.setAttribute('aria-label', 'Fechar aviso');
+            fechar.setAttribute('aria-label', t('app_core.fechar_aviso', 'Fechar aviso'));
             fechar.innerHTML = '<i class="fa-solid fa-xmark" aria-hidden="true"></i>';
             fechar.addEventListener('click', () => el.remove());
             el.appendChild(fechar);
@@ -134,10 +141,10 @@ window.AppCore = (function () {
     async function openGDriveFolder(subdir) {
         let res;
         try { res = await window.Storage.gdriveFolderUrl(subdir); }
-        catch (e) { toast('Falha ao conectar ao Google Drive: ' + e.message, 'erro'); return; }
-        if (!res) { toast('Conecte o Google Drive em Configurações antes de usar este botão.', 'aviso'); return; }
+        catch (e) { toast(t('app_core.erro_conectar_gdrive', 'Falha ao conectar ao Google Drive: {erro}', { erro: e.message }), 'erro'); return; }
+        if (!res) { toast(t('app_core.conecte_gdrive', 'Conecte o Google Drive em Configurações antes de usar este botão.'), 'aviso'); return; }
         window.open(res.url, '_blank', 'noopener');
-        if (!res.exact) toast('Abrindo a pasta mais próxima já existente — nenhum arquivo foi enviado aqui ainda.', 'info');
+        if (!res.exact) toast(t('app_core.pasta_mais_proxima', 'Abrindo a pasta mais próxima já existente — nenhum arquivo foi enviado aqui ainda.'), 'info');
     }
 
     // Extrai o ANO de um campo de data completa (dd/mm/aaaa, mm/aaaa ou aaaa).
@@ -206,10 +213,10 @@ window.AppCore = (function () {
         const s = String(v || '').trim();
         if (!s) return { ok: true, value: '' };
         const d = s.toUpperCase().replace(/[\s-]/g, '');
-        if (!/^\d{7}[\dX]$/.test(d)) return { ok: false, msg: 'ISSN inválido — use 8 dígitos no formato NNNN-NNNC (ex.: 0378-5955).' };
+        if (!/^\d{7}[\dX]$/.test(d)) return { ok: false, msg: t('app_core.issn_invalido_formato', 'ISSN inválido — use 8 dígitos no formato NNNN-NNNC (ex.: 0378-5955).') };
         let sum = 0; for (let i = 0; i < 7; i++) sum += (8 - i) * Number(d[i]);
         const chk = d[7] === 'X' ? 10 : Number(d[7]);
-        if (((11 - (sum % 11)) % 11) !== chk) return { ok: false, msg: 'ISSN inválido — dígito verificador não confere.' };
+        if (((11 - (sum % 11)) % 11) !== chk) return { ok: false, msg: t('app_core.issn_invalido_digito', 'ISSN inválido — dígito verificador não confere.') };
         return { ok: true, value: d.slice(0, 4) + '-' + d.slice(4) };
     }
     function validateISBN(v) {
@@ -218,15 +225,15 @@ window.AppCore = (function () {
         const d = s.toUpperCase().replace(/[\s-]/g, '');
         if (/^\d{9}[\dX]$/.test(d)) { // ISBN-10
             let sum = 0; for (let i = 0; i < 10; i++) sum += (d[i] === 'X' ? 10 : Number(d[i])) * (10 - i);
-            if (sum % 11 !== 0) return { ok: false, msg: 'ISBN-10 inválido — dígito verificador não confere.' };
+            if (sum % 11 !== 0) return { ok: false, msg: t('app_core.isbn10_invalido', 'ISBN-10 inválido — dígito verificador não confere.') };
             return { ok: true, value: s }; // preserva a hifenização do usuário
         }
         if (/^\d{13}$/.test(d)) { // ISBN-13 (EAN)
             let sum = 0; for (let i = 0; i < 13; i++) sum += Number(d[i]) * (i % 2 ? 3 : 1);
-            if (sum % 10 !== 0) return { ok: false, msg: 'ISBN-13 inválido — dígito verificador não confere.' };
+            if (sum % 10 !== 0) return { ok: false, msg: t('app_core.isbn13_invalido', 'ISBN-13 inválido — dígito verificador não confere.') };
             return { ok: true, value: s }; // preserva a hifenização do usuário
         }
-        return { ok: false, msg: 'ISBN inválido — informe 10 ou 13 dígitos.' };
+        return { ok: false, msg: t('app_core.isbn_invalido_geral', 'ISBN inválido — informe 10 ou 13 dígitos.') };
     }
     // Anais de eventos: aceita ISBN (10/13 dígitos) OU ISSN (8 dígitos) no mesmo campo.
     function validateISBNorISSN(v) {
@@ -242,7 +249,7 @@ window.AppCore = (function () {
         if (!s) return { ok: true, value: '' };
         const d = s.replace(/^\s*(https?:\/\/)?(dx\.)?doi\.org\//i, '').trim();
         if (/^10\.\d{4,9}\/\S+$/.test(d)) return { ok: true, value: d };
-        return { ok: false, msg: 'DOI inválido — formato esperado 10.xxxx/sufixo (ex.: 10.1000/xyz123).' };
+        return { ok: false, msg: t('app_core.doi_invalido', 'DOI inválido — formato esperado 10.xxxx/sufixo (ex.: 10.1000/xyz123).') };
     }
     // URL: adiciona o esquema https:// quando ausente; se o usuário já
     // escreveu um esquema (http://, ftp://, magnet:, mailto:, etc.), respeita
@@ -260,16 +267,16 @@ window.AppCore = (function () {
         const temEsquema = /^[a-z][a-z0-9+.-]{2,}:/i.test(s);
         const u = temEsquema ? s : 'https://' + s;
         if (ESQUEMAS_PERIGOSOS.some(esq => u.toLowerCase().startsWith(esq))) {
-            return { ok: false, msg: 'URL inválida — esse tipo de link não é permitido.' };
+            return { ok: false, msg: t('app_core.url_invalida_esquema', 'URL inválida — esse tipo de link não é permitido.') };
         }
         try { new URL(u); return { ok: true, value: u }; }
-        catch (_) { return { ok: false, msg: 'URL inválida.' }; }
+        catch (_) { return { ok: false, msg: t('app_core.url_invalida', 'URL inválida.') }; }
     }
     // E-mail: regex simples (não valida entrega, só o formato).
     function validateEmail(v) {
         const s = String(v || '').trim();
         if (!s) return { ok: true, value: '' };
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s)) return { ok: false, msg: 'E-mail inválido.' };
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s)) return { ok: false, msg: t('app_core.email_invalido', 'E-mail inválido.') };
         return { ok: true, value: s };
     }
     // Data dd/mm/aaaa completa e existente no calendário (usa LzRSC.parseBR).
@@ -278,8 +285,8 @@ window.AppCore = (function () {
     function validateDataCompleta(v) {
         const s = String(v || '').trim();
         if (!s) return { ok: true, value: '' };
-        if (!/^\d{2}\/\d{2}\/\d{4}$/.test(s)) return { ok: false, msg: 'Data incompleta — use o formato dd/mm/aaaa.' };
-        if (!window.LzRSC || !window.LzRSC.parseBR(s)) return { ok: false, msg: 'Data inválida.' };
+        if (!/^\d{2}\/\d{2}\/\d{4}$/.test(s)) return { ok: false, msg: t('app_core.data_incompleta', 'Data incompleta — use o formato dd/mm/aaaa.') };
+        if (!window.LzRSC || !window.LzRSC.parseBR(s)) return { ok: false, msg: t('app_core.data_invalida', 'Data inválida.') };
         return { ok: true, value: s };
     }
     // Telefone: exige DDD (2 dígitos), permite DDI opcional na frente (+55, 55...).
@@ -287,7 +294,7 @@ window.AppCore = (function () {
         const s = String(v || '').trim();
         if (!s) return { ok: true, value: '' };
         const re = /^(\+\d{1,3}[\s.-]?)?\(?\d{2}\)?[\s.-]?\d{4,5}-?\d{4}$/;
-        if (!re.test(s)) return { ok: false, msg: 'Telefone inválido — informe com DDD, ex.: (11) 91234-5678 (DDI opcional, ex.: +55).' };
+        if (!re.test(s)) return { ok: false, msg: t('app_core.telefone_invalido', 'Telefone inválido — informe com DDD, ex.: (11) 91234-5678 (DDI opcional, ex.: +55).') };
         return { ok: true, value: s };
     }
     function validateField(kind, value) {
@@ -394,5 +401,7 @@ window.AppCore = (function () {
         elegivelAoLattes, itemsUsingValue, normNome,
         validateISSN, validateISBN, validateISBNorISSN, validateDOI, validateURL, validateField,
         setFieldError, associateLabels, isFieldDisabled, evCount, descState,
+        t, tp, getLocale, setLocale, localesDisponiveis, nomeLocale, resolveLista,
+        formatarData, formatarNumero, compararTexto,
     };
 })();

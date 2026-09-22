@@ -21,9 +21,14 @@
    Primeira aba extraída de app.js para seu próprio módulo (ver issue de
    refatoração) — usa o mesmo padrão dos módulos de domínio (window.X),
    lendo estado e utilidades compartilhadas de window.AppCore.
+   i18n (preparação): todo texto de exibição passa por t() — inclusive os
+   rótulos embutidos no modelo (buildPublicModel), consumidos tanto pela
+   página pública (window.LzPublish — arquivo externo, fora do escopo
+   desta rodada) quanto pelo Relatório completo (PDF, já convertido em
+   pdf-report.js).
    ========================================================================== */
 window.TabPublicar = (function () {
-    const { state, $, esc, toast, anoDe, isImageExt, itemYear, sortByYear, publicarWebOk } = window.AppCore;
+    const { state, $, esc, toast, anoDe, isImageExt, itemYear, sortByYear, publicarWebOk, t, formatarData } = window.AppCore;
 
     function fileToDataUrl(file) {
         return new Promise((res) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = () => res(null); r.readAsDataURL(file); });
@@ -104,8 +109,8 @@ window.TabPublicar = (function () {
                     // acc-curriculum/Evidências/03 Atuação/acc-art-3a.pdf" — caminho
                     // completo, com o segmento "Meu Drive" só no modo Google Drive
                     // (pastaBase já inclui o prefixo "Evidências/").
-                    const modoLabel = storageModo === 'gdrive' ? 'Google Drive' : 'Pasta local';
-                    const caminho = `${modoLabel}${storageModo === 'gdrive' ? '/Meu Drive' : ''}/${rootName ? rootName + '/' : ''}${pastaBase}/${ev.basename}.${ev.ext}`;
+                    const modoLabel = storageModo === 'gdrive' ? t('tab_publicar.google_drive', 'Google Drive') : t('tab_publicar.pasta_local', 'Pasta local');
+                    const caminho = `${modoLabel}${storageModo === 'gdrive' ? '/' + t('tab_publicar.meu_drive', 'Meu Drive') : ''}/${rootName ? rootName + '/' : ''}${pastaBase}/${ev.basename}.${ev.ext}`;
                     if (external && isImageExt(ev.ext)) {
                         const relPath = `${PUB_IMG_SUBDIR}/${ev.basename}.${ev.ext}`;
                         await Storage.writeFile(`${ev.basename}.${ev.ext}`, f, `${LattesTypes.publicacaoFolder()}/${PUB_IMG_SUBDIR}`);
@@ -135,7 +140,7 @@ window.TabPublicar = (function () {
     // Identidade, Passaporte, Área de atuação) moram na categoria 01 mas são
     // excluídos do laço abaixo via PUB_EXCLUDE_TYPES — já renderizados à
     // parte, no cabeçalho da página.
-    const PUB_MERGE_LABEL = 'Outras atividades';
+    const PUB_MERGE_LABEL = t('tab_publicar.outras_atividades', 'Outras atividades');
     const PUB_MERGE_ID = 'sec-extras';
 
     // opts.external: grava as imagens (foto + evidências) como arquivos à
@@ -174,7 +179,7 @@ window.TabPublicar = (function () {
         const first = tk => items.find(i => i.typeKey === tk);
         const byType = tk => items.filter(i => i.typeKey === tk);
         const ident = first('IDENTIFICACAO'), resumo = first('RESUMO_CV'), endereco = first('ENDERECO'), outrasI = first('OUTRAS_INFO'), fotoItem = first('FOTO_PERFIL');
-        const nome = (ident && ident.fields.titulo) ? ident.fields.titulo : 'Currículo';
+        const nome = (ident && ident.fields.titulo) ? ident.fields.titulo : t('tab_publicar.curriculo_fallback', 'Currículo');
         const iniciais = nome.split(/\s+/).filter(Boolean).slice(0, 2).map(s => s[0]).join('').toUpperCase();
         const orcid = (ident && ident.fields.orcid || '').trim();
         const lattesUrl = (ident && ident.fields.url || '').trim();
@@ -206,8 +211,8 @@ window.TabPublicar = (function () {
         }
 
         const contatos = [];
-        if (orcid) contatos.push({ grupo: 'Acadêmicas', plataforma: 'ORCID', url: /^https?:/i.test(orcid) ? orcid : 'https://orcid.org/' + orcid, usuario: orcid });
-        if (lattesUrl) contatos.push({ grupo: 'Acadêmicas', plataforma: 'Lattes', url: lattesUrl, usuario: '' });
+        if (orcid) contatos.push({ grupo: t('tab_publicar.grupo_academicas', 'Acadêmicas'), plataforma: 'ORCID', url: /^https?:/i.test(orcid) ? orcid : 'https://orcid.org/' + orcid, usuario: orcid });
+        if (lattesUrl) contatos.push({ grupo: t('tab_publicar.grupo_academicas', 'Acadêmicas'), plataforma: 'Lattes', url: lattesUrl, usuario: '' });
         ['CONEXAO_ACADEMICA', 'CONEXAO_PROFISSIONAL', 'CONEXAO_SOCIAL'].forEach(tk => byType(tk).forEach(i => {
             const u = (i.fields.url || '').trim(); if (!u) return;
             const url = (/@/.test(u) && !/^https?:|^mailto:/i.test(u)) ? 'mailto:' + u : u;
@@ -277,9 +282,10 @@ window.TabPublicar = (function () {
                         }
                         subgrupos.push({ label: LattesTypes.label(tk), itens });
                     }
-                    gruposAtu.push({ label: inst === '\0outras' ? 'Outras atuações' : inst, subgrupos, _maxAno: maxAno });
+                    gruposAtu.push({ label: inst === '\0outras' ? t('tab_publicar.outras_atuacoes', 'Outras atuações') : inst, subgrupos, _maxAno: maxAno });
                 }
-                gruposAtu.sort((a, b) => (b.label === 'Outras atuações' ? -1 : a.label === 'Outras atuações' ? 1 : b._maxAno - a._maxAno));
+                const outrasAtuacoesLabel = t('tab_publicar.outras_atuacoes', 'Outras atuações');
+                gruposAtu.sort((a, b) => (b.label === outrasAtuacoesLabel ? -1 : a.label === outrasAtuacoesLabel ? 1 : b._maxAno - a._maxAno));
                 gruposAtu.forEach(g => delete g._maxAno);
                 if (gruposAtu.length) secoes.push({ id: 'sec-' + cat.key.toLowerCase(), num: cat.num, label: cat.label, icon: PUB_ICON[cat.key] || '▣', tipos: gruposAtu });
                 continue;
@@ -329,7 +335,7 @@ window.TabPublicar = (function () {
             nome, iniciais, tagline, bio: (resumo && resumo.fields.descricao) || '',
             foto, local, areasAtuacao, orcid, lattesUrl, telefone, email, contatos, outras: (outrasI && outrasI.fields.descricao) || '',
             nuvemPalavras, linhaTempo,
-            secoes, geradoEm: new Date().toLocaleString('pt-BR'), totalItens: items.length,
+            secoes, geradoEm: formatarData(new Date(), { dateStyle: 'short', timeStyle: 'medium' }), totalItens: items.length,
         };
     }
     // Tema (paleta de cores) da página pública — escolhido em Publicar na
@@ -392,64 +398,64 @@ window.TabPublicar = (function () {
         panel.innerHTML = `
             <div class="space-y-4 max-w-4xl">
                 <section class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-                    <h2 class="text-lg font-bold mb-2 flex items-center gap-2"><i class="fa-solid fa-globe text-govbr-600 dark:text-unifesp-400"></i> Página pública do currículo</h2>
-                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">Foto e contatos vêm do perfil e das Conexões. Apenas as evidências marcadas como <strong>“pública”</strong> ficam acessíveis na página. Ao <strong>salvar na pasta</strong>, a página vai pronta para hospedar: <code>index.html</code> + <code>css/</code> + <code>img/</code> em “${esc(LattesTypes.publicacaoFolder())}”. O <strong>arquivo baixado</strong> é sempre um único HTML autossuficiente (CSS e imagens embutidos), para abrir/enviar sem depender de mais nada.</p>
+                    <h2 class="text-lg font-bold mb-2 flex items-center gap-2"><i class="fa-solid fa-globe text-govbr-600 dark:text-unifesp-400"></i> ${t('tab_publicar.titulo', 'Página pública do currículo')}</h2>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">${t('tab_publicar.intro', 'Foto e contatos vêm do perfil e das Conexões. Apenas as evidências marcadas como <strong>“pública”</strong> ficam acessíveis na página. Ao <strong>salvar na pasta</strong>, a página vai pronta para hospedar: <code>index.html</code> + <code>css/</code> + <code>img/</code> em “{pasta}”. O <strong>arquivo baixado</strong> é sempre um único HTML autossuficiente (CSS e imagens embutidos), para abrir/enviar sem depender de mais nada.', { pasta: esc(LattesTypes.publicacaoFolder()) })}</p>
                     <label class="flex items-center gap-2 text-sm mb-3">
-                        <span class="font-medium">Tema:</span>
+                        <span class="font-medium">${t('tab_publicar.tema_label', 'Tema:')}</span>
                         <select id="pubStyleSelect" class="rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-sm px-2 py-1">
                             ${LzPublish.styles.map(k => `<option value="${esc(k)}">${esc(LzPublish.styleLabel(k))}</option>`).join('')}
                         </select>
                     </label>
                     <div class="flex gap-2 flex-wrap">
-                        <button id="btnPubPreview" class="px-3 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm"><i class="fa-solid fa-eye mr-1"></i> Gerar prévia</button>
-                        <button id="btnPubSave" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-folder-open mr-1"></i> Salvar na pasta (${esc(LattesTypes.publicacaoFolder())})</button>
-                        <button id="btnPubDownload" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-download mr-1"></i> Baixar HTML</button>
+                        <button id="btnPubPreview" class="px-3 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm"><i class="fa-solid fa-eye mr-1"></i> ${t('tab_publicar.gerar_previa', 'Gerar prévia')}</button>
+                        <button id="btnPubSave" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-folder-open mr-1"></i> ${t('tab_publicar.salvar_na_pasta', 'Salvar na pasta ({pasta})', { pasta: esc(LattesTypes.publicacaoFolder()) })}</button>
+                        <button id="btnPubDownload" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm"><i class="fa-solid fa-download mr-1"></i> ${t('tab_publicar.baixar_html', 'Baixar HTML')}</button>
                     </div>
                     <p id="pubStatus" class="text-xs text-gray-500 mt-2"></p>
                 </section>
 
                 <details class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-                    <summary class="text-lg font-bold cursor-pointer flex items-center gap-2"><i class="fa-solid fa-cloud-arrow-up text-govbr-600 dark:text-unifesp-400"></i> Publicar direto num site</summary>
-                    <p class="text-sm text-gray-600 dark:text-gray-400 my-3">Envia a página (a mesma versão de “Salvar na pasta”) direto para o GitHub Pages e/ou o Netlify, sem precisar baixar e enviar manualmente. Cada token fica guardado só neste navegador (não entra no backup de Configurações → Exportar catálogo) — use um token com o menor escopo possível.</p>
+                    <summary class="text-lg font-bold cursor-pointer flex items-center gap-2"><i class="fa-solid fa-cloud-arrow-up text-govbr-600 dark:text-unifesp-400"></i> ${t('tab_publicar.publicar_direto_titulo', 'Publicar direto num site')}</summary>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 my-3">${t('tab_publicar.publicar_direto_intro', 'Envia a página (a mesma versão de “Salvar na pasta”) direto para o GitHub Pages e/ou o Netlify, sem precisar baixar e enviar manualmente. Cada token fica guardado só neste navegador (não entra no backup de Configurações → Exportar catálogo) — use um token com o menor escopo possível.')}</p>
 
                     <div class="grid gap-4 md:grid-cols-2">
                         <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-3 space-y-2">
                             <h3 class="font-semibold text-sm flex items-center gap-2"><i class="fa-brands fa-github"></i> GitHub Pages</h3>
-                            <p class="text-xs text-gray-500 dark:text-gray-400">Crie um <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener" class="underline">token de acesso restrito a um repositório</a>, com permissão “Contents: Read and write” (e “Pages: Read and write”, opcional, para habilitar o Pages automaticamente).</p>
-                            <label class="block text-xs">Token
+                            <p class="text-xs text-gray-500 dark:text-gray-400">${t('tab_publicar.github_intro', 'Crie um <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener" class="underline">token de acesso restrito a um repositório</a>, com permissão “Contents: Read and write” (e “Pages: Read and write”, opcional, para habilitar o Pages automaticamente).')}</p>
+                            <label class="block text-xs">${t('tab_publicar.token_label', 'Token')}
                                 <input id="ghToken" type="password" autocomplete="off" class="w-full rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-sm px-2 py-1 mt-0.5" placeholder="github_pat_…">
                             </label>
                             <div class="flex gap-2">
-                                <label class="block text-xs flex-1">Dono
+                                <label class="block text-xs flex-1">${t('tab_publicar.dono_label', 'Dono')}
                                     <input id="ghOwner" type="text" class="w-full rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-sm px-2 py-1 mt-0.5" placeholder="usuario">
                                 </label>
-                                <label class="block text-xs flex-1">Repositório
+                                <label class="block text-xs flex-1">${t('tab_publicar.repositorio_label', 'Repositório')}
                                     <input id="ghRepo" type="text" class="w-full rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-sm px-2 py-1 mt-0.5" placeholder="usuario.github.io">
                                 </label>
                             </div>
-                            <label class="block text-xs">Branch
+                            <label class="block text-xs">${t('tab_publicar.branch_label', 'Branch')}
                                 <input id="ghBranch" type="text" class="w-full rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-sm px-2 py-1 mt-0.5" placeholder="gh-pages">
                             </label>
                             <div class="flex gap-2 flex-wrap pt-1">
-                                <button id="btnGhSave" type="button" class="px-3 py-1.5 rounded border border-gray-300 dark:border-gray-600 text-xs">Salvar configuração</button>
-                                <button id="btnGhDeploy" type="button" class="px-3 py-1.5 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-xs"><i class="fa-solid fa-cloud-arrow-up mr-1"></i> Publicar no GitHub Pages</button>
+                                <button id="btnGhSave" type="button" class="px-3 py-1.5 rounded border border-gray-300 dark:border-gray-600 text-xs">${t('tab_publicar.salvar_configuracao', 'Salvar configuração')}</button>
+                                <button id="btnGhDeploy" type="button" class="px-3 py-1.5 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-xs"><i class="fa-solid fa-cloud-arrow-up mr-1"></i> ${t('tab_publicar.publicar_github_pages', 'Publicar no GitHub Pages')}</button>
                             </div>
                             <p id="ghDeployStatus" class="text-xs text-gray-500"></p>
                         </div>
 
                         <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-3 space-y-2">
                             <h3 class="font-semibold text-sm flex items-center gap-2"><i class="fa-solid fa-bolt"></i> Netlify</h3>
-                            <p class="text-xs text-gray-500 dark:text-gray-400">Crie um <a href="https://app.netlify.com/user/applications#personal-access-tokens" target="_blank" rel="noopener" class="underline">token de acesso pessoal</a> em User settings → Applications. Se ainda não tem um site, use “Criar site novo”.</p>
-                            <label class="block text-xs">Token
+                            <p class="text-xs text-gray-500 dark:text-gray-400">${t('tab_publicar.netlify_intro', 'Crie um <a href="https://app.netlify.com/user/applications#personal-access-tokens" target="_blank" rel="noopener" class="underline">token de acesso pessoal</a> em User settings → Applications. Se ainda não tem um site, use “Criar site novo”.')}</p>
+                            <label class="block text-xs">${t('tab_publicar.token_label', 'Token')}
                                 <input id="netlifyToken" type="password" autocomplete="off" class="w-full rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-sm px-2 py-1 mt-0.5" placeholder="nfp_…">
                             </label>
-                            <label class="block text-xs">ID do site
+                            <label class="block text-xs">${t('tab_publicar.id_site_label', 'ID do site')}
                                 <input id="netlifySiteId" type="text" class="w-full rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-sm px-2 py-1 mt-0.5" placeholder="ex.: a1b2c3d4-…">
                             </label>
                             <div class="flex gap-2 flex-wrap pt-1">
-                                <button id="btnNetlifyCreateSite" type="button" class="px-3 py-1.5 rounded border border-gray-300 dark:border-gray-600 text-xs">Criar site novo</button>
-                                <button id="btnNetlifySave" type="button" class="px-3 py-1.5 rounded border border-gray-300 dark:border-gray-600 text-xs">Salvar configuração</button>
-                                <button id="btnNetlifyDeploy" type="button" class="px-3 py-1.5 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-xs"><i class="fa-solid fa-cloud-arrow-up mr-1"></i> Publicar no Netlify</button>
+                                <button id="btnNetlifyCreateSite" type="button" class="px-3 py-1.5 rounded border border-gray-300 dark:border-gray-600 text-xs">${t('tab_publicar.criar_site_novo', 'Criar site novo')}</button>
+                                <button id="btnNetlifySave" type="button" class="px-3 py-1.5 rounded border border-gray-300 dark:border-gray-600 text-xs">${t('tab_publicar.salvar_configuracao', 'Salvar configuração')}</button>
+                                <button id="btnNetlifyDeploy" type="button" class="px-3 py-1.5 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-xs"><i class="fa-solid fa-cloud-arrow-up mr-1"></i> ${t('tab_publicar.publicar_netlify', 'Publicar no Netlify')}</button>
                             </div>
                             <p id="netlifyDeployStatus" class="text-xs text-gray-500"></p>
                         </div>
@@ -457,34 +463,34 @@ window.TabPublicar = (function () {
                 </details>
 
                 <div class="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden bg-white" style="height:75vh">
-                    <iframe id="pubPreview" class="w-full h-full" title="Prévia da página pública"></iframe>
+                    <iframe id="pubPreview" class="w-full h-full" title="${t('tab_publicar.previa_iframe_title', 'Prévia da página pública')}"></iframe>
                 </div>
             </div>`;
-        const status = (t) => { const el = $('#pubStatus'); if (el) el.textContent = t; };
+        const status = (txt) => { const el = $('#pubStatus'); if (el) el.textContent = txt; };
         $('#pubStyleSelect').value = pubStyle();
         $('#pubStyleSelect').addEventListener('change', async (e) => {
             setPubStyle(e.target.value);
-            status('Gerando prévia…');
-            try { $('#pubPreview').srcdoc = await generatePublicHtml(); status('Prévia atualizada.'); }
-            catch (err) { status(''); toast('Falha ao gerar: ' + err.message, 'erro'); }
+            status(t('tab_publicar.status_gerando_previa', 'Gerando prévia…'));
+            try { $('#pubPreview').srcdoc = await generatePublicHtml(); status(t('tab_publicar.status_previa_atualizada', 'Prévia atualizada.')); }
+            catch (err) { status(''); toast(t('tab_publicar.erro_gerar', 'Falha ao gerar: {erro}', { erro: err.message }), 'erro'); }
         });
         $('#btnPubPreview').addEventListener('click', async () => {
-            status('Gerando prévia…');
-            try { $('#pubPreview').srcdoc = await generatePublicHtml(); status('Prévia atualizada.'); }
-            catch (e) { status(''); toast('Falha ao gerar: ' + e.message, 'erro'); }
+            status(t('tab_publicar.status_gerando_previa', 'Gerando prévia…'));
+            try { $('#pubPreview').srcdoc = await generatePublicHtml(); status(t('tab_publicar.status_previa_atualizada', 'Prévia atualizada.')); }
+            catch (e) { status(''); toast(t('tab_publicar.erro_gerar', 'Falha ao gerar: {erro}', { erro: e.message }), 'erro'); }
         });
         $('#btnPubSave').addEventListener('click', async () => {
-            if (!Storage.hasDirectory()) { toast('Configure um diretório em Configurações para salvar na pasta.', 'aviso'); return; }
-            status('Gerando e salvando…');
+            if (!Storage.hasDirectory()) { toast(t('tab_publicar.configure_diretorio', 'Configure um diretório em Configurações para salvar na pasta.'), 'aviso'); return; }
+            status(t('tab_publicar.status_gerando_salvando', 'Gerando e salvando…'));
             try {
                 const { folder, html } = await savePublicBundle();
                 $('#pubPreview').srcdoc = html;
-                status(`Salvo em “${folder}/” (index.html + css/ + img/).`);
-                toast(`Página salva em “${folder}/” — pronta para publicar.`, 'ok');
-            } catch (e) { status(''); toast('Falha ao salvar: ' + e.message, 'erro'); }
+                status(t('tab_publicar.status_salvo_em', 'Salvo em “{pasta}/” (index.html + css/ + img/).', { pasta: folder }));
+                toast(t('tab_publicar.toast_salva_pronta', 'Página salva em “{pasta}/” — pronta para publicar.', { pasta: folder }), 'ok');
+            } catch (e) { status(''); toast(t('tab_publicar.erro_salvar', 'Falha ao salvar: {erro}', { erro: e.message }), 'erro'); }
         });
         $('#btnPubDownload').addEventListener('click', async () => {
-            status('Gerando arquivo…');
+            status(t('tab_publicar.status_gerando_arquivo', 'Gerando arquivo…'));
             try {
                 // Com diretório configurado, também deixa a versão pronta para
                 // hospedar salva em "Publicação para Web" — o download em si
@@ -495,11 +501,11 @@ window.TabPublicar = (function () {
                 const html = await generatePublicHtml();
                 $('#pubPreview').srcdoc = html;
                 const nome = (state.catalogo.items.find(i => i.typeKey === 'IDENTIFICACAO' && i.fields && i.fields.titulo) || {}).fields;
-                const safe = (nome && nome.titulo ? nome.titulo : 'curriculo').replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, '-').toLowerCase();
+                const safe = (nome && nome.titulo ? nome.titulo : t('tab_publicar.curriculo_fallback_arquivo', 'curriculo')).replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, '-').toLowerCase();
                 const blob = new Blob([html], { type: 'text/html' });
                 const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `curriculo-${safe}.html`; a.click(); URL.revokeObjectURL(a.href);
-                status(folder ? `Arquivo baixado — também salvo em “${folder}/”.` : 'Arquivo baixado.');
-            } catch (e) { status(''); toast('Falha ao gerar: ' + e.message, 'erro'); }
+                status(folder ? t('tab_publicar.status_baixado_e_salvo', 'Arquivo baixado — também salvo em “{pasta}/”.', { pasta: folder }) : t('tab_publicar.status_baixado', 'Arquivo baixado.'));
+            } catch (e) { status(''); toast(t('tab_publicar.erro_gerar', 'Falha ao gerar: {erro}', { erro: e.message }), 'erro'); }
         });
 
         // Publicação direta (GitHub/Netlify) — prefill com o que já estiver
@@ -519,53 +525,53 @@ window.TabPublicar = (function () {
                 token: $('#ghToken').value.trim(), owner: $('#ghOwner').value.trim(),
                 repo: $('#ghRepo').value.trim(), branch: $('#ghBranch').value.trim(),
             });
-            toast('Configuração do GitHub salva neste navegador.', 'ok');
+            toast(t('tab_publicar.toast_config_github_salva', 'Configuração do GitHub salva neste navegador.'), 'ok');
         });
         $('#btnGhDeploy').addEventListener('click', async () => {
-            const ghStatus = (t) => { const el = $('#ghDeployStatus'); if (el) el.textContent = t; };
+            const ghStatus = (txt) => { const el = $('#ghDeployStatus'); if (el) el.textContent = txt; };
             const cfg = { token: $('#ghToken').value.trim(), owner: $('#ghOwner').value.trim(), repo: $('#ghRepo').value.trim(), branch: $('#ghBranch').value.trim() };
             saveDeployConfig('github', cfg);
-            ghStatus('Gerando página…');
+            ghStatus(t('tab_publicar.status_gerando_pagina', 'Gerando página…'));
             try {
                 const files = await buildDeployFiles();
-                ghStatus('Publicando no GitHub…');
+                ghStatus(t('tab_publicar.status_publicando_github', 'Publicando no GitHub…'));
                 const nome = (state.catalogo.items.find(i => i.typeKey === 'IDENTIFICACAO' && i.fields && i.fields.titulo) || {}).fields;
-                const titulo = (nome && nome.titulo) ? nome.titulo : 'currículo';
-                const { commitUrl, pagesUrl } = await DeployGithub.publish(Object.assign({}, cfg, { files, message: `Publicar ${titulo} — lattesZen` }));
-                ghStatus(pagesUrl ? `Publicado — ${pagesUrl}` : `Publicado (commit) — ${commitUrl}`);
-                toast('Página publicada no GitHub Pages.', 'ok');
-            } catch (e) { ghStatus(''); toast('Falha ao publicar no GitHub: ' + e.message, 'erro'); }
+                const titulo = (nome && nome.titulo) ? nome.titulo : t('tab_publicar.curriculo_fallback_minusculo', 'currículo');
+                const { commitUrl, pagesUrl } = await DeployGithub.publish(Object.assign({}, cfg, { files, message: t('tab_publicar.commit_message', 'Publicar {titulo} — lattesZen', { titulo }) }));
+                ghStatus(pagesUrl ? t('tab_publicar.status_publicado', 'Publicado — {url}', { url: pagesUrl }) : t('tab_publicar.status_publicado_commit', 'Publicado (commit) — {url}', { url: commitUrl }));
+                toast(t('tab_publicar.toast_publicada_github', 'Página publicada no GitHub Pages.'), 'ok');
+            } catch (e) { ghStatus(''); toast(t('tab_publicar.erro_publicar_github', 'Falha ao publicar no GitHub: {erro}', { erro: e.message }), 'erro'); }
         });
 
         $('#btnNetlifySave').addEventListener('click', () => {
             saveDeployConfig('netlify', { token: $('#netlifyToken').value.trim(), siteId: $('#netlifySiteId').value.trim() });
-            toast('Configuração do Netlify salva neste navegador.', 'ok');
+            toast(t('tab_publicar.toast_config_netlify_salva', 'Configuração do Netlify salva neste navegador.'), 'ok');
         });
         $('#btnNetlifyCreateSite').addEventListener('click', async () => {
-            const netStatus = (t) => { const el = $('#netlifyDeployStatus'); if (el) el.textContent = t; };
+            const netStatus = (txt) => { const el = $('#netlifyDeployStatus'); if (el) el.textContent = txt; };
             const token = $('#netlifyToken').value.trim();
-            if (!token) { toast('Informe o token do Netlify antes de criar o site.', 'aviso'); return; }
-            netStatus('Criando site…');
+            if (!token) { toast(t('tab_publicar.informe_token_netlify', 'Informe o token do Netlify antes de criar o site.'), 'aviso'); return; }
+            netStatus(t('tab_publicar.status_criando_site', 'Criando site…'));
             try {
                 const site = await DeployNetlify.createSite(token);
                 $('#netlifySiteId').value = site.id;
                 saveDeployConfig('netlify', { token, siteId: site.id });
-                netStatus(`Site criado — ${site.ssl_url || site.url}`);
-                toast('Site do Netlify criado.', 'ok');
-            } catch (e) { netStatus(''); toast('Falha ao criar site: ' + e.message, 'erro'); }
+                netStatus(t('tab_publicar.status_site_criado', 'Site criado — {url}', { url: site.ssl_url || site.url }));
+                toast(t('tab_publicar.toast_site_netlify_criado', 'Site do Netlify criado.'), 'ok');
+            } catch (e) { netStatus(''); toast(t('tab_publicar.erro_criar_site', 'Falha ao criar site: {erro}', { erro: e.message }), 'erro'); }
         });
         $('#btnNetlifyDeploy').addEventListener('click', async () => {
-            const netStatus = (t) => { const el = $('#netlifyDeployStatus'); if (el) el.textContent = t; };
+            const netStatus = (txt) => { const el = $('#netlifyDeployStatus'); if (el) el.textContent = txt; };
             const cfg = { token: $('#netlifyToken').value.trim(), siteId: $('#netlifySiteId').value.trim() };
             saveDeployConfig('netlify', cfg);
-            netStatus('Gerando página…');
+            netStatus(t('tab_publicar.status_gerando_pagina', 'Gerando página…'));
             try {
                 const files = await buildDeployFiles();
-                netStatus('Publicando no Netlify…');
+                netStatus(t('tab_publicar.status_publicando_netlify', 'Publicando no Netlify…'));
                 const { siteUrl } = await DeployNetlify.publish(Object.assign({}, cfg, { files }));
-                netStatus(siteUrl ? `Publicado — ${siteUrl}` : 'Publicado.');
-                toast('Página publicada no Netlify.', 'ok');
-            } catch (e) { netStatus(''); toast('Falha ao publicar no Netlify: ' + e.message, 'erro'); }
+                netStatus(siteUrl ? t('tab_publicar.status_publicado', 'Publicado — {url}', { url: siteUrl }) : t('tab_publicar.status_publicado_simples', 'Publicado.'));
+                toast(t('tab_publicar.toast_publicada_netlify', 'Página publicada no Netlify.'), 'ok');
+            } catch (e) { netStatus(''); toast(t('tab_publicar.erro_publicar_netlify', 'Falha ao publicar no Netlify: {erro}', { erro: e.message }), 'erro'); }
         });
     }
 

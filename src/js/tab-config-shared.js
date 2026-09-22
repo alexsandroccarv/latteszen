@@ -21,7 +21,7 @@
    Extraído de tab-config.js (issue de refatoração). Nenhuma mudança de
    conteúdo, só saiu do arquivo único original.
    ========================================================================== */
-const { esc, toast } = window.AppCore;
+const { esc, toast, t } = window.AppCore;
 
     // Ícone de ajuda "(?)" — mostra a explicação num tooltip nativo ao passar
     // o mouse (atributo title), em vez de texto solto ocupando espaço na
@@ -33,7 +33,7 @@ const { esc, toast } = window.AppCore;
     // mesmo padrão do botão de ajuda do RSC (tab-rsc.js). Delegado uma
     // única vez em #tab-config (ver wireHelpIcons() no fim deste arquivo).
     function helpIcon(texto) {
-        return `<button type="button" class="lz-help-btn text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 cursor-help" title="${esc(texto)}" data-help="${esc(texto)}" aria-label="Ajuda"><i aria-hidden="true" class="fa-regular fa-circle-question text-xs"></i></button>`;
+        return `<button type="button" class="lz-help-btn text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 cursor-help" title="${esc(texto)}" data-help="${esc(texto)}" aria-label="${esc(t('tab_rsc.ajuda_aria', 'Ajuda'))}"><i aria-hidden="true" class="fa-regular fa-circle-question text-xs"></i></button>`;
     }
     // Liga o clique dos helpIcon() de dentro de `panel` (mostra um toast com
     // a explicação completa) uma única vez — nó estável entre re-renders,

@@ -25,7 +25,7 @@
    parte e continua em tab-catalogar.js). Nenhuma mudança de conteúdo, só
    saiu do arquivo único original.
    ========================================================================== */
-const { state, $, $$, esc, normNome } = window.AppCore;
+const { state, $, $$, esc, normNome, t, formatarNumero } = window.AppCore;
 
     // Camada RSC no formulário (abaixo dos campos do item), quando habilitado.
     // Listener global de "clique fora" do buscador de critério — fechado/
@@ -54,43 +54,43 @@ const { state, $, $$, esc, normNome } = window.AppCore;
         }
         function labelDoCriterio(id) {
             const c = todosCriterios.find(x => x.id === id);
-            return c ? `${c.item}. ${c.desc} — ${c.unidade} · ${String(c.pontos).replace('.', ',')} pts` : '';
+            return c ? `${c.item}. ${c.desc} — ${c.unidade} · ${formatarNumero(c.pontos)} pts` : '';
         }
         // id previsível por critério (usado em aria-activedescendant, abaixo)
         const critOptId = (id) => `rsc-crit-opt-${id}`;
         function critListaHtml(filtro) {
             const encontrados = criteriosFiltrados(filtro);
-            if (!encontrados.length) return `<p class="px-2 py-2 text-sm text-gray-500 italic">Nenhum critério encontrado.</p>`;
+            if (!encontrados.length) return `<p class="px-2 py-2 text-sm text-gray-500 italic">${esc(t('tab_catalogar_rsc.nenhum_criterio', 'Nenhum critério encontrado.'))}</p>`;
             const porReq = {};
             encontrados.forEach(c => (porReq[c.reqLabel] = porReq[c.reqLabel] || []).push(c));
             return Object.keys(porReq).map(label => {
                 const itens = porReq[label].map(c =>
-                    `<button type="button" id="${critOptId(c.id)}" role="option" data-crit="${c.id}" class="block w-full text-left px-2 py-1.5 text-sm hover:bg-amber-100 dark:hover:bg-gray-700">${c.item}. ${esc(c.desc)} — ${esc(c.unidade)} · ${String(c.pontos).replace('.', ',')} pts</button>`).join('');
-                return `<div><p class="sticky top-0 px-2 py-1 text-[11px] font-semibold text-gray-500 bg-gray-50 dark:bg-gray-800">Requisito ${esc(label)}</p>${itens}</div>`;
+                    `<button type="button" id="${critOptId(c.id)}" role="option" data-crit="${c.id}" class="block w-full text-left px-2 py-1.5 text-sm hover:bg-amber-100 dark:hover:bg-gray-700">${c.item}. ${esc(c.desc)} — ${esc(c.unidade)} · ${formatarNumero(c.pontos)} pts</button>`).join('');
+                return `<div><p class="sticky top-0 px-2 py-1 text-[11px] font-semibold text-gray-500 bg-gray-50 dark:bg-gray-800">${esc(t('tab_catalogar_rsc.requisito_label', 'Requisito {label}', { label }))}</p>${itens}</div>`;
             }).join('');
         }
         box.innerHTML = `
         <div id="rscFields" class="${rsc.conta ? '' : 'hidden'} bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800 rounded px-3 py-2 space-y-2">
-            <div class="relative"><label class="block text-xs font-semibold mb-1" for="rscCritFiltro">Critério específico (Anexos I–VI do Decreto)</label>
-                <input type="text" id="rscCritFiltro" autocomplete="off" placeholder="Digite pra buscar (ex.: prêmio, capacitação, comissão...)"
+            <div class="relative"><label class="block text-xs font-semibold mb-1" for="rscCritFiltro">${esc(t('tab_catalogar_rsc.criterio_especifico', 'Critério específico (Anexos I–VI do Decreto)'))}</label>
+                <input type="text" id="rscCritFiltro" autocomplete="off" placeholder="${esc(t('tab_catalogar_rsc.criterio_placeholder', 'Digite pra buscar (ex.: prêmio, capacitação, comissão...)'))}"
                        value="${esc(labelDoCriterio(rsc.criterio))}"
                        role="combobox" aria-expanded="false" aria-controls="rscCritLista" aria-autocomplete="list"
                        class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900">
                 <input type="hidden" id="rscCrit" value="${esc(rsc.criterio || '')}">
-                <div id="rscCritLista" role="listbox" aria-label="Critérios encontrados" class="hidden absolute z-10 mt-1 w-full max-h-64 overflow-y-auto rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 shadow-lg"></div>
-                <p class="text-[11px] text-gray-500 mt-0.5">Todos os critérios do decreto estão listados, agrupados por Requisito (I a VI). Digite acima para filtrar.</p></div>
-            <p class="text-[11px] text-gray-500"><i aria-hidden="true" class="fa-solid fa-calendar-days mr-1"></i>Para critérios por tempo (ano/mês), o período é calculado a partir dos campos de <strong>data</strong> do item acima (início/fim).</p>
+                <div id="rscCritLista" role="listbox" aria-label="${esc(t('tab_catalogar_rsc.criterios_encontrados_aria', 'Critérios encontrados'))}" class="hidden absolute z-10 mt-1 w-full max-h-64 overflow-y-auto rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 shadow-lg"></div>
+                <p class="text-[11px] text-gray-500 mt-0.5">${esc(t('tab_catalogar_rsc.criterios_ajuda', 'Todos os critérios do decreto estão listados, agrupados por Requisito (I a VI). Digite acima para filtrar.'))}</p></div>
+            <p class="text-[11px] text-gray-500"><i aria-hidden="true" class="fa-solid fa-calendar-days mr-1"></i>${t('tab_catalogar_rsc.periodo_ajuda', 'Para critérios por tempo (ano/mês), o período é calculado a partir dos campos de <strong>data</strong> do item acima (início/fim).')}</p>
             <div class="grid sm:grid-cols-2 gap-2">
-                <div id="rscPapelWrap" class="hidden"><label class="block text-xs font-semibold mb-1" for="rscPapel">Papel</label>
+                <div id="rscPapelWrap" class="hidden"><label class="block text-xs font-semibold mb-1" for="rscPapel">${esc(t('tab_catalogar_rsc.papel', 'Papel'))}</label>
                     <select id="rscPapel" class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900">
-                        <option value="titular" ${rsc.papel !== 'substituto' ? 'selected' : ''}>Titular</option>
-                        <option value="substituto" ${rsc.papel === 'substituto' ? 'selected' : ''}>Substituto</option></select></div>
-                <div id="rscQtdWrap" class="hidden"><label class="block text-xs font-semibold mb-1" for="rscQtd">Quantidade</label>
+                        <option value="titular" ${rsc.papel !== 'substituto' ? 'selected' : ''}>${esc(t('tab_catalogar_rsc.papel_titular', 'Titular'))}</option>
+                        <option value="substituto" ${rsc.papel === 'substituto' ? 'selected' : ''}>${esc(t('tab_catalogar_rsc.papel_substituto', 'Substituto'))}</option></select></div>
+                <div id="rscQtdWrap" class="hidden"><label class="block text-xs font-semibold mb-1" for="rscQtd">${esc(t('tab_catalogar_rsc.quantidade', 'Quantidade'))}</label>
                     <input id="rscQtd" type="number" min="0" step="1" value="${esc(rsc.quantidade != null ? rsc.quantidade : 1)}" class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900"></div>
             </div>
-            <div><label class="block text-xs font-semibold mb-1" for="rscJust">Justificativa (para o memorial)</label>
+            <div><label class="block text-xs font-semibold mb-1" for="rscJust">${esc(t('tab_catalogar_rsc.justificativa', 'Justificativa (para o memorial)'))}</label>
                 <textarea id="rscJust" rows="2" class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900">${esc(rsc.justificativa || '')}</textarea></div>
-            <label class="flex items-center gap-2 text-sm"><input type="checkbox" id="rscUsado" ${rsc.jaUsado ? 'checked' : ''}> Já utilizado em concessão anterior (não conta no saldo)</label>
+            <label class="flex items-center gap-2 text-sm"><input type="checkbox" id="rscUsado" ${rsc.jaUsado ? 'checked' : ''}> ${esc(t('tab_catalogar_rsc.ja_usado', 'Já utilizado em concessão anterior (não conta no saldo)'))}</label>
             <p id="rscPontos" class="text-sm font-semibold text-amber-700 dark:text-amber-400"></p>
         </div>`;
 
@@ -107,8 +107,13 @@ const { state, $, $$, esc, normNome } = window.AppCore;
             const data = collectRsc($('#itemForm'));
             const pi = LzRSC.pontosItem(data);
             const el = $('#rscPontos');
-            if (!crit) { el.textContent = 'Selecione o critério para calcular os pontos.'; return; }
-            el.textContent = `Pontos: ${String(pi.pontos).replace('.', ',')}  (${pi.quantidade} × ${String(pi.unitario).replace('.', ',')} · ${crit.unidade})`;
+            if (!crit) { el.textContent = t('tab_catalogar_rsc.selecione_criterio', 'Selecione o critério para calcular os pontos.'); return; }
+            el.textContent = t('tab_catalogar_rsc.pontos_resultado', 'Pontos: {pontos}  ({quantidade} × {unitario} · {unidade})', {
+                pontos: formatarNumero(pi.pontos),
+                quantidade: pi.quantidade,
+                unitario: formatarNumero(pi.unitario),
+                unidade: crit.unidade,
+            });
         }
         conta.addEventListener('change', () => { fields.classList.toggle('hidden', !conta.checked); state.ui.formDirty = true; recompute(); });
 

@@ -24,7 +24,7 @@
    do arquivo. Nenhuma mudança de conteúdo, só saiu do arquivo único
    original.
    ========================================================================== */
-const { state, $, $$, esc, toast, isImageExt, isVideoExt, isArchiveExt } = window.AppCore;
+const { state, $, $$, esc, toast, isImageExt, isVideoExt, isArchiveExt, t } = window.AppCore;
 
     /* =====================================================================
        Painel de visualização do PDF (dentro de "Catalogar")
@@ -88,7 +88,7 @@ const { state, $, $$, esc, toast, isImageExt, isVideoExt, isArchiveExt } = windo
         try {
             const url = await Storage.readAttachmentUrl(ev.basename, LattesTypes.categoryFolder(item.categoryKey), ev.ext);
             if (url) setPdf(url, ev.name, ev.ext);
-            else { clearPdf(); toast('Arquivo não encontrado no diretório (sincronize a pasta).', 'aviso'); }
+            else { clearPdf(); toast(t('tab_catalogar_evidencias.arquivo_nao_encontrado', 'Arquivo não encontrado no diretório (sincronize a pasta).'), 'aviso'); }
         } catch (e) { clearPdf(); }
     }
 
@@ -105,8 +105,8 @@ const { state, $, $$, esc, toast, isImageExt, isVideoExt, isArchiveExt } = windo
             const subdir = LattesTypes.categoryFolder(catKey);
             const url = await Storage.readAttachmentUrl(ev.basename, subdir, ev.ext);
             if (url) setPdf(url, ev.name, ev.ext);
-            else toast('Arquivo não encontrado no diretório (sincronize a pasta).', 'aviso');
-        } catch (e) { toast('Não foi possível abrir a evidência: ' + e.message, 'aviso'); }
+            else toast(t('tab_catalogar_evidencias.arquivo_nao_encontrado', 'Arquivo não encontrado no diretório (sincronize a pasta).'), 'aviso');
+        } catch (e) { toast(t('tab_catalogar_evidencias.erro_abrir_evidencia', 'Não foi possível abrir a evidência: {erro}', { erro: e.message }), 'aviso'); }
     }
 
     // Renderiza a lista de evidências no formulário (com reordenar / pública / ver / remover).
@@ -116,7 +116,7 @@ const { state, $, $$, esc, toast, isImageExt, isVideoExt, isArchiveExt } = windo
         const hint = $('#evHint');
         if (hint) hint.classList.toggle('hidden', !state.catalogo.evEditing.length); // só aparece com evidência carregada
         if (!state.catalogo.evEditing.length) {
-            ul.innerHTML = `<li class="text-xs text-gray-500 dark:text-gray-400 italic">Nenhuma evidência anexada.</li>`;
+            ul.innerHTML = `<li class="text-xs text-gray-500 dark:text-gray-400 italic">${esc(t('tab_catalogar_evidencias.nenhuma_evidencia', 'Nenhuma evidência anexada.'))}</li>`;
             return;
         }
         ul.innerHTML = state.catalogo.evEditing.map((ev, idx) => {
@@ -134,15 +134,15 @@ const { state, $, $$, esc, toast, isImageExt, isVideoExt, isArchiveExt } = windo
             return `
             <li class="flex items-center gap-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded px-2 py-1 text-sm">
                 ${thumb}
-                <span class="min-w-0 flex-1 truncate" title="${esc(ev.name)}">${esc(ev.name)}${ev.file ? ' <span class="text-xs text-green-600">(novo)</span>' : ''}</span>
-                <input type="text" data-evtag="${idx}" list="dl-evidenciaTag" value="${esc(ev.tag || '')}" placeholder="Tag" title="Tag da evidência (ex.: Certificado, Declaração…)" class="w-24 shrink-0 text-xs px-1.5 py-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900">
-                <label class="flex items-center gap-1 text-xs shrink-0" title="Será exibida no futuro módulo de publicação (pode marcar quantas quiser)">
-                    <input type="checkbox" data-evpub="${idx}" ${ev.publica ? 'checked' : ''}> pública
+                <span class="min-w-0 flex-1 truncate" title="${esc(ev.name)}">${esc(ev.name)}${ev.file ? ` <span class="text-xs text-green-600">(${esc(t('tab_catalogar_evidencias.novo', 'novo'))})</span>` : ''}</span>
+                <input type="text" data-evtag="${idx}" list="dl-evidenciaTag" value="${esc(ev.tag || '')}" placeholder="${esc(t('tab_catalogar_evidencias.tag_placeholder', 'Tag'))}" title="${esc(t('tab_catalogar_evidencias.tag_titulo', 'Tag da evidência (ex.: Certificado, Declaração…)'))}" class="w-24 shrink-0 text-xs px-1.5 py-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900">
+                <label class="flex items-center gap-1 text-xs shrink-0" title="${esc(t('tab_catalogar_evidencias.publica_titulo', 'Será exibida no futuro módulo de publicação (pode marcar quantas quiser)'))}">
+                    <input type="checkbox" data-evpub="${idx}" ${ev.publica ? 'checked' : ''}> ${esc(t('tab_catalogar_evidencias.publica', 'pública'))}
                 </label>
-                <button type="button" data-evup="${idx}" title="Subir" class="w-8 h-8 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 shrink-0 disabled:opacity-30" ${idx === 0 ? 'disabled' : ''}><i class="fa-solid fa-arrow-up"></i></button>
-                <button type="button" data-evdown="${idx}" title="Descer" class="w-8 h-8 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 shrink-0 disabled:opacity-30" ${idx === state.catalogo.evEditing.length - 1 ? 'disabled' : ''}><i class="fa-solid fa-arrow-down"></i></button>
-                <button type="button" data-evsee="${idx}" title="Ver no painel" class="w-8 h-8 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-govbr-600 dark:text-unifesp-400 shrink-0"><i class="fa-solid fa-eye"></i></button>
-                <button type="button" data-evdel="${idx}" title="Remover" class="w-8 h-8 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-red-600 shrink-0"><i class="fa-solid fa-xmark"></i></button>
+                <button type="button" data-evup="${idx}" title="${esc(t('tab_catalogar_cadastrados.subir', 'Subir'))}" class="w-8 h-8 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 shrink-0 disabled:opacity-30" ${idx === 0 ? 'disabled' : ''}><i class="fa-solid fa-arrow-up"></i></button>
+                <button type="button" data-evdown="${idx}" title="${esc(t('tab_catalogar_cadastrados.descer', 'Descer'))}" class="w-8 h-8 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 shrink-0 disabled:opacity-30" ${idx === state.catalogo.evEditing.length - 1 ? 'disabled' : ''}><i class="fa-solid fa-arrow-down"></i></button>
+                <button type="button" data-evsee="${idx}" title="${esc(t('tab_catalogar_evidencias.ver_no_painel', 'Ver no painel'))}" class="w-8 h-8 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-govbr-600 dark:text-unifesp-400 shrink-0"><i class="fa-solid fa-eye"></i></button>
+                <button type="button" data-evdel="${idx}" title="${esc(t('tab_catalogar_evidencias.remover', 'Remover'))}" class="w-8 h-8 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-red-600 shrink-0"><i class="fa-solid fa-xmark"></i></button>
             </li>`;
         }).join('');
 
@@ -176,7 +176,7 @@ const { state, $, $$, esc, toast, isImageExt, isVideoExt, isArchiveExt } = windo
         $$('[data-evdel]', ul).forEach(b => b.addEventListener('click', (e) => {
             const i = +e.currentTarget.dataset.evdel;
             const ev = state.catalogo.evEditing[i];
-            if (!confirm(`Remover a evidência "${ev.name}"?`)) return;
+            if (!confirm(t('tab_catalogar_evidencias.confirmar_remover', 'Remover a evidência "{nome}"?', { nome: ev.name }))) return;
             state.catalogo.evEditing.splice(i, 1); state.ui.formDirty = true; renderEvList();
         }));
     }
@@ -212,7 +212,7 @@ const { state, $, $$, esc, toast, isImageExt, isVideoExt, isArchiveExt } = windo
         const allowed = window.AppCore.allowedExtsForAccept(inp ? inp.accept : '');
         let file;
         try { file = await Storage.readInboxFile(entry.name); }
-        catch (e) { toast('Não foi possível ler o arquivo da bandeja: ' + e.message, 'aviso'); return; }
+        catch (e) { toast(t('tab_catalogar_evidencias.erro_ler_bandeja', 'Não foi possível ler o arquivo da bandeja: {erro}', { erro: e.message }), 'aviso'); return; }
         const err = window.AppCore.checkEvidenceFile(file, allowed);
         if (err) { toast(err, 'aviso'); return; }
         state.catalogo.evEditing.push({
@@ -237,7 +237,7 @@ const { state, $, $$, esc, toast, isImageExt, isVideoExt, isArchiveExt } = windo
         const allowed = window.AppCore.allowedExtsForAccept(inp ? inp.accept : '');
         let picked;
         try { picked = await Storage.pickDriveEvidenceFile(); }
-        catch (e) { toast('Falha ao selecionar arquivo do Google Drive: ' + e.message, 'erro'); return; }
+        catch (e) { toast(t('tab_catalogar_evidencias.erro_selecionar_drive', 'Falha ao selecionar arquivo do Google Drive: {erro}', { erro: e.message }), 'erro'); return; }
         if (!picked) return; // cancelado no seletor
         const err = window.AppCore.checkEvidenceFile(picked.file, allowed);
         if (err) { toast(err, 'aviso'); return; }
@@ -277,7 +277,7 @@ const { state, $, $$, esc, toast, isImageExt, isVideoExt, isArchiveExt } = windo
         const itens = state._inbox || [];
         const staged = new Set(state.catalogo.evEditing.filter(e => e.inboxName).map(e => e.inboxName));
         const prox = itens.find(it => !staged.has(it.name));
-        if (!prox) { toast('Bandeja vazia ou já anexada a este item.', 'info'); return; }
+        if (!prox) { toast(t('tab_catalogar_evidencias.bandeja_vazia', 'Bandeja vazia ou já anexada a este item.'), 'info'); return; }
         await useInboxFile(prox);
         await renderInbox();
     }
@@ -293,7 +293,7 @@ const { state, $, $$, esc, toast, isImageExt, isVideoExt, isArchiveExt } = windo
     export function addUrlEvidence() {
         const inp = $('#evUrlInput');
         const url = normalizeUrl(inp.value);
-        if (!url) { toast('Informe um link (URL) válido.', 'aviso'); return; }
+        if (!url) { toast(t('tab_catalogar_evidencias.link_invalido', 'Informe um link (URL) válido.'), 'aviso'); return; }
         state.catalogo.evEditing.push({
             kind: 'link', basename: null, ext: 'url', file: null,
             name: url, url, publica: state.catalogo.evEditing.length === 0, tag: '',

@@ -22,9 +22,15 @@
    - Arquivos (ID.pdf / ID.json): File System Access API, num diretório
      escolhido pelo usuário e persistido no IndexedDB (o handle é
      estruturável-clonável e sobrevive entre sessões, mediante permissão).
+   i18n (preparação): mensagens de erro/aviso voltadas ao usuário passam
+   por window.AppCore.t — só chamadas em resposta a uma ação do usuário
+   ou depois do boot completo do app (nunca no carregamento deste
+   módulo), então window.AppCore já existe.
    ========================================================================== */
 window.Storage = (function () {
     const K = APP_CONFIG.storageKeys;
+    const t = (chave, padrao, vars) => window.AppCore.t(chave, padrao, vars);
+    const compararTexto = (a, b, opcoes) => window.AppCore.compararTexto(a, b, opcoes);
     const IDB_NAME = 'lattesZen';
     const IDB_STORE = 'handles';
     const IDB_KEY = 'dirHandle';
@@ -176,19 +182,19 @@ window.Storage = (function () {
     // dele), o original fica intocado (efeito de "copiar"). Retorna null se
     // o usuário cancelar o seletor.
     async function pickDriveEvidenceFile() {
-        if (mode !== 'gdrive' || !gdriveCfg) throw new Error('Conecte o Google Drive antes de usar este recurso.');
+        if (mode !== 'gdrive' || !gdriveCfg) throw new Error(t('storage.erro_sem_gdrive', 'Conecte o Google Drive antes de usar este recurso.'));
         const picked = await window.GDriveClient.pickFile(APP_CONFIG.googlePickerApiKey);
         if (!picked) return null;
         let driveSourceInbox = false;
         try {
-            const inboxId = await resolveFolder(INBOX_FOLDER, false);
+            const inboxId = await resolveFolder(inboxFolder(), false);
             if (inboxId) {
                 const parents = await window.GDriveClient.getFileParents(picked.id);
                 driveSourceInbox = !!(parents && parents.includes(inboxId));
             }
         } catch (_) {}
         const blob = await window.GDriveClient.getFileContent(picked.id);
-        if (!blob) throw new Error('Não foi possível baixar o conteúdo do arquivo selecionado.');
+        if (!blob) throw new Error(t('storage.erro_download_arquivo', 'Não foi possível baixar o conteúdo do arquivo selecionado.'));
         const file = new File([blob], picked.name, { type: blob.type || picked.mimeType || 'application/octet-stream' });
         return { file, driveSourceInbox };
     }
@@ -296,8 +302,8 @@ window.Storage = (function () {
     // se falhar no meio e for chamada de novo, os arquivos já copiados só são
     // sobrescritos (upsertFile), não duplicados.
     async function migrateLocalToGoogleDrive(onProgress) {
-        if (!dirHandle) throw new Error('Nenhuma pasta local configurada para migrar.');
-        if (!gdriveCfg) throw new Error('Conecte ao Google Drive antes de migrar os arquivos.');
+        if (!dirHandle) throw new Error(t('storage.erro_sem_pasta_local', 'Nenhuma pasta local configurada para migrar.'));
+        if (!gdriveCfg) throw new Error(t('storage.erro_sem_gdrive_migrar', 'Conecte ao Google Drive antes de migrar os arquivos.'));
         let copiados = 0;
         async function copyDir(localHandle, driveParentId) {
             for await (const [name, h] of localHandle.entries()) {
@@ -324,7 +330,7 @@ window.Storage = (function () {
     }
 
     async function chooseDirectory() {
-        if (!supportsFS) throw new Error('Navegador sem suporte à File System Access API (use Chrome ou Edge).');
+        if (!supportsFS) throw new Error(t('storage.erro_sem_fs_api', 'Navegador sem suporte à File System Access API (use Chrome ou Edge).'));
         const handle = await window.showDirectoryPicker({ mode: 'readwrite' });
         dirHandle = handle;
         mode = 'local';
@@ -350,9 +356,9 @@ window.Storage = (function () {
     }
 
     async function ensureDirReady() {
-        if (!dirHandle) throw new Error('Nenhum diretório configurado. Vá em Configurações e escolha uma pasta.');
+        if (!dirHandle) throw new Error(t('storage.erro_sem_diretorio', 'Nenhum diretório configurado. Vá em Configurações e escolha uma pasta.'));
         const ok = await verifyPermission(dirHandle, true);
-        if (!ok) throw new Error('Permissão de escrita negada para o diretório.');
+        if (!ok) throw new Error(t('storage.erro_permissao_negada', 'Permissão de escrita negada para o diretório.'));
         return dirHandle;
     }
 
@@ -474,12 +480,18 @@ window.Storage = (function () {
     // Caixa de Entrada: pasta onde o usuário deposita arquivos ainda não
     // catalogados. Processados: subpasta (dentro dela) para onde o
     // original é movido depois de catalogado.
-    const INBOX_FOLDER = 'Caixa de Entrada';
-    const PROCESSED_FOLDER = 'Processados';
+    // Mesma chave de tradução usada pela INBOX_FOLDER de lattes-types.js (é
+    // o mesmo diretório físico) — chamadas como função (não const no topo do
+    // módulo) porque storage.js carrega ANTES de app-core.js (ver ordem dos
+    // <script> em index.html): window.AppCore.t só existe quando estas
+    // funções são de fato chamadas (sempre em resposta a uma ação, nunca no
+    // carregamento do módulo), nunca no topo do arquivo.
+    const inboxFolder = () => t('lattes.pasta.caixa_entrada', 'Caixa de Entrada');
+    const processedFolder = () => t('storage.pasta.processados', 'Processados');
 
     async function inboxDir(create) {
         const dir = await ensureDirReady();
-        return dir.getDirectoryHandle(INBOX_FOLDER, { create: !!create });
+        return dir.getDirectoryHandle(inboxFolder(), { create: !!create });
     }
     // A Caixa de Entrada em si já é criada por ensureSubdirs(LattesTypes.allFolders())
     // (chamado antes desta função em toda instalação nova) — aqui só falta
@@ -487,17 +499,17 @@ window.Storage = (function () {
     async function ensureInbox() {
         if (mode === 'gdrive') {
             if (!gdriveCfg) return;
-            try { await resolveFolder(`${INBOX_FOLDER}/${PROCESSED_FOLDER}`, true); } catch (_) {}
+            try { await resolveFolder(`${inboxFolder()}/${processedFolder()}`, true); } catch (_) {}
             return;
         }
         const inbox = await inboxDir(true);
-        await inbox.getDirectoryHandle(PROCESSED_FOLDER, { create: true });
+        await inbox.getDirectoryHandle(processedFolder(), { create: true });
     }
     // Lista os arquivos (PDF/imagem) pendentes na Inbox (ignora subpastas)
     async function listInbox() {
         if (mode === 'gdrive') {
             if (!gdriveCfg) return [];
-            const parentId = await resolveFolder(INBOX_FOLDER, false);
+            const parentId = await resolveFolder(inboxFolder(), false);
             if (!parentId) return [];
             let children; try { children = await window.GDriveClient.listChildren(parentId); } catch (_) { return []; }
             const out = [];
@@ -508,7 +520,7 @@ window.Storage = (function () {
                 if (!ATTACH_EXTS.includes(ext)) continue;
                 out.push({ name: child.name, ext, size: child.size });
             }
-            out.sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
+            out.sort((a, b) => compararTexto(a.name, b.name));
             return out;
         }
         let inbox; try { inbox = await inboxDir(true); } catch (_) { return []; }
@@ -522,13 +534,13 @@ window.Storage = (function () {
             try { size = (await h.getFile()).size; } catch (_) {}
             out.push({ name, ext, size });
         }
-        out.sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
+        out.sort((a, b) => compararTexto(a.name, b.name));
         return out;
     }
     async function readInboxFile(name) {
         if (mode === 'gdrive') {
             if (!gdriveCfg) return null;
-            const parentId = await resolveFolder(INBOX_FOLDER, false);
+            const parentId = await resolveFolder(inboxFolder(), false);
             if (!parentId) return null;
             const fileId = await window.GDriveClient.findFile(parentId, name);
             return fileId ? window.GDriveClient.getFileContent(fileId) : null;
@@ -541,8 +553,8 @@ window.Storage = (function () {
     async function moveInboxToProcessed(name) {
         if (mode === 'gdrive') {
             if (!gdriveCfg) return name;
-            const inboxId = await resolveFolder(INBOX_FOLDER, true);
-            const procId = await resolveFolder(`${INBOX_FOLDER}/${PROCESSED_FOLDER}`, true);
+            const inboxId = await resolveFolder(inboxFolder(), true);
+            const procId = await resolveFolder(`${inboxFolder()}/${processedFolder()}`, true);
             const dot = name.lastIndexOf('.');
             const base = dot > 0 ? name.slice(0, dot) : name;
             const ext = dot > 0 ? name.slice(dot) : '';
@@ -557,7 +569,7 @@ window.Storage = (function () {
             return target;
         }
         const inbox = await inboxDir(true);
-        const proc = await inbox.getDirectoryHandle(PROCESSED_FOLDER, { create: true });
+        const proc = await inbox.getDirectoryHandle(processedFolder(), { create: true });
         const dot = name.lastIndexOf('.');
         const base = dot > 0 ? name.slice(0, dot) : name;
         const ext = dot > 0 ? name.slice(dot) : '';
@@ -947,7 +959,7 @@ window.Storage = (function () {
             catch (_) { falhas += 1; detalhes.push({ tipo: 'pasta', id: folderId, caminho: caminho || '(raiz)' }); return; }
             await Promise.all(children.map((child) => {
                 if (child.isDir) {
-                    if (child.name === INBOX_FOLDER) return Promise.resolve(); // não indexa a bandeja de entrada
+                    if (child.name === inboxFolder()) return Promise.resolve(); // não indexa a bandeja de entrada
                     return scanPasta(child.id, caminho ? `${caminho}/${child.name}` : child.name);
                 }
                 if (!ehArquivoOculto(child.name) && child.name.toLowerCase().endsWith('.json') && !ehArquivoDeConfiguracao(child.name)) {
@@ -980,7 +992,7 @@ window.Storage = (function () {
                     if (h.kind === 'file' && !ehArquivoOculto(name) && name.toLowerCase().endsWith('.json') && !ehArquivoDeConfiguracao(name)) {
                         await lerArquivo(h, caminho ? `${caminho}/${name}` : name, caminho);
                     } else if (h.kind === 'directory') {
-                        if (name === INBOX_FOLDER) continue; // não indexa a bandeja de entrada
+                        if (name === inboxFolder()) continue; // não indexa a bandeja de entrada
                         await scanPasta(h, caminho ? `${caminho}/${name}` : name);
                     }
                 }
@@ -1072,7 +1084,7 @@ window.Storage = (function () {
             // contra estouro de cota do localStorage — sem isto, uma falha
             // aqui (ex.: RSC/Súmula com texto grande) era engolida em
             // silêncio, sem nenhum aviso ao usuário.
-            if (window.AppCore) window.AppCore.toast('Não foi possível salvar as configurações (armazenamento cheio).', 'erro');
+            if (window.AppCore) window.AppCore.toast(t('storage.erro_armazenamento_cheio', 'Não foi possível salvar as configurações (armazenamento cheio).'), 'erro');
             return false;
         }
         scheduleSettingsWrite();

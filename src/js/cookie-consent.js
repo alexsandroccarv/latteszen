@@ -27,7 +27,12 @@
    config.js — não para quem já está usando uma instância com ID
    configurado). Estilo em linha (não depende do Tailwind CDN) pra
    funcionar mesmo se aquele recurso de terceiros não carregar.
+   i18n (preparação): label/texto passam por t(). Este arquivo roda ANTES
+   de app-core.js na ordem dos <script> em index.html (ver comentário
+   acima) — não pode depender de window.AppCore.t existir a tempo, por
+   isso importa t() direto, mesmo padrão de lattes-types-*.js.
    ========================================================================== */
+import { t } from './i18n.js';
 (function () {
     function montar() {
         if (!window.LzAnalytics || !window.LzAnalytics.idConfigurado()) return;
@@ -41,7 +46,7 @@
         barra.id = 'lzCookieBanner';
         barra.setAttribute('role', 'alertdialog');
         barra.setAttribute('aria-modal', 'true');
-        barra.setAttribute('aria-label', 'Aviso de cookies');
+        barra.setAttribute('aria-label', t('cookies.aria_label', 'Aviso de cookies'));
         barra.style.cssText = 'position:fixed;left:0;right:0;bottom:0;z-index:99999;background:#071D41;'
             + 'color:#fff;padding:16px 20px;display:flex;flex-wrap:wrap;gap:12px 20px;align-items:center;'
             + 'justify-content:center;font:14px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;'
@@ -53,13 +58,13 @@
         // fica bloqueada pelo mesmo overlay (o consentimento ainda não foi
         // decidido), então um link pra lá, dentro do próprio bloqueio, não
         // levaria a lugar nenhum.
-        texto.textContent = 'Usamos o Google Analytics para entender o acesso a este site (não inclui o conteúdo '
-            + 'do seu currículo, que fica só no seu navegador).';
+        texto.textContent = t('cookies.texto', 'Usamos o Google Analytics para entender o acesso a este site (não inclui o conteúdo '
+            + 'do seu currículo, que fica só no seu navegador).');
 
         const btnAceitar = document.createElement('button');
         btnAceitar.type = 'button';
         btnAceitar.id = 'lzCookieAceitar';
-        btnAceitar.textContent = 'Aceitar';
+        btnAceitar.textContent = t('cookies.aceitar', 'Aceitar');
         btnAceitar.style.cssText = 'background:#1351B4;color:#fff;border:1px solid #1351B4;border-radius:6px;'
             + 'padding:8px 18px;cursor:pointer;font:inherit;font-weight:600;flex:0 0 auto';
 

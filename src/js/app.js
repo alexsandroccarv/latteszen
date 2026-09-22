@@ -43,7 +43,7 @@
         state, $, $$, esc, toast, anoDe, isImageExt, isVideoExt, isArchiveExt, NA_VALUE, itemYear, sortByYear, publicarWebOk,
         elegivelAoLattes, itemsUsingValue, normNome,
         validateISSN, validateISBN, validateISBNorISSN, validateDOI, validateURL, validateField,
-        setFieldError, associateLabels, isFieldDisabled, evCount, descState,
+        setFieldError, associateLabels, isFieldDisabled, evCount, descState, t, tp,
     } = window.AppCore;
 
     /* -------- Primitivas de tab-catalogar.js usadas pelo restante deste ----
@@ -124,14 +124,14 @@
     // Retorna null se OK ou uma mensagem de erro.
     const MAX_EVID_MB = 40;
     function checkEvidenceFile(file, allowedExts) {
-        if (!file) return 'Arquivo inválido.';
-        if (file.size === 0) return `"${file.name}" está vazio.`;
+        if (!file) return t('app.arquivo_invalido', 'Arquivo inválido.');
+        if (file.size === 0) return t('app.arquivo_vazio', '"{nome}" está vazio.', { nome: file.name });
         if (file.size > MAX_EVID_MB * 1024 * 1024) {
-            return `"${file.name}" tem ${(file.size / 1048576).toFixed(1)} MB — o limite é ${MAX_EVID_MB} MB.`;
+            return t('app.arquivo_muito_grande', '"{nome}" tem {mb} MB — o limite é {limite} MB.', { nome: file.name, mb: (file.size / 1048576).toFixed(1), limite: MAX_EVID_MB });
         }
         const ext = fileExt(file);
         if (allowedExts && allowedExts.length && !allowedExts.includes(ext)) {
-            return `"${file.name}": tipo não permitido (aceitos: ${allowedExts.join(', ')}).`;
+            return t('app.tipo_nao_permitido', '"{nome}": tipo não permitido (aceitos: {tipos}).', { nome: file.name, tipos: allowedExts.join(', ') });
         }
         return null;
     }
@@ -143,7 +143,7 @@
     function saveCatalog() {
         try { Storage.saveCatalog(state.catalogo.items); return true; }
         catch (e) {
-            toast('Não foi possível salvar no navegador (armazenamento cheio). Exporte um backup em Configurações e/ou remova itens.', 'erro');
+            toast(t('app.erro_armazenamento_cheio_catalogo', 'Não foi possível salvar no navegador (armazenamento cheio). Exporte um backup em Configurações e/ou remova itens.'), 'erro');
             return false;
         }
     }
@@ -152,7 +152,7 @@
     function saveTrash() {
         try { Storage.saveTrash(state.catalogo.trash); return true; }
         catch (e) {
-            toast('Não foi possível salvar a lixeira (armazenamento cheio).', 'erro');
+            toast(t('app.erro_armazenamento_cheio_lixeira', 'Não foi possível salvar a lixeira (armazenamento cheio).'), 'erro');
             return false;
         }
     }
@@ -176,10 +176,10 @@
         if (problema) {
             const gdrive = Storage.storageMode() === 'gdrive';
             const msg = state.dirHealth.reason === 'permission'
-                ? (gdrive ? 'Sessão do Google Drive expirada ou acesso revogado — reconecte em Configurações.' : 'Sem permissão de acesso à pasta configurada — os arquivos não estão sendo salvos nela. Verifique em Configurações.')
+                ? (gdrive ? t('app.dirhealth_banner_permissao_gdrive', 'Sessão do Google Drive expirada ou acesso revogado — reconecte em Configurações.') : t('app.dirhealth_banner_permissao_local', 'Sem permissão de acesso à pasta configurada — os arquivos não estão sendo salvos nela. Verifique em Configurações.'))
                 : state.dirHealth.reason === 'network'
-                ? 'Não foi possível conectar ao armazenamento remoto — verifique sua conexão com a internet.'
-                : (gdrive ? 'A pasta do lattesZen não foi encontrada no Google Drive (pode ter sido movida ou excluída).' : 'A pasta configurada não foi encontrada (pode ter sido movida, renomeada ou apagada) — os arquivos não estão sendo salvos nela.');
+                ? t('app.dirhealth_banner_network', 'Não foi possível conectar ao armazenamento remoto — verifique sua conexão com a internet.')
+                : (gdrive ? t('app.dirhealth_banner_notfound_gdrive', 'A pasta do lattesZen não foi encontrada no Google Drive (pode ter sido movida ou excluída).') : t('app.dirhealth_banner_notfound_local', 'A pasta configurada não foi encontrada (pode ter sido movida, renomeada ou apagada) — os arquivos não estão sendo salvos nela.'));
             const el = $('#dirHealthMsg'); if (el) el.textContent = msg;
         }
     }
@@ -187,14 +187,14 @@
     window.AppCore.renderDirBanner = renderDirBanner;
     // Texto de status usado na seção "Diretório de armazenamento" em Configurações.
     function dirHealthStatusHtml() {
-        if (!state.dirHealth) return `<span class="text-gray-500"><i aria-hidden="true" class="fa-solid fa-circle-question mr-1"></i> Ainda não verificado.</span>`;
-        if (state.dirHealth.ok) return `<span class="text-green-700 dark:text-green-400"><i aria-hidden="true" class="fa-solid fa-circle-check mr-1"></i> Acessível.</span>`;
+        if (!state.dirHealth) return `<span class="text-gray-500"><i aria-hidden="true" class="fa-solid fa-circle-question mr-1"></i> ${esc(t('app.dirhealth_nao_verificado', 'Ainda não verificado.'))}</span>`;
+        if (state.dirHealth.ok) return `<span class="text-green-700 dark:text-green-400"><i aria-hidden="true" class="fa-solid fa-circle-check mr-1"></i> ${esc(t('app.dirhealth_acessivel', 'Acessível.'))}</span>`;
         const gdrive = Storage.storageMode() === 'gdrive';
         const msg = state.dirHealth.reason === 'permission'
-            ? (gdrive ? 'Sessão expirada ou acesso revogado — clique em "Conectar ao Google Drive" novamente.' : 'Sem permissão de acesso — clique em "Verificar pasta" para conceder novamente.')
+            ? (gdrive ? t('app.dirhealth_status_permissao_gdrive', 'Sessão expirada ou acesso revogado — clique em "Conectar ao Google Drive" novamente.') : t('app.dirhealth_status_permissao_local', 'Sem permissão de acesso — clique em "Verificar pasta" para conceder novamente.'))
             : state.dirHealth.reason === 'network'
-            ? 'Falha de conexão com o armazenamento remoto — verifique sua internet.'
-            : (gdrive ? 'Pasta não encontrada no Google Drive — pode ter sido movida ou excluída.' : 'Pasta não encontrada — pode ter sido movida, renomeada ou apagada.');
+            ? t('app.dirhealth_status_network', 'Falha de conexão com o armazenamento remoto — verifique sua internet.')
+            : (gdrive ? t('app.dirhealth_status_notfound_gdrive', 'Pasta não encontrada no Google Drive — pode ter sido movida ou excluída.') : t('app.dirhealth_status_notfound_local', 'Pasta não encontrada — pode ter sido movida, renomeada ou apagada.'));
         return `<span class="text-red-700 dark:text-red-400"><i aria-hidden="true" class="fa-solid fa-triangle-exclamation mr-1"></i> ${esc(msg)}</span>`;
     }
     // Publicado em AppCore para tab-config.js — mesmo motivo de uid/nowISO.
@@ -232,7 +232,7 @@
     // salvo, e perder essa conveniência (só agiliza o próximo cadastro) num
     // dispositivo novo não justifica gravar um arquivo a cada item.
     function persistirGeral() {
-        Storage.writeConfigModule('geral', { idPrefix: state.idPrefix, vocab: state.vocab, pubWebEnabled: state.pubWebEnabled });
+        Storage.writeConfigModule('geral', { idPrefix: state.idPrefix, locale: state.locale, vocab: state.vocab, pubWebEnabled: state.pubWebEnabled });
     }
     // pubStyle/deploy_* não têm `state` próprio (tab-publicar.js lê sempre
     // "ao vivo" de Storage.loadSettings()) — monta o retrato a partir de lá.
@@ -349,9 +349,10 @@
 
                 const geral = await Storage.restaurarModuloConfig('geral', blobAntigo,
                     (b) => (b.idPrefix || b.vocab || b.pubWebEnabled !== undefined) ? { idPrefix: b.idPrefix || '', vocab: b.vocab || {}, pubWebEnabled: b.pubWebEnabled } : null,
-                    { idPrefix: state.idPrefix, vocab: state.vocab, pubWebEnabled: state.pubWebEnabled });
+                    { idPrefix: state.idPrefix, locale: state.locale, vocab: state.vocab, pubWebEnabled: state.pubWebEnabled });
                 state.vocab = geral.dados.vocab || {};
                 state.idPrefix = sanitizePrefix(geral.dados.idPrefix || 'lz');
+                state.locale = window.AppCore.setLocale(geral.dados.locale || state.locale);
                 state.pubWebEnabled = geral.dados.pubWebEnabled !== undefined ? !!geral.dados.pubWebEnabled : state.catalogo.items.length > 0;
                 applyPublicarVisibility();
 
@@ -384,7 +385,7 @@
                     s.nuvemCompostas = state.linhaTempo.nuvemCompostas;
                     s.rscEnabled = state.rsc.enabled; s.rsc = state.rsc.cfg; s.rscMemorialTexto = state.rsc.memorialTexto;
                     s.sumulaEnabled = state.sumula.enabled; s.sumula = state.sumula.cfg; s.sumulaTexto = state.sumula.texto;
-                    s.idPrefix = state.idPrefix; s.vocab = state.vocab; s.pubWebEnabled = state.pubWebEnabled;
+                    s.idPrefix = state.idPrefix; s.locale = state.locale; s.vocab = state.vocab; s.pubWebEnabled = state.pubWebEnabled;
                     s.pubStyle = publicar.dados.pubStyle;
                     if (publicar.dados.deployGithub) s.deploy_github = publicar.dados.deployGithub;
                     if (publicar.dados.deployNetlify) s.deploy_netlify = publicar.dados.deployNetlify;
@@ -410,7 +411,7 @@
         s.sinceBackup = (s.sinceBackup || 0) + 1;
         Storage.saveSettings(s);
         if (s.sinceBackup % 20 === 0) {
-            toast(`Você fez ${s.sinceBackup} alterações desde o último backup. Exporte o catálogo em Configurações › Backup.`, 'aviso');
+            toast(t('app.lembrete_backup', 'Você fez {n} alterações desde o último backup. Exporte o catálogo em Configurações › Backup.', { n: s.sinceBackup }), 'aviso');
         }
     }
     function resetBackupReminder() {
@@ -451,9 +452,9 @@
         const label = LattesTypes.label(d.type) || '';
         bn.innerHTML = `<div class="flex items-center gap-2 text-xs bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded px-3 py-2 mb-3">
             <i aria-hidden="true" class="fa-solid fa-clock-rotate-left text-amber-600 shrink-0"></i>
-            <span class="flex-1">Rascunho não salvo encontrado${label ? ` (${esc(label)})` : ''}. As evidências não ficam no rascunho.</span>
-            <button type="button" id="btnDraftRestore" class="px-2 py-1 rounded bg-amber-600 text-white shrink-0">Restaurar</button>
-            <button type="button" id="btnDraftDiscard" class="px-2 py-1 rounded border border-amber-300 dark:border-amber-700 shrink-0">Descartar</button>
+            <span class="flex-1">${t('app.rascunho_encontrado', 'Rascunho não salvo encontrado{rotulo}. As evidências não ficam no rascunho.', { rotulo: label ? ` (${esc(label)})` : '' })}</span>
+            <button type="button" id="btnDraftRestore" class="px-2 py-1 rounded bg-amber-600 text-white shrink-0">${esc(t('app.restaurar', 'Restaurar'))}</button>
+            <button type="button" id="btnDraftDiscard" class="px-2 py-1 rounded border border-amber-300 dark:border-amber-700 shrink-0">${esc(t('app.descartar', 'Descartar'))}</button>
         </div>`;
         $('#btnDraftRestore').addEventListener('click', () => restoreDraft(d));
         $('#btnDraftDiscard').addEventListener('click', clearDraft);
@@ -475,7 +476,7 @@
             if (el && el.tagName && /^(INPUT|SELECT|TEXTAREA)$/.test(el.tagName) && el.type !== 'file') el.value = v;
         });
         state.ui.formDirty = true;
-        toast('Rascunho restaurado.', 'ok');
+        toast(t('app.rascunho_restaurado', 'Rascunho restaurado.'), 'ok');
     }
 
     // Grava o item no índice (localStorage) e o JSON no diretório. Os anexos
@@ -488,7 +489,7 @@
         bumpBackupReminder();
         if (Storage.hasDirectory()) {
             try { await Storage.writeJson(item.id, item, LattesTypes.categoryFolder(item.categoryKey)); }
-            catch (e) { toast('Item salvo no índice, mas falhou ao gravar o JSON: ' + e.message, 'aviso'); }
+            catch (e) { toast(t('app.item_salvo_falha_json', 'Item salvo no índice, mas falhou ao gravar o JSON: {erro}', { erro: e.message }), 'aviso'); }
         }
     }
     // Publicado em AppCore para os módulos de aba já extraídos (ex.:
@@ -691,8 +692,8 @@
                 RENDERERS[state.ui.activeTab]();
             }
             toast(editandoAgora
-                ? 'O catálogo mudou em outra aba — termine ou cancele esta edição para ver as mudanças.'
-                : 'Catálogo atualizado a partir de outra aba aberta.', 'info');
+                ? t('app.catalogo_mudou_outra_aba', 'O catálogo mudou em outra aba — termine ou cancele esta edição para ver as mudanças.')
+                : t('app.catalogo_atualizado_outra_aba', 'Catálogo atualizado a partir de outra aba aberta.'), 'info');
         }, 250);
     }
 
@@ -726,7 +727,7 @@
             // metade das configurações de uma aba com metade de outra. Em
             // vez de continuar sobrescrevendo em silêncio (o bug original),
             // avisamos e deixamos a pessoa decidir recarregar.
-            toast('As configurações mudaram em outra aba aberta. Recarregue esta aba para ver a versão mais recente.', 'info');
+            toast(t('app.configuracoes_mudaram_outra_aba', 'As configurações mudaram em outra aba aberta. Recarregue esta aba para ver a versão mais recente.'), 'info');
         }
     }
     function wireCrossTabSync() {
@@ -749,8 +750,9 @@
     // Mesma trava, agora também para 4 das 5 páginas do menu lateral de
     // Configurações — só "Armazenamento" (onde mora o assistente de escolha
     // do diretório) fica sempre livre; "Importar", "Exportar", "Recursos
-    // opcionais" e "Zona de risco" dependem de já haver um diretório.
-    const DIR_GATED_CFG_GROUPS = ['grp-importar', 'grp-exportar', 'grp-opcionais', 'grp-risco'];
+    // opcionais", "Módulos" e "Zona de risco" dependem de já haver um
+    // diretório.
+    const DIR_GATED_CFG_GROUPS = ['grp-importar', 'grp-exportar', 'grp-opcionais', 'grp-modulos', 'grp-risco'];
     // Trava real desligável só em teste (window.__LZ_TEST_SKIP_DIR_GATE) —
     // mesmo padrão de window.__LZ_TEST_ANALYTICS_ID em config.js: sem isto,
     // toda a suíte de regressão (que semeia o catálogo direto no
@@ -781,7 +783,7 @@
             b.classList.toggle('opacity-40', travado);
             b.classList.toggle('cursor-not-allowed', travado);
             b.classList.toggle('pointer-events-none', travado);
-            b.title = travado ? 'Configure um diretório de armazenamento em Configurações › Armazenamento antes de usar esta seção' : '';
+            b.title = travado ? t('app.diretorio_necessario_titulo', 'Configure um diretório de armazenamento em Configurações › Armazenamento antes de usar esta seção') : '';
         });
         $$('[data-cfg-page-link]').forEach(b => {
             if (!DIR_GATED_CFG_GROUPS.includes(b.dataset.cfgPageLink)) return;
@@ -789,7 +791,7 @@
             b.classList.toggle('opacity-40', travado);
             b.classList.toggle('cursor-not-allowed', travado);
             b.classList.toggle('pointer-events-none', travado);
-            b.title = travado ? 'Configure um diretório de armazenamento em Configurações › Armazenamento antes de usar esta seção' : '';
+            b.title = travado ? t('app.diretorio_necessario_titulo', 'Configure um diretório de armazenamento em Configurações › Armazenamento antes de usar esta seção') : '';
         });
     }
     // Publicado em AppCore para tab-config.js (chamado a cada render() da
@@ -821,12 +823,12 @@
         // switchTab() direto (ex.: botão "Ir para Catalogar" em Início),
         // sem diretório configurado a troca não acontece.
         if (DIR_GATED_TABS.includes(name) && !dirGateBypass() && !Storage.hasDirectory()) {
-            toast('Configure um diretório de armazenamento em Configurações › Armazenamento antes de usar esta seção.', 'aviso');
+            toast(t('app.diretorio_necessario_toast', 'Configure um diretório de armazenamento em Configurações › Armazenamento antes de usar esta seção.'), 'aviso');
             return;
         }
         // Guarda de alterações não salvas ao sair de "Catalogar"
         if (state.ui.activeTab === 'catalogar' && name !== 'catalogar' && state.ui.formDirty) {
-            if (!confirm('Há alterações não salvas no formulário. Sair mesmo assim?')) return;
+            if (!confirm(t('tab_catalogar.confirmar_sair_nao_salvo', 'Há alterações não salvas no formulário. Sair mesmo assim?'))) return;
             state.ui.formDirty = false;
         }
         state.ui.activeTab = name;
@@ -1049,6 +1051,7 @@
         // depois disso, o que estiver salvo prevalece (o usuário pode editar/remover).
         if (state.vocab.evidenciaTag === undefined) { state.vocab.evidenciaTag = DEFAULT_EVIDENCE_TAGS.slice(); saveVocab(); }
         state.idPrefix = sanitizePrefix(cfg.idPrefix || 'lz');
+        state.locale = window.AppCore.setLocale(cfg.locale || state.locale);
         state.catalogo.lastCat = cfg.lastCat || '';
         state.catalogo.lastType = cfg.lastType || '';
         state.rsc.enabled = !!cfg.rscEnabled;
@@ -1082,7 +1085,7 @@
         // mas a pessoa pode nem abrir Configurações pra perceber. Um aviso
         // aqui, uma vez por sessão, aponta pra onde retomar ou descartar.
         if (Storage.loadPendingGDriveMigration()) {
-            toast('Uma migração para o Google Drive ficou incompleta — veja Configurações › Armazenamento para retomar ou descartar.', 'aviso');
+            toast(t('app.migracao_gdrive_incompleta', 'Uma migração para o Google Drive ficou incompleta — veja Configurações › Armazenamento para retomar ou descartar.'), 'aviso');
         }
         // Catálogo local vazio mas já há um diretório configurado e acessível:
         // pode ser um navegador/perfil novo, ou dados locais limpos, apontando
@@ -1093,8 +1096,8 @@
             try {
                 const { encontrados, falhas } = await syncFromDirectory();
                 if (encontrados) {
-                    const aviso = falhas ? ` Atenção: ${falhas} pasta(s)/arquivo(s) não puderam ser lidos (rede instável?) — vá em Configurações e clique em "Sincronizar" para tentar completar.` : '';
-                    toast(`${encontrados} item(ns) encontrado(s) na pasta configurada e sincronizados automaticamente.${aviso}`, falhas ? 'aviso' : 'ok');
+                    const aviso = falhas ? t('app.sync_auto_falhas', ' Atenção: {n} pasta(s)/arquivo(s) não puderam ser lidos (rede instável?) — vá em Configurações e clique em "Sincronizar" para tentar completar.', { n: falhas }) : '';
+                    toast(t('app.sync_auto_encontrados', '{n} item(ns) encontrado(s) na pasta configurada e sincronizados automaticamente.{aviso}', { n: encontrados, aviso }), falhas ? 'aviso' : 'ok');
                 }
             } catch (_) {}
         }
