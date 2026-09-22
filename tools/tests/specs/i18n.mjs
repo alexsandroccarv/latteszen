@@ -165,13 +165,38 @@ test('i18n: tp() com locale "en" escolhe singular/plural em inglês', async ({ p
     assertEqual(r, ['1 item', '5 items'], 'tp() em "en" deveria devolver as formas do dicionário en (singular sem "s", plural com "s"), não os padrões pt-BR passados na chamada');
 });
 
-test('i18n: resolveLista() em "en" cai pro pt-br (nenhuma lista PAISES/IDIOMAS/SETORES própria de "en" ainda existe)', async ({ page, baseUrl }) => {
-    await seedCatalog(page, baseUrl, []);
-    const r = await page.evaluate(() => {
-        window.LzI18n.setLocale('en');
-        return window.LzI18n.resolveLista('PAISES').length;
-    });
-    assert(r > 100, 'resolveLista("PAISES") em "en" deveria cair pra lista pt-br (única existente) em vez de devolver vazio');
+test('i18n: window.PAISES/IDIOMAS/SETORES são {value,label} — value sempre em português, label vem traduzido quando "en" já está persistido antes da carga', async ({ page, baseUrl }) => {
+    // Mesma natureza do nome de pasta (ver wizard-idioma-reload.mjs):
+    // window.PAISES/IDIOMAS/SETORES são computados UMA VEZ, no carregamento
+    // de paises.js/idiomas.js/cnae.js (opcoes() chama t() então) — uma
+    // troca de locale AO VIVO (setLocale() sem reload) não muda os labels
+    // já calculados. Por isso o teste persiste "en" ANTES de carregar a
+    // página (como o teste anterior, "com locale en persistido..."), em
+    // vez de chamar setLocale('en') depois.
+    await page.goto(baseUrl + '/index.html');
+    const rPt = await page.evaluate(() => ({
+        paisValor: window.PAISES[0].value, paisLabel: window.PAISES[0].label,
+        idiomaValor: window.IDIOMAS.find(o => o.value === 'Inglês').value,
+        setorLabel: window.SETORES[0].label,
+        tamanhos: [window.PAISES.length, window.IDIOMAS.length, window.SETORES.length],
+    }));
+    assert(rPt.tamanhos[0] > 100, 'window.PAISES deveria ter mais de 100 países');
+    assert(rPt.tamanhos[1] > 100, 'window.IDIOMAS deveria ter mais de 100 idiomas');
+    assert(rPt.tamanhos[2] > 50, 'window.SETORES deveria ter mais de 50 setores');
+    assertEqual(rPt.paisLabel, rPt.paisValor, 'em pt-br (sem dicionário próprio), o label deveria cair pro próprio valor (padrão de t())');
+
+    await page.evaluate(() => localStorage.setItem('lz_settings', JSON.stringify({ locale: 'en' })));
+    await page.reload();
+    await page.waitForTimeout(500);
+    const rEn = await page.evaluate(() => ({
+        paisValor: window.PAISES[0].value, paisLabel: window.PAISES[0].label,
+        idiomaValor: window.IDIOMAS.find(o => o.value === 'Inglês').value,
+        setorLabel: window.SETORES[0].label,
+    }));
+    assertEqual(rEn.paisValor, rPt.paisValor, 'o VALOR do país não deveria mudar com o locale (mesma string em português, pra manter compatibilidade com o XML Lattes)');
+    assertEqual(rEn.idiomaValor, rPt.idiomaValor, 'o VALOR do idioma não deveria mudar com o locale');
+    assertEqual(rEn.paisLabel, 'Germany', 'o LABEL do 1º país (Alemanha) deveria vir traduzido em "en"');
+    assertEqual(rEn.setorLabel, 'Public administration, defense and social security', 'o LABEL do 1º setor deveria vir traduzido em "en"');
 });
 
 test('i18n: o seletor de idioma do assistente já oferece "English" (populado dinamicamente a partir de localesDisponiveis())', async ({ page, baseUrl }) => {

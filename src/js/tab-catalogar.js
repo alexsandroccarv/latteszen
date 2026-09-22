@@ -51,14 +51,13 @@ window.TabCatalogar = (function () {
         state, $, $$, esc, toast, anoDe, sortByYear,
         isImageExt, isVideoExt, isArchiveExt, NA_VALUE,
         elegivelAoLattes, itemsUsingValue, normNome, validateField,
-        setFieldError, associateLabels, isFieldDisabled, t, tp, resolveLista, compararTexto,
+        setFieldError, associateLabels, isFieldDisabled, t, tp, compararTexto,
     } = window.AppCore;
 
     // Uma opção de select/checkboxes/skilllevels pode vir como string simples
-    // (formato antigo, ainda usado por listas grandes tipo país/idioma/CNAE,
-    // não convertidas nesta fase — ver nota em lattes-types-campos.js) ou
-    // como { value, label } (formato novo, usado pela taxonomia Lattes desde
-    // a preparação de i18n — value é o literal armazenado/comparado/
+    // (formato antigo — nenhum campo ainda usa, mas suportado por segurança)
+    // ou como { value, label } (formato usado por toda a taxonomia Lattes,
+    // incluindo país/idioma/CNAE — value é o literal armazenado/comparado/
     // exportado de sempre; label é o texto de exibição, traduzível). Estas
     // duas funções normalizam os dois formatos num só lugar, em vez de
     // espalhar `typeof o === 'string'` por cada função de renderização.
@@ -837,14 +836,15 @@ window.TabCatalogar = (function () {
         // nomeados (SETOR-DE-ATIVIDADE-1..3), por isso 3 selects fixos.
         // Mesmo tratamento de <details> recolhido do campo acima.
         const chosen = String(val || '').split(';').map(s => s.trim()).filter(Boolean);
-        const opts = resolveLista('SETORES');
+        const opts = window.SETORES;
         // aria-label próprio por select — mesmo motivo do areatree acima:
         // sem isto, só o 1º select tinha nome acessível.
         const sel = (i) => `<select data-setor="${i}" aria-label="${esc(t('tab_catalogar.setor_aria', 'Setor {n}', { n: i }))}" class="${base}">
             <option value="">${esc(t('tab_catalogar.setor_opt', '— Setor {n} —', { n: i }))}</option>
-            ${opts.map(o => `<option value="${esc(o)}" ${chosen[i - 1] === o ? 'selected' : ''}>${esc(o)}</option>`).join('')}
+            ${opts.map(o => `<option value="${esc(optVal(o))}" ${chosen[i - 1] === optVal(o) ? 'selected' : ''}>${esc(optLabel(o))}</option>`).join('')}
         </select>`;
-        const resumo = chosen.length ? esc(chosen.join('; ')) : esc(t('tab_catalogar.setor_nenhum', 'Nenhum selecionado — clique para escolher'));
+        const rotulo = (v) => { const o = opts.find(o => optVal(o) === v); return o ? optLabel(o) : v; };
+        const resumo = chosen.length ? esc(chosen.map(rotulo).join('; ')) : esc(t('tab_catalogar.setor_nenhum', 'Nenhum selecionado — clique para escolher'));
         return `<details class="w-full">
             <summary class="cursor-pointer select-none text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 truncate">${resumo}</summary>
             <div class="space-y-1.5 mt-1.5">${[1, 2, 3].map(sel).join('')}</div>

@@ -88,6 +88,7 @@ import './specs/coordenacao-abas.mjs';
 import './specs/toast.mjs';
 import './specs/i18n.mjs';
 import './specs/evidencia-limites-tamanho.mjs';
+import './specs/wizard-idioma-reload.mjs';
 
 console.log('Rodando suíte de testes de regressão (Playwright)...\n');
 await runAll();

@@ -86,7 +86,7 @@ function localeValido(locale) { return DICIONARIOS[locale] ? locale : LOCALE_PAD
 // módulo no index.html) nem esperar app.js/init() rodar (só acontece bem
 // depois, no fim da fila de <script>). Sem isto, o locale inicial deste
 // módulo sempre seria o padrão — mesmo já havendo outro configurado —
-// porque paises.js/idiomas.js/lattes-types-*.js (que chamam t()/resolveLista()
+// porque paises.js/idiomas.js/lattes-types-*.js (que chamam t()/opcoes()
 // uma única vez, ao carregar) rodam ANTES de qualquer setLocale() explícito.
 function lerLocalePersistido() {
     try {
@@ -96,9 +96,8 @@ function lerLocalePersistido() {
     } catch (_) { return LOCALE_PADRAO; }
 }
 
-// Código interno de locale ('pt-br', minúsculo — combina com o sufixo de
-// PAISES_pt-br/IDIOMAS_pt-br/SETORES_pt-br em resolveLista()) → tag BCP 47
-// própria pra <html lang> e pra Intl (DateTimeFormat/NumberFormat/
+// Código interno de locale ('pt-br', minúsculo) → tag BCP 47 própria pra
+// <html lang> e pra Intl (DateTimeFormat/NumberFormat/
 // localeCompare): subtag de região em maiúsculas, resto como está
 // ('pt-br' → 'pt-BR'; um locale sem região, ex. 'en', fica como está).
 function paraBCP47(locale) {
@@ -137,22 +136,29 @@ export function registrarDicionario(locale, entradas) {
     DICIONARIOS[locale] = Object.assign({}, DICIONARIOS[locale] || {}, entradas || {});
 }
 
-// Resolve uma lista de valores grandes demais pra virar entradas de
-// dicionário uma a uma (países, idiomas, setores de atividade — ver
-// paises.js/idiomas.js/cnae.js) a partir de um prefixo (ex.: 'PAISES') +
-// locale ativo: procura window['PAISES_' + locale] e, se esse idioma ainda
-// não tiver a lista própria, cai pra window['PAISES_pt-br'] (sempre
-// presente — é a lista original, nunca removida). Convenção deliberadamente
-// à parte de t()/tp(): são arrays de centenas de itens onde o valor
-// gravado no item É o próprio texto de exibição (ver nota em
-// lattes-types-campos.js) — não dá pra virar {value, label} sem quebrar
-// dados já salvos, então a lista inteira troca por locale em vez de cada
-// item ganhar uma chave.
-export function resolveLista(prefixo) {
-    const doLocale = window[`${prefixo}_${localeAtual}`];
-    if (Array.isArray(doLocale)) return doLocale;
-    const doPadrao = window[`${prefixo}_${LOCALE_PADRAO}`];
-    return Array.isArray(doPadrao) ? doPadrao : [];
+// Gera uma chave i18n estável a partir do valor da própria opção
+// (minúsculas, sem acento, não-alfanumérico vira "_") — usada por
+// opcoes() abaixo, sob um namespace por lista (evita colisão entre
+// listas diferentes que compartilham um valor, ex. duas listas com
+// "Outra").
+export function slugOpcao(v) {
+    return String(v).toLowerCase()
+        .normalize('NFD').replace(/[̀-ͯ]/g, '')
+        .replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+}
+// Converte uma lista de valores literais (formato antigo de `options`, e
+// também as listas grandes — país/idioma/setor CNAE, ver paises.js/
+// idiomas.js/cnae.js) numa lista de pares { value, label }: `value`
+// continua o MESMO literal de sempre (armazenado no item, comparado em
+// disabledWhen/enabledWhenCol/forceValueWhen/labelWhen/default, mapeado
+// literalmente na exportação XML Lattes) — só `label` passa a ser
+// traduzível via t(), com chave derivada automaticamente do próprio
+// valor. Preserva 100% a compatibilidade com item já salvo e com o XML,
+// sem exigir nenhuma migração de dado (quem lê `field.options` já aceita
+// os dois formatos — string simples ou {value,label} —, ver optVal/
+// optLabel em tab-catalogar.js).
+export function opcoes(namespace, valores) {
+    return valores.map(v => ({ value: v, label: t(`lattes.opcao.${namespace}.${slugOpcao(v)}`, v) }));
 }
 
 /* --------------------------------------------------------------------------
@@ -210,5 +216,5 @@ export function tp(chave, n, formasPadrao, vars) {
 }
 
 if (typeof window !== 'undefined') {
-    window.LzI18n = { t, tp, getLocale, setLocale, localesDisponiveis, nomeLocale, registrarDicionario, resolveLista, formatarData, formatarNumero, compararTexto, LOCALE_PADRAO };
+    window.LzI18n = { t, tp, getLocale, setLocale, localesDisponiveis, nomeLocale, registrarDicionario, opcoes, slugOpcao, formatarData, formatarNumero, compararTexto, LOCALE_PADRAO };
 }

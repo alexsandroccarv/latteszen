@@ -26,7 +26,7 @@
    literal — ver nota de arquitetura no topo de lattes-types-campos.js.
    ========================================================================== */
 import { F_TITULO, F_ANO, F_DOI, F_URL, F_AUTORES, F_CIDADE, F_NATUREZA, F_AFIM, F_PAIS, F_IDIOMA, MEIO_DIVULGACAO_OPTIONS, PROD_AUTORES_LISTA, PROD_PALAVRAS_AREA_SETORES_OUTRAS, opcoes } from './lattes-types-campos.js';
-import { t, resolveLista } from './i18n.js';
+import { t } from './i18n.js';
 
 export const TYPES_05_PRODUCAO_BIBLIOGRAFICA = {
     // 05.1 Produção bibliográfica
@@ -122,7 +122,7 @@ export const TYPES_05_PRODUCAO_BIBLIOGRAFICA = {
     TEXTO_JORNAL: { label: t('lattes.tipo.TEXTO_JORNAL.label', 'Texto em jornal ou revista (magazine)'), fields: [
         { key: 'natureza', label: t('lattes.tipo.TEXTO_JORNAL.campo.natureza.label', 'Natureza'), type: 'select', options: opcoes('texto_jornal_natureza', ['Jornal de notícias', 'Revista (Magazine)']) },
         F_TITULO, { ...F_ANO, label: t('lattes.tipo.TEXTO_JORNAL.campo.ano.label', 'Ano') },
-        { key: 'pais', label: t('lattes.tipo.TEXTO_JORNAL.campo.pais.label', 'País da publicação'), type: 'select', options: resolveLista('PAISES'), default: 'Brasil' }, F_IDIOMA,
+        { key: 'pais', label: t('lattes.tipo.TEXTO_JORNAL.campo.pais.label', 'País da publicação'), type: 'select', options: window.PAISES, default: 'Brasil' }, F_IDIOMA,
         { key: 'meioDivulgacao', label: t('lattes.tipo.TEXTO_JORNAL.campo.meio_divulgacao.label', 'Meio de divulgação'), type: 'select', options: MEIO_DIVULGACAO_OPTIONS },
         { key: 'url', label: t('lattes.tipo.TEXTO_JORNAL.campo.url.label', 'Home page do trabalho (URL)'), type: 'url' },
         { key: 'relevante', label: t('lattes.tipo.TEXTO_JORNAL.campo.relevante.label', 'É um dos 10 trabalhos mais relevantes de sua produção?'), type: 'checkbox' },
@@ -144,7 +144,7 @@ export const TYPES_05_PRODUCAO_BIBLIOGRAFICA = {
         F_DOI,
         F_NATUREZA(opcoes('trabalho_evento_natureza', ['Completo', 'Resumo', 'Resumo expandido'])),
         F_TITULO, { ...F_ANO, label: t('lattes.tipo.TRABALHO_EVENTO.campo.ano.label', 'Ano') },
-        { key: 'pais', label: t('lattes.tipo.TRABALHO_EVENTO.campo.pais.label', 'País de publicação'), type: 'select', options: resolveLista('PAISES'), default: 'Brasil' }, F_IDIOMA,
+        { key: 'pais', label: t('lattes.tipo.TRABALHO_EVENTO.campo.pais.label', 'País de publicação'), type: 'select', options: window.PAISES, default: 'Brasil' }, F_IDIOMA,
         { key: 'meioDivulgacao', label: t('lattes.tipo.TRABALHO_EVENTO.campo.meio_divulgacao.label', 'Meio de divulgação'), type: 'select', options: MEIO_DIVULGACAO_OPTIONS },
         { key: 'url', label: t('lattes.tipo.TRABALHO_EVENTO.campo.url.label', 'Home page do trabalho (URL)'), type: 'url' },
         { key: 'relevante', label: t('lattes.tipo.TRABALHO_EVENTO.campo.relevante.label', 'É um dos 10 trabalhos mais relevantes de sua produção?'), type: 'checkbox' },
@@ -171,7 +171,7 @@ export const TYPES_05_PRODUCAO_BIBLIOGRAFICA = {
         F_DOI,
         F_NATUREZA(opcoes('apresentacao_natureza', ['Comunicação', 'Conferência ou palestra', 'Congresso', 'Seminário', 'Simpósio', 'Outra'])),
         F_TITULO, { ...F_ANO, label: t('lattes.tipo.APRESENTACAO.campo.ano.label', 'Ano') },
-        { key: 'pais', label: t('lattes.tipo.APRESENTACAO.campo.pais.label', 'País de publicação'), type: 'select', options: resolveLista('PAISES'), default: 'Brasil' }, F_IDIOMA,
+        { key: 'pais', label: t('lattes.tipo.APRESENTACAO.campo.pais.label', 'País de publicação'), type: 'select', options: window.PAISES, default: 'Brasil' }, F_IDIOMA,
         // Meio de divulgação/Home page aparecem na tela do Lattes para este
         // tipo, mas o schema de exportação offline (docs/CurriculoLattes.xsd)
         // não tem atributo correspondente em DADOS-BASICOS-DA-APRESENTACAO-DE-
@@ -202,14 +202,14 @@ export const TYPES_05_PRODUCAO_BIBLIOGRAFICA = {
     ] },
     TRADUCAO: { label: t('lattes.tipo.TRADUCAO.label', 'Tradução'), fields: [
         F_TITULO, F_ANO, F_NATUREZA(opcoes('traducao_natureza', ['Livro', 'Artigo', 'Outro'])), F_PAIS,
-        { key: 'idioma', label: t('lattes.tipo.TRADUCAO.campo.idioma.label', 'Idioma da tradução'), type: 'select', options: resolveLista('IDIOMAS') },
+        { key: 'idioma', label: t('lattes.tipo.TRADUCAO.campo.idioma.label', 'Idioma da tradução'), type: 'select', options: window.IDIOMAS },
         { key: 'meioDivulgacao', label: t('lattes.tipo.TRADUCAO.campo.meio_divulgacao.label', 'Meio de divulgação'), type: 'select', options: MEIO_DIVULGACAO_OPTIONS }, F_URL,
         { key: 'relevante', label: t('lattes.tipo.TRADUCAO.campo.relevante.label', 'É um dos 10 trabalhos mais relevantes de sua produção?'), type: 'checkbox' },
         PROD_AUTORES_LISTA,
         { key: 'autorOriginal', label: t('lattes.tipo.TRADUCAO.campo.autor_original.label', 'Autor da obra original'), type: 'text' },
         { key: 'obraOriginal', label: t('lattes.tipo.TRADUCAO.campo.obra_original.label', 'Título da obra original'), type: 'text' },
         { key: 'issnIsbn', label: t('lattes.tipo.TRADUCAO.campo.issn_isbn.label', 'ISSN/ISBN'), type: 'text' },
-        { key: 'idiomaOriginal', label: t('lattes.tipo.TRADUCAO.campo.idioma_original.label', 'Idioma original'), type: 'select', options: resolveLista('IDIOMAS') },
+        { key: 'idiomaOriginal', label: t('lattes.tipo.TRADUCAO.campo.idioma_original.label', 'Idioma original'), type: 'select', options: window.IDIOMAS },
         { key: 'editora', label: t('lattes.tipo.TRADUCAO.campo.editora.label', 'Editora da tradução'), type: 'text' }, { key: 'cidade', label: t('lattes.tipo.TRADUCAO.campo.cidade.label', 'Cidade da editora'), type: 'text' },
         { key: 'edicao', label: t('lattes.tipo.TRADUCAO.campo.edicao.label', 'No. edição ou revisão'), type: 'text' }, { key: 'paginas', label: t('lattes.tipo.TRADUCAO.campo.paginas.label', 'Número de páginas'), type: 'text' },
         { key: 'volume', label: t('lattes.tipo.TRADUCAO.campo.volume.label', 'Volume'), type: 'text' }, { key: 'fasciculo', label: t('lattes.tipo.TRADUCAO.campo.fasciculo.label', 'Fascículo'), type: 'text' }, { key: 'serie', label: t('lattes.tipo.TRADUCAO.campo.serie.label', 'Série'), type: 'text' },
