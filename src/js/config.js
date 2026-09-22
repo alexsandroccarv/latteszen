@@ -24,8 +24,8 @@ window.APP_CONFIG = {
     // Os dois primeiros números são atualizados manualmente; o terceiro (2
     // dígitos) é incrementado a cada issue fechada no GitHub — ver política
     // completa em CLAUDE.md e o histórico em notas-de-versao.html.
-    version: 'v1.0.0',
-    lastModified: '15/09/2026',
+    version: 'v1.0.01',
+    lastModified: '22/09/2026',
     author: {
         nome: 'Alexsandro Cardoso Carvalho',
         github: 'https://github.com/alexsandroccarv',
