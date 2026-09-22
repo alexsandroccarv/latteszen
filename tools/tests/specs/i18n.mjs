@@ -112,6 +112,74 @@ test('i18n: compararTexto() ordena texto pelo locale ativo (equivalente a locale
     assertEqual(r, ['água', 'Ávila', 'Économico', 'Zebra'], 'compararTexto() deveria ordenar acentos/maiúsculas como localeCompare(x, \'pt-BR\')');
 });
 
+// Dicionário en (i18n-en.js): registrado direto em DICIONARIOS (não via
+// registrarDicionario), então 'en' já precisa ser um locale válido desde o
+// carregamento do módulo — inclusive quando é o locale persistido de quem
+// abre o app (ver nota em i18n.js sobre a leitura síncrona de localStorage).
+test('i18n: dicionário en existe, cobre chaves de vários módulos, e localeValido("en") não cai pro padrão', async ({ page, baseUrl }) => {
+    await seedCatalog(page, baseUrl, []);
+    const r = await page.evaluate(() => ({
+        localesDisponiveis: window.LzI18n.localesDisponiveis(),
+        nomeEn: window.LzI18n.nomeLocale('en'),
+        setLocaleResultado: window.LzI18n.setLocale('en'),
+        getLocaleDepois: window.LzI18n.getLocale(),
+    }));
+    assert(r.localesDisponiveis.includes('en'), 'localesDisponiveis() deveria incluir "en" (dicionário importado no bootstrap de i18n.js)');
+    assertEqual(r.nomeEn, 'English', 'nomeLocale("en") deveria devolver "English"');
+    assertEqual(r.setLocaleResultado, 'en', 'setLocale("en") não deveria cair pro padrão — "en" é um locale válido (tem dicionário)');
+    assertEqual(r.getLocaleDepois, 'en', 'getLocale() deveria refletir "en" depois do setLocale');
+});
+
+test('i18n: com locale "en" persistido ANTES da carga da página, t() já devolve inglês em chaves de módulos diferentes (taxonomia, abas, core)', async ({ page, baseUrl }) => {
+    await page.goto(baseUrl + '/index.html');
+    await page.evaluate(() => localStorage.setItem('lz_settings', JSON.stringify({ locale: 'en' })));
+    await page.reload();
+    await page.waitForTimeout(500);
+    const r = await page.evaluate(() => ({
+        localeInicial: window.LzI18n.getLocale(),
+        htmlLang: document.documentElement.getAttribute('lang'),
+        categoriaDadosGerais: window.LzI18n.t('lattes.categoria.DADOS_GERAIS.label', 'Dados gerais'),
+        campoTitulo: window.LzI18n.t('campos.f_titulo.label', 'Título'),
+        tabCatalogarSalvar: window.LzI18n.t('tab_catalogar.salvar', 'Salvar'),
+        appCoreEmailInvalido: window.LzI18n.t('app_core.email_invalido', 'E-mail inválido.'),
+        pastaCaixaEntrada: window.LzI18n.t('lattes.pasta.caixa_entrada', 'Caixa de Entrada'),
+    }));
+    assertEqual(r.localeInicial, 'en', 'Com locale "en" persistido, i18n.js deveria se inicializar já em "en" (bootstrap síncrono, antes de qualquer setLocale() explícito)');
+    assertEqual(r.htmlLang, 'en', '<html lang> deveria refletir "en" já na carga inicial');
+    assertEqual(r.categoriaDadosGerais, 'General Data', 'Categoria Lattes (taxonomia) deveria vir traduzida');
+    assertEqual(r.campoTitulo, 'Title', 'Campo reutilizado (lattes-types-campos.js) deveria vir traduzido');
+    assertEqual(r.tabCatalogarSalvar, 'Save', 'Chave de uma aba (tab-catalogar.js) deveria vir traduzida');
+    assertEqual(r.appCoreEmailInvalido, 'Invalid e-mail.', 'Chave de validação (app-core.js) deveria vir traduzida');
+    assertEqual(r.pastaCaixaEntrada, 'Inbox', 'Nome de pasta (lattes-types.js) deveria vir traduzido — só afeta pastas NOVAS, criadas com esse locale');
+});
+
+test('i18n: tp() com locale "en" escolhe singular/plural em inglês', async ({ page, baseUrl }) => {
+    await seedCatalog(page, baseUrl, []);
+    const r = await page.evaluate(() => {
+        window.LzI18n.setLocale('en');
+        return [
+            window.LzI18n.tp('tab_linha_tempo.itens_contagem', 1, { um: '{n} item', outros: '{n} itens' }),
+            window.LzI18n.tp('tab_linha_tempo.itens_contagem', 5, { um: '{n} item', outros: '{n} itens' }),
+        ];
+    });
+    assertEqual(r, ['1 item', '5 items'], 'tp() em "en" deveria devolver as formas do dicionário en (singular sem "s", plural com "s"), não os padrões pt-BR passados na chamada');
+});
+
+test('i18n: resolveLista() em "en" cai pro pt-br (nenhuma lista PAISES/IDIOMAS/SETORES própria de "en" ainda existe)', async ({ page, baseUrl }) => {
+    await seedCatalog(page, baseUrl, []);
+    const r = await page.evaluate(() => {
+        window.LzI18n.setLocale('en');
+        return window.LzI18n.resolveLista('PAISES').length;
+    });
+    assert(r > 100, 'resolveLista("PAISES") em "en" deveria cair pra lista pt-br (única existente) em vez de devolver vazio');
+});
+
+test('i18n: o seletor de idioma do assistente já oferece "English" (populado dinamicamente a partir de localesDisponiveis())', async ({ page, baseUrl }) => {
+    await seedCatalog(page, baseUrl, []);
+    const r = await page.evaluate(() => window.AppCore.localesDisponiveis().map(l => window.AppCore.nomeLocale(l)));
+    assert(r.includes('English'), 'O seletor de idioma (wizLocale, populado via localesDisponiveis()/nomeLocale()) já deveria listar "English" sem nenhuma mudança de UI adicional');
+});
+
 test('i18n: window.AppCore.t/tp existem e se comportam como window.LzI18n.t/tp (mesma instância, módulos de aba usam por aqui)', async ({ page, baseUrl }) => {
     await seedCatalog(page, baseUrl, []);
     const r = await page.evaluate(() => ({

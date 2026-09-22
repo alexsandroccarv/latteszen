@@ -62,11 +62,20 @@
 
 export const LOCALE_PADRAO = 'pt-br';
 
-// Dicionários por idioma. Vazio (exceto o registro da chave) nesta fase —
-// t()/tp() já funcionam com só o `padrao` embutido em cada chamada; um
-// dicionário só passa a ter prioridade quando for de fato carregado (ver
-// registrarDicionario), o que ainda não acontece em lugar nenhum do app.
-const DICIONARIOS = { [LOCALE_PADRAO]: {} };
+// Dicionário en importado (não registrado via registrarDicionario) porque
+// precisa existir em DICIONARIOS ANTES da primeira chamada de
+// localeValido() logo abaixo — se o locale persistido de quem abre o app
+// for 'en', localeValido('en') só reconhece como válido se a entrada já
+// estiver aqui no bootstrap síncrono do módulo (ver lerLocalePersistido()/
+// localeAtual mais abaixo). registrarDicionario() continua existindo pra
+// dicionários carregados em runtime (ferramentas, testes).
+import { DICIONARIO_EN } from './i18n-en.js';
+
+// Dicionários por idioma. pt-br fica vazio de propósito — t()/tp() já
+// funcionam com só o `padrao` embutido em cada chamada, que É o texto
+// pt-br; um dicionário só precisa existir pra ter prioridade sobre esse
+// padrao (ver registrarDicionario).
+const DICIONARIOS = { [LOCALE_PADRAO]: {}, en: DICIONARIO_EN };
 
 // Cai pro padrão se pedirem um locale sem dicionário carregado — nunca deixa
 // a UI "muda" por causa de um nome de locale errado/typo.
@@ -119,7 +128,7 @@ export function localesDisponiveis() { return Object.keys(DICIONARIOS); }
 // Nome de exibição de um locale (pro seletor de idioma) — cai pro próprio
 // código se ainda não houver nome cadastrado (locale novo sem tradução da UI
 // ainda, ex. logo após registrarDicionario de um idioma novo).
-const NOMES_LOCALE = { 'pt-br': 'Português (Brasil)' };
+const NOMES_LOCALE = { 'pt-br': 'Português (Brasil)', en: 'English' };
 export function nomeLocale(locale) { return NOMES_LOCALE[locale] || locale; }
 // Só para ferramentas (import de um glossário, testes) — nunca chamado pela
 // UI em si. Faz merge raso: chamadas repetidas acrescentam/sobrescrevem

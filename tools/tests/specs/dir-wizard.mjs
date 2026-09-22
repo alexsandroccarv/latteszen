@@ -55,28 +55,29 @@ test('Assistente: "Primeira configuração" mostra o passo do prefixo antes de "
     assert((await page.$eval('#dirSection', (el) => el.textContent)).includes('Onde ficam os arquivos?'), 'Deveria ir direto pra "Onde ficam os arquivos?"');
 });
 
-test('Assistente: "Primeira configuração" mostra o passo de Idioma (só "Português (Brasil)" por enquanto), junto com o do prefixo; "Já tenho um diretório" não mostra', async ({ page, baseUrl }) => {
+test('Assistente: "Primeira configuração" mostra o passo de Idioma (pt-BR e English, dicionário en registrado), junto com o do prefixo; "Já tenho um diretório" não mostra', async ({ page, baseUrl }) => {
     await abrirConfig(page, baseUrl);
     await page.click('[data-wizard-modo="novo"]');
     await page.waitForTimeout(100);
 
     assertEqual(await page.locator('#wizLocale').count(), 1, 'Numa primeira configuração, o seletor de idioma deveria aparecer');
-    assertEqual(await page.locator('#wizLocale option').count(), 1, 'Por enquanto só existe um idioma cadastrado');
-    assertEqual(await page.locator('#wizLocale option').first().textContent(), 'Português (Brasil)', 'Único idioma disponível deveria ser "Português (Brasil)"');
-    assertEqual(await page.locator('#wizLocale').inputValue(), 'pt-br', 'Deveria já vir selecionado (pt-br)');
+    assertEqual(await page.locator('#wizLocale option').count(), 2, 'Dois idiomas cadastrados: pt-br (padrão) e en (dicionário completo)');
+    assertEqual(await page.locator('#wizLocale option').first().textContent(), 'Português (Brasil)', 'Primeiro idioma (padrão) deveria ser "Português (Brasil)"');
+    assertEqual(await page.locator('#wizLocale option').nth(1).textContent(), 'English', 'Segundo idioma deveria ser "English"');
+    assertEqual(await page.locator('#wizLocale').inputValue(), 'pt-br', 'Deveria já vir selecionado no padrão (pt-br)');
     const ordem = await page.evaluate(() => {
         const html = document.querySelector('#dirSection').innerHTML;
         return html.indexOf('Prefixo do identificador') < html.indexOf('id="wizLocale"') && html.indexOf('id="wizLocale"') < html.indexOf('Onde ficam os arquivos');
     });
     assert(ordem, 'O passo de Idioma deveria aparecer junto (depois do prefixo, antes de "Onde ficam os arquivos?")');
 
-    // Selecionar o (único) idioma disponível persiste em settings/state.
-    await page.selectOption('#wizLocale', 'pt-br');
+    // Selecionar um idioma disponível persiste em settings/state.
+    await page.selectOption('#wizLocale', 'en');
     await page.waitForTimeout(100);
     const locale = await page.evaluate(() => window.Storage.loadSettings().locale);
-    assertEqual(locale, 'pt-br', 'Escolher o idioma deveria persistir em settings.locale');
+    assertEqual(locale, 'en', 'Escolher o idioma deveria persistir em settings.locale');
     const stateLocale = await page.evaluate(() => window.AppCore.state.locale);
-    assertEqual(stateLocale, 'pt-br', 'state.locale deveria refletir o idioma escolhido');
+    assertEqual(stateLocale, 'en', 'state.locale deveria refletir o idioma escolhido');
 
     // "Já tenho um diretório": os arquivos existentes já têm o idioma deles
     // (mesmo raciocínio do prefixo) — não faz sentido perguntar de novo.
