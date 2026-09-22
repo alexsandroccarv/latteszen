@@ -474,7 +474,7 @@ window.Storage = (function () {
         await writeFile(`${id}.json`, JSON.stringify(obj, null, 2), subdir);
     }
 
-    const ATTACH_EXTS = ['pdf', 'jpg', 'jpeg', 'png', 'gif', 'webp', 'mp4', 'webm', 'mov', 'avi', 'mkv', 'zip', 'tar', 'gz'];
+    const ATTACH_EXTS = ['pdf', 'jpg', 'jpeg', 'png', 'gif', 'webp', 'mp4', 'webm', 'mov', 'avi', 'mkv', 'zip', 'tar', 'gz', 'xz', '7z'];
 
     /* ------------------------- Bandeja de entrada ------------------------ */
     // Caixa de Entrada: pasta onde o usuário deposita arquivos ainda não

@@ -224,7 +224,7 @@ window.TabCatalogar = (function () {
                                 <i aria-hidden="true" class="fa-solid fa-inbox text-[3em]"></i>
                                 <span id="inboxBadge" class="hidden absolute -bottom-2 -right-2 min-w-[24px] h-6 px-1.5 bg-govbr-600 dark:bg-unifesp-600 text-white text-[15px] leading-6 rounded-full text-center"></span>
                             </button>
-                            <button type="button" id="btnEvFiles" title="${esc(t('tab_catalogar.escolher_arquivos_titulo', 'Escolher arquivos (PDF, imagem, vídeo ou zip/tar.gz)'))}" class="relative w-[72px] h-[72px] shrink-0 rounded border border-govbr-200 dark:border-gray-600 text-govbr-700 dark:text-unifesp-300 hover:bg-govbr-100 dark:hover:bg-gray-700 flex items-center justify-center">
+                            <button type="button" id="btnEvFiles" title="${esc(t('tab_catalogar.escolher_arquivos_titulo', 'Escolher arquivos (PDF, imagem, vídeo ou compactado: zip/tar.gz/tar.xz/7z)'))}" class="relative w-[72px] h-[72px] shrink-0 rounded border border-govbr-200 dark:border-gray-600 text-govbr-700 dark:text-unifesp-300 hover:bg-govbr-100 dark:hover:bg-gray-700 flex items-center justify-center">
                                 <i aria-hidden="true" class="fa-solid fa-magnifying-glass text-[3em]"></i>
                                 <i aria-hidden="true" class="fa-solid fa-plus absolute -bottom-1.5 -right-1.5 w-[21px] h-[21px] text-[13px] leading-[21px] bg-govbr-600 dark:bg-unifesp-600 text-white rounded-full text-center"></i>
                             </button>
@@ -237,13 +237,13 @@ window.TabCatalogar = (function () {
                                 <i aria-hidden="true" class="fa-solid fa-plus absolute -bottom-1.5 -right-1.5 w-[21px] h-[21px] text-[13px] leading-[21px] bg-govbr-600 dark:bg-unifesp-600 text-white rounded-full text-center"></i>
                             </button>
                         </div>
-                        <input type="file" id="pdfInput" multiple accept="application/pdf,image/jpeg,image/png,image/gif,image/webp,video/mp4,video/webm,video/quicktime,video/x-msvideo,video/x-matroska,application/zip,application/x-zip-compressed,application/gzip,application/x-gzip,application/x-tar" class="hidden">
+                        <input type="file" id="pdfInput" multiple accept="application/pdf,image/jpeg,image/png,image/gif,image/webp,video/mp4,video/webm,video/quicktime,video/x-msvideo,video/x-matroska,application/zip,application/x-zip-compressed,application/gzip,application/x-gzip,application/x-tar,application/x-xz,application/x-7z-compressed" class="hidden">
                         <div id="evUrlRow" class="hidden mt-2 flex gap-1.5">
                             <input type="url" id="evUrlInput" placeholder="https://…" class="flex-1 text-sm px-2 py-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900">
                             <button type="button" id="evUrlAdd" class="text-xs px-2 py-1 rounded bg-govbr-600 dark:bg-unifesp-700 text-white">${esc(t('tab_catalogar.adicionar', 'Adicionar'))}</button>
                             <button type="button" id="evUrlCancel" class="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600">${esc(t('tab_catalogar.cancelar', 'Cancelar'))}</button>
                         </div>
-                        <p id="evHint" class="hidden text-xs text-gray-500 mt-2">${t('tab_catalogar.evidencias_ajuda', 'Arraste e solte, cole (Ctrl+V) ou use os botões acima — PDF, imagem, vídeo, link ou zip/tar.gz. Marque <strong>“pública”</strong> em <em>quantas</em> evidências quiser (0 ou mais). Use ↑ ↓ para reordenar. A <strong>tag</strong> categoriza o documento (ex.: Certificado, Declaração…).')}</p>
+                        <p id="evHint" class="hidden text-xs text-gray-500 mt-2">${t('tab_catalogar.evidencias_ajuda', 'Arraste e solte, cole (Ctrl+V) ou use os botões acima — PDF, imagem, vídeo, link ou compactado (zip/tar.gz/tar.xz/7z). Marque <strong>“pública”</strong> em <em>quantas</em> evidências quiser (0 ou mais). Use ↑ ↓ para reordenar. A <strong>tag</strong> categoriza o documento (ex.: Certificado, Declaração…).')}</p>
                         <ul id="evList" class="mt-2 space-y-1"></ul>
                     </div>
                     <div class="space-y-3">
@@ -450,7 +450,7 @@ window.TabCatalogar = (function () {
             const inp = $('#pdfInput'); if (inp) inp.accept = accept;
             const lbl = $('#pdfInputLabel');
             if (lbl) lbl.textContent = accept === 'image/jpeg,image/png' ? t('tab_catalogar.foto_label', 'Foto (JPEG ou PNG)')
-                : (def && (def.key === 'DOCUMENTO_PESSOAL' || def.key === 'ENDERECO') ? t('tab_catalogar.comprovante_label', 'Comprovante (PDF ou imagem)') : t('tab_catalogar.evidencias_label', 'Evidências (PDF, imagem, vídeo, link ou zip/tar.gz)'));
+                : (def && (def.key === 'DOCUMENTO_PESSOAL' || def.key === 'ENDERECO') ? t('tab_catalogar.comprovante_label', 'Comprovante (PDF ou imagem)') : t('tab_catalogar.evidencias_label', 'Evidências (PDF, imagem, vídeo, link ou compactado: zip/tar.gz/tar.xz/7z)'));
             const btnDrive = $('#btnEvDrive');
             if (btnDrive) {
                 btnDrive.classList.toggle('hidden', Storage.storageMode() !== 'gdrive');

@@ -106,9 +106,9 @@
 
     // Extensões de evidência aceitas por tipo de item (accept do <input file>).
     // Os dois tipos restritos a documento/foto continuam só PDF/imagem; os
-    // demais aceitam o conjunto amplo (PDF, imagem, vídeo, zip/tar.gz).
-    const EVID_EXTS_DEFAULT = ['pdf', 'jpg', 'jpeg', 'png', 'gif', 'webp', 'mp4', 'webm', 'mov', 'avi', 'mkv', 'zip', 'tar', 'gz'];
-    const EVID_ACCEPT_DEFAULT = 'application/pdf,image/jpeg,image/png,image/gif,image/webp,video/mp4,video/webm,video/quicktime,video/x-msvideo,video/x-matroska,application/zip,application/x-zip-compressed,application/gzip,application/x-gzip,application/x-tar';
+    // demais aceitam o conjunto amplo (PDF, imagem, vídeo, zip/tar.gz/tar.xz/7z).
+    const EVID_EXTS_DEFAULT = ['pdf', 'jpg', 'jpeg', 'png', 'gif', 'webp', 'mp4', 'webm', 'mov', 'avi', 'mkv', 'zip', 'tar', 'gz', 'xz', '7z'];
+    const EVID_ACCEPT_DEFAULT = 'application/pdf,image/jpeg,image/png,image/gif,image/webp,video/mp4,video/webm,video/quicktime,video/x-msvideo,video/x-matroska,application/zip,application/x-zip-compressed,application/gzip,application/x-gzip,application/x-tar,application/x-xz,application/x-7z-compressed';
     // Publicado em AppCore para tab-catalogar.js (padrão "accept" default do
     // input de evidências) — mesmo motivo de uid/nowISO.
     window.AppCore.EVID_ACCEPT_DEFAULT = EVID_ACCEPT_DEFAULT;
@@ -121,15 +121,21 @@
     window.AppCore.allowedExtsForAccept = allowedExtsForAccept;
 
     // Validação do arquivo de evidência: vazio, tamanho e tipo permitido.
-    // Retorna null se OK ou uma mensagem de erro.
-    const MAX_EVID_MB = 40;
+    // Retorna null se OK ou uma mensagem de erro. Limite de tamanho maior
+    // para compactados (zip/tar/gz/xz/7z) — costumam empacotar várias
+    // evidências/anexos grandes num arquivo só — do que para os demais
+    // (PDF, imagem, vídeo avulsos).
+    const MAX_EVID_MB_COMPACTADO = 2048;
+    const MAX_EVID_MB_PADRAO = 512;
+    const EXTS_COMPACTADAS = ['zip', 'tar', 'gz', 'xz', '7z'];
     function checkEvidenceFile(file, allowedExts) {
         if (!file) return t('app.arquivo_invalido', 'Arquivo inválido.');
         if (file.size === 0) return t('app.arquivo_vazio', '"{nome}" está vazio.', { nome: file.name });
-        if (file.size > MAX_EVID_MB * 1024 * 1024) {
-            return t('app.arquivo_muito_grande', '"{nome}" tem {mb} MB — o limite é {limite} MB.', { nome: file.name, mb: (file.size / 1048576).toFixed(1), limite: MAX_EVID_MB });
-        }
         const ext = fileExt(file);
+        const limiteMb = EXTS_COMPACTADAS.includes(ext) ? MAX_EVID_MB_COMPACTADO : MAX_EVID_MB_PADRAO;
+        if (file.size > limiteMb * 1024 * 1024) {
+            return t('app.arquivo_muito_grande', '"{nome}" tem {mb} MB — o limite é {limite} MB.', { nome: file.name, mb: (file.size / 1048576).toFixed(1), limite: limiteMb });
+        }
         if (allowedExts && allowedExts.length && !allowedExts.includes(ext)) {
             return t('app.tipo_nao_permitido', '"{nome}": tipo não permitido (aceitos: {tipos}).', { nome: file.name, tipos: allowedExts.join(', ') });
         }
