@@ -52,6 +52,7 @@ window.TabCatalogar = (function () {
         isImageExt, isVideoExt, isArchiveExt, NA_VALUE,
         elegivelAoLattes, itemsUsingValue, normNome, validateField,
         setFieldError, associateLabels, isFieldDisabled, t, tp, compararTexto,
+        getLocale, datebrParaCanonico, datebrParaExibicao,
     } = window.AppCore;
 
     // Uma opção de select/checkboxes/skilllevels pode vir como string simples
@@ -692,6 +693,11 @@ window.TabCatalogar = (function () {
         return f.columns.map(c => {
             const v = row[c.key];
             if (c.type === 'checkbox') return v ? c.label : '';
+            // Coluna `datebr` (ex.: "Ano" em Produção C&T/Orientações): `v` é
+            // o canônico sem separador (ver wireRepeater) — formata pro
+            // locale ativo antes de mostrar no resumo da linha, senão
+            // mostraria os dígitos crus (ex. "092020" em vez de "09/2020").
+            if (c.type === 'datebr') return datebrParaExibicao(v, getLocale());
             return v;
         }).filter(Boolean).join(' · ');
     }
@@ -752,18 +758,27 @@ window.TabCatalogar = (function () {
         </select>`;
     }
     function fieldDateBr(f, val, req, base, compact) {
-        // Data aaaa, mm/aaaa OU dd/mm/aaaa (texto com máscara). Guardada por
-        // extenso para controle interno; na exportação XML Lattes só o ano
-        // é mantido (o schema só aceita ANO). Valor ISO (aaaa-mm-dd), herdado
-        // de importação/legado, vira dd/mm/aaaa.
+        // Valor CANÔNICO gravado no item: aaaa, mmaaaa ou ddmmaaaa — sempre
+        // ordem dia-mês-ano, sem separador, independente do locale ativo
+        // (ver datebrParaCanonico/datebrParaExibicao em app-core.js e
+        // collectFields, abaixo). Tolera dois formatos legados de item
+        // salvo antes desta migração: ISO (aaaa-mm-dd) e dd/mm/aaaa (ambos
+        // convertidos pro canônico antes de decidir o que exibir).
         let dv = val == null ? '' : String(val);
         const iso = dv.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-        if (iso) dv = `${iso[3]}/${iso[2]}/${iso[1]}`;
-        const dph = compact ? 'aaaa' : 'aaaa, mm/aaaa ou dd/mm/aaaa';
+        dv = iso ? `${iso[3]}${iso[2]}${iso[1]}` : dv.replace(/\D/g, '').slice(0, 8);
+        const locale = getLocale();
+        const exibido = datebrParaExibicao(dv, locale);
+        const dph = compact ? t('tab_catalogar.datebr_placeholder_compacto', 'aaaa')
+            : (locale === 'en' ? t('tab_catalogar.datebr_placeholder_en', 'yyyy, mm/yyyy or mm/dd/yyyy')
+                : t('tab_catalogar.datebr_placeholder', 'aaaa, mm/aaaa ou dd/mm/aaaa'));
         // Largura fixa (não w-full): o valor nunca passa de 10 caracteres
         // (dd/mm/aaaa), então o campo não deve esticar para preencher a linha.
         const dateBase = base.replace('w-full', 'w-32');
-        return `<input type="text" name="${f.key}" value="${esc(dv)}" ${req} autocomplete="off" ${RO} inputmode="numeric" maxlength="10" placeholder="${dph}" data-datebr class="${dateBase}">`;
+        // data-canonico: fonte de verdade pro valor a salvar (ver
+        // collectFields) — sobrevive mesmo se o campo nunca disparar
+        // 'input' (item aberto e salvo sem tocar na data).
+        return `<input type="text" name="${f.key}" value="${esc(exibido)}" data-canonico="${esc(dv)}" ${req} autocomplete="off" ${RO} inputmode="numeric" maxlength="10" placeholder="${dph}" data-datebr class="${dateBase}">`;
     }
     function fieldCheckboxes(f, val) {
         const selected = String(val || '').split(/[;,]/).map(s => s.trim()).filter(Boolean);
@@ -782,7 +797,14 @@ window.TabCatalogar = (function () {
         </div>`;
     }
     function fieldSkillLevels(f, val, base) {
-        const levels = f.levels || ['Bom', 'Razoável', 'Pouco'];
+        // levels: mesmo formato {value,label} de f.options (ver opcoes() em
+        // i18n.js) — o padrão abaixo só entra em cena se algum campo
+        // skilllevels esquecer de passar `levels` (hoje nenhum esquece).
+        const levels = f.levels || [
+            { value: 'Bom', label: t('lattes.opcao.nivel_habilidade.bom', 'Bom') },
+            { value: 'Razoável', label: t('lattes.opcao.nivel_habilidade.razoavel', 'Razoável') },
+            { value: 'Pouco', label: t('lattes.opcao.nivel_habilidade.pouco', 'Pouco') },
+        ];
         const map = {};
         String(val || '').split(';').forEach(pair => {
             const idx = pair.indexOf(':');
@@ -797,7 +819,7 @@ window.TabCatalogar = (function () {
                 <span class="w-32 shrink-0">${esc(skLbl)}</span>
                 <select data-slgroup="${f.key}" data-skill="${esc(sk)}" aria-label="${esc(skLbl)}" class="${base}">
                     <option value="">—</option>
-                    ${levels.map(l => `<option value="${esc(l)}" ${map[sk] === l ? 'selected' : ''}>${esc(l)}</option>`).join('')}
+                    ${levels.map(l => `<option value="${esc(optVal(l))}" ${map[sk] === optVal(l) ? 'selected' : ''}>${esc(optLabel(l))}</option>`).join('')}
                 </select>
             </div>`; }).join('')}
         </div>`;
@@ -1017,18 +1039,24 @@ window.TabCatalogar = (function () {
             ta.addEventListener('input', upd);
         });
     }
-    // Máscara para campos 'datebr': aceita aaaa, mm/aaaa OU dd/mm/aaaa. Até 4
-    // dígitos fica só o ano (sem barra); a 1ª barra só entra a partir do 5º
-    // dígito (aí é mm/aaaa) e a 2ª a partir do 7º (dd/mm/aaaa) — assim dá para
-    // digitar um ano puro sem ele virar "mm/aaaa" pela metade.
+    // Máscara para campos 'datebr': aceita aaaa, mm/aaaa OU uma data completa
+    // (ordem dd/mm ou mm/dd conforme o locale ativo — ver datebrParaCanonico/
+    // datebrParaExibicao em app-core.js). Até 4 dígitos fica só o ano (sem
+    // barra); a 1ª barra só entra a partir do 5º dígito (mm/aaaa) e a 2ª a
+    // partir do 7º (data completa) — assim dá para digitar um ano puro sem
+    // ele virar "mm/aaaa" pela metade. O valor EXIBIDO (el.value, na ordem
+    // do locale) e o CANÔNICO gravado no item (data-canonico, sempre
+    // dd-mm-aaaa — ver collectFields) são recalculados juntos a cada tecla.
     function wireDateBr(container) {
         $$('[data-datebr]', container).forEach(el => {
             el.addEventListener('input', () => {
+                const locale = getLocale();
                 const d = el.value.replace(/\D/g, '').slice(0, 8);
                 let out = d;
-                if (d.length > 6) out = d.slice(0, 2) + '/' + d.slice(2, 4) + '/' + d.slice(4); // dd/mm/aaaa
-                else if (d.length > 4) out = d.slice(0, 2) + '/' + d.slice(2);                   // mm/aaaa (ou dd/mm em progresso)
+                if (d.length > 6) out = d.slice(0, 2) + '/' + d.slice(2, 4) + '/' + d.slice(4);
+                else if (d.length > 4) out = d.slice(0, 2) + '/' + d.slice(2);
                 el.value = out;
+                el.dataset.canonico = datebrParaCanonico(d, locale);
             });
         });
     }
@@ -1169,7 +1197,12 @@ window.TabCatalogar = (function () {
                     const el = wrap.querySelector(`[data-repeater-input="${f.key}:${c.key}"]`);
                     if (!el) return;
                     if (c.type === 'checkbox') { row[c.key] = el.checked; return; }
-                    const v = el.value.trim();
+                    // Coluna `datebr` (ex.: "Ano" em Produção C&T/Orientações):
+                    // grava o CANÔNICO (sem separador — ver fieldDateBr/
+                    // wireDateBr, o mesmo dataset é populado pra qualquer
+                    // [data-datebr], repeater ou não), não o texto exibido
+                    // (que pode estar em mm/dd conforme o locale ativo).
+                    const v = c.type === 'datebr' ? (el.dataset.canonico || '') : el.value.trim();
                     if (c.required && !v) ok = false;
                     row[c.key] = v;
                 });
@@ -1178,7 +1211,8 @@ window.TabCatalogar = (function () {
                 f.columns.forEach(c => {
                     const el = wrap.querySelector(`[data-repeater-input="${f.key}:${c.key}"]`);
                     if (!el) return;
-                    if (c.type === 'checkbox') el.checked = false; else el.value = '';
+                    if (c.type === 'checkbox') el.checked = false;
+                    else { el.value = ''; if (c.type === 'datebr') el.dataset.canonico = ''; }
                 });
             });
         });
@@ -1366,6 +1400,14 @@ window.TabCatalogar = (function () {
                 const na = form.querySelector(`[data-na="${f.key}"]`);
                 if (na && na.checked) fields[f.key] = NA_VALUE;
                 else { const el = form.elements[f.key]; fields[f.key] = el ? el.value.trim() : ''; }
+            } else if (f.type === 'datebr') {
+                // Grava o CANÔNICO (data-canonico, sempre dd-mm-aaaa sem
+                // separador — ver fieldDateBr/wireDateBr), não o texto
+                // exibido no campo (que pode estar em outra ordem dia/mês
+                // conforme o locale ativo). Recalcula na hora se o dataset
+                // não tiver sido populado por algum motivo (defensivo).
+                const el = form.elements[f.key];
+                fields[f.key] = el ? (el.dataset.canonico || datebrParaCanonico(el.value, getLocale())) : '';
             } else {
                 const el = form.elements[f.key];
                 if (el) fields[f.key] = el.value.trim();

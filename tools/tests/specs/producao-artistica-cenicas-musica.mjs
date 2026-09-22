@@ -57,7 +57,7 @@ test('Artes cênicas: Natureza (select real) e campos novos (Meio de divulgaçã
     const item = salvo.find((i) => i.typeKey === 'ARTES_CENICAS');
     assert(!!item, 'A produção de artes cênicas deveria ter sido salva');
     assertEqual(item.fields.natureza, 'Teatral', 'Natureza deveria ser salva');
-    assertEqual(item.fields.dataEstreia, '10/05/2019', 'Data de estreia deveria ser salva');
+    assertEqual(item.fields.dataEstreia, '10052019', 'Data de estreia deveria ser salva no formato canônico (sem separador — ver fieldDateBr/collectFields em tab-catalogar.js)');
     assertEqual(item.fields.premiacao, 'Prêmio Shell', 'Premiação deveria ser salva');
     assertEqual(item.fields.evento, 'Festival de Teatro de Curitiba', 'Instituição promotora do evento (campo antigo "evento") deveria ser salva');
     assertEqual(item.fields.autoresLista.map((a) => a.nomeCompleto), ['Fulano de Tal'], 'Autores (lista) deveria ter sido salvo');

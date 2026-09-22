@@ -100,7 +100,7 @@ test('Entrevistas/mesas redondas/mídia: Natureza tem a opção "Outra" (antes a
     const item = salvo.find((i) => i.typeKey === 'MIDIA');
     assert(!!item, 'A mídia deveria ter sido salva');
     assertEqual(item.fields.tema, 'Aquecimento global', 'Tema deveria ser salvo');
-    assertEqual(item.fields.dataRealizacao, '15/03/2022', 'Data de realização deveria ser salva');
+    assertEqual(item.fields.dataRealizacao, '15032022', 'Data de realização deveria ser salva no formato canônico (sem separador — ver fieldDateBr/collectFields em tab-catalogar.js)');
     assertEqual(item.fields.duracaoMinutos, '30', 'Duração (minutos) deveria ser salva');
 });
 

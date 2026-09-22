@@ -38,7 +38,7 @@
    manual (mesmo escopo sugerido na issue).
    ========================================================================== */
 window.TabSumula = (function () {
-    const { state, $, esc, toast, itemYear, sortByYear, t } = window.AppCore;
+    const { state, $, esc, toast, itemYear, sortByYear, t, getLocale, datebrParaExibicao } = window.AppCore;
 
     // Nome e ORCID vêm da Identificação (Configurações › Perfil) — evita
     // duplicar esse cadastro aqui (mesmo princípio já usado pelo RSC pro
@@ -85,11 +85,15 @@ window.TabSumula = (function () {
     }
 
     /* ------------------ Recortes do catálogo por seção --------------------- */
+    // anoInicio/anoFim são campos `datebr` — valor CANÔNICO (sem separador,
+    // ver fieldDateBr em tab-catalogar.js), formatado aqui pro locale ativo
+    // antes de entrar no texto da Súmula (senão imprimiria os dígitos crus).
     function periodoTexto(f) {
-        const ini = String((f && f.anoInicio) || '').trim();
-        const fim = String((f && f.anoFim) || '').trim();
+        const locale = getLocale();
+        const ini = datebrParaExibicao((f && f.anoInicio) || '', locale);
+        const fim = datebrParaExibicao((f && f.anoFim) || '', locale);
         if (ini && fim) return `${ini}–${fim}`;
-        if (ini) return `${ini}–atual`;
+        if (ini) return `${ini}–${t('tab_sumula.periodo_atual', 'atual')}`;
         return fim || '';
     }
     // 1) Formação: titulação acadêmica, pós-doutorado/livre-docência e

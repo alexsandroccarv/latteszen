@@ -89,6 +89,7 @@ import './specs/toast.mjs';
 import './specs/i18n.mjs';
 import './specs/evidencia-limites-tamanho.mjs';
 import './specs/wizard-idioma-reload.mjs';
+import './specs/datebr-locale-migracao.mjs';
 
 console.log('Rodando suíte de testes de regressão (Playwright)...\n');
 await runAll();

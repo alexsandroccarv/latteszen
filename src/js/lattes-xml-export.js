@@ -84,14 +84,21 @@ window.LattesXMLExport = (function () {
         return inner === '' ? '' : `<${tag}>${inner}</${tag}>`;
     }
 
-    const year = (v) => { const m = String(v == null ? '' : v).match(/\d{4}/); return m ? m[0] : ''; };
-    // Converte 'AAAA-MM-DD' ou 'DD/MM/AAAA' em DDMMAAAA; senão ''.
+    // Extrai o ANO de um campo `datebr` (aaaa/mmaaaa/ddmmaaaa canônico, sem
+    // separador — ver fieldDateBr/collectFields em tab-catalogar.js — mesma
+    // lógica de AppCore.anoDe(); tolera também dd/mm/aaaa de item salvo
+    // antes desta migração). O ano são sempre os ÚLTIMOS 4 dígitos, nunca
+    // "os primeiros 4 dígitos encontrados" (bug do regex /\d{4}/ antigo).
+    const year = (v) => { const d = String(v == null ? '' : v).replace(/\D/g, ''); return d.length >= 4 ? d.slice(-4) : ''; };
+    // Converte 'AAAA-MM-DD', 'DD/MM/AAAA' (legado) ou DDMMAAAA (canônico
+    // atual, sem separador) em DDMMAAAA; senão ''.
     function ddmmaaaa(v) {
         const s = clean(v);
         let m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
         if (m) return m[3] + m[2] + m[1];
         m = s.match(/^(\d{2})[/](\d{2})[/](\d{4})$/);
         if (m) return m[1] + m[2] + m[3];
+        if (/^\d{8}$/.test(s)) return s;
         return '';
     }
     // status do curso a partir do ano de conclusão

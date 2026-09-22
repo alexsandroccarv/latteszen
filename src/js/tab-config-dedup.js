@@ -41,10 +41,13 @@ const { state } = window.AppCore;
             || f.especialidade || f.subarea || f.area || f.instituicao)) || '')
             .toLowerCase().replace(/\s+/g, ' ').trim();
     }
-    // Reduz qualquer data (aaaa, aaaa-mm-dd ou dd/mm/aaaa) ao ano de 4 dígitos.
-    // Assim a assinatura de um item com data completa (ex.: ATIV_CONSELHO) casa
-    // com o mesmo item reimportado do Lattes, que traz só o ano — sem duplicar.
-    function _sigYear(v) { const m = String(v == null ? '' : v).match(/\d{4}/); return m ? m[0] : ''; }
+    // Reduz qualquer data (aaaa, ou um `datebr` completo — canônico sem
+    // separador, ou dd/mm/aaaa de item salvo antes desta migração) ao ano
+    // de 4 dígitos (sempre os ÚLTIMOS 4, nunca "os primeiros 4 dígitos
+    // encontrados" — mesma lógica de AppCore.anoDe()). Assim a assinatura de
+    // um item com data completa (ex.: ATIV_CONSELHO) casa com o mesmo item
+    // reimportado do Lattes, que traz só o ano — sem duplicar.
+    function _sigYear(v) { const d = String(v == null ? '' : v).replace(/\D/g, ''); return d.length >= 4 ? d.slice(-4) : ''; }
     export function itemSignature(typeKey, fields) {
         const c = _canonTitle(fields);
         return c ? `${typeKey}|${c}|${_sigYear(fields && fields.ano)}|${_sigYear(fields && fields.anoInicio)}|${_sigYear(fields && fields.anoFim)}` : '';
