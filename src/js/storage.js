@@ -187,7 +187,7 @@ window.Storage = (function () {
         if (!picked) return null;
         let driveSourceInbox = false;
         try {
-            const inboxId = await resolveFolder(INBOX_FOLDER, false);
+            const inboxId = await resolveFolder(inboxFolder(), false);
             if (inboxId) {
                 const parents = await window.GDriveClient.getFileParents(picked.id);
                 driveSourceInbox = !!(parents && parents.includes(inboxId));
@@ -480,12 +480,18 @@ window.Storage = (function () {
     // Caixa de Entrada: pasta onde o usuário deposita arquivos ainda não
     // catalogados. Processados: subpasta (dentro dela) para onde o
     // original é movido depois de catalogado.
-    const INBOX_FOLDER = 'Caixa de Entrada';
-    const PROCESSED_FOLDER = 'Processados';
+    // Mesma chave de tradução usada pela INBOX_FOLDER de lattes-types.js (é
+    // o mesmo diretório físico) — chamadas como função (não const no topo do
+    // módulo) porque storage.js carrega ANTES de app-core.js (ver ordem dos
+    // <script> em index.html): window.AppCore.t só existe quando estas
+    // funções são de fato chamadas (sempre em resposta a uma ação, nunca no
+    // carregamento do módulo), nunca no topo do arquivo.
+    const inboxFolder = () => t('lattes.pasta.caixa_entrada', 'Caixa de Entrada');
+    const processedFolder = () => t('storage.pasta.processados', 'Processados');
 
     async function inboxDir(create) {
         const dir = await ensureDirReady();
-        return dir.getDirectoryHandle(INBOX_FOLDER, { create: !!create });
+        return dir.getDirectoryHandle(inboxFolder(), { create: !!create });
     }
     // A Caixa de Entrada em si já é criada por ensureSubdirs(LattesTypes.allFolders())
     // (chamado antes desta função em toda instalação nova) — aqui só falta
@@ -493,17 +499,17 @@ window.Storage = (function () {
     async function ensureInbox() {
         if (mode === 'gdrive') {
             if (!gdriveCfg) return;
-            try { await resolveFolder(`${INBOX_FOLDER}/${PROCESSED_FOLDER}`, true); } catch (_) {}
+            try { await resolveFolder(`${inboxFolder()}/${processedFolder()}`, true); } catch (_) {}
             return;
         }
         const inbox = await inboxDir(true);
-        await inbox.getDirectoryHandle(PROCESSED_FOLDER, { create: true });
+        await inbox.getDirectoryHandle(processedFolder(), { create: true });
     }
     // Lista os arquivos (PDF/imagem) pendentes na Inbox (ignora subpastas)
     async function listInbox() {
         if (mode === 'gdrive') {
             if (!gdriveCfg) return [];
-            const parentId = await resolveFolder(INBOX_FOLDER, false);
+            const parentId = await resolveFolder(inboxFolder(), false);
             if (!parentId) return [];
             let children; try { children = await window.GDriveClient.listChildren(parentId); } catch (_) { return []; }
             const out = [];
@@ -534,7 +540,7 @@ window.Storage = (function () {
     async function readInboxFile(name) {
         if (mode === 'gdrive') {
             if (!gdriveCfg) return null;
-            const parentId = await resolveFolder(INBOX_FOLDER, false);
+            const parentId = await resolveFolder(inboxFolder(), false);
             if (!parentId) return null;
             const fileId = await window.GDriveClient.findFile(parentId, name);
             return fileId ? window.GDriveClient.getFileContent(fileId) : null;
@@ -547,8 +553,8 @@ window.Storage = (function () {
     async function moveInboxToProcessed(name) {
         if (mode === 'gdrive') {
             if (!gdriveCfg) return name;
-            const inboxId = await resolveFolder(INBOX_FOLDER, true);
-            const procId = await resolveFolder(`${INBOX_FOLDER}/${PROCESSED_FOLDER}`, true);
+            const inboxId = await resolveFolder(inboxFolder(), true);
+            const procId = await resolveFolder(`${inboxFolder()}/${processedFolder()}`, true);
             const dot = name.lastIndexOf('.');
             const base = dot > 0 ? name.slice(0, dot) : name;
             const ext = dot > 0 ? name.slice(dot) : '';
@@ -563,7 +569,7 @@ window.Storage = (function () {
             return target;
         }
         const inbox = await inboxDir(true);
-        const proc = await inbox.getDirectoryHandle(PROCESSED_FOLDER, { create: true });
+        const proc = await inbox.getDirectoryHandle(processedFolder(), { create: true });
         const dot = name.lastIndexOf('.');
         const base = dot > 0 ? name.slice(0, dot) : name;
         const ext = dot > 0 ? name.slice(dot) : '';
@@ -953,7 +959,7 @@ window.Storage = (function () {
             catch (_) { falhas += 1; detalhes.push({ tipo: 'pasta', id: folderId, caminho: caminho || '(raiz)' }); return; }
             await Promise.all(children.map((child) => {
                 if (child.isDir) {
-                    if (child.name === INBOX_FOLDER) return Promise.resolve(); // não indexa a bandeja de entrada
+                    if (child.name === inboxFolder()) return Promise.resolve(); // não indexa a bandeja de entrada
                     return scanPasta(child.id, caminho ? `${caminho}/${child.name}` : child.name);
                 }
                 if (!ehArquivoOculto(child.name) && child.name.toLowerCase().endsWith('.json') && !ehArquivoDeConfiguracao(child.name)) {
@@ -986,7 +992,7 @@ window.Storage = (function () {
                     if (h.kind === 'file' && !ehArquivoOculto(name) && name.toLowerCase().endsWith('.json') && !ehArquivoDeConfiguracao(name)) {
                         await lerArquivo(h, caminho ? `${caminho}/${name}` : name, caminho);
                     } else if (h.kind === 'directory') {
-                        if (name === INBOX_FOLDER) continue; // não indexa a bandeja de entrada
+                        if (name === inboxFolder()) continue; // não indexa a bandeja de entrada
                         await scanPasta(h, caminho ? `${caminho}/${name}` : name);
                     }
                 }

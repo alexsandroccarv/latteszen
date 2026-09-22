@@ -30,11 +30,21 @@
 
    i18n (preparação): label/note (categorias, subgrupos, NAO_LATTES_TYPE)
    passam por t(). As constantes de PASTA (BACKUP_FOLDER, EVIDENCIAS_FOLDER,
-   RSC_PCCTAE_FOLDER etc.) ficam de propósito FORA do t() — não são texto de
-   exibição, são NOMES DE DIRETÓRIO gravados/lidos de verdade no disco (ou
-   Google Drive) da pessoa; traduzir isso quebraria a leitura de pastas já
-   criadas em sessões anteriores. `titleCasePt`/`TC_MINOR` (regra de Title
-   Case com conectores em minúsculas) é lógica gramatical específica do
+   RSC_PCCTAE_FOLDER etc.) também passam por t() — são NOMES DE DIRETÓRIO
+   gravados/lidos de verdade no disco (ou Google Drive) da pessoa, então
+   isso só é seguro por causa de uma regra do produto (pedido do
+   Alexsandro): idioma se escolhe SÓ na configuração inicial (junto da
+   criação do diretório) e nunca muda depois — logo t() sempre resolve pro
+   MESMO texto durante toda a vida daquele diretório, e a estrutura de
+   pastas criada uma vez (ver LattesTypes.allFolders(), usada por
+   Storage.ensureSubdirs() no assistente) nunca precisa ser renomeada.
+   Disso decorre uma regra rígida: o `padrao` (texto em português) de
+   qualquer chave 'lattes.pasta.*' é definitivo — uma vez lançado, NUNCA
+   editar a palavra em si (só corrigiria a pasta esperada, não a pasta que
+   já existe no disco das pessoas, quebrando a leitura). Uma tradução nova
+   entra como dicionário de outro locale (registrarDicionario), nunca como
+   edição do padrao pt-br. `titleCasePt`/`TC_MINOR` (regra de Title Case
+   com conectores em minúsculas) é lógica gramatical específica do
    português — fica como está, sem tentativa de generalizar pra outro
    idioma agora. O fallback 'Outra' em itemTitle() (Redes acadêmicas)
    também fica fora: precisa bater exatamente com o valor da opção
@@ -211,16 +221,17 @@ window.LattesTypes = (function () {
     LATTES_CATEGORIES.forEach(c => { catByKey[c.key] = c; });
     catByKey['NAO_LATTES'] = { num: '00', key: 'NAO_LATTES', label: t('lattes.categoria.NAO_LATTES.label', 'Não-Lattes'), icon: 'fa-heart' };
 
-    const BACKUP_FOLDER = 'Cópia de segurança';
-    const INBOX_FOLDER = 'Caixa de Entrada';
-    const EVIDENCIAS_FOLDER = 'Evidências';
-    const LATTES_XML_FOLDER = 'Exportação/Lattes XML';
-    const RSC_PCCTAE_FOLDER = 'Exportação/RSC-PCCTAE';
-    const SUMULA_FAPESP_FOLDER = 'Exportação/Súmula Curricular FAPESP';
-    const EXPORT_FOLDERS = [RSC_PCCTAE_FOLDER, 'Exportação/Progressão Docentes', SUMULA_FAPESP_FOLDER, LATTES_XML_FOLDER];
-    const PUBLICACAO_FOLDER = 'Publicação para Web';
-    const RELATORIOS_FOLDER = 'Relatórios';
-    const LIXEIRA_FOLDER = 'Lixeira';
+    const BACKUP_FOLDER = t('lattes.pasta.copia_seguranca', 'Cópia de segurança');
+    const INBOX_FOLDER = t('lattes.pasta.caixa_entrada', 'Caixa de Entrada');
+    const EVIDENCIAS_FOLDER = t('lattes.pasta.evidencias', 'Evidências');
+    const LATTES_XML_FOLDER = t('lattes.pasta.exportacao_lattes_xml', 'Exportação/Lattes XML');
+    const RSC_PCCTAE_FOLDER = t('lattes.pasta.exportacao_rsc_pcctae', 'Exportação/RSC-PCCTAE');
+    const SUMULA_FAPESP_FOLDER = t('lattes.pasta.exportacao_sumula_fapesp', 'Exportação/Súmula Curricular FAPESP');
+    const PROGRESSAO_DOCENTES_FOLDER = t('lattes.pasta.exportacao_progressao_docentes', 'Exportação/Progressão Docentes');
+    const EXPORT_FOLDERS = [RSC_PCCTAE_FOLDER, PROGRESSAO_DOCENTES_FOLDER, SUMULA_FAPESP_FOLDER, LATTES_XML_FOLDER];
+    const PUBLICACAO_FOLDER = t('lattes.pasta.publicacao_web', 'Publicação para Web');
+    const RELATORIOS_FOLDER = t('lattes.pasta.relatorios', 'Relatórios');
+    const LIXEIRA_FOLDER = t('lattes.pasta.lixeira', 'Lixeira');
     const EXTRA_FOLDERS = [PUBLICACAO_FOLDER, RELATORIOS_FOLDER, LIXEIRA_FOLDER];
 
     // Nome de pasta seguro para o sistema de arquivos, legível e ordenável
@@ -238,7 +249,7 @@ window.LattesTypes = (function () {
     }
     // Pasta de itens sem categoria reconhecida (fallback de categoryFolder) —
     // também uma subpasta de "01 Dados Gerais" (01.3 Outros).
-    const OUTROS_FOLDER = `${EVIDENCIAS_FOLDER}/${folderName(catByKey['DADOS_GERAIS'])}/01.3 Outros`;
+    const OUTROS_FOLDER = `${EVIDENCIAS_FOLDER}/${folderName(catByKey['DADOS_GERAIS'])}/01.3 ${t('lattes.pasta.outros_subpasta', 'Outros')}`;
 
     // Title Case pt-BR (iniciais maiúsculas, conectores em minúsculas)
     const TC_MINOR = new Set(['de', 'da', 'do', 'das', 'dos', 'e', 'em', 'a', 'o', 'ao', 'aos', 'à', 'às', 'com', 'por', 'para', 'sem', 'sob', 'entre', 'no', 'na', 'nos', 'nas', 'ou']);
