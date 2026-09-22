@@ -1242,8 +1242,16 @@
         wireTabListKeyboardNav();
         // Vindo de outra página pelo botão de Configurações no cabeçalho
         // (ex.: index.html#config a partir de privacidade.html) — abre a
-        // aba direto, em vez de sempre cair em "Início".
-        switchTab(window.location.hash === '#config' ? 'config' : 'inicio');
+        // aba direto, em vez de sempre cair em "Início". Mesma coisa depois
+        // do reload forçado por uma troca de idioma no assistente de
+        // diretório (ver wizLocale em tab-config.js): a chave em
+        // sessionStorage (já lida por tab-config.js, que restaura o passo
+        // do assistente) é só removida aqui, depois de garantir que a aba
+        // certa abre — assim uma pessoa não fica "presa" reabrindo o
+        // assistente pra sempre num F5 manual seguinte.
+        const vemDeTrocaIdioma = !!sessionStorage.getItem('lz_wizard_restore');
+        try { sessionStorage.removeItem('lz_wizard_restore'); } catch (_) {}
+        switchTab((vemDeTrocaIdioma || window.location.hash === '#config') ? 'config' : 'inicio');
 
         wireFirstRunNotice();
     }

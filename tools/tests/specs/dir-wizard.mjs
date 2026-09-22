@@ -71,13 +71,11 @@ test('Assistente: "Primeira configuração" mostra o passo de Idioma (pt-BR e En
     });
     assert(ordem, 'O passo de Idioma deveria aparecer junto (depois do prefixo, antes de "Onde ficam os arquivos?")');
 
-    // Selecionar um idioma disponível persiste em settings/state.
-    await page.selectOption('#wizLocale', 'en');
-    await page.waitForTimeout(100);
-    const locale = await page.evaluate(() => window.Storage.loadSettings().locale);
-    assertEqual(locale, 'en', 'Escolher o idioma deveria persistir em settings.locale');
-    const stateLocale = await page.evaluate(() => window.AppCore.state.locale);
-    assertEqual(stateLocale, 'en', 'state.locale deveria refletir o idioma escolhido');
+    // Escolher um idioma persiste em settings/state e recarrega a página
+    // (nomes de pasta calculados uma vez no carregamento precisam nascer
+    // já no idioma novo) — coberto em detalhe por wizard-idioma-reload.mjs.
+    // Aqui, sem trocar de idioma, só falta confirmar que "Já tenho um
+    // diretório" some com o seletor:
 
     // "Já tenho um diretório": os arquivos existentes já têm o idioma deles
     // (mesmo raciocínio do prefixo) — não faz sentido perguntar de novo.

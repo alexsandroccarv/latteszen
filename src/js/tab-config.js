@@ -148,8 +148,17 @@ window.TabConfig = (function () {
     // — depois de configurado, a seção volta a mostrar o painel de estado
     // atual direto (pasta ativa + botões de gerenciar), sem o assistente.
     // 'novo' | 'existente' | null, e 'local' | 'remoto' | null.
+    // Restaura o passo do assistente depois de um reload forçado por troca
+    // de idioma no seletor abaixo (ver wizLocale) — a chave em sessionStorage
+    // (não localStorage: só precisa sobreviver a ESSE reload, não a uma
+    // sessão nova) é lida aqui, mas só removida por app.js/init() (que roda
+    // depois, no fim da fila de <script>) — ver nota lá.
     let dirWizardModo = null;
     let dirWizardTipo = null;
+    try {
+        const restaurar = JSON.parse(sessionStorage.getItem('lz_wizard_restore') || 'null');
+        if (restaurar) { dirWizardModo = restaurar.modo || null; dirWizardTipo = restaurar.tipo || null; }
+    } catch (_) {}
 
     // Importação/exportação de Lattes XML (xmlConsistencyToast,
     // xmlImportItemHtml) e helpIcon/dadosItemHtml — extraídos para
@@ -844,7 +853,19 @@ window.TabConfig = (function () {
             state.locale = window.AppCore.setLocale(wizLocale.value);
             const s = Storage.loadSettings(); s.locale = state.locale; Storage.saveSettings(s);
             window.AppCore.persistirGeral();
-            render();
+            // lattes-types-*.js (rótulos de categoria/campo, nomes de pasta)
+            // calcula tudo com t() UMA VEZ, no carregamento do script — bem
+            // antes desta troca de idioma acontecer. setLocale() aqui só
+            // afeta t() daqui pra frente nesta mesma página; os nomes de
+            // pasta que serão criados ao clicar "Escolher pasta"/"Conectar"
+            // (LattesTypes.allFolders()) continuariam vindo no idioma
+            // antigo sem um reload, porque já foram computados no
+            // carregamento. Recarrega pra tudo (inclusive nomes de pasta)
+            // já nascer no idioma escolhido — guarda o passo atual do
+            // assistente (ver dirWizardModo/dirWizardTipo acima) pra
+            // reabrir exatamente onde a pessoa parou.
+            try { sessionStorage.setItem('lz_wizard_restore', JSON.stringify({ modo: dirWizardModo, tipo: dirWizardTipo })); } catch (_) {}
+            location.reload();
         });
         const btnChooseDir = $('#btnChooseDir');
         if (btnChooseDir) btnChooseDir.addEventListener('click', async () => {
