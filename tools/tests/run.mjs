@@ -90,6 +90,7 @@ import './specs/i18n.mjs';
 import './specs/evidencia-limites-tamanho.mjs';
 import './specs/wizard-idioma-reload.mjs';
 import './specs/datebr-locale-migracao.mjs';
+import './specs/publicar-locale.mjs';
 
 console.log('Rodando suíte de testes de regressão (Playwright)...\n');
 await runAll();

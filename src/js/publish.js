@@ -55,6 +55,14 @@
 window.LzPublish = (function () {
     const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => (
         { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    // t()/tp() só chamados em resposta a uma ação do usuário (renderHtml/
+    // styleLabel rodam bem depois de app-core.js carregar — mesmo padrão
+    // preguiçoso de storage.js), nunca no carregamento deste módulo: o texto
+    // da página PUBLICADA (visitante final, não quem usa o app) acompanha o
+    // locale ATIVO no momento em que a pessoa gera/publica — combina com o
+    // <html lang> do próprio app nesse momento (ver renderHtml, abaixo).
+    const t = (chave, padrao, vars) => window.AppCore.t(chave, padrao, vars);
+    const tp = (chave, n, formasPadrao, vars) => window.AppCore.tp(chave, n, formasPadrao, vars);
 
     // Ícones SVG (traço, currentColor) — substituem emojis por um traço editorial.
     const IC = {
@@ -87,7 +95,7 @@ window.LzPublish = (function () {
         return `<li class="item" data-search="${esc(((it.titulo || '') + ' ' + (it.linha || '')).toLowerCase())}">
             <div class="item-row">
                 ${it.ano ? `<span class="year">${esc(it.ano)}</span>` : ''}
-                <p class="item-title">${esc(it.titulo || '(sem título)')}</p>
+                <p class="item-title">${esc(it.titulo || t('publish.item_sem_titulo', '(sem título)'))}</p>
                 ${anexos}
             </div>
             ${it.linha ? `<p class="item-meta">${esc(it.linha)}</p>` : ''}
@@ -185,9 +193,9 @@ window.LzPublish = (function () {
         if (!palavras || !palavras.length) return '';
         const max = palavras[0][1], min = palavras[palavras.length - 1][1];
         const tam = (n) => (max === min ? 1.15 : 0.8 + ((n - min) / (max - min)) * 1.3).toFixed(2);
-        const spans = palavras.map(([w, n]) => `<span class="nuvem-w" style="font-size:${tam(n)}rem" title="${esc(w)}: ${n} ocorrência${n === 1 ? '' : 's'}">${esc(w)}</span>`).join('');
+        const spans = palavras.map(([w, n]) => `<span class="nuvem-w" style="font-size:${tam(n)}rem" title="${esc(w)}: ${esc(tp('publish.nuvem_ocorrencias', n, { um: '{n} ocorrência', outros: '{n} ocorrências' }))}">${esc(w)}</span>`).join('');
         return `<section id="nuvem" class="secao secao-simples reveal">
-            <h2 class="secao-simples-title">Nuvem de palavras</h2>
+            <h2 class="secao-simples-title">${esc(t('publish.nuvem_titulo', 'Nuvem de palavras'))}</h2>
             <div id="nuvemPub" class="nuvem">${spans}</div>
         </section>`;
     }
@@ -208,7 +216,7 @@ window.LzPublish = (function () {
         const dataRows = lt.categorias.map(c => {
             const cells = anos.map(y => {
                 const n = c.porAno[y] || 0;
-                const titulo = `${c.label} — ${y}: ${n} ite${n === 1 ? 'm' : 'ns'}`;
+                const titulo = `${c.label} — ${y}: ${tp('tab_linha_tempo.itens_contagem', n, { um: '{n} item', outros: '{n} itens' })}`;
                 return `<td><div class="gt-cell" style="background:var(--heat-${nivel(n, max)})" title="${esc(titulo)}"></div></td>`;
             }).join('');
             return `<tr class="gt-row">${cells}</tr>`;
@@ -216,12 +224,12 @@ window.LzPublish = (function () {
         const legend = [0, 1, 2, 3, 4].map(i => `<span class="sq" style="background:var(--heat-${i})"></span>`).join('');
 
         return `<section id="tempo" class="secao secao-simples reveal">
-            <h2 class="secao-simples-title">Linha do tempo</h2>
+            <h2 class="secao-simples-title">${esc(t('publish.linha_tempo_titulo', 'Linha do tempo'))}</h2>
             <div class="grade-tempo-wrap">
                 <table class="grade-tempo-labels"><thead><tr class="gt-row"><th>&nbsp;</th></tr></thead><tbody>${labelRows}</tbody></table>
                 <div class="grade-tempo-scroll"><table class="grade-tempo-anos"><thead><tr class="gt-row">${headCells}</tr></thead><tbody>${dataRows}</tbody></table></div>
             </div>
-            <div class="grade-tempo-legend"><span>Menos</span>${legend}<span>Mais</span></div>
+            <div class="grade-tempo-legend"><span>${esc(t('tab_linha_tempo.menos', 'Menos'))}</span>${legend}<span>${esc(t('tab_linha_tempo.mais', 'Mais'))}</span></div>
         </section>`;
     }
 
@@ -467,16 +475,16 @@ footer strong{color:var(--muted);font-weight:700}
         const secoesComItens = (m.secoes || []).filter(s => (s.tipos || []).some(t =>
             t.subgrupos ? t.subgrupos.some(g => g.itens && g.itens.length) : (t.itens && t.itens.length)));
         const navExtra = [];
-        if (m.nuvemPalavras && m.nuvemPalavras.length) navExtra.push('<a href="#nuvem">Nuvem de palavras</a>');
-        if (m.linhaTempo && m.linhaTempo.categorias && m.linhaTempo.categorias.length) navExtra.push('<a href="#tempo">Linha do tempo</a>');
+        if (m.nuvemPalavras && m.nuvemPalavras.length) navExtra.push(`<a href="#nuvem">${esc(t('publish.nuvem_titulo', 'Nuvem de palavras'))}</a>`);
+        if (m.linhaTempo && m.linhaTempo.categorias && m.linhaTempo.categorias.length) navExtra.push(`<a href="#tempo">${esc(t('publish.linha_tempo_titulo', 'Linha do tempo'))}</a>`);
         const nav = navExtra.join('') + secoesComItens.map(s => `<a href="#${s.id}">${esc(s.label)}</a>`).join('');
-        const secoes = (m.secoes || []).map(secaoHtml).join('') || `<p class="wrap empty">Sem itens catalogados.</p>`;
+        const secoes = (m.secoes || []).map(secaoHtml).join('') || `<p class="wrap empty">${esc(t('publish.sem_itens', 'Sem itens catalogados.'))}</p>`;
         const avatar = m.foto
-            ? `<img class="avatar" src="${m.foto}" alt="Foto de ${esc(m.nome || '')}">`
+            ? `<img class="avatar" src="${m.foto}" alt="${esc(t('publish.foto_alt', 'Foto de {nome}', { nome: m.nome || '' }))}">`
             : `<div class="avatar ph" aria-hidden="true">${esc(m.iniciais || '·')}</div>`;
         const contatos = (m.contatos || []).map(contatoBtn).join('');
         const outras = m.outras
-            ? `<section id="outras" class="secao reveal"><div class="secao-head"><h2 class="secao-title">Outras informações</h2></div><div class="bio">${esc(m.outras)}</div></section>`
+            ? `<section id="outras" class="secao reveal"><div class="secao-head"><h2 class="secao-title">${esc(t('publish.outras_info_titulo', 'Outras informações'))}</h2></div><div class="bio">${esc(m.outras)}</div></section>`
             : '';
         const intro = (contatos || m.bio)
             ? `<section class="intro reveal">
@@ -488,45 +496,51 @@ footer strong{color:var(--muted);font-weight:700}
         // Faixa de estatísticas (resumo antes do detalhe)
         const yr = yearRange(m);
         const stats = [];
-        if (m.totalItens != null) stats.push(`<div class="stat"><span class="stat-num" data-count="${m.totalItens}">${m.totalItens}</span><span class="stat-label">Itens catalogados</span></div>`);
-        if (secoesComItens.length) stats.push(`<div class="stat"><span class="stat-num" data-count="${secoesComItens.length}">${secoesComItens.length}</span><span class="stat-label">Seções</span></div>`);
-        if (yr) stats.push(`<div class="stat"><span class="stat-num period">${yr.lo}<span style="color:var(--faint)">–</span>${yr.hi}</span><span class="stat-label">Período</span></div>`);
-        const statsHtml = stats.length ? `<section class="stats reveal" aria-label="Resumo do currículo"><div class="wrap stats-row">${stats.join('')}</div></section>` : '';
+        if (m.totalItens != null) stats.push(`<div class="stat"><span class="stat-num" data-count="${m.totalItens}">${m.totalItens}</span><span class="stat-label">${esc(t('publish.stat_itens', 'Itens catalogados'))}</span></div>`);
+        if (secoesComItens.length) stats.push(`<div class="stat"><span class="stat-num" data-count="${secoesComItens.length}">${secoesComItens.length}</span><span class="stat-label">${esc(t('publish.stat_secoes', 'Seções'))}</span></div>`);
+        if (yr) stats.push(`<div class="stat"><span class="stat-num period">${yr.lo}<span style="color:var(--faint)">–</span>${yr.hi}</span><span class="stat-label">${esc(t('publish.stat_periodo', 'Período'))}</span></div>`);
+        const statsHtml = stats.length ? `<section class="stats reveal" aria-label="${esc(t('publish.resumo_aria', 'Resumo do currículo'))}"><div class="wrap stats-row">${stats.join('')}</div></section>` : '';
+
+        // O visitante final vê o texto neste locale — acompanha o <html
+        // lang> já ativo no app no momento da geração (ver nota no topo do
+        // arquivo e aplicarHtmlLang() em i18n.js).
+        const htmlLang = (typeof document !== 'undefined' && document.documentElement.getAttribute('lang')) || 'pt-BR';
+        const nomeOuCurriculo = m.nome || t('publish.titulo_padrao', 'Currículo');
 
         return `<!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="${esc(htmlLang)}">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>${esc(m.nome || 'Currículo')}</title>
-<meta name="description" content="Currículo de ${esc(m.nome || '')}${m.tagline ? ' — ' + esc(m.tagline) : ''}">
+<title>${esc(nomeOuCurriculo)}</title>
+<meta name="description" content="${esc(t('publish.meta_descricao', 'Currículo de {nome}{tagline}', { nome: m.nome || '', tagline: m.tagline ? ' — ' + m.tagline : '' }))}">
 ${opts.externalCss ? `<link rel="stylesheet" href="${esc(opts.externalCss)}">` : `<style>${STYLES[style] || STYLES.elegante}</style>`}
 </head>
 <body>
-<a class="skip" href="#conteudo">Ir para o conteúdo</a>
+<a class="skip" href="#conteudo">${esc(t('publish.pular_conteudo', 'Ir para o conteúdo'))}</a>
 <header class="hero">
   <div class="wrap">
     ${avatar}
     <div class="hero-id">
-      <span class="eyebrow">Currículo acadêmico</span>
-      <h1>${esc(m.nome || 'Currículo')}</h1>
+      <span class="eyebrow">${esc(t('publish.eyebrow', 'Currículo acadêmico'))}</span>
+      <h1>${esc(nomeOuCurriculo)}</h1>
       <hr class="rule">
       ${m.tagline ? `<p class="tagline">${esc(m.tagline)}</p>` : ''}
       ${m.local ? `<p class="local">${IC.pin} ${esc(m.local)}</p>` : ''}
-      ${(m.areasAtuacao && m.areasAtuacao.length) ? `<p class="local">${esc('Áreas de atuação: ' + m.areasAtuacao.join(' · '))}</p>` : ''}
+      ${(m.areasAtuacao && m.areasAtuacao.length) ? `<p class="local">${esc(t('publish.areas_atuacao', 'Áreas de atuação: {areas}', { areas: m.areasAtuacao.join(' · ') }))}</p>` : ''}
     </div>
   </div>
 </header>
 
 ${statsHtml}
 
-<nav class="toc" aria-label="Seções">
+<nav class="toc" aria-label="${esc(t('publish.secoes_aria', 'Seções'))}">
   <div class="wrap">
     ${nav}
     <div class="toc-tools">
-      <label class="searchwrap">${IC.search}<input id="search" type="search" placeholder="Filtrar…" aria-label="Filtrar itens"></label>
-      <button id="themeBtn" class="btn" title="Alternar tema" aria-label="Alternar tema claro/escuro">${IC.moon}</button>
-      <button id="printBtn" class="btn" title="Imprimir / PDF" aria-label="Imprimir">${IC.printer}</button>
+      <label class="searchwrap">${IC.search}<input id="search" type="search" placeholder="${esc(t('publish.filtrar_placeholder', 'Filtrar…'))}" aria-label="${esc(t('publish.filtrar_aria', 'Filtrar itens'))}"></label>
+      <button id="themeBtn" class="btn" title="${esc(t('publish.tema_titulo', 'Alternar tema'))}" aria-label="${esc(t('publish.tema_aria', 'Alternar tema claro/escuro'))}">${IC.moon}</button>
+      <button id="printBtn" class="btn" title="${esc(t('publish.imprimir_titulo', 'Imprimir / PDF'))}" aria-label="${esc(t('publish.imprimir_aria', 'Imprimir'))}">${IC.printer}</button>
     </div>
   </div>
 </nav>
@@ -540,10 +554,10 @@ ${statsHtml}
 </main>
 
 <footer>
-  ${m.totalItens != null ? `${m.totalItens} itens · ` : ''}Gerado com <strong>lattesZen</strong>${m.geradoEm ? ' em ' + esc(m.geradoEm) : ''}.
+  ${m.totalItens != null ? `${esc(tp('tab_linha_tempo.itens_contagem', m.totalItens, { um: '{n} item', outros: '{n} itens' }))} · ` : ''}${esc(t('publish.rodape_gerado_prefixo', 'Gerado com'))} <strong>lattesZen</strong>${m.geradoEm ? ' ' + esc(t('publish.rodape_em', 'em {data}', { data: m.geradoEm })) : ''}.
 </footer>
 
-<button class="totop" id="toTop" title="Voltar ao topo" aria-label="Voltar ao topo">${IC.up}</button>
+<button class="totop" id="toTop" title="${esc(t('publish.topo_titulo', 'Voltar ao topo'))}" aria-label="${esc(t('publish.topo_aria', 'Voltar ao topo'))}">${IC.up}</button>
 
 <script>
 (function(){
@@ -708,8 +722,16 @@ ${statsHtml}
 
     return {
         renderHtml, styles: Object.keys(STYLES),
-        // Nome amigável de um tema, para o seletor em Publicar na Web.
-        styleLabel(style) { return (THEMES[style] && THEMES[style].label) || style; },
+        // Nome amigável de um tema, para o seletor em Publicar na Web —
+        // traduzido em CHAMADA (não junto de THEMES acima, que é lido/
+        // avaliado no carregamento do módulo): evita o mesmo problema de
+        // "constante congelada no locale de quando o script carregou" já
+        // resolvido noutros lugares (ver nota em i18n.js sobre nomes de
+        // pasta) — aqui nem precisa de reload, só de não pré-computar.
+        styleLabel(style) {
+            const padrao = (THEMES[style] && THEMES[style].label) || style;
+            return t(`publish.tema.${style}.label`, padrao);
+        },
         // CSS puro de um estilo (usado para gravar como arquivo à parte, ex.: css/estilo.css)
         css(style) { return STYLES[style] || STYLES.elegante; },
     };
