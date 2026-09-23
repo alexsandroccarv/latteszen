@@ -130,20 +130,22 @@ test('i18n: dicionário en existe, cobre chaves de vários módulos, e localeVal
     assertEqual(r.getLocaleDepois, 'en', 'getLocale() deveria refletir "en" depois do setLocale');
 });
 
-test('i18n: dicionário es está registrado (esqueleto, Etapa 1) — localeValido("es") não cai pro padrão, mas t() ainda devolve pt-br enquanto vazio', async ({ page, baseUrl }) => {
+test('i18n: dicionário es está registrado (esqueleto, Etapa 1) — localeValido("es") não cai pro padrão, e t() devolve pt-br pra uma chave sem tradução', async ({ page, baseUrl }) => {
     await seedCatalog(page, baseUrl, []);
     const r = await page.evaluate(() => ({
         localesDisponiveis: window.LzI18n.localesDisponiveis(),
         nomeEs: window.LzI18n.nomeLocale('es'),
         setLocaleResultado: window.LzI18n.setLocale('es'),
         getLocaleDepois: window.LzI18n.getLocale(),
-        valorAindaPtBr: window.LzI18n.t('tab_catalogar.salvar', 'Salvar'),
+        // Chave inexistente (nunca terá tradução própria em nenhum dicionário)
+        // — usada só pra confirmar o fallback pro padrão pt-br passado na chamada.
+        valorSemTraducao: window.LzI18n.t('teste.chave.inexistente.es', 'Salvar'),
     }));
-    assert(r.localesDisponiveis.includes('es'), 'localesDisponiveis() deveria incluir "es" (dicionário importado no bootstrap de i18n.js, mesmo vazio)');
+    assert(r.localesDisponiveis.includes('es'), 'localesDisponiveis() deveria incluir "es" (dicionário importado no bootstrap de i18n.js)');
     assertEqual(r.nomeEs, 'Español', 'nomeLocale("es") deveria devolver "Español"');
     assertEqual(r.setLocaleResultado, 'es', 'setLocale("es") não deveria cair pro padrão — "es" é um locale válido (tem entrada em DICIONARIOS)');
     assertEqual(r.getLocaleDepois, 'es', 'getLocale() deveria refletir "es" depois do setLocale');
-    assertEqual(r.valorAindaPtBr, 'Salvar', 'com o dicionário es ainda vazio (Etapa 1), t() deve continuar caindo pro padrão pt-br — comportamento correto até as próximas etapas preencherem as chaves');
+    assertEqual(r.valorSemTraducao, 'Salvar', 'uma chave sem entrada em nenhum dicionário deve continuar caindo pro padrão pt-br passado na chamada');
 });
 
 test('i18n: com locale "es" persistido ANTES da carga da página, t() já devolve espanhol nas chaves da Etapa 2 (app.js/app-core.js/pdf-report.js/storage.js/lattes-xml.js)', async ({ page, baseUrl }) => {
@@ -159,10 +161,6 @@ test('i18n: com locale "es" persistido ANTES da carga da página, t() já devolv
         pdfReportAnexos: window.LzI18n.t('pdf_report.anexos', 'Anexos'),
         storagePastaProcessados: window.LzI18n.t('storage.pasta.processados', 'Processados'),
         lattesXmlInvalido: window.LzI18n.t('lattes_xml.invalido', 'XML inválido ou corrompido.'),
-        // Chave ainda NÃO traduzida nesta etapa (só na Etapa 4, tab-catalogar.js)
-        // — deve continuar caindo pro padrão pt-br, confirmando que o
-        // dicionário es cobre exatamente o escopo já preenchido até aqui.
-        tabCatalogarSalvarAindaPtBr: window.LzI18n.t('tab_catalogar.salvar', 'Salvar'),
     }));
     assertEqual(r.localeInicial, 'es', 'Com locale "es" persistido, i18n.js deveria se inicializar já em "es" (bootstrap síncrono, antes de qualquer setLocale() explícito)');
     assertEqual(r.htmlLang, 'es', '<html lang> deveria refletir "es" já na carga inicial');
@@ -171,7 +169,6 @@ test('i18n: com locale "es" persistido ANTES da carga da página, t() já devolv
     assertEqual(r.pdfReportAnexos, 'Anexos', 'Chave de pdf-report.js deveria vir traduzida (mesma grafia em es e pt-br)');
     assertEqual(r.storagePastaProcessados, 'Procesados', 'Chave de storage.js deveria vir traduzida');
     assertEqual(r.lattesXmlInvalido, 'XML inválido o dañado.', 'Chave de lattes-xml.js deveria vir traduzida');
-    assertEqual(r.tabCatalogarSalvarAindaPtBr, 'Salvar', 'tab_catalogar.salvar ainda não foi traduzido pro dicionário es (fica pra Etapa 4) — deve continuar caindo pro padrão pt-br');
 });
 
 test('i18n: com locale "es" persistido ANTES da carga da página, t() já devolve espanhol nas chaves da Etapa 3 (taxonomia Lattes — lattes-types*.js)', async ({ page, baseUrl }) => {
@@ -211,6 +208,41 @@ test('i18n: com locale "es" persistido ANTES da carga da página, t() já devolv
     assertEqual(r.tipoBanca, 'Participación en tribunales de comisiones evaluadoras', 'Chave de lattes-types-11-bancas.js deveria vir traduzida');
     assertEqual(r.tipoAlemLattes, 'Lecturas y clubes de lectura', 'Chave de lattes-types-12-15-alem-lattes.js deveria vir traduzida');
     assertEqual(r.tipoRegistro, 'Redes sociales', 'Chave de lattes-types-20-registros.js deveria vir traduzida');
+});
+
+test('i18n: com locale "es" persistido ANTES da carga da página, t() já devolve espanhol nas chaves da Etapa 4 (abas do app — tab-*.js, exceto RSC/Súmula)', async ({ page, baseUrl }) => {
+    await page.goto(baseUrl + '/index.html');
+    await page.evaluate(() => localStorage.setItem('lz_settings', JSON.stringify({ locale: 'es' })));
+    await page.reload();
+    await page.waitForTimeout(500);
+    const r = await page.evaluate(() => ({
+        localeInicial: window.LzI18n.getLocale(),
+        tabCatalogarSalvar: window.LzI18n.t('tab_catalogar.salvar', 'Salvar'),
+        tabCatalogarCadastradosSubir: window.LzI18n.t('tab_catalogar_cadastrados.subir', 'Subir'),
+        tabCatalogarEvidenciasRemover: window.LzI18n.t('tab_catalogar_evidencias.remover', 'Remover'),
+        tabConfigTemaTitulo: window.LzI18n.t('tab_config.tema_titulo', 'Tema'),
+        tabConfigSharedRscAjudaAria: window.LzI18n.t('tab_rsc.ajuda_aria', 'Ajuda'),
+        tabConfigXmlTitulo: window.LzI18n.t('tab_config_xml.titulo', 'Lattes (XML)'),
+        tabConfigOrcidTitulo: window.LzI18n.t('tab_config_orcid.titulo', 'ORCID (online)'),
+        tabConfigBibtexTodos: window.LzI18n.t('tab_config_bibtex.todos', 'Todos'),
+        tabConformidadeConformidade: window.LzI18n.t('tab_conformidade.conformidade', 'Conformidade'),
+        tabLinhaTempoMais: window.LzI18n.t('tab_linha_tempo.mais', 'Mais'),
+        tabPublicarGoogleDrive: window.LzI18n.t('tab_publicar.google_drive', 'Google Drive'),
+        tabInicioCopiado: window.LzI18n.t('tab_inicio.copiado', 'Copiado!'),
+    }));
+    assertEqual(r.localeInicial, 'es', 'Com locale "es" persistido, i18n.js deveria se inicializar já em "es"');
+    assertEqual(r.tabCatalogarSalvar, 'Guardar', 'Chave de tab-catalogar.js deveria vir traduzida');
+    assertEqual(r.tabCatalogarCadastradosSubir, 'Subir', 'Chave de tab-catalogar-cadastrados.js deveria vir traduzida (mesma grafia em es e pt-br)');
+    assertEqual(r.tabCatalogarEvidenciasRemover, 'Quitar', 'Chave de tab-catalogar-evidencias.js deveria vir traduzida');
+    assertEqual(r.tabConfigTemaTitulo, 'Tema', 'Chave de tab-config.js deveria vir traduzida (mesma grafia em es e pt-br)');
+    assertEqual(r.tabConfigSharedRscAjudaAria, 'Ayuda', 'Chave compartilhada (tab_rsc.ajuda_aria, usada em tab-config-shared.js) deveria vir traduzida');
+    assertEqual(r.tabConfigXmlTitulo, 'Lattes (XML)', 'Chave de tab-config-xml.js deveria vir traduzida (mesma grafia em es e pt-br)');
+    assertEqual(r.tabConfigOrcidTitulo, 'ORCID (en línea)', 'Chave de tab-config-orcid.js deveria vir traduzida');
+    assertEqual(r.tabConfigBibtexTodos, 'Todos', 'Chave de tab-config-bibtex.js deveria vir traduzida (mesma grafia em es e pt-br)');
+    assertEqual(r.tabConformidadeConformidade, 'Conformidad', 'Chave de tab-conformidade.js deveria vir traduzida');
+    assertEqual(r.tabLinhaTempoMais, 'Más', 'Chave de tab-linha-tempo.js deveria vir traduzida');
+    assertEqual(r.tabPublicarGoogleDrive, 'Google Drive', 'Chave de tab-publicar.js deveria vir traduzida (mesma grafia em es e pt-br)');
+    assertEqual(r.tabInicioCopiado, '¡Copiado!', 'Chave de tab-inicio.js deveria vir traduzida');
 });
 
 test('i18n: com locale "en" persistido ANTES da carga da página, t() já devolve inglês em chaves de módulos diferentes (taxonomia, abas, core)', async ({ page, baseUrl }) => {
