@@ -130,6 +130,22 @@ test('i18n: dicionário en existe, cobre chaves de vários módulos, e localeVal
     assertEqual(r.getLocaleDepois, 'en', 'getLocale() deveria refletir "en" depois do setLocale');
 });
 
+test('i18n: dicionário es está registrado (esqueleto, Etapa 1) — localeValido("es") não cai pro padrão, mas t() ainda devolve pt-br enquanto vazio', async ({ page, baseUrl }) => {
+    await seedCatalog(page, baseUrl, []);
+    const r = await page.evaluate(() => ({
+        localesDisponiveis: window.LzI18n.localesDisponiveis(),
+        nomeEs: window.LzI18n.nomeLocale('es'),
+        setLocaleResultado: window.LzI18n.setLocale('es'),
+        getLocaleDepois: window.LzI18n.getLocale(),
+        valorAindaPtBr: window.LzI18n.t('tab_catalogar.salvar', 'Salvar'),
+    }));
+    assert(r.localesDisponiveis.includes('es'), 'localesDisponiveis() deveria incluir "es" (dicionário importado no bootstrap de i18n.js, mesmo vazio)');
+    assertEqual(r.nomeEs, 'Español', 'nomeLocale("es") deveria devolver "Español"');
+    assertEqual(r.setLocaleResultado, 'es', 'setLocale("es") não deveria cair pro padrão — "es" é um locale válido (tem entrada em DICIONARIOS)');
+    assertEqual(r.getLocaleDepois, 'es', 'getLocale() deveria refletir "es" depois do setLocale');
+    assertEqual(r.valorAindaPtBr, 'Salvar', 'com o dicionário es ainda vazio (Etapa 1), t() deve continuar caindo pro padrão pt-br — comportamento correto até as próximas etapas preencherem as chaves');
+});
+
 test('i18n: com locale "en" persistido ANTES da carga da página, t() já devolve inglês em chaves de módulos diferentes (taxonomia, abas, core)', async ({ page, baseUrl }) => {
     await page.goto(baseUrl + '/index.html');
     await page.evaluate(() => localStorage.setItem('lz_settings', JSON.stringify({ locale: 'en' })));
