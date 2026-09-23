@@ -289,6 +289,31 @@ test('i18n: com locale "es" persistido ANTES da carga da página, window.PAISES/
     assert(r.tamanhos[0] > 100 && r.tamanhos[1] > 100 && r.tamanhos[2] > 50, 'as 3 listas deveriam manter o mesmo tamanho de sempre, só o label muda por locale');
 });
 
+test('i18n: com locale "es" persistido ANTES da carga da página, t() já devolve espanhol nas opções de formulário lattes.opcao.* (Etapa 7)', async ({ page, baseUrl }) => {
+    await page.goto(baseUrl + '/index.html');
+    await page.evaluate(() => localStorage.setItem('lz_settings', JSON.stringify({ locale: 'es' })));
+    await page.reload();
+    await page.waitForTimeout(500);
+    const r = await page.evaluate(() => ({
+        localeInicial: window.LzI18n.getLocale(),
+        corRaca: window.LzI18n.t('lattes.opcao.identificacao_cor_raca.branca', 'Branca'),
+        vinculo: window.LzI18n.t('lattes.opcao.vinculo_profissional_vinculo.servidor_publico', 'Servidor público'),
+        livroTipo: window.LzI18n.t('lattes.opcao.livros_tipo_obra.livro_publicado', 'Livro publicado'),
+        patente: window.LzI18n.t('lattes.opcao.patente_categoria.produto', 'Produto'),
+        orientacao: window.LzI18n.t('lattes.opcao.orientacao_tipo.doutorado', 'Doutorado'),
+        rscGrupoPesquisa: window.LzI18n.t('lattes.opcao.rsc_grupo_pesquisa_papel.lider', 'Líder'),
+        nivelHabilidadeJaExistente: window.LzI18n.t('lattes.opcao.nivel_habilidade.bom', 'Bom'),
+    }));
+    assertEqual(r.localeInicial, 'es', 'Com locale "es" persistido, i18n.js deveria se inicializar já em "es"');
+    assertEqual(r.corRaca, 'Blanca', 'Chave de identificacao_cor_raca (lattes-types-01-dados-gerais.js) deveria vir traduzida');
+    assertEqual(r.vinculo, 'Servidor público', 'Chave de vinculo_profissional_vinculo (lattes-types-03-atuacao.js) deveria vir traduzida (mesma grafia em es e pt-br)');
+    assertEqual(r.livroTipo, 'Libro publicado', 'Chave de livros_tipo_obra (lattes-types-05-producao-bibliografica.js) deveria vir traduzida');
+    assertEqual(r.patente, 'Producto', 'Chave de patente_categoria (lattes-types-06-07-patentes-registros.js) deveria vir traduzida');
+    assertEqual(r.orientacao, 'Doctorado', 'Chave de orientacao_tipo (lattes-types-10-orientacoes.js) deveria vir traduzida');
+    assertEqual(r.rscGrupoPesquisa, 'Líder', 'Chave de rsc_grupo_pesquisa_papel (lattes-types-20-registros.js — não é do módulo RSC-PCCTAE) deveria vir traduzida (mesma grafia em es e pt-br)');
+    assertEqual(r.nivelHabilidadeJaExistente, 'Bueno', 'Chave de nivel_habilidade, já traduzida antes da Etapa 7 (reaproveitada em tab-catalogar.js), deveria continuar traduzida');
+});
+
 test('i18n: com locale "en" persistido ANTES da carga da página, t() já devolve inglês em chaves de módulos diferentes (taxonomia, abas, core)', async ({ page, baseUrl }) => {
     await page.goto(baseUrl + '/index.html');
     await page.evaluate(() => localStorage.setItem('lz_settings', JSON.stringify({ locale: 'en' })));
