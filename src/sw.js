@@ -19,24 +19,35 @@
    (ver js/pwa.js). Sem isso, uma aba já aberta pode continuar servindo JS
    antigo por tempo indefinido mesmo depois de um conserto já publicado.
    ========================================================================== */
-const CACHE_VERSION = 'v21';
+const CACHE_VERSION = 'v23';
 const PRECACHE = `lattesZen-precache-${CACHE_VERSION}`;
 const RUNTIME = `lattesZen-runtime-${CACHE_VERSION}`;
 
 const PRECACHE_URLS = [
     './index.html',
     './doe-um-cafe.html',
+    './doe-um-cafe.en.html',
     './ajuda.html',
+    './ajuda.en.html',
     './ajuda-lattes.html',
+    './ajuda-lattes.en.html',
     './ajuda-rsc.html',
+    './ajuda-rsc.en.html',
     './relacionando-lattes-rsc.html',
+    './relacionando-lattes-rsc.en.html',
     './notas-de-versao.html',
+    './sobre.html',
+    './sobre.en.html',
     './privacidade.html',
+    './privacidade.en.html',
     './termodeuso.html',
+    './termodeuso.en.html',
     './manifest.json',
     './favicon.svg',
     './css/styles.css',
     './js/config.js',
+    './js/i18n-hydrate.js',
+    './js/a11y.js',
     './js/analytics.js',
     './js/cookie-consent.js',
     './js/encoding.js',
@@ -66,6 +77,7 @@ const PRECACHE_URLS = [
     './js/publish.js',
     './js/rsc.js',
     './js/docx-export.js',
+    './js/pdf-report.js',
     './js/gdrive-client.js',
     './js/deploy-github.js',
     './js/deploy-netlify.js',
@@ -73,6 +85,7 @@ const PRECACHE_URLS = [
     './js/tab-publicar.js',
     './js/tab-inicio.js',
     './js/tab-rsc.js',
+    './js/tab-sumula.js',
     './js/tab-conformidade.js',
     './js/tab-linha-tempo.js',
     './js/tab-catalogar-rsc.js',

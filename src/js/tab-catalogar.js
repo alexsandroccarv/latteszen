@@ -143,7 +143,7 @@ window.TabCatalogar = (function () {
             <span class="font-semibold">${esc(t('tab_catalogar.publicar', 'Publicar'))}</span>
             ${doLattes ? `<label class="flex items-center gap-1.5"><input type="checkbox" id="visExportarLattes" ${exportarLattes ? 'checked' : ''}> <i aria-hidden="true" class="fa-solid fa-file-export"></i> ${esc(t('tab_catalogar.publicar_lattes', 'Lattes'))}</label>` : ''}
             <label class="flex items-center gap-1.5"><input type="checkbox" id="visPublicarWeb" ${publicarWeb ? 'checked' : ''}> <i aria-hidden="true" class="fa-solid fa-globe"></i> ${esc(t('tab_catalogar.publicar_web', 'Web'))}</label>
-            ${doRsc ? `<label class="flex items-center gap-1.5"><input type="checkbox" id="rscConta" ${rsc.conta ? 'checked' : ''}> <i aria-hidden="true" class="fa-solid fa-award"></i> ${esc(t('tab_catalogar.publicar_rsc', 'usar para RSC'))}</label>` : ''}
+            ${doRsc ? `<label class="flex items-center gap-1.5"><input type="checkbox" id="rscConta" ${rsc.conta ? 'checked' : ''}> <i aria-hidden="true" class="fa-solid fa-award"></i> ${esc('usar para RSC')}</label>` : ''}
         </div>`;
 
         const expChk = $('#visExportarLattes');
@@ -600,9 +600,15 @@ window.TabCatalogar = (function () {
     };
     // Tags sugeridas por padrão para categorizar evidências (documentos anexados).
     // Qualquer outro valor digitado pelo usuário também é aprendido (collectSuggestions).
-    const DEFAULT_EVIDENCE_TAGS = ['Anais', 'Ata', 'Atestado', 'Capa', 'Certidão', 'Certificado', 'Comprovante',
-        'Contrato', 'Convite', 'Crachá', 'Declaração', 'Diploma', 'Folder', 'Foto', 'Portaria', 'Programação',
-        'Recibo', 'Relatório', 'Vídeo', 'Outros'];
+    const DEFAULT_EVIDENCE_TAGS = [
+        t('tab_catalogar.tag_anais', 'Anais'), t('tab_catalogar.tag_ata', 'Ata'), t('tab_catalogar.tag_atestado', 'Atestado'),
+        t('tab_catalogar.tag_capa', 'Capa'), t('tab_catalogar.tag_certidao', 'Certidão'), t('tab_catalogar.tag_certificado', 'Certificado'),
+        t('tab_catalogar.tag_comprovante', 'Comprovante'), t('tab_catalogar.tag_contrato', 'Contrato'), t('tab_catalogar.tag_convite', 'Convite'),
+        t('tab_catalogar.tag_cracha', 'Crachá'), t('tab_catalogar.tag_declaracao', 'Declaração'), t('tab_catalogar.tag_diploma', 'Diploma'),
+        t('tab_catalogar.tag_folder', 'Folder'), t('tab_catalogar.tag_foto', 'Foto'), t('tab_catalogar.tag_portaria', 'Portaria'),
+        t('tab_catalogar.tag_programacao', 'Programação'), t('tab_catalogar.tag_recibo', 'Recibo'), t('tab_catalogar.tag_relatorio', 'Relatório'),
+        t('tab_catalogar.tag_video', 'Vídeo'), t('tab_catalogar.tag_outros', 'Outros'),
+    ];
     // evidenciaTag não é um campo de item.fields — vive em cada evidência
     // (item.evidencias[].tag) — por isso tem coleta/busca/renomeio à parte.
     // "autor" também não é um campo plano — nomes vivem dentro do repeater

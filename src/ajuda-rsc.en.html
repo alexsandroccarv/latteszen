@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<!--
+    lattesZen — Copyright (C) 2026 Alexsandro Cardoso Carvalho
+
+    This file is part of lattesZen.
+
+    lattesZen is free software: you can redistribute it and/or modify it
+    under the terms of the GNU Affero General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or (at
+    your option) any later version.
+
+    lattesZen is distributed in the hope that it will be useful, but WITHOUT
+    ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+    FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
+    License for more details.
+
+    You should have received a copy of the GNU Affero General Public License
+    along with lattesZen. If not, see <https://www.gnu.org/licenses/>.
+-->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>lattesZen — Help (RSC-PCCTAE)</title>
+    <meta name="description" content="How to use lattesZen's RSC-PCCTAE module to simulate points, achievable level, and generate the memorial.">
+    <link rel="canonical" href="https://ccarvalho.net/labs/latteszen/ajuda-rsc.en.html">
+    <link rel="alternate" hreflang="pt-BR" href="https://ccarvalho.net/labs/latteszen/ajuda-rsc.html">
+    <link rel="alternate" hreflang="en" href="https://ccarvalho.net/labs/latteszen/ajuda-rsc.en.html">
+    <link rel="alternate" hreflang="x-default" href="https://ccarvalho.net/labs/latteszen/ajuda-rsc.html">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="lattesZen">
+    <meta property="og:locale" content="en_US">
+    <meta property="og:title" content="lattesZen — Help (RSC-PCCTAE)">
+    <meta property="og:description" content="How to use lattesZen's RSC-PCCTAE module to simulate points, achievable level, and generate the memorial.">
+    <meta property="og:url" content="https://ccarvalho.net/labs/latteszen/ajuda-rsc.en.html">
+    <meta property="og:image" content="https://ccarvalho.net/labs/latteszen/images/og-image.png">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="lattesZen — Help (RSC-PCCTAE)">
+    <meta name="twitter:description" content="How to use lattesZen's RSC-PCCTAE module to simulate points, achievable level, and generate the memorial.">
+    <meta name="twitter:image" content="https://ccarvalho.net/labs/latteszen/images/og-image.png">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1351B4">
+
+    <!-- Same styles as the app -->
+    <link rel="stylesheet" href="css/styles.css">
+
+    <!-- Light/dark theme and high contrast: applied early to avoid a "flash" -->
+    <script>
+        (function () {
+            const htmlEl = document.documentElement;
+            const saved = localStorage.getItem('tema');
+            const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+            if (saved ? saved === 'dark' : prefersDark) htmlEl.classList.add('dark');
+            if (localStorage.getItem('altoContraste') === '1') htmlEl.classList.add('high-contrast');
+            // Theme (ready-made palettes, chosen in Settings): applied early
+            // to avoid a "flash" — same logic as dark/high-contrast above.
+            const temaPreset = localStorage.getItem('lz_tema_preset') || 'govbr';
+            htmlEl.classList.add('lz-theme');
+            htmlEl.setAttribute('data-lz-theme', temaPreset);
+            const fs = parseInt(localStorage.getItem('fontScale') || '100', 10);
+            if (fs && fs !== 100) htmlEl.style.fontSize = fs + '%';
+        })();
+    </script>
+
+    <!-- External resources (Tailwind + config, Font Awesome, Rawline) — same as the app -->
+    <script>
+        (function () {
+            var TW_CONFIG = {
+                darkMode: 'class',
+                theme: {
+                    extend: {
+                        fontFamily: { sans: ['Rawline', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif'] },
+                        colors: {
+                            unifesp: { 50: '#f0fdf4', 100: '#dcfce7', 400: '#4ade80', 600: '#16a34a', 700: '#15803d', 800: '#166534', 900: '#1E5A3A' },
+                            govbr:   { 50: '#D4E5FF', 100: '#ADCDFF', 400: '#1351B4', 600: '#1351B4', 700: '#0C326F', 800: '#071D41', 900: '#050F24' },
+                        }
+                    }
+                }
+            };
+            var tw = document.createElement('script');
+            tw.src = 'https://cdn.tailwindcss.com';
+            tw.async = true;
+            tw.onload = function () { try { window.tailwind.config = TW_CONFIG; } catch (e) {} };
+            tw.onerror = function () { document.documentElement.classList.add('no-tailwind'); };
+            document.head.appendChild(tw);
+            function loadCss(href) { var l = document.createElement('link'); l.rel = 'stylesheet'; l.href = href; l.media = 'all'; document.head.appendChild(l); }
+            loadCss('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css');
+            loadCss('https://cdngovbr-ds.estaleiro.serpro.gov.br/design-system/fonts/rawline/css/rawline.css');
+
+            // Theme: Google fonts per palette (loaded on demand —
+            // "lattesZen night" and "lattesZen day" use a font already loaded above, no extra CDN).
+            var THEME_FONTS = {
+                'catppuccin-latte': 'https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap',
+                'catppuccin-mocha': 'https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap',
+                dracula: 'https://fonts.googleapis.com/css2?family=Fira+Sans:wght@400;600;700&display=swap',
+                // lattesZen day (govbr) uses the Rawline already loaded above (no extra CDN); GitHub
+                // Light/Dark use the system font — that's why they have no entry here.
+                'rose-pine-dawn': 'https://fonts.googleapis.com/css2?family=Quicksand:wght@400;600;700&display=swap',
+                'solarized-light': 'https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&display=swap',
+                'solarized-dark': 'https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&display=swap',
+            };
+            window.__loadThemeFont = function (preset) {
+                var url = THEME_FONTS[preset];
+                if (!url) return;
+                if (document.querySelector('link[data-lz-font="' + preset + '"]')) return;
+                var l = document.createElement('link');
+                l.rel = 'stylesheet'; l.href = url; l.setAttribute('data-lz-font', preset);
+                document.head.appendChild(l);
+            };
+            // Syncs <meta name="theme-color"> (mobile browser bar) with the
+            // active theme's header color.
+            window.__setThemeColor = function () {
+                var m = document.querySelector('meta[name="theme-color"]');
+                if (!m) { m = document.createElement('meta'); m.name = 'theme-color'; document.head.appendChild(m); }
+                var c = getComputedStyle(document.documentElement).getPropertyValue('--lz-header').trim();
+                m.setAttribute('content', c || '#1351B4');
+            };
+            var temaAtivo = localStorage.getItem('lz_tema_preset') || 'govbr';
+            window.__loadThemeFont(temaAtivo);
+            window.__setThemeColor();
+        })();
+    </script>
+
+    <!-- Content style for this page (scoped to .help-doc; dark by class, like the app) -->
+    <style>
+      :root{
+        --hdoc-surface:#f9fafb; --hdoc-text:#1f2937; --hdoc-muted:#6b7280; --hdoc-line:#e5e7eb;
+        --hdoc-accent:#1351b4; --hdoc-code:#eef2f7; --hdoc-chip:#eef2ff; --hdoc-chipink:#1e3a8a;
+        --hdoc-note-bg:#eff6ff; --hdoc-note-line:#1351b4; --hdoc-warn-bg:#fff7ed; --hdoc-warn-line:#c2410c;
+        --hdoc-ok-bg:#ecfdf5; --hdoc-ok-line:#047857;
+      }
+      html.dark{
+        --hdoc-surface:#1f2937; --hdoc-text:#e5e7eb; --hdoc-muted:#9ca3af; --hdoc-line:#374151;
+        --hdoc-accent:#93c5fd; --hdoc-code:#0f172a; --hdoc-chip:#1e293b; --hdoc-chipink:#bfdbfe;
+        --hdoc-note-bg:#0f2033; --hdoc-note-line:#3b82f6; --hdoc-warn-bg:#2a1a0f; --hdoc-warn-line:#f59e0b;
+        --hdoc-ok-bg:#0e2a1e; --hdoc-ok-line:#34d399;
+      }
+      .help-doc{color:var(--hdoc-text);line-height:1.6;max-width:900px;margin:0 auto;padding:8px 4px 40px}
+      .help-doc h1{font-size:1.7rem;margin:.2em 0 .1em}
+      .help-doc .lead{color:var(--hdoc-muted);margin:0 0 1.5em}
+      .help-doc a{color:var(--hdoc-accent);text-decoration:none}
+      .help-doc a:hover{text-decoration:underline}
+      .help-doc nav.toc{background:var(--hdoc-surface);border:1px solid var(--hdoc-line);border-radius:10px;padding:14px 18px;margin-bottom:28px}
+      .help-doc nav.toc h2{font-size:.8rem;text-transform:uppercase;letter-spacing:.05em;color:var(--hdoc-muted);margin:0 0 8px}
+      .help-doc nav.toc ol{margin:0;padding-left:1.2em;columns:2;column-gap:28px}
+      .help-doc nav.toc li{margin:3px 0;break-inside:avoid}
+      .help-doc section.card{background:var(--hdoc-surface);border:1px solid var(--hdoc-line);border-radius:10px;padding:20px 22px;margin-bottom:22px}
+      .help-doc section.card h2{margin-top:0;font-size:1.25rem;display:flex;align-items:center;gap:10px}
+      .help-doc .step-num{display:inline-flex;align-items:center;justify-content:center;width:1.6em;height:1.6em;border-radius:50%;background:#1351b4;color:#fff;font-size:.85rem;font-weight:700;flex-shrink:0}
+      .help-doc h3{font-size:1.02rem;margin:1.2em 0 .3em}
+      .help-doc code{background:var(--hdoc-code);padding:.1em .4em;border-radius:4px;font-size:.88em;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+      .help-doc ul,.help-doc ol{padding-left:1.4em}
+      .help-doc li{margin:.25em 0}
+      .help-doc .note,.help-doc .warn,.help-doc .ok{border-left:4px solid;border-radius:6px;padding:12px 16px;margin:14px 0;font-size:.95rem}
+      .help-doc .note{background:var(--hdoc-note-bg);border-color:var(--hdoc-note-line)}
+      .help-doc .warn{background:var(--hdoc-warn-bg);border-color:var(--hdoc-warn-line)}
+      .help-doc .ok{background:var(--hdoc-ok-bg);border-color:var(--hdoc-ok-line)}
+      .help-doc .tag{display:inline-block;background:var(--hdoc-chip);color:var(--hdoc-chipink);border-radius:20px;padding:1px 10px;font-size:.8rem;font-weight:600;margin:0 2px}
+      .help-doc table{width:100%;border-collapse:collapse;margin:12px 0;font-size:.92rem}
+      .help-doc th,.help-doc td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--hdoc-line);vertical-align:top}
+      .help-doc th{color:var(--hdoc-muted);font-size:.8rem;text-transform:uppercase;letter-spacing:.03em}
+      .help-doc .pill{display:inline-block;background:#0C326F;color:#fff;border-radius:6px;padding:2px 8px;font-size:.78rem;font-weight:600}
+      html.dark .help-doc .pill{background:#1351B4}
+    </style>
+</head>
+<body class="font-sans bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-100 min-h-screen flex flex-col transition-colors duration-300">
+
+    <!-- ============================ HEADER (same as the app) ============================ -->
+    <header class="bg-govbr-600 dark:bg-gray-900 border-b border-govbr-700 dark:border-gray-700 flex flex-col shadow-sm dark:shadow-lg z-20 shrink-0 transition-colors duration-300">
+        <div class="flex items-center justify-between px-4 py-3 bg-govbr-600 dark:bg-gray-900 transition-colors duration-300">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded bg-white dark:bg-gradient-to-br dark:from-unifesp-600 dark:to-unifesp-900 flex items-center justify-center text-govbr-600 dark:text-white font-bold transition-colors duration-300">
+                    <svg viewBox="0 0 200 200" class="w-5 h-5" aria-hidden="true"><circle cx="100" cy="100" r="78" fill="none" stroke="currentColor" stroke-width="20" stroke-linecap="round" stroke-dasharray="440 46" transform="rotate(-100 100 100)"/></svg>
+                </div>
+                <div class="flex items-center gap-2 overflow-hidden">
+                    <h1 class="font-bold text-white leading-none whitespace-nowrap">lattesZen</h1>
+                    <span id="headerNomeWrap" class="flex items-center gap-2 overflow-hidden hidden">
+                        <span class="text-xl text-white/30 dark:text-gray-700 font-light">|</span>
+                        <span id="headerNome" class="font-bold text-white/90 dark:text-unifesp-400 leading-none whitespace-nowrap truncate"></span>
+                    </span>
+                </div>
+            </div>
+            <div class="flex items-center gap-3 shrink-0">
+                <div id="govBrLogo" class="bg-white rounded px-2 py-1.5 flex items-center shrink-0 dark:hidden">
+                    <img src="images/geral/gov_br.svg" alt="Federal Government" class="h-5 w-auto" onerror="this.parentElement.style.display='none'">
+                </div>
+                <!-- Settings: same position as templateZen (1st header row,
+                     far right) — opens index.html on the Settings tab (see
+                     hash "#config" handled in app.js). -->
+                <a href="ajuda-rsc.html" class="text-white/90 hover:text-white transition-colors text-xs font-semibold border border-white/30 rounded px-1.5 py-1 shrink-0">PT</a>
+                <a href="index.html#config" title="Settings" aria-label="Settings" class="text-white/90 hover:text-white transition-colors w-8 h-8 flex items-center justify-center rounded shrink-0">
+                    <i aria-hidden="true" class="fa-solid fa-gear"></i>
+                </a>
+            </div>
+        </div>
+
+        <!-- Navigation tabs (links back to the app) -->
+        <nav class="bg-white dark:bg-gray-800 border-t border-govbr-700/20 dark:border-gray-700 px-2" aria-label="Sections">
+            <div class="max-w-5xl mx-auto flex gap-1 overflow-x-auto">
+                <a href="index.html" class="tab-btn px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-gray-600 dark:text-gray-300 hover:text-govbr-600 dark:hover:text-unifesp-400 whitespace-nowrap">
+                    <i aria-hidden="true" class="fa-solid fa-file-circle-plus mr-1"></i> Catalog
+                </a>
+                <a href="index.html" class="tab-btn px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-gray-600 dark:text-gray-300 hover:text-govbr-600 dark:hover:text-unifesp-400 whitespace-nowrap">
+                    <i aria-hidden="true" class="fa-solid fa-clipboard-check mr-1"></i> Compliance
+                </a>
+                <a href="index.html" class="tab-btn px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-gray-600 dark:text-gray-300 hover:text-govbr-600 dark:hover:text-unifesp-400 whitespace-nowrap">
+                    <i aria-hidden="true" class="fa-solid fa-globe mr-1"></i> Publish Online
+                </a>
+                <span class="tab-btn px-4 py-2.5 text-sm font-medium border-b-2 border-govbr-600 dark:border-unifesp-400 text-govbr-700 dark:text-unifesp-400 font-bold whitespace-nowrap" aria-current="page">
+                    <i aria-hidden="true" class="fa-solid fa-circle-question mr-1"></i> Help
+                </span>
+            </div>
+        </nav>
+    </header>
+
+    <!-- ============================ CONTENT ============================ -->
+    <main class="flex-1 w-full max-w-6xl mx-auto px-4 py-6">
+      <div class="help-doc">
+        <p style="margin:0 0 10px"><a href="ajuda.en.html">← Help home</a> · <a href="ajuda-lattes.en.html">Lattes Curriculum flow help</a></p>
+        <h1>RSC-PCCTAE in lattesZen</h1>
+        <p class="lead">How to use the <strong>Recognition of Knowledge and Skills</strong> (RSC) module to simulate points and the achievable level, and generate the memorial. The general curriculum flow (folder, import, fields, compliance) is covered in the <a href="ajuda-lattes.en.html">Lattes help</a>.</p>
+
+        <div class="warn">
+          <strong>Important notice:</strong> this module is an <em>individual-use support tool</em>, based on the tables of <strong>Decree No. 13,048/2026</strong> (a Brazilian federal regulation, RSC-PCCTAE has no equivalent outside Brazil). The calculations are estimates for personal organization and <strong>have no official standing</strong> — the formal evaluation is the responsibility of your institution's committee. Always check the rules in force and the original annexes.
+        </div>
+
+        <nav class="toc">
+          <h2>On this page</h2>
+          <ol>
+            <li><a href="#oque">What RSC-PCCTAE is</a></li>
+            <li><a href="#habilitar">1. Enable the module</a></li>
+            <li><a href="#camada">2. Mark items (RSC layer)</a></li>
+            <li><a href="#categorias-rsc">3. Categories 20/21 (no Lattes counterpart)</a></li>
+            <li><a href="#simulador">4. The RSC tab (simulator)</a></li>
+            <li><a href="#memorial">5. Memorial and spreadsheet</a></li>
+            <li><a href="#requisitos">The six requirements</a></li>
+          </ol>
+        </nav>
+
+        <section class="card" id="oque">
+          <h2>What RSC-PCCTAE is</h2>
+          <p><strong>RSC</strong> (Recognition of Knowledge and Skills) lets a technical-administrative staff member in education (PCCTAE, a Brazilian federal civil-service career track) obtain, for the purposes of a <strong>Qualification Incentive</strong>, a recognition equivalent to an education level higher than the one they hold, based on activities, output and responsibilities performed.</p>
+          <p>In practice, you gather <strong>evidence</strong> distributed across <strong>six requirements</strong> (Annexes I–VI of the decree); each activity is worth a number of <strong>points</strong>, and the total — combined with the number of <strong>distinct criteria</strong> met and your <strong>education level</strong> — determines the <strong>achievable RSC level (RSC-I, RSC-II, RSC-III)</strong>.</p>
+          <p>lattesZen reuses the items you already catalog for Lattes: instead of re-entering everything, you just <em>mark</em> which items count toward RSC and which criterion they belong to.</p>
+        </section>
+
+        <section class="card" id="habilitar">
+          <h2><span class="step-num">1</span> Enable the module</h2>
+          <p>RSC is <strong>off</strong> by default. To turn it on:</p>
+          <ol>
+            <li>Open the <span class="pill">Settings</span> tab.</li>
+            <li>In the <strong>RSC-PCCTAE (optional)</strong> section, check <span class="tag">Enable RSC-PCCTAE module</span>.</li>
+            <li>Fill in your staff data: <strong>position</strong>, <strong>class/level</strong>, SIAPE ID (optional, the Brazilian federal civil-service registry number), department, hire date and <strong>start of the counting period</strong>.</li>
+            <li>Choose your <strong>education level</strong> — it <em>caps the maximum</em> RSC level you can reach and sets the corresponding Qualification Incentive (IQ).</li>
+            <li>Click <strong>Save RSC</strong>.</li>
+          </ol>
+          <div class="note">Once enabled, a new <span class="pill">RSC</span> tab appears (the simulator) and, inside the form for each eligible item, an <strong>RSC layer</strong> appears just below the regular fields.</div>
+        </section>
+
+        <section class="card" id="camada">
+          <h2><span class="step-num">2</span> Mark items for RSC (RSC layer)</h2>
+          <p>With the module on, edit an item on the <span class="pill">Catalog</span> tab. Just below the fields, on the <strong>"Publish"</strong> row:</p>
+          <ol>
+            <li>Check <strong>"use for RSC"</strong> (next to "Lattes" and "Web") — the RSC layer fields appear next.</li>
+            <li>Choose the matching <strong>criterion</strong> — the list is organized by the six requirements (Annexes I–VI); each option shows the description, the unit of measure and the points.</li>
+            <li>When the criterion asks for it, provide the <strong>role/subtype</strong> (e.g., coordination vs. participation).</li>
+            <li>Write a <strong>justification</strong> — it goes into the memorial.</li>
+            <li>The app calculates and shows the <strong>item's points</strong> right away (quantity × unit value, according to the unit: per year/fraction, per month, or per unit).</li>
+          </ol>
+          <p>Items enabled for RSC get an <strong>amber marker</strong> in the Compliance tab's list, showing the criterion and the points.</p>
+          <div class="note"><strong>Calculation units:</strong> <code>year</code> (per year or fraction over 6 months, uses the start/end dates), <code>month</code> (per month), and <code>unit</code> (counts 1 per appointment/project/product/award/event).</div>
+        </section>
+
+        <section class="card" id="categorias-rsc">
+          <h2><span class="step-num">3</span> Items with no Lattes counterpart — categories 20 and 21</h2>
+          <p>Some RSC criteria have no matching element in the Lattes Curriculum. For these cases there are dedicated categories, <strong>not tied to Lattes</strong>, which only appear in the catalog <em>when the RSC module is enabled</em>:</p>
+          <ul>
+            <li><strong>12 — Research Groups</strong>: leadership/deputy leadership or membership in a registered research/outreach group (Lattes has nothing for this — the official registry is CNPq's Directory of Research Groups).</li>
+            <li><strong>21 — Public Health Crisis Response</strong>: institutional action responding to an outbreak, epidemic or pandemic.</li>
+          </ul>
+          <p>Use these to record such activities with a justification and evidence. They count toward the RSC simulator, but are <strong>not exported in the Lattes XML</strong>. For other administrative activities with no dedicated Lattes element (contract management, procurement, management position/gratified function, department responsibility, etc.), use the existing free-text fields under <strong>Activities</strong> — see the full criterion-by-criterion mapping in <a href="relacionando-lattes-rsc.en.html">Relating Lattes and RSC</a>.</p>
+        </section>
+
+        <section class="card" id="simulador">
+          <h2><span class="step-num">4</span> The RSC tab (simulator)</h2>
+          <p>The <span class="pill">RSC</span> tab consolidates everything you've marked and shows:</p>
+          <ul>
+            <li><strong>Achievable level</strong> (RSC-I / II / III) highlighted, respecting the cap set by your education level.</li>
+            <li><strong>Total points</strong> and <strong>number of distinct criteria</strong> met.</li>
+            <li>The <strong>list of counted items</strong>, grouped by Requirement (Annexes I–VI) — each group already shows items, criteria and the point sum right in its header.</li>
+          </ul>
+          <p>This lets you see where to focus effort — for example, if you just need to diversify criteria instead of stacking more points on the same requirement.</p>
+          <div class="note">Only items that are <strong>marked to count</strong>, <strong>have a criterion chosen</strong>, and have <strong>not already been used</strong> in a previous recognition enter the calculation.</div>
+        </section>
+
+        <section class="card" id="memorial">
+          <h2><span class="step-num">5</span> Memorial and spreadsheet</h2>
+          <p>Still on the RSC tab, you can generate supporting documents to put together the process:</p>
+          <ul>
+            <li><strong>Generate memorial</strong> — a text file (<code>rsc-memorial.txt</code>) with your data, the items by requirement, the justifications and the score.</li>
+            <li><strong>Spreadsheet (CSV)</strong> — a table with requirement, criterion, description, item title, period, role, quantity, unit value, points and evidence, for review and attachment to the process.</li>
+            <li><strong>Save form (.docx)</strong> — generates the <strong>standard application form</strong> from the Annex of MEC Ordinance No. 608/2026 (staff identification, requested level, activities by requirement and compliance statement), already as an editable <code>.docx</code> document for Word/LibreOffice. Unlike the other three, it isn't downloaded through the browser — it's saved directly into the <code>Exportação/RSC-PCCTAE</code> folder of your configured directory (which is why it requires a storage directory set up in Settings).</li>
+            <li><strong>Generate prompt (AI)</strong> — a <code>.md</code> file (<code>prompt-trajetoria-profissional.md</code>) ready to paste into an AI (Claude, ChatGPT, etc.) to generate the <strong>Professional Trajectory</strong> section of the Descriptive Memorial, required by Art. 13 of Decree No. 13,048/2026. It brings a master prompt with the official rules (objective text between 4,000 and 10,000 characters, first person, no sensitive personal data) followed by your categorized data (position, department, education level and the activities by requirement, with criterion, period and justification) — deliberately without name, SIAPE ID, phone/email or process numbers, to minimize what's sent to an external tool.</li>
+          </ul>
+          <div class="ok">Since each item can have its evidence (PDF) attached through the normal curriculum flow, the memorial, the spreadsheet, the form and the prompt already reflect the proof you've organized.</div>
+        </section>
+
+        <section class="card" id="requisitos">
+          <h2>The six requirements (Annexes I–VI)</h2>
+          <table>
+            <thead><tr><th>Req.</th><th>Topic</th></tr></thead>
+            <tbody>
+              <tr><td><strong>I</strong></td><td>Groups, commissions, committees and institutional representation</td></tr>
+              <tr><td><strong>II</strong></td><td>Institutional projects and support for teaching, research and outreach</td></tr>
+              <tr><td><strong>III</strong></td><td>Awards and public recognition</td></tr>
+              <tr><td><strong>IV</strong></td><td>Technical-administrative or specialized responsibilities</td></tr>
+              <tr><td><strong>V</strong></td><td>Management/advisory position or role</td></tr>
+              <tr><td><strong>VI</strong></td><td>Production, prospecting and dissemination of knowledge</td></tr>
+            </tbody>
+          </table>
+          <p>The point values for each criterion, the minimums per level and the cap by education level are built into the app per the decree. Since the rule can be amended by a supplementary act, always check the version in force before formalizing your process.</p>
+          <div class="ok"><strong>Want to know exactly which Lattes field to use for each of the 55 criteria?</strong> See the full criterion-by-criterion table in <a href="relacionando-lattes-rsc.en.html">Relating Lattes and RSC</a>.</div>
+        </section>
+      </div>
+    </main>
+
+    <!-- ============================ FOOTER (same as the app) ============================ -->
+    <footer class="bg-govbr-800 dark:bg-gray-950 border-t border-govbr-700 dark:border-gray-700 py-3 px-6 text-xs text-blue-100 dark:text-gray-400 flex flex-col sm:flex-row justify-between items-center shrink-0 gap-4 transition-colors duration-300">
+        <div class="flex items-center gap-4 flex-wrap justify-center">
+            <a href="termodeuso.en.html" class="hover:text-white transition-colors flex items-center gap-1" title="Terms of use" aria-label="Terms of use"><i aria-hidden="true" class="fa-solid fa-file-contract"></i></a>
+            <span class="text-white/25 dark:text-gray-700">|</span>
+            <a href="privacidade.en.html" class="hover:text-white transition-colors flex items-center gap-1" title="Privacy policy" aria-label="Privacy policy"><i aria-hidden="true" class="fa-solid fa-shield-halved"></i></a>
+            <span class="text-white/25 dark:text-gray-700">|</span>
+            <a href="./ajuda.en.html" class="hover:text-white transition-colors flex items-center gap-1" title="Help" aria-label="Help"><i aria-hidden="true" class="fa-solid fa-circle-question"></i></a>
+            <span class="text-white/25 dark:text-gray-700">|</span>
+            <a href="sobre.en.html" class="hover:text-white transition-colors flex items-center gap-1" title="About" aria-label="About"><i aria-hidden="true" class="fa-solid fa-circle-info"></i></a>
+            <span class="text-white/25 dark:text-gray-700">|</span>
+            <button type="button" id="highContrastToggle" class="hover:text-white transition-colors flex items-center gap-1" aria-pressed="false" title="Toggle high contrast">
+                <i aria-hidden="true" class="fa-solid fa-circle-half-stroke"></i> <span class="sr-only">High contrast</span>
+            </button>
+            <span class="text-white/25 dark:text-gray-700">|</span>
+            <span class="flex items-center gap-1" role="group" aria-label="Font size">
+                <button type="button" id="fontDec" class="hover:text-white transition-colors flex items-center gap-1" title="Decrease font size" aria-label="Decrease font size"><i aria-hidden="true" class="fa-solid fa-magnifying-glass-minus"></i> A-</button>
+                <button type="button" id="fontInc" class="hover:text-white transition-colors flex items-center gap-1" title="Increase font size" aria-label="Increase font size"><i aria-hidden="true" class="fa-solid fa-magnifying-glass-plus"></i> A+</button>
+            </span>
+        </div>
+        <div class="flex gap-3 items-center flex-wrap justify-center">
+            <a href="https://github.com/alexsandroccarv" target="_blank" rel="noopener" class="hover:text-white hover:underline transition-colors flex items-center gap-1">
+                <i aria-hidden="true" class="fa-brands fa-github text-white/90 dark:text-unifesp-400"></i> Alexsandro Cardoso Carvalho
+            </a>
+            <span class="text-white/40 dark:text-gray-600">|</span>
+            <a href="doe-um-cafe.en.html" class="hover:text-white hover:underline transition-colors flex items-center gap-1">
+                <i aria-hidden="true" class="fa-solid fa-mug-hot text-white/90 dark:text-unifesp-400"></i> Buy me a coffee
+            </a>
+            <span class="text-white/40 dark:text-gray-600">|</span>
+            <a href="https://www.gnu.org/licenses/agpl-3.0.html" target="_blank" rel="noopener" class="hover:text-white transition-colors flex items-center gap-1" title="AGPLv3 License (Free Software Foundation)">
+                <i aria-hidden="true" class="fa-solid fa-scale-balanced text-white/90 dark:text-unifesp-400"></i> AGPLv3
+            </a>
+            <span class="text-white/40 dark:text-gray-600">|</span>
+            <span class="flex items-center gap-1"><i aria-hidden="true" class="fa-solid fa-tag" title="Version"></i> <a href="notas-de-versao.html" class="font-mono hover:text-white hover:underline transition-colors" title="Version notes (Portuguese)"><span id="appVersion"></span></a></span>
+            <a href="https://github.com/alexsandroccarv/latteszen" target="_blank" rel="noopener" class="hover:text-white transition-colors flex items-center gap-1" title="Source code (GitHub repository)" aria-label="Source code (GitHub repository)">
+                <i aria-hidden="true" class="fa-solid fa-code text-white/90 dark:text-unifesp-400"></i>
+            </a>
+        </div>
+    </footer>
+
+    <!-- Dynamic header/footer: version and owner name (same behavior as the app) -->
+    <script type="module" src="js/config.js"></script>
+    <script type="module" src="js/a11y.js"></script>
+    <script type="module" src="js/analytics.js"></script>
+    <script type="module" src="js/cookie-consent.js"></script>
+    <script type="module" src="js/pwa.js"></script>
+    <script type="module">
+        (function () {
+            // Fixes this page's locale (fixed English content), without
+            // touching localStorage — cookie-consent.js imports i18n.js,
+            // whose synchronous bootstrap would otherwise read the app's
+            // configured locale and could "leak" a mismatched <html
+            // lang>/cookie banner into this page.
+            try { window.LzI18n.setLocale('en'); } catch (e) {}
+        })();
+    </script>
+    <script type="module">
+        (function () {
+            var C = window.APP_CONFIG || {};
+            // This page's static title (from <title>, see SEO issue #37) —
+            // used as the "default" below instead of always rewriting to
+            // "lattesZen" when there's no saved profile name.
+            var tituloBase = document.title;
+            var setTxt = function (id, v) { var el = document.getElementById(id); if (el && v != null) el.textContent = v; };
+            setTxt('appVersion', C.version);
+            // Full name from the Identification item (same logic as the app): "lattesZen | Name".
+            var nome = '';
+            try {
+                var itens = JSON.parse(localStorage.getItem((C.storageKeys && C.storageKeys.catalog) || 'lz_catalog') || '[]');
+                var ident = itens.find(function (i) { return i.typeKey === 'IDENTIFICACAO' && i.fields && i.fields.titulo; });
+                if (ident) nome = String(ident.fields.titulo).trim();
+            } catch (e) {}
+            var nomeWrap = document.getElementById('headerNomeWrap');
+            if (nomeWrap) nomeWrap.classList.toggle('hidden', !nome);
+            setTxt('headerNome', nome);
+            document.title = nome ? (C.name || 'lattesZen') + ' | ' + nome : tituloBase;
+
+            var htmlEl = document.documentElement;
+
+            var hc = document.getElementById('highContrastToggle');
+            function syncHC() { hc.setAttribute('aria-pressed', htmlEl.classList.contains('high-contrast') ? 'true' : 'false'); }
+            if (hc) { syncHC(); hc.addEventListener('click', function () { htmlEl.classList.toggle('high-contrast'); localStorage.setItem('altoContraste', htmlEl.classList.contains('high-contrast') ? '1' : '0'); syncHC(); }); }
+
+            var FS_MIN = 80, FS_MAX = 150, FS_STEP = 10;
+            function getFS() { var n = parseInt(localStorage.getItem('fontScale') || '100', 10); return isNaN(n) ? 100 : n; }
+            var dec = document.getElementById('fontDec'), inc = document.getElementById('fontInc');
+            function applyFS(n) {
+                n = Math.max(FS_MIN, Math.min(FS_MAX, n));
+                htmlEl.style.fontSize = n === 100 ? '' : n + '%';
+                localStorage.setItem('fontScale', String(n));
+                if (dec) dec.disabled = n <= FS_MIN;
+                if (inc) inc.disabled = n >= FS_MAX;
+            }
+            applyFS(getFS());
+            if (dec) dec.addEventListener('click', function () { applyFS(getFS() - FS_STEP); });
+            if (inc) inc.addEventListener('click', function () { applyFS(getFS() + FS_STEP); });
+        })();
+    </script>
+</body>
+</html>

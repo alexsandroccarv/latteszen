@@ -307,10 +307,10 @@ window.TabConfig = (function () {
     function rscSectionHtml() {
         return `<section id="rscSection" class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
             <h2 class="text-lg font-bold mb-2 flex items-center gap-2"><i class="fa-solid fa-award text-govbr-600 dark:text-unifesp-400"></i> RSC-PCCTAE</h2>
-            <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">${t('tab_config.rsc_descricao', 'Reconhecimento de Saberes e Competências (Decreto nº 13.048/2026). Quando habilitado, cada item elegível ganha uma camada com os dados do RSC, e surge a aba <strong>RSC</strong> (simulador) — os dados da pessoa servidora (cargo, SIAPE, contatos etc.) são preenchidos lá. Uso individual.')}</p>
+            <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">Reconhecimento de Saberes e Competências (Decreto nº 13.048/2026). Quando habilitado, cada item elegível ganha uma camada com os dados do RSC, e surge a aba <strong>RSC</strong> (simulador) — os dados da pessoa servidora (cargo, SIAPE, contatos etc.) são preenchidos lá. Uso individual.</p>
             <label class="flex items-center gap-2 text-sm">
                 <input type="checkbox" id="rscEnable" ${state.rsc.enabled ? 'checked' : ''}>
-                <span>${t('tab_config.habilitar_modulo_rsc', 'Habilitar módulo <strong>RSC-PCCTAE</strong>')}</span>
+                <span>Habilitar módulo <strong>RSC-PCCTAE</strong></span>
             </label>
         </section>`;
     }
@@ -321,7 +321,7 @@ window.TabConfig = (function () {
             const s = Storage.loadSettings(); s.rscEnabled = state.rsc.enabled; Storage.saveSettings(s);
             window.AppCore.persistirRsc();
             window.AppCore.applyRscVisibility();
-            toast(state.rsc.enabled ? t('tab_config.rsc_habilitado', 'Módulo RSC habilitado.') : t('tab_config.rsc_desabilitado', 'Módulo RSC desabilitado.'), 'ok');
+            toast(state.rsc.enabled ? 'Módulo RSC habilitado.' : 'Módulo RSC desabilitado.', 'ok');
         });
     }
 
@@ -332,10 +332,10 @@ window.TabConfig = (function () {
     function sumulaSectionHtml() {
         return `<section id="sumulaSection" class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
             <h2 class="text-lg font-bold mb-2 flex items-center gap-2"><i class="fa-solid fa-file-lines text-govbr-600 dark:text-unifesp-400"></i> Súmula Curricular FAPESP</h2>
-            <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">${t('tab_config.sumula_descricao', 'Gera, a partir do catálogo, uma base de texto organizada no modelo de Súmula Curricular exigido pela FAPESP em processos de bolsas/auxílios (não é um documento oficial pronto para submissão — é um ponto de partida a revisar e ajustar). Quando habilitado, surge a aba <strong>Súmula FAPESP</strong>.')}</p>
+            <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">Gera, a partir do catálogo, uma base de texto organizada no modelo de Súmula Curricular exigido pela FAPESP em processos de bolsas/auxílios (não é um documento oficial pronto para submissão — é um ponto de partida a revisar e ajustar). Quando habilitado, surge a aba <strong>Súmula FAPESP</strong>.</p>
             <label class="flex items-center gap-2 text-sm">
                 <input type="checkbox" id="sumulaEnable" ${state.sumula.enabled ? 'checked' : ''}>
-                <span>${t('tab_config.habilitar_modulo_sumula', 'Habilitar módulo <strong>Súmula Curricular FAPESP</strong>')}</span>
+                <span>Habilitar módulo <strong>Súmula Curricular FAPESP</strong></span>
             </label>
         </section>`;
     }
@@ -346,7 +346,7 @@ window.TabConfig = (function () {
             const s = Storage.loadSettings(); s.sumulaEnabled = state.sumula.enabled; Storage.saveSettings(s);
             window.AppCore.persistirSumula();
             window.AppCore.applySumulaVisibility();
-            toast(state.sumula.enabled ? t('tab_config.sumula_habilitada', 'Módulo Súmula Curricular FAPESP habilitado.') : t('tab_config.sumula_desabilitada', 'Módulo Súmula Curricular FAPESP desabilitado.'), 'ok');
+            toast(state.sumula.enabled ? 'Módulo Súmula Curricular FAPESP habilitado.' : 'Módulo Súmula Curricular FAPESP desabilitado.', 'ok');
         });
     }
 
@@ -439,7 +439,7 @@ window.TabConfig = (function () {
     // horizontal rolável (ver .cfg-sidebar no CSS/classes abaixo).
     function cfgSidebarHtml(activeId) {
         return `
-        <nav aria-label="Seções de Configurações" class="flex lg:flex-col gap-1.5 overflow-x-auto lg:overflow-visible lg:w-48 lg:shrink-0">
+        <nav aria-label="${esc(t('tab_config.secoes_aria_label', 'Seções de Configurações'))}" class="flex lg:flex-col gap-1.5 overflow-x-auto lg:overflow-visible lg:w-48 lg:shrink-0">
             ${CFG_GROUPS.map(g => `
                 <button type="button" data-cfg-page-link="${g.id}" aria-current="${g.id === activeId ? 'page' : 'false'}" class="shrink-0 flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-left whitespace-nowrap ${g.id === activeId ? 'bg-govbr-600 dark:bg-unifesp-700 text-white' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'}">
                     <i aria-hidden="true" class="fa-solid ${g.icon}"></i> ${esc(g.label)}
@@ -668,7 +668,7 @@ window.TabConfig = (function () {
                 html += `
                 ${dirWizardModo === 'novo' ? `
                 <div class="flex flex-wrap gap-2 mb-2">
-                    <input id="gdrivePasta" type="text" placeholder="Pasta (ex.: lattesZen)" value="lattesZen" class="text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900">
+                    <input id="gdrivePasta" type="text" placeholder="${esc(t('tab_config.gdrive_pasta_placeholder', 'Pasta (ex.: lattesZen)'))}" value="lattesZen" class="text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900">
                 </div>` : `
                 <p class="text-xs text-gray-500 mb-2">${t('tab_config.gdrive_seletor_ajuda', 'Ao clicar, um seletor do Google Drive abre para você escolher a pasta que já usa — o nome dela é usado automaticamente, não precisa digitar nada.{avisoChave}', { avisoChave: temGDrivePickerKey ? '' : ` <span class="text-red-600 font-semibold">${esc(t('tab_config.picker_nao_configurado', 'Recurso ainda não configurado neste site (falta a Chave de API do Picker em config.js).'))}</span>` })}</p>`}
                 <p class="text-xs text-gray-500 mb-2">

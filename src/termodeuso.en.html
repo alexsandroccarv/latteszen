@@ -17,35 +17,35 @@
     You should have received a copy of the GNU Affero General Public License
     along with lattesZen. If not, see <https://www.gnu.org/licenses/>.
 -->
-<html lang="pt-BR">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>lattesZen — Termo de Uso</title>
-    <meta name="description" content="As condições de uso do lattesZen — o que esperar da ferramenta e suas responsabilidades ao utilizá-la.">
-    <link rel="canonical" href="https://ccarvalho.net/labs/latteszen/termodeuso.html">
+    <title>lattesZen — Terms of Use</title>
+    <meta name="description" content="lattesZen's terms of use — what to expect from the tool and your responsibilities when using it.">
+    <link rel="canonical" href="https://ccarvalho.net/labs/latteszen/termodeuso.en.html">
     <link rel="alternate" hreflang="pt-BR" href="https://ccarvalho.net/labs/latteszen/termodeuso.html">
     <link rel="alternate" hreflang="en" href="https://ccarvalho.net/labs/latteszen/termodeuso.en.html">
     <link rel="alternate" hreflang="x-default" href="https://ccarvalho.net/labs/latteszen/termodeuso.html">
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="lattesZen">
-    <meta property="og:locale" content="pt_BR">
-    <meta property="og:title" content="lattesZen — Termo de Uso">
-    <meta property="og:description" content="As condições de uso do lattesZen — o que esperar da ferramenta e suas responsabilidades ao utilizá-la.">
-    <meta property="og:url" content="https://ccarvalho.net/labs/latteszen/termodeuso.html">
+    <meta property="og:locale" content="en_US">
+    <meta property="og:title" content="lattesZen — Terms of Use">
+    <meta property="og:description" content="lattesZen's terms of use — what to expect from the tool and your responsibilities when using it.">
+    <meta property="og:url" content="https://ccarvalho.net/labs/latteszen/termodeuso.en.html">
     <meta property="og:image" content="https://ccarvalho.net/labs/latteszen/images/og-image.png">
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="lattesZen — Termo de Uso">
-    <meta name="twitter:description" content="As condições de uso do lattesZen — o que esperar da ferramenta e suas responsabilidades ao utilizá-la.">
+    <meta name="twitter:title" content="lattesZen — Terms of Use">
+    <meta name="twitter:description" content="lattesZen's terms of use — what to expect from the tool and your responsibilities when using it.">
     <meta name="twitter:image" content="https://ccarvalho.net/labs/latteszen/images/og-image.png">
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#1351B4">
 
-    <!-- Mesmos estilos da aplicação -->
+    <!-- Same styles as the app -->
     <link rel="stylesheet" href="css/styles.css">
 
-    <!-- Tema claro/escuro e alto contraste: aplicar cedo para evitar "flash" -->
+    <!-- Light/dark theme and high contrast: applied early to avoid a "flash" -->
     <script>
         (function () {
             const htmlEl = document.documentElement;
@@ -53,8 +53,8 @@
             const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
             if (saved ? saved === 'dark' : prefersDark) htmlEl.classList.add('dark');
             if (localStorage.getItem('altoContraste') === '1') htmlEl.classList.add('high-contrast');
-            // Tema (paletas prontas, escolhidas em Configurações): aplicar cedo
-            // para evitar "flash" — mesma lógica de dark/altoContraste acima.
+            // Theme (ready-made palettes, chosen in Settings): applied early
+            // to avoid a "flash" — same logic as dark/high-contrast above.
             const temaPreset = localStorage.getItem('lz_tema_preset') || 'govbr';
             htmlEl.classList.add('lz-theme');
             htmlEl.setAttribute('data-lz-theme', temaPreset);
@@ -63,7 +63,7 @@
         })();
     </script>
 
-    <!-- Recursos externos (Tailwind + config, Font Awesome, Rawline) — mesmo do app -->
+    <!-- External resources (Tailwind + config, Font Awesome, Rawline) — same as the app -->
     <script>
         (function () {
             var TW_CONFIG = {
@@ -88,14 +88,14 @@
             loadCss('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css');
             loadCss('https://cdngovbr-ds.estaleiro.serpro.gov.br/design-system/fonts/rawline/css/rawline.css');
 
-            // Tema: fontes do Google por paleta (carregadas sob demanda —
-            // "lattesZen noite" e "lattesZen dia" usam fonte já carregada acima, sem CDN extra).
+            // Theme: Google fonts per palette (loaded on demand —
+            // "lattesZen night" and "lattesZen day" use a font already loaded above, no extra CDN).
             var THEME_FONTS = {
                 'catppuccin-latte': 'https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap',
                 'catppuccin-mocha': 'https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap',
                 dracula: 'https://fonts.googleapis.com/css2?family=Fira+Sans:wght@400;600;700&display=swap',
-                // lattesZen dia (govbr) usa a Rawline já carregada acima (sem CDN extra); GitHub
-                // Light/Dark usam a fonte do sistema — por isso não têm entrada aqui.
+                // lattesZen day (govbr) uses the Rawline already loaded above (no extra CDN); GitHub
+                // Light/Dark use the system font — that's why they have no entry here.
                 'rose-pine-dawn': 'https://fonts.googleapis.com/css2?family=Quicksand:wght@400;600;700&display=swap',
                 'solarized-light': 'https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&display=swap',
                 'solarized-dark': 'https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&display=swap',
@@ -108,8 +108,8 @@
                 l.rel = 'stylesheet'; l.href = url; l.setAttribute('data-lz-font', preset);
                 document.head.appendChild(l);
             };
-            // Sincroniza <meta name="theme-color"> (barra do navegador no
-            // mobile) com a cor do cabeçalho do tema ativo.
+            // Syncs <meta name="theme-color"> (mobile browser bar) with the
+            // active theme's header color.
             window.__setThemeColor = function () {
                 var m = document.querySelector('meta[name="theme-color"]');
                 if (!m) { m = document.createElement('meta'); m.name = 'theme-color'; document.head.appendChild(m); }
@@ -122,7 +122,7 @@
         })();
     </script>
 
-    <!-- Estilo do conteúdo desta página (escopo .help-doc; dark por classe, como o app) -->
+    <!-- Content style for this page (scoped to .help-doc; dark by class, like the app) -->
     <style>
       :root{
         --hdoc-surface:#f9fafb; --hdoc-text:#1f2937; --hdoc-muted:#6b7280; --hdoc-line:#e5e7eb;
@@ -137,11 +137,11 @@
         --hdoc-ok-bg:#0e2a1e; --hdoc-ok-line:#34d399;
       }
 
-      /* Tema escolhido (Configurações → Outros recursos) tem prioridade
-         sobre os padrões claro/escuro acima — mesmo princípio já usado no
-         cabeçalho/rodapé/abas do app (ver "html.lz-theme" em styles.css):
-         sem isto, escolher um tema (Drácula, Catppuccin etc.) não tinha
-         nenhum efeito no conteúdo desta página, só no cabeçalho/rodapé. */
+      /* Chosen theme (Settings → Other resources) takes priority over the
+         light/dark defaults above — same principle already used in the
+         app's header/footer/tabs (see "html.lz-theme" in styles.css):
+         without this, choosing a theme (Dracula, Catppuccin, etc.) would
+         have no effect on this page's content, only on the header/footer. */
       html.lz-theme{
         --hdoc-surface:var(--lz-surface); --hdoc-text:var(--lz-text); --hdoc-muted:var(--lz-muted); --hdoc-line:var(--lz-border);
         --hdoc-accent:var(--lz-accent); --hdoc-code:var(--lz-surface); --hdoc-chip:var(--lz-surface); --hdoc-chipink:var(--lz-accent);
@@ -174,7 +174,7 @@
 </head>
 <body class="font-sans bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-100 min-h-screen flex flex-col transition-colors duration-300">
 
-    <!-- ============================ CABEÇALHO (igual ao app) ============================ -->
+    <!-- ============================ HEADER (same as the app) ============================ -->
     <header class="bg-govbr-600 dark:bg-gray-900 border-b border-govbr-700 dark:border-gray-700 flex flex-col shadow-sm dark:shadow-lg z-20 shrink-0 transition-colors duration-300">
         <div class="flex items-center justify-between px-4 py-3 bg-govbr-600 dark:bg-gray-900 transition-colors duration-300">
             <div class="flex items-center gap-3">
@@ -191,141 +191,145 @@
             </div>
             <div class="flex items-center gap-3 shrink-0">
                 <div id="govBrLogo" class="bg-white rounded px-2 py-1.5 flex items-center shrink-0 dark:hidden">
-                    <img src="images/geral/gov_br.svg" alt="Governo Federal" class="h-5 w-auto" onerror="this.parentElement.style.display='none'">
+                    <img src="images/geral/gov_br.svg" alt="Federal Government" class="h-5 w-auto" onerror="this.parentElement.style.display='none'">
                 </div>
-                <!-- Configurações: mesma posição do templateZen (1ª linha do
-                     cabeçalho, extrema direita) — abre index.html na aba
-                     Configurações (ver hash "#config" tratado em app.js). -->
-                <a href="termodeuso.en.html" class="text-white/90 hover:text-white transition-colors text-xs font-semibold border border-white/30 rounded px-1.5 py-1 shrink-0">EN</a>
-                <a href="index.html#config" title="Configurações" aria-label="Configurações" class="text-white/90 hover:text-white transition-colors w-8 h-8 flex items-center justify-center rounded shrink-0">
+                <!-- Settings: same position as templateZen (1st header row,
+                     far right) — opens index.html on the Settings tab (see
+                     hash "#config" handled in app.js). -->
+                <a href="termodeuso.html" class="text-white/90 hover:text-white transition-colors text-xs font-semibold border border-white/30 rounded px-1.5 py-1 shrink-0">PT</a>
+                <a href="index.html#config" title="Settings" aria-label="Settings" class="text-white/90 hover:text-white transition-colors w-8 h-8 flex items-center justify-center rounded shrink-0">
                     <i aria-hidden="true" class="fa-solid fa-gear"></i>
                 </a>
             </div>
         </div>
 
-        <!-- 2ª linha do cabeçalho: um único link "Voltar ao início" (volta
-             pro app) — antes eram 2 links redundantes (Início + Voltar ao
-             lattesZen, ambos indo pro mesmo lugar); sem fingir uma régua de
-             abas com Catalogar/Conformidade/Publicar (todas levavam pra
-             index.html de qualquer forma). -->
-        <nav class="bg-white dark:bg-gray-800 border-t border-govbr-700/20 dark:border-gray-700 px-2" aria-label="Voltar">
+        <!-- 2nd header row: a single "Back to home" link (back to the app) —
+             previously there were 2 redundant links (Home + Back to
+             lattesZen, both going to the same place); no pretending to have
+             a Catalog/Compliance/Publish tab row (they all led to
+             index.html anyway). -->
+        <nav class="bg-white dark:bg-gray-800 border-t border-govbr-700/20 dark:border-gray-700 px-2" aria-label="Back">
             <div class="max-w-5xl mx-auto flex gap-1">
                 <a href="index.html" class="tab-btn px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-gray-600 dark:text-gray-300 hover:text-govbr-600 dark:hover:text-unifesp-400 whitespace-nowrap">
-                    <i aria-hidden="true" class="fa-solid fa-house mr-1"></i><i aria-hidden="true" class="fa-solid fa-arrow-left mr-1"></i> Voltar ao início
+                    <i aria-hidden="true" class="fa-solid fa-house mr-1"></i><i aria-hidden="true" class="fa-solid fa-arrow-left mr-1"></i> Back to home
                 </a>
             </div>
         </nav>
     </header>
 
-    <!-- ============================ CONTEÚDO ============================ -->
+    <!-- ============================ CONTENT ============================ -->
     <main class="flex-1 w-full max-w-6xl mx-auto px-4 py-6">
       <div class="help-doc">
-        <h1>Termo de Uso</h1>
-        <p class="lead">As condições de uso do lattesZen — o que você pode esperar da ferramenta e o que é de sua responsabilidade ao utilizá-la.</p>
+        <h1>Terms of Use</h1>
+        <p class="lead">lattesZen's terms of use — what you can expect from the tool and what's your responsibility when using it.</p>
 
         <div class="warn">
-          <strong>Antes de começar:</strong> o lattesZen ainda está <strong>em desenvolvimento</strong>. Pode ter erros, funcionar diferente do esperado, ou mudar de uma hora para outra. <strong>Faça sempre uma cópia (backup) dos seus arquivos</strong> (Configurações › Backup).
+          <strong>Translation notice:</strong> this page is a translation of the original Portuguese <a href="termodeuso.html">Termo de Uso</a>, provided for convenience. It is <strong>not an official legal review</strong> and has no independent legal standing — lattesZen's actual, legally-governing terms of use are the Portuguese version, governed by Brazilian law (see section 10). If anything on this page conflicts with the Portuguese original, the Portuguese version controls.
+        </div>
+
+        <div class="warn">
+          <strong>Before you start:</strong> lattesZen is still <strong>under development</strong>. It may have bugs, behave differently than expected, or change without notice. <strong>Always keep a backup of your files</strong> (Settings › Backup).
         </div>
 
         <nav class="toc">
-          <h2>Nesta página</h2>
+          <h2>On this page</h2>
           <ol>
-            <li><a href="#aceitacao">1. Aceitação destes termos</a></li>
-            <li><a href="#descricao">2. O que é o lattesZen</a></li>
-            <li><a href="#licenca">3. Software livre, sem garantia</a></li>
-            <li><a href="#responsabilidade">4. Sua responsabilidade</a></li>
-            <li><a href="#uso">5. Uso adequado</a></li>
-            <li><a href="#dados">6. Dados pessoais</a></li>
-            <li><a href="#terceiros">7. Serviços e links de terceiros</a></li>
-            <li><a href="#propriedade">8. Propriedade intelectual</a></li>
-            <li><a href="#alteracoes">9. Alterações deste termo</a></li>
-            <li><a href="#legislacao">10. Legislação aplicável</a></li>
-            <li><a href="#contato">11. Contato</a></li>
+            <li><a href="#aceitacao">1. Acceptance of these terms</a></li>
+            <li><a href="#descricao">2. What lattesZen is</a></li>
+            <li><a href="#licenca">3. Free software, no warranty</a></li>
+            <li><a href="#responsabilidade">4. Your responsibility</a></li>
+            <li><a href="#uso">5. Proper use</a></li>
+            <li><a href="#dados">6. Personal data</a></li>
+            <li><a href="#terceiros">7. Third-party services and links</a></li>
+            <li><a href="#propriedade">8. Intellectual property</a></li>
+            <li><a href="#alteracoes">9. Changes to these terms</a></li>
+            <li><a href="#legislacao">10. Governing law</a></li>
+            <li><a href="#contato">11. Contact</a></li>
           </ol>
         </nav>
 
         <section class="card" id="aceitacao">
-          <h2><i class="fa-solid fa-handshake text-govbr-600 dark:text-unifesp-400"></i> 1. Aceitação destes termos</h2>
-          <p>Ao acessar e usar o lattesZen, você concorda com as condições descritas neste Termo de Uso. Se você não concordar com algum ponto, a recomendação é não utilizar a ferramenta.</p>
+          <h2><i class="fa-solid fa-handshake text-govbr-600 dark:text-unifesp-400"></i> 1. Acceptance of these terms</h2>
+          <p>By accessing and using lattesZen, you agree to the terms described in these Terms of Use. If you don't agree with any part of them, the recommendation is not to use the tool.</p>
         </section>
 
         <section class="card" id="descricao">
-          <h2><i class="fa-solid fa-graduation-cap text-govbr-600 dark:text-unifesp-400"></i> 2. O que é o lattesZen</h2>
-          <p>O lattesZen é uma ferramenta gratuita e de código aberto que roda inteiramente no seu navegador, para ajudar você a organizar o seu Currículo Lattes: cadastrar itens com evidências, verificar conformidade, montar o dossiê de RSC-PCCTAE e publicar uma página do currículo na web.</p>
-          <p>O lattesZen <strong>não é</strong> a Plataforma Lattes, não é mantido pelo CNPq ou por qualquer órgão do Governo Federal, e não substitui os canais oficiais — é uma ferramenta de apoio, de uso independente.</p>
+          <h2><i class="fa-solid fa-graduation-cap text-govbr-600 dark:text-unifesp-400"></i> 2. What lattesZen is</h2>
+          <p>lattesZen is a free, open-source tool that runs entirely in your browser, to help you organize your Lattes Curriculum: entering items with evidence, checking compliance, assembling the RSC-PCCTAE dossier, and publishing a curriculum page online.</p>
+          <p>lattesZen <strong>is not</strong> the Lattes Platform, is not maintained by CNPq or any Brazilian Federal Government body, and does not replace official channels — it's an independently-run support tool.</p>
         </section>
 
         <section class="card" id="licenca">
-          <h2><i class="fa-solid fa-scale-balanced text-govbr-600 dark:text-unifesp-400"></i> 3. Software livre, sem garantia</h2>
-          <p>O lattesZen é distribuído sob a licença <strong><a href="https://www.gnu.org/licenses/agpl-3.0.html" target="_blank" rel="noopener">AGPLv3</a></strong> (Free Software Foundation) e fornecido <strong>“no estado em que se encontra”</strong> (<em>as is</em>), <strong>sem garantias de qualquer tipo</strong>, expressas ou implícitas — inclusive quanto a adequação a uma finalidade específica, ausência de erros ou disponibilidade contínua, conforme a própria licença estabelece.</p>
-          <div class="warn">O projeto ainda está em <strong>desenvolvimento ativo</strong>: funcionalidades podem mudar, apresentar falhas, ou ser removidas sem aviso prévio. Não há qualquer garantia de continuidade, suporte ou manutenção.</div>
+          <h2><i class="fa-solid fa-scale-balanced text-govbr-600 dark:text-unifesp-400"></i> 3. Free software, no warranty</h2>
+          <p>lattesZen is distributed under the <strong><a href="https://www.gnu.org/licenses/agpl-3.0.html" target="_blank" rel="noopener">AGPLv3</a></strong> license (Free Software Foundation) and provided <strong>"as is"</strong>, <strong>without warranties of any kind</strong>, express or implied — including as to fitness for a particular purpose, freedom from errors, or continuous availability, as the license itself establishes.</p>
+          <div class="warn">The project is still under <strong>active development</strong>: features may change, have bugs, or be removed without prior notice. There is no guarantee of continuity, support, or maintenance.</div>
         </section>
 
         <section class="card" id="responsabilidade">
-          <h2><i class="fa-solid fa-triangle-exclamation text-govbr-600 dark:text-unifesp-400"></i> 4. Sua responsabilidade</h2>
-          <p>Como todo o processamento ocorre localmente no seu navegador e computador (veja a <a href="privacidade.html">Política de Privacidade</a>), <strong>você é o único responsável pela guarda e integridade dos seus dados</strong>. A pessoa autora e mantenedora do lattesZen não se responsabiliza por:</p>
+          <h2><i class="fa-solid fa-triangle-exclamation text-govbr-600 dark:text-unifesp-400"></i> 4. Your responsibility</h2>
+          <p>Since all processing happens locally in your browser and computer (see the <a href="privacidade.en.html">Privacy Policy</a>), <strong>you are solely responsible for the custody and integrity of your data</strong>. lattesZen's author and maintainer is not responsible for:</p>
           <ul>
-            <li>Perda de dados, arquivos ou evidências cadastradas — <strong>faça backups com frequência</strong> (Configurações › Backup).</li>
-            <li>Erros, omissões ou inconsistências na página pública gerada, ou em qualquer documento produzido pela ferramenta — <strong>confira sempre</strong> antes de enviar/publicar.</li>
-            <li>Decisões tomadas com base nos cálculos do simulador de RSC-PCCTAE, que são <strong>estimativas de apoio pessoal, sem caráter oficial</strong> — a avaliação formal cabe sempre à comissão da sua instituição.</li>
+            <li>Loss of data, files or evidence you've entered — <strong>back up frequently</strong> (Settings › Backup).</li>
+            <li>Errors, omissions or inconsistencies in the generated public page, or in any document produced by the tool — <strong>always double-check</strong> before submitting/publishing.</li>
+            <li>Decisions made based on the RSC-PCCTAE simulator's calculations, which are <strong>personal-support estimates with no official standing</strong> — the formal evaluation is always the responsibility of your institution's committee.</li>
           </ul>
         </section>
 
         <section class="card" id="uso">
-          <h2><i class="fa-solid fa-circle-check text-govbr-600 dark:text-unifesp-400"></i> 5. Uso adequado</h2>
-          <p>O lattesZen deve ser usado para os fins a que se destina: organizar informações curriculares e acadêmicas próprias. Não é permitido usar a ferramenta para fins ilícitos, para inserir informações falsas com intenção de fraude, ou para tentar comprometer a segurança/funcionamento do software ou de seu código-fonte.</p>
+          <h2><i class="fa-solid fa-circle-check text-govbr-600 dark:text-unifesp-400"></i> 5. Proper use</h2>
+          <p>lattesZen should be used for its intended purpose: organizing your own curricular and academic information. You may not use the tool for unlawful purposes, to enter false information with intent to defraud, or to attempt to compromise the security/operation of the software or its source code.</p>
         </section>
 
         <section class="card" id="dados">
-          <h2><i class="fa-solid fa-lock text-govbr-600 dark:text-unifesp-400"></i> 6. Dados pessoais</h2>
-          <p>O tratamento de dados pessoais no lattesZen está descrito em detalhe na <a href="privacidade.html">Política de Privacidade</a> — em resumo, o app não tem servidor, e os dados que você cadastra ficam no seu navegador e/ou numa pasta do seu próprio computador.</p>
+          <h2><i class="fa-solid fa-lock text-govbr-600 dark:text-unifesp-400"></i> 6. Personal data</h2>
+          <p>How lattesZen handles personal data is described in detail in the <a href="privacidade.en.html">Privacy Policy</a> — in short, the app has no server, and the data you enter stays in your browser and/or in a folder on your own computer.</p>
         </section>
 
         <section class="card" id="terceiros">
-          <h2><i class="fa-solid fa-arrow-up-right-from-square text-govbr-600 dark:text-unifesp-400"></i> 7. Serviços e links de terceiros</h2>
-          <p>O lattesZen carrega bibliotecas públicas de terceiros (Tailwind CSS, Font Awesome, fonte Rawline) e contém links para serviços externos — a Plataforma Lattes (gov.br/CNPq), o repositório no GitHub, e, na página <a href="doe-um-cafe.html">Doe um café</a>, um gerador de QR code Pix e links de parceiros/afiliados. O uso desses serviços externos está sujeito aos termos e políticas de cada um deles — o lattesZen não tem controle sobre seu conteúdo, disponibilidade ou práticas, e não se responsabiliza por eles.</p>
+          <h2><i class="fa-solid fa-arrow-up-right-from-square text-govbr-600 dark:text-unifesp-400"></i> 7. Third-party services and links</h2>
+          <p>lattesZen loads public third-party libraries (Tailwind CSS, Font Awesome, the Rawline font) and contains links to external services — the Lattes Platform (gov.br/CNPq), the GitHub repository, and, on the <a href="doe-um-cafe.en.html">Buy me a coffee</a> page, a Pix QR-code generator and partner/affiliate links. Use of these external services is subject to each one's own terms and policies — lattesZen has no control over their content, availability or practices, and is not responsible for them.</p>
         </section>
 
         <section class="card" id="propriedade">
-          <h2><i class="fa-solid fa-code text-govbr-600 dark:text-unifesp-400"></i> 8. Propriedade intelectual</h2>
-          <p>O código-fonte do lattesZen é aberto e está disponível no <a href="https://github.com/alexsandroccarv/lattesZen" target="_blank" rel="noopener">repositório do projeto</a>, sob a licença <a href="https://www.gnu.org/licenses/agpl-3.0.html" target="_blank" rel="noopener">AGPLv3</a>: qualquer pessoa pode ler, usar, modificar e redistribuir o código, respeitando os termos dessa licença. Os dados do seu currículo cadastrados na ferramenta continuam sendo seus, sem qualquer cessão de direitos à pessoa mantenedora do projeto.</p>
+          <h2><i class="fa-solid fa-code text-govbr-600 dark:text-unifesp-400"></i> 8. Intellectual property</h2>
+          <p>lattesZen's source code is open and available in the <a href="https://github.com/alexsandroccarv/lattesZen" target="_blank" rel="noopener">project's repository</a>, under the <a href="https://www.gnu.org/licenses/agpl-3.0.html" target="_blank" rel="noopener">AGPLv3</a> license: anyone can read, use, modify and redistribute the code, subject to that license's terms. Your curriculum data entered into the tool remains yours, with no transfer of rights to the project's maintainer.</p>
         </section>
 
         <section class="card" id="alteracoes">
-          <h2><i class="fa-solid fa-clock-rotate-left text-govbr-600 dark:text-unifesp-400"></i> 9. Alterações deste termo</h2>
-          <p>Por ser software livre e de código aberto, qualquer alteração neste Termo de Uso fica registrada no histórico do <a href="https://github.com/alexsandroccarv/lattesZen" target="_blank" rel="noopener">repositório no GitHub</a>. A versão e a data no rodapé desta página indicam a última atualização. O uso continuado do lattesZen após uma alteração implica concordância com o termo atualizado.</p>
+          <h2><i class="fa-solid fa-clock-rotate-left text-govbr-600 dark:text-unifesp-400"></i> 9. Changes to these terms</h2>
+          <p>Since it's free, open-source software, any change to these Terms of Use is recorded in the history of the <a href="https://github.com/alexsandroccarv/lattesZen" target="_blank" rel="noopener">GitHub repository</a>. The version and date in this page's footer indicate the last update. Continued use of lattesZen after a change implies agreement with the updated terms.</p>
         </section>
 
         <section class="card" id="legislacao">
-          <h2><i class="fa-solid fa-gavel text-govbr-600 dark:text-unifesp-400"></i> 10. Legislação aplicável</h2>
-          <p>Este Termo de Uso é regido pelas leis da República Federativa do Brasil, incluindo a Lei Geral de Proteção de Dados (LGPD, Lei nº 13.709/2018) no que se refere ao tratamento de dados pessoais.</p>
+          <h2><i class="fa-solid fa-gavel text-govbr-600 dark:text-unifesp-400"></i> 10. Governing law</h2>
+          <p>These Terms of Use are governed by the laws of the Federative Republic of Brazil, including the General Data Protection Law (LGPD, Law No. 13,709/2018) with respect to the processing of personal data.</p>
         </section>
 
         <section class="card" id="contato">
-          <h2><i class="fa-solid fa-envelope text-govbr-600 dark:text-unifesp-400"></i> 11. Contato</h2>
-          <p>Dúvidas sobre este Termo de Uso podem ser enviadas como uma <a href="https://github.com/alexsandroccarv/lattesZen/issues" target="_blank" rel="noopener">issue no repositório do projeto</a> — o mesmo canal usado para reportar bugs e sugerir funcionalidades.</p>
+          <h2><i class="fa-solid fa-envelope text-govbr-600 dark:text-unifesp-400"></i> 11. Contact</h2>
+          <p>Questions about these Terms of Use can be sent as an <a href="https://github.com/alexsandroccarv/lattesZen/issues" target="_blank" rel="noopener">issue on the project's repository</a> — the same channel used to report bugs and suggest features.</p>
         </section>
       </div>
     </main>
 
-    <!-- ============================ RODAPÉ (igual ao app) ============================ -->
+    <!-- ============================ FOOTER (same as the app) ============================ -->
     <footer class="bg-govbr-800 dark:bg-gray-950 border-t border-govbr-700 dark:border-gray-700 py-3 px-6 text-xs text-blue-100 dark:text-gray-400 flex flex-col sm:flex-row justify-between items-center shrink-0 gap-4 transition-colors duration-300">
         <div class="flex items-center gap-4 flex-wrap justify-center">
-            <a href="termodeuso.html" class="hover:text-white transition-colors flex items-center gap-1" title="Termo de uso" aria-label="Termo de uso"><i aria-hidden="true" class="fa-solid fa-file-contract"></i></a>
+            <a href="termodeuso.en.html" class="hover:text-white transition-colors flex items-center gap-1" title="Terms of use" aria-label="Terms of use"><i aria-hidden="true" class="fa-solid fa-file-contract"></i></a>
             <span class="text-white/25 dark:text-gray-700">|</span>
-            <a href="privacidade.html" class="hover:text-white transition-colors flex items-center gap-1" title="Política de privacidade" aria-label="Política de privacidade"><i aria-hidden="true" class="fa-solid fa-shield-halved"></i></a>
+            <a href="privacidade.en.html" class="hover:text-white transition-colors flex items-center gap-1" title="Privacy policy" aria-label="Privacy policy"><i aria-hidden="true" class="fa-solid fa-shield-halved"></i></a>
             <span class="text-white/25 dark:text-gray-700">|</span>
-            <a href="./ajuda.html" class="hover:text-white transition-colors flex items-center gap-1" title="Ajuda" aria-label="Ajuda"><i aria-hidden="true" class="fa-solid fa-circle-question"></i></a>
+            <a href="./ajuda.en.html" class="hover:text-white transition-colors flex items-center gap-1" title="Help" aria-label="Help"><i aria-hidden="true" class="fa-solid fa-circle-question"></i></a>
             <span class="text-white/25 dark:text-gray-700">|</span>
-            <a href="sobre.html" class="hover:text-white transition-colors flex items-center gap-1" title="Sobre" aria-label="Sobre"><i aria-hidden="true" class="fa-solid fa-circle-info"></i></a>
+            <a href="sobre.en.html" class="hover:text-white transition-colors flex items-center gap-1" title="About" aria-label="About"><i aria-hidden="true" class="fa-solid fa-circle-info"></i></a>
             <span class="text-white/25 dark:text-gray-700">|</span>
-            <button type="button" id="highContrastToggle" class="hover:text-white transition-colors flex items-center gap-1" aria-pressed="false" title="Alternar alto contraste">
-                <i aria-hidden="true" class="fa-solid fa-circle-half-stroke"></i> <span class="sr-only">Alto contraste</span>
+            <button type="button" id="highContrastToggle" class="hover:text-white transition-colors flex items-center gap-1" aria-pressed="false" title="Toggle high contrast">
+                <i aria-hidden="true" class="fa-solid fa-circle-half-stroke"></i> <span class="sr-only">High contrast</span>
             </button>
             <span class="text-white/25 dark:text-gray-700">|</span>
-            <span class="flex items-center gap-1" role="group" aria-label="Tamanho da fonte">
-                <button type="button" id="fontDec" class="hover:text-white transition-colors flex items-center gap-1" title="Diminuir fonte" aria-label="Diminuir fonte"><i aria-hidden="true" class="fa-solid fa-magnifying-glass-minus"></i> A-</button>
-                <button type="button" id="fontInc" class="hover:text-white transition-colors flex items-center gap-1" title="Aumentar fonte" aria-label="Aumentar fonte"><i aria-hidden="true" class="fa-solid fa-magnifying-glass-plus"></i> A+</button>
+            <span class="flex items-center gap-1" role="group" aria-label="Font size">
+                <button type="button" id="fontDec" class="hover:text-white transition-colors flex items-center gap-1" title="Decrease font size" aria-label="Decrease font size"><i aria-hidden="true" class="fa-solid fa-magnifying-glass-minus"></i> A-</button>
+                <button type="button" id="fontInc" class="hover:text-white transition-colors flex items-center gap-1" title="Increase font size" aria-label="Increase font size"><i aria-hidden="true" class="fa-solid fa-magnifying-glass-plus"></i> A+</button>
             </span>
         </div>
         <div class="flex gap-3 items-center flex-wrap justify-center">
@@ -333,22 +337,22 @@
                 <i aria-hidden="true" class="fa-brands fa-github text-white/90 dark:text-unifesp-400"></i> Alexsandro Cardoso Carvalho
             </a>
             <span class="text-white/40 dark:text-gray-600">|</span>
-            <a href="doe-um-cafe.html" class="hover:text-white hover:underline transition-colors flex items-center gap-1">
-                <i aria-hidden="true" class="fa-solid fa-mug-hot text-white/90 dark:text-unifesp-400"></i> Doe um café
+            <a href="doe-um-cafe.en.html" class="hover:text-white hover:underline transition-colors flex items-center gap-1">
+                <i aria-hidden="true" class="fa-solid fa-mug-hot text-white/90 dark:text-unifesp-400"></i> Buy me a coffee
             </a>
             <span class="text-white/40 dark:text-gray-600">|</span>
-            <a href="https://www.gnu.org/licenses/agpl-3.0.html" target="_blank" rel="noopener" class="hover:text-white transition-colors flex items-center gap-1" title="Licença AGPLv3 (Free Software Foundation)">
+            <a href="https://www.gnu.org/licenses/agpl-3.0.html" target="_blank" rel="noopener" class="hover:text-white transition-colors flex items-center gap-1" title="AGPLv3 License (Free Software Foundation)">
                 <i aria-hidden="true" class="fa-solid fa-scale-balanced text-white/90 dark:text-unifesp-400"></i> AGPLv3
             </a>
             <span class="text-white/40 dark:text-gray-600">|</span>
-            <span class="flex items-center gap-1"><i aria-hidden="true" class="fa-solid fa-tag" title="Versão"></i> <a href="notas-de-versao.html" class="font-mono hover:text-white hover:underline transition-colors" title="Notas de versão"><span id="appVersion"></span></a></span>
-            <a href="https://github.com/alexsandroccarv/latteszen" target="_blank" rel="noopener" class="hover:text-white transition-colors flex items-center gap-1" title="Código-fonte (repositório no GitHub)" aria-label="Código-fonte (repositório no GitHub)">
+            <span class="flex items-center gap-1"><i aria-hidden="true" class="fa-solid fa-tag" title="Version"></i> <a href="notas-de-versao.html" class="font-mono hover:text-white hover:underline transition-colors" title="Version notes (Portuguese)"><span id="appVersion"></span></a></span>
+            <a href="https://github.com/alexsandroccarv/latteszen" target="_blank" rel="noopener" class="hover:text-white transition-colors flex items-center gap-1" title="Source code (GitHub repository)" aria-label="Source code (GitHub repository)">
                 <i aria-hidden="true" class="fa-solid fa-code text-white/90 dark:text-unifesp-400"></i>
             </a>
         </div>
     </footer>
 
-    <!-- Cabeçalho/rodapé dinâmicos: versão e nome do titular (mesmo comportamento do app) -->
+    <!-- Dynamic header/footer: version and owner name (same behavior as the app) -->
     <script type="module" src="js/config.js"></script>
     <script type="module" src="js/a11y.js"></script>
     <script type="module" src="js/analytics.js"></script>
@@ -356,23 +360,24 @@
     <script type="module" src="js/pwa.js"></script>
     <script type="module">
         (function () {
-            // Fixa o locale desta página (conteúdo estático em pt-br), sem
-            // mexer no localStorage — cookie-consent.js importa i18n.js, cujo
-            // bootstrap síncrono leria o locale configurado no app e podia
-            // "vazar" um <html lang>/banner de cookies em outro idioma aqui.
-            try { window.LzI18n.setLocale('pt-br'); } catch (e) {}
+            // Fixes this page's locale (fixed English content), without
+            // touching localStorage — cookie-consent.js imports i18n.js,
+            // whose synchronous bootstrap would otherwise read the app's
+            // configured locale and could "leak" a mismatched <html
+            // lang>/cookie banner into this page.
+            try { window.LzI18n.setLocale('en'); } catch (e) {}
         })();
     </script>
     <script type="module">
         (function () {
             var C = window.APP_CONFIG || {};
-            // Título estático desta página (do <title>, ver issue de SEO #37) —
-            // usado como "padrão" abaixo em vez de sempre reescrever pra
-            // "lattesZen" quando não há nome de perfil salvo.
+            // This page's static title (from <title>, see SEO issue #37) —
+            // used as the "default" below instead of always rewriting to
+            // "lattesZen" when there's no saved profile name.
             var tituloBase = document.title;
             var setTxt = function (id, v) { var el = document.getElementById(id); if (el && v != null) el.textContent = v; };
             setTxt('appVersion', C.version);
-            // Nome completo do item de Identificação (mesma lógica do app): "lattesZen | Nome".
+            // Full name from the Identification item (same logic as the app): "lattesZen | Name".
             var nome = '';
             try {
                 var itens = JSON.parse(localStorage.getItem((C.storageKeys && C.storageKeys.catalog) || 'lz_catalog') || '[]');

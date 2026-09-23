@@ -24,6 +24,9 @@
     <title>lattesZen — Relacionando Lattes e RSC</title>
     <meta name="description" content="Tabela cruzando os 55 critérios do RSC-PCCTAE com o schema oficial do Currículo Lattes (CurriculoLattes.xsd).">
     <link rel="canonical" href="https://ccarvalho.net/labs/latteszen/relacionando-lattes-rsc.html">
+    <link rel="alternate" hreflang="pt-BR" href="https://ccarvalho.net/labs/latteszen/relacionando-lattes-rsc.html">
+    <link rel="alternate" hreflang="en" href="https://ccarvalho.net/labs/latteszen/relacionando-lattes-rsc.en.html">
+    <link rel="alternate" hreflang="x-default" href="https://ccarvalho.net/labs/latteszen/relacionando-lattes-rsc.html">
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="lattesZen">
     <meta property="og:locale" content="pt_BR">
@@ -185,6 +188,7 @@
                 <!-- Configurações: mesma posição do templateZen (1ª linha do
                      cabeçalho, extrema direita) — abre index.html na aba
                      Configurações (ver hash "#config" tratado em app.js). -->
+                <a href="relacionando-lattes-rsc.en.html" class="text-white/90 hover:text-white transition-colors text-xs font-semibold border border-white/30 rounded px-1.5 py-1 shrink-0">EN</a>
                 <a href="index.html#config" title="Configurações" aria-label="Configurações" class="text-white/90 hover:text-white transition-colors w-8 h-8 flex items-center justify-center rounded shrink-0">
                     <i aria-hidden="true" class="fa-solid fa-gear"></i>
                 </a>
@@ -721,6 +725,15 @@
     <script type="module" src="js/analytics.js"></script>
     <script type="module" src="js/cookie-consent.js"></script>
     <script type="module" src="js/pwa.js"></script>
+    <script type="module">
+        (function () {
+            // Fixa o locale desta página (conteúdo estático em pt-br), sem
+            // mexer no localStorage — cookie-consent.js importa i18n.js, cujo
+            // bootstrap síncrono leria o locale configurado no app e podia
+            // "vazar" um <html lang>/banner de cookies em outro idioma aqui.
+            try { window.LzI18n.setLocale('pt-br'); } catch (e) {}
+        })();
+    </script>
     <script type="module">
         (function () {
             var C = window.APP_CONFIG || {};

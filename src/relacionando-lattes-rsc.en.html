@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<!--
+    lattesZen — Copyright (C) 2026 Alexsandro Cardoso Carvalho
+
+    This file is part of lattesZen.
+
+    lattesZen is free software: you can redistribute it and/or modify it
+    under the terms of the GNU Affero General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or (at
+    your option) any later version.
+
+    lattesZen is distributed in the hope that it will be useful, but WITHOUT
+    ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+    FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
+    License for more details.
+
+    You should have received a copy of the GNU Affero General Public License
+    along with lattesZen. If not, see <https://www.gnu.org/licenses/>.
+-->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>lattesZen — Relating Lattes and RSC</title>
+    <meta name="description" content="Table cross-referencing the 55 RSC-PCCTAE criteria with the official Lattes Curriculum schema (CurriculoLattes.xsd).">
+    <link rel="canonical" href="https://ccarvalho.net/labs/latteszen/relacionando-lattes-rsc.en.html">
+    <link rel="alternate" hreflang="pt-BR" href="https://ccarvalho.net/labs/latteszen/relacionando-lattes-rsc.html">
+    <link rel="alternate" hreflang="en" href="https://ccarvalho.net/labs/latteszen/relacionando-lattes-rsc.en.html">
+    <link rel="alternate" hreflang="x-default" href="https://ccarvalho.net/labs/latteszen/relacionando-lattes-rsc.html">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="lattesZen">
+    <meta property="og:locale" content="en_US">
+    <meta property="og:title" content="lattesZen — Relating Lattes and RSC">
+    <meta property="og:description" content="Table cross-referencing the 55 RSC-PCCTAE criteria with the official Lattes Curriculum schema (CurriculoLattes.xsd).">
+    <meta property="og:url" content="https://ccarvalho.net/labs/latteszen/relacionando-lattes-rsc.en.html">
+    <meta property="og:image" content="https://ccarvalho.net/labs/latteszen/images/og-image.png">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="lattesZen — Relating Lattes and RSC">
+    <meta name="twitter:description" content="Table cross-referencing the 55 RSC-PCCTAE criteria with the official Lattes Curriculum schema (CurriculoLattes.xsd).">
+    <meta name="twitter:image" content="https://ccarvalho.net/labs/latteszen/images/og-image.png">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1351B4">
+
+    <!-- Same styles as the app -->
+    <link rel="stylesheet" href="css/styles.css">
+
+    <!-- Light/dark theme and high contrast: applied early to avoid a "flash" -->
+    <script>
+        (function () {
+            const htmlEl = document.documentElement;
+            const saved = localStorage.getItem('tema');
+            const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+            if (saved ? saved === 'dark' : prefersDark) htmlEl.classList.add('dark');
+            if (localStorage.getItem('altoContraste') === '1') htmlEl.classList.add('high-contrast');
+            // Theme (ready-made palettes, chosen in Settings): applied early
+            // to avoid a "flash" — same logic as dark/high-contrast above.
+            const temaPreset = localStorage.getItem('lz_tema_preset') || 'govbr';
+            htmlEl.classList.add('lz-theme');
+            htmlEl.setAttribute('data-lz-theme', temaPreset);
+            const fs = parseInt(localStorage.getItem('fontScale') || '100', 10);
+            if (fs && fs !== 100) htmlEl.style.fontSize = fs + '%';
+        })();
+    </script>
+
+    <!-- External resources (Tailwind + config, Font Awesome, Rawline) — same as the app -->
+    <script>
+        (function () {
+            var TW_CONFIG = {
+                darkMode: 'class',
+                theme: {
+                    extend: {
+                        fontFamily: { sans: ['Rawline', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif'] },
+                        colors: {
+                            unifesp: { 50: '#f0fdf4', 100: '#dcfce7', 400: '#4ade80', 600: '#16a34a', 700: '#15803d', 800: '#166534', 900: '#1E5A3A' },
+                            govbr:   { 50: '#D4E5FF', 100: '#ADCDFF', 400: '#1351B4', 600: '#1351B4', 700: '#0C326F', 800: '#071D41', 900: '#050F24' },
+                        }
+                    }
+                }
+            };
+            var tw = document.createElement('script');
+            tw.src = 'https://cdn.tailwindcss.com';
+            tw.async = true;
+            tw.onload = function () { try { window.tailwind.config = TW_CONFIG; } catch (e) {} };
+            tw.onerror = function () { document.documentElement.classList.add('no-tailwind'); };
+            document.head.appendChild(tw);
+            function loadCss(href) { var l = document.createElement('link'); l.rel = 'stylesheet'; l.href = href; l.media = 'all'; document.head.appendChild(l); }
+            loadCss('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css');
+            loadCss('https://cdngovbr-ds.estaleiro.serpro.gov.br/design-system/fonts/rawline/css/rawline.css');
+
+            // Theme: Google fonts per palette (loaded on demand —
+            // "lattesZen night" and "lattesZen day" use a font already loaded above, no extra CDN).
+            var THEME_FONTS = {
+                'catppuccin-latte': 'https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap',
+                'catppuccin-mocha': 'https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap',
+                dracula: 'https://fonts.googleapis.com/css2?family=Fira+Sans:wght@400;600;700&display=swap',
+                // lattesZen day (govbr) uses the Rawline already loaded above (no extra CDN); GitHub
+                // Light/Dark use the system font — that's why they have no entry here.
+                'rose-pine-dawn': 'https://fonts.googleapis.com/css2?family=Quicksand:wght@400;600;700&display=swap',
+                'solarized-light': 'https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&display=swap',
+                'solarized-dark': 'https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&display=swap',
+            };
+            window.__loadThemeFont = function (preset) {
+                var url = THEME_FONTS[preset];
+                if (!url) return;
+                if (document.querySelector('link[data-lz-font="' + preset + '"]')) return;
+                var l = document.createElement('link');
+                l.rel = 'stylesheet'; l.href = url; l.setAttribute('data-lz-font', preset);
+                document.head.appendChild(l);
+            };
+            // Syncs <meta name="theme-color"> (mobile browser bar) with the
+            // active theme's header color.
+            window.__setThemeColor = function () {
+                var m = document.querySelector('meta[name="theme-color"]');
+                if (!m) { m = document.createElement('meta'); m.name = 'theme-color'; document.head.appendChild(m); }
+                var c = getComputedStyle(document.documentElement).getPropertyValue('--lz-header').trim();
+                m.setAttribute('content', c || '#1351B4');
+            };
+            var temaAtivo = localStorage.getItem('lz_tema_preset') || 'govbr';
+            window.__loadThemeFont(temaAtivo);
+            window.__setThemeColor();
+        })();
+    </script>
+
+    <!-- Content style for this page (scoped to .help-doc; dark by class, like the app) -->
+    <style>
+      :root{
+        --hdoc-surface:#f9fafb; --hdoc-text:#1f2937; --hdoc-muted:#6b7280; --hdoc-line:#e5e7eb;
+        --hdoc-accent:#1351b4; --hdoc-code:#eef2f7; --hdoc-chip:#eef2ff; --hdoc-chipink:#1e3a8a;
+        --hdoc-note-bg:#eff6ff; --hdoc-note-line:#1351b4; --hdoc-warn-bg:#fff7ed; --hdoc-warn-line:#c2410c;
+        --hdoc-ok-bg:#ecfdf5; --hdoc-ok-line:#047857;
+      }
+      html.dark{
+        --hdoc-surface:#1f2937; --hdoc-text:#e5e7eb; --hdoc-muted:#9ca3af; --hdoc-line:#374151;
+        --hdoc-accent:#93c5fd; --hdoc-code:#0f172a; --hdoc-chip:#1e293b; --hdoc-chipink:#bfdbfe;
+        --hdoc-note-bg:#0f2033; --hdoc-note-line:#3b82f6; --hdoc-warn-bg:#2a1a0f; --hdoc-warn-line:#f59e0b;
+        --hdoc-ok-bg:#0e2a1e; --hdoc-ok-line:#34d399;
+      }
+      .help-doc{color:var(--hdoc-text);line-height:1.6;max-width:1000px;margin:0 auto;padding:8px 4px 40px}
+      .help-doc h1{font-size:1.7rem;margin:.2em 0 .1em}
+      .help-doc .lead{color:var(--hdoc-muted);margin:0 0 1.5em}
+      .help-doc a{color:var(--hdoc-accent);text-decoration:none}
+      .help-doc a:hover{text-decoration:underline}
+      .help-doc nav.toc{background:var(--hdoc-surface);border:1px solid var(--hdoc-line);border-radius:10px;padding:14px 18px;margin-bottom:28px}
+      .help-doc nav.toc h2{font-size:.8rem;text-transform:uppercase;letter-spacing:.05em;color:var(--hdoc-muted);margin:0 0 8px}
+      .help-doc nav.toc ol{margin:0;padding-left:1.2em;columns:2;column-gap:28px}
+      .help-doc nav.toc li{margin:3px 0;break-inside:avoid}
+      .help-doc section.card{background:var(--hdoc-surface);border:1px solid var(--hdoc-line);border-radius:10px;padding:20px 22px;margin-bottom:22px}
+      .help-doc section.card h2{margin-top:0;font-size:1.15rem;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+      .help-doc h3{font-size:1.02rem;margin:1.2em 0 .3em}
+      .help-doc code{background:var(--hdoc-code);padding:.1em .4em;border-radius:4px;font-size:.88em;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+      .help-doc ul,.help-doc ol{padding-left:1.4em}
+      .help-doc li{margin:.25em 0}
+      .help-doc .note,.help-doc .warn,.help-doc .ok{border-left:4px solid;border-radius:6px;padding:12px 16px;margin:14px 0;font-size:.95rem}
+      .help-doc .note{background:var(--hdoc-note-bg);border-color:var(--hdoc-note-line)}
+      .help-doc .warn{background:var(--hdoc-warn-bg);border-color:var(--hdoc-warn-line)}
+      .help-doc .ok{background:var(--hdoc-ok-bg);border-color:var(--hdoc-ok-line)}
+      .help-doc .tag{display:inline-block;background:var(--hdoc-chip);color:var(--hdoc-chipink);border-radius:20px;padding:1px 10px;font-size:.78rem;font-weight:600;margin:4px 2px 0}
+      .help-doc table{width:100%;border-collapse:collapse;margin:4px 0;font-size:.85rem}
+      .help-doc th,.help-doc td{text-align:left;padding:7px 9px;border-bottom:1px solid var(--hdoc-line);vertical-align:top}
+      .help-doc th{color:var(--hdoc-muted);font-size:.75rem;text-transform:uppercase;letter-spacing:.03em;white-space:nowrap}
+      .help-doc td.corresp{color:var(--hdoc-muted);font-size:.9em}
+      .help-doc .pill{display:inline-block;background:#0C326F;color:#fff;border-radius:6px;padding:2px 8px;font-size:.78rem;font-weight:600}
+      html.dark .help-doc .pill{background:#1351B4}
+    </style>
+</head>
+<body class="font-sans bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-100 min-h-screen flex flex-col transition-colors duration-300">
+
+    <!-- ============================ HEADER (same as the app) ============================ -->
+    <header class="bg-govbr-600 dark:bg-gray-900 border-b border-govbr-700 dark:border-gray-700 flex flex-col shadow-sm dark:shadow-lg z-20 shrink-0 transition-colors duration-300">
+        <div class="flex items-center justify-between px-4 py-3 bg-govbr-600 dark:bg-gray-900 transition-colors duration-300">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded bg-white dark:bg-gradient-to-br dark:from-unifesp-600 dark:to-unifesp-900 flex items-center justify-center text-govbr-600 dark:text-white font-bold transition-colors duration-300">
+                    <svg viewBox="0 0 200 200" class="w-5 h-5" aria-hidden="true"><circle cx="100" cy="100" r="78" fill="none" stroke="currentColor" stroke-width="20" stroke-linecap="round" stroke-dasharray="440 46" transform="rotate(-100 100 100)"/></svg>
+                </div>
+                <div class="flex items-center gap-2 overflow-hidden">
+                    <h1 class="font-bold text-white leading-none whitespace-nowrap">lattesZen</h1>
+                    <span id="headerNomeWrap" class="flex items-center gap-2 overflow-hidden hidden">
+                        <span class="text-xl text-white/30 dark:text-gray-700 font-light">|</span>
+                        <span id="headerNome" class="font-bold text-white/90 dark:text-unifesp-400 leading-none whitespace-nowrap truncate"></span>
+                    </span>
+                </div>
+            </div>
+            <div class="flex items-center gap-3 shrink-0">
+                <div id="govBrLogo" class="bg-white rounded px-2 py-1.5 flex items-center shrink-0 dark:hidden">
+                    <img src="images/geral/gov_br.svg" alt="Federal Government" class="h-5 w-auto" onerror="this.parentElement.style.display='none'">
+                </div>
+                <!-- Settings: same position as templateZen (1st header row,
+                     far right) — opens index.html on the Settings tab (see
+                     hash "#config" handled in app.js). -->
+                <a href="relacionando-lattes-rsc.html" class="text-white/90 hover:text-white transition-colors text-xs font-semibold border border-white/30 rounded px-1.5 py-1 shrink-0">PT</a>
+                <a href="index.html#config" title="Settings" aria-label="Settings" class="text-white/90 hover:text-white transition-colors w-8 h-8 flex items-center justify-center rounded shrink-0">
+                    <i aria-hidden="true" class="fa-solid fa-gear"></i>
+                </a>
+            </div>
+        </div>
+
+        <!-- Navigation tabs (links back to the app) -->
+        <nav class="bg-white dark:bg-gray-800 border-t border-govbr-700/20 dark:border-gray-700 px-2" aria-label="Sections">
+            <div class="max-w-5xl mx-auto flex gap-1 overflow-x-auto">
+                <a href="index.html" class="tab-btn px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-gray-600 dark:text-gray-300 hover:text-govbr-600 dark:hover:text-unifesp-400 whitespace-nowrap">
+                    <i aria-hidden="true" class="fa-solid fa-file-circle-plus mr-1"></i> Catalog
+                </a>
+                <a href="index.html" class="tab-btn px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-gray-600 dark:text-gray-300 hover:text-govbr-600 dark:hover:text-unifesp-400 whitespace-nowrap">
+                    <i aria-hidden="true" class="fa-solid fa-clipboard-check mr-1"></i> Compliance
+                </a>
+                <a href="index.html" class="tab-btn px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-gray-600 dark:text-gray-300 hover:text-govbr-600 dark:hover:text-unifesp-400 whitespace-nowrap">
+                    <i aria-hidden="true" class="fa-solid fa-globe mr-1"></i> Publish Online
+                </a>
+                <span class="tab-btn px-4 py-2.5 text-sm font-medium border-b-2 border-govbr-600 dark:border-unifesp-400 text-govbr-700 dark:text-unifesp-400 font-bold whitespace-nowrap" aria-current="page">
+                    <i aria-hidden="true" class="fa-solid fa-circle-question mr-1"></i> Help
+                </span>
+            </div>
+        </nav>
+    </header>
+
+    <!-- ============================ CONTENT ============================ -->
+    <main class="flex-1 w-full max-w-6xl mx-auto px-4 py-6">
+      <div class="help-doc">
+        <p style="margin:0 0 10px"><a href="ajuda-rsc.en.html">← RSC-PCCTAE help</a></p>
+        <h1>Relating Lattes and RSC</h1>
+        <p class="lead">Reference table cross-referencing each of the <strong>55 specific criteria</strong> from the six Annexes of the RSC-PCCTAE Decree (a Brazilian federal regulation) with the corresponding element/attribute in the <strong>official Lattes Curriculum schema (CurriculoLattes.xsd)</strong> — useful to understand why some criteria don't have a "natural" place in Lattes, and what lattesZen already covers with a category of its own.</p>
+
+        <div class="note">
+          <strong>How to read this table:</strong> the <em>Lattes Curriculum correspondence</em> column describes the closest XSD element/attribute to the criterion — in many cases it's an approximation (free text), not an exact match. Where lattesZen has already solved the gap with a category of its own (outside Lattes, RSC-only), a <span class="tag">lattesZen: …</span> label appears next to the criterion.
+        </div>
+
+        <nav class="toc">
+          <h2>On this page</h2>
+          <ol>
+            <li><a href="#reqi">Requirement I</a></li>
+            <li><a href="#reqii">Requirement II</a></li>
+            <li><a href="#reqiii">Requirement III</a></li>
+            <li><a href="#reqiv">Requirement IV</a></li>
+            <li><a href="#reqv">Requirement V</a></li>
+            <li><a href="#reqvi">Requirement VI</a></li>
+          </ol>
+        </nav>
+
+        <section class="card" id="reqi">
+          <h2><span class="pill">Requirement I</span> Groups, commissions, committees and institutional representation</h2>
+          <div style="overflow-x:auto"><table>
+            <thead><tr><th style="width:2.5em">Item</th><th>Specific criterion</th><th style="width:11em">Unit</th><th style="width:5em">Points</th><th>Lattes Curriculum correspondence (XSD)</th></tr></thead>
+            <tbody>
+              <tr>
+                <td>I.1</td>
+                <td>Serving as a member of higher councils and unit/collegiate-body councils of the Federal Education Institution</td>
+                <td>Per year or fraction over six months</td>
+                <td>3</td>
+                <td class="corresp">ATUACAO-PROFISSIONAL &gt; ATIVIDADES-DE-DIRECAO-E-ADMINISTRACAO &gt; DIRECAO-E-ADMINISTRACAO, with FORMATO-CARGO-OU-FUNCAO = "MEMBRO_DE_COLEGIADO_SUPERIOR" (higher councils) or "MEMBRO_DE_CONSELHO_DE_UNIDADE"/"MEMBRO_DE_CONSELHO_DE_CENTRO" (unit councils). Exact match: these are dedicated enumeration values in the XSD.</td>
+              </tr>
+              <tr>
+                <td>I.2</td>
+                <td>Coordinating or chairing centers, representations, working groups or similar, commissions or committees established within the public administration, regularly instituted or recognized by the agency or entity</td>
+                <td>Per appointment</td>
+                <td>4.5</td>
+                <td class="corresp">ATUACAO-PROFISSIONAL &gt; DIRECAO-E-ADMINISTRACAO. There is no specific enumeration value for "chair/coordinator of a commission"; use FORMATO-CARGO-OU-FUNCAO="OUTRO" or "LIVRE", with CARGO-OU-FUNCAO (free text) specifying the role.</td>
+              </tr>
+              <tr>
+                <td>I.3</td>
+                <td>Membership in centers, representations, working groups or similar, commissions or committees established within the public administration, regularly instituted</td>
+                <td>Per appointment</td>
+                <td>3</td>
+                <td class="corresp">ATUACAO-PROFISSIONAL &gt; DIRECAO-E-ADMINISTRACAO, with FORMATO-CARGO-OU-FUNCAO = "MEMBRO_DE_COMISSAO_PERMANENTE" or "MEMBRO_DE_COMISSAO_TEMPORARIA" (depending on the nature of the center/WG/commission), detailed in CARGO-OU-FUNCAO. Strong correspondence.</td>
+              </tr>
+              <tr>
+                <td>I.4</td>
+                <td>Serving as court-appointed defender or as a member of a team designated for proceedings investigating materiality and liability, such as an administrative inquiry, disciplinary proceeding, or special accounting review</td>
+                <td>Per appointment</td>
+                <td>3</td>
+                <td class="corresp">ATUACAO-PROFISSIONAL &gt; DIRECAO-E-ADMINISTRACAO, with FORMATO-CARGO-OU-FUNCAO = "MEMBRO_DE_COMISSAO_TEMPORARIA" (inquiry/disciplinary/special-review commissions are typically temporary).</td>
+              </tr>
+              <tr>
+                <td>I.5</td>
+                <td>Acting in organizing, overseeing, or running selection exams, college entrance exams, or civil-service exams</td>
+                <td>Per appointment</td>
+                <td>4.5</td>
+                <td class="corresp">DADOS-COMPLEMENTARES &gt; PARTICIPACAO-EM-BANCA-JULGADORA &gt; BANCA-JULGADORA-PARA-CONCURSO-PUBLICO (for civil-service exams). For college entrance exams, there is no dedicated TIPO: use OUTRAS-BANCAS-JULGADORAS (@TIPO, free text = "College entrance exam").</td>
+              </tr>
+              <tr>
+                <td>I.6</td>
+                <td>Acting in drafting, reviewing and/or grading exams for selection processes, college entrance exams, or civil-service exams</td>
+                <td>Per appointment</td>
+                <td>3</td>
+                <td class="corresp">ATUACAO-PROFISSIONAL &gt; OUTRAS-ATIVIDADES-TECNICO-CIENTIFICA &gt; OUTRA-ATIVIDADE-TECNICO-CIENTIFICA (@ATIVIDADE-REALIZADA) or ATIVIDADES-DE-SERVICO-TECNICO-ESPECIALIZADO &gt; SERVICO-TECNICO-ESPECIALIZADO (@SERVICO-REALIZADO), both free text.</td>
+              </tr>
+              <tr>
+                <td>I.7</td>
+                <td>Serving a term of office in the category's labor union</td>
+                <td>Per year or fraction over six months</td>
+                <td>1.5</td>
+                <td class="corresp">The union should be registered as a new institutional affiliation (new ATUACAO-PROFISSIONAL); could use DIRECAO-E-ADMINISTRACAO (FORMATO-CARGO-OU-FUNCAO="OUTRO"/"LIVRE") within that affiliation.</td>
+              </tr>
+              <tr>
+                <td>I.8</td>
+                <td>Membership in public-policy programs or projects external to the Federal Education Institution, provided relevant institutional results are demonstrated</td>
+                <td>Per appointment</td>
+                <td>3</td>
+                <td class="corresp">ATUACAO-PROFISSIONAL &gt; ATIVIDADES-DE-PARTICIPACAO-EM-PROJETO &gt; PARTICIPACAO-EM-PROJETO &gt; PROJETO-DE-PESQUISA (@NATUREZA="EXTENSAO" or "OUTRA"), as a member in EQUIPE-DO-PROJETO/INTEGRANTES-DO-PROJETO. Alternative: ATIVIDADES-DE-EXTENSAO-UNIVERSITARIA &gt; EXTENSAO-UNIVERSITARIA (@ATIVIDADE-DE-EXTENSAO-REALIZADA).</td>
+              </tr>
+              <tr>
+                <td>I.9</td>
+                <td>Legal representation of the Federal Education Institution before public-sector bodies and entities, or technical responsibility before oversight, control and regulatory agencies</td>
+                <td>Per appointment</td>
+                <td>7.5</td>
+                <td class="corresp">OUTRAS-ATIVIDADES-TECNICO-CIENTIFICA &gt; OUTRA-ATIVIDADE-TECNICO-CIENTIFICA or ATIVIDADES-DE-SERVICO-TECNICO-ESPECIALIZADO &gt; SERVICO-TECNICO-ESPECIALIZADO (both free text, describing the representation/technical responsibility).</td>
+              </tr>
+              <tr>
+                <td>I.10</td>
+                <td>External technical work, formally authorized or recognized by the employing Federal Education Institution, in state or para-state bodies, government schools, regulatory agencies or international organizations, with institutional contribution or impact</td>
+                <td>Per output</td>
+                <td>4.5</td>
+                <td class="corresp">ATUACAO-PROFISSIONAL &gt; ATIVIDADES-DE-SERVICO-TECNICO-ESPECIALIZADO &gt; SERVICO-TECNICO-ESPECIALIZADO (@SERVICO-REALIZADO, free text), within an affiliation (new ATUACAO-PROFISSIONAL) with the external body, if registered separately.</td>
+              </tr>
+            </tbody>
+          </table></div>
+        </section>
+
+        <section class="card" id="reqii">
+          <h2><span class="pill">Requirement II</span> Institutional projects and support for teaching, research and outreach</h2>
+          <div style="overflow-x:auto"><table>
+            <thead><tr><th style="width:2.5em">Item</th><th>Specific criterion</th><th style="width:11em">Unit</th><th style="width:5em">Points</th><th>Lattes Curriculum correspondence (XSD)</th></tr></thead>
+            <tbody>
+              <tr>
+                <td>II.1</td>
+                <td>Coordinating institutional projects (teaching, research, outreach, management and innovation)</td>
+                <td>Per project</td>
+                <td>7.5</td>
+                <td class="corresp">ATIVIDADES-DE-PARTICIPACAO-EM-PROJETO &gt; PARTICIPACAO-EM-PROJETO &gt; PROJETO-DE-PESQUISA, with @NATUREZA = "PESQUISA"|"EXTENSAO"|"ENSINO"|"DESENVOLVIMENTO"|"OUTRA" (per the project type), and EQUIPE-DO-PROJETO &gt; INTEGRANTES-DO-PROJETO with @FLAG-RESPONSAVEL="SIM" identifying the coordinator. Strong, structured correspondence.</td>
+              </tr>
+              <tr>
+                <td>II.2</td>
+                <td>Participation in technical and/or specialized activities in projects, including drafting pedagogical projects, programs and/or institutional actions (teaching, research, outreach, management and innovation)</td>
+                <td>Per project</td>
+                <td>4.5</td>
+                <td class="corresp">Same PROJETO-DE-PESQUISA element, as a team member (@FLAG-RESPONSAVEL="NAO"). For "pedagogical projects" specifically, also PRODUCAO-TECNICA &gt; DEMAIS-TIPOS-DE-PRODUCAO-TECNICA &gt; DESENVOLVIMENTO-DE-MATERIAL-DIDATICO-OU-INSTRUCIONAL.</td>
+              </tr>
+              <tr>
+                <td>II.3</td>
+                <td>Membership on an editorial board or committee for books, journals or scientific publications, or other academic publications</td>
+                <td>Per term</td>
+                <td>7.5</td>
+                <td class="corresp">ATIVIDADES-DE-CONSELHO-COMISSAO-E-CONSULTORIA &gt; CONSELHO-COMISSAO-E-CONSULTORIA (@ESPECIFICACAO = free text, e.g. "Editorial board member of journal X") for the ongoing term; or PRODUCAO-TECNICA &gt; DEMAIS-TIPOS-DE-PRODUCAO-TECNICA &gt; EDITORACAO, if tied to editing a specific work.</td>
+              </tr>
+              <tr>
+                <td>II.4</td>
+                <td>Participation in Inter-institutional Technical Cooperation activities within institutional projects</td>
+                <td>Per project</td>
+                <td>3</td>
+                <td class="corresp">ATIVIDADES-DE-PARTICIPACAO-EM-PROJETO &gt; PROJETO-DE-PESQUISA (@NATUREZA="EXTENSAO" or "OUTRA"); or ATIVIDADES-DE-EXTENSAO-UNIVERSITARIA &gt; EXTENSAO-UNIVERSITARIA (@ATIVIDADE-DE-EXTENSAO-REALIZADA).</td>
+              </tr>
+              <tr>
+                <td>II.5</td>
+                <td>Participation in mentoring, tutoring, preceptorship or supervision activities</td>
+                <td>Per appointment</td>
+                <td>3</td>
+                <td class="corresp">DADOS-COMPLEMENTARES &gt; ORIENTACOES-EM-ANDAMENTO (subtypes DE-GRADUACAO, DE-INICIACAO-CIENTIFICA, DE-MESTRADO, DE-DOUTORADO, DE-POS-DOUTORADO, DE-APERFEICOAMENTO-ESPECIALIZACAO, OUTRAS) and OUTRA-PRODUCAO &gt; ORIENTACOES-CONCLUIDAS (same levels, already completed). Strong correspondence.</td>
+              </tr>
+              <tr>
+                <td>II.6</td>
+                <td>Participation in producing or revising accessible material, or technical reference material (manuals, technical guides)</td>
+                <td>Per output</td>
+                <td>3</td>
+                <td class="corresp">PRODUCAO-TECNICA &gt; DEMAIS-TIPOS-DE-PRODUCAO-TECNICA &gt; DESENVOLVIMENTO-DE-MATERIAL-DIDATICO-OU-INSTRUCIONAL. Strong correspondence.</td>
+              </tr>
+              <tr>
+                <td>II.7</td>
+                <td>Participation in evaluating work or serving as a judge at academic, scientific, cultural, sports and technical events</td>
+                <td>Per event</td>
+                <td>3</td>
+                <td class="corresp">DADOS-COMPLEMENTARES &gt; PARTICIPACAO-EM-BANCA-JULGADORA &gt; OUTRAS-BANCAS-JULGADORAS (@TIPO, free text = "Judge/evaluator of an event"), or OUTRA-ATIVIDADE-TECNICO-CIENTIFICA.</td>
+              </tr>
+              <tr>
+                <td>II.8</td>
+                <td>Participation in institutional audiovisual, artistic, exhibition, podcast production or other forms of presentation</td>
+                <td>Per project</td>
+                <td>3</td>
+                <td class="corresp">OUTRA-PRODUCAO &gt; PRODUCAO-ARTISTICA-CULTURAL (APRESENTACAO-DE-OBRA-ARTISTICA, APRESENTACAO-EM-RADIO-OU-TV, OUTRA-PRODUCAO-ARTISTICA-CULTURAL, etc.); or PRODUCAO-TECNICA &gt; DEMAIS-TIPOS-DE-PRODUCAO-TECNICA &gt; PROGRAMA-DE-RADIO-OU-TV / MIDIA-SOCIAL-WEBSITE-BLOG (the latter useful for podcasts, which have no dedicated element).</td>
+              </tr>
+              <tr>
+                <td>II.9</td>
+                <td>Participation in continuing-education programs and/or skills-development actions, provided it is not used for career-advancement acceleration purposes (minimum 10 hours)</td>
+                <td>Per training</td>
+                <td>1</td>
+                <td class="corresp">DADOS-COMPLEMENTARES &gt; FORMACAO-COMPLEMENTAR &gt; FORMACAO-COMPLEMENTAR-CURSO-DE-CURTA-DURACAO, which has the @CARGA-HORARIA attribute — allows automatic checking of the required 10h minimum. Strong, structured correspondence.</td>
+              </tr>
+              <tr>
+                <td>II.10</td>
+                <td>Performing a specialized technical activity, formally recognized by the Federal Education Institution, demonstrating differentiated technical mastery and relevant institutional contribution in the field</td>
+                <td>Per year or fraction over six months</td>
+                <td>1</td>
+                <td class="corresp">ATIVIDADES-DE-SERVICO-TECNICO-ESPECIALIZADO &gt; SERVICO-TECNICO-ESPECIALIZADO (@SERVICO-REALIZADO, free text).</td>
+              </tr>
+              <tr>
+                <td>II.11</td>
+                <td>Participation in a training course, forum, workshop or congress, minimum 10 hours, tied to the Federal Education Institution's interests<br><span class="tag">lattesZen: Hours field available in Continuing education</span></td>
+                <td>Per event</td>
+                <td>1</td>
+                <td class="corresp">FORMACAO-COMPLEMENTAR-CURSO-DE-CURTA-DURACAO (@CARGA-HORARIA), if registered as a course; or DADOS-COMPLEMENTARES &gt; PARTICIPACAO-EM-EVENTOS-CONGRESSOS &gt; PARTICIPACAO-EM-CONGRESSO / PARTICIPACAO-EM-OFICINA (for event participation — but with no hours attribute on these).</td>
+              </tr>
+            </tbody>
+          </table></div>
+        </section>
+
+        <section class="card" id="reqiii">
+          <h2><span class="pill">Requirement III</span> Awards and public recognition</h2>
+          <div style="overflow-x:auto"><table>
+            <thead><tr><th style="width:2.5em">Item</th><th>Specific criterion</th><th style="width:11em">Unit</th><th style="width:5em">Points</th><th>Lattes Curriculum correspondence (XSD)</th></tr></thead>
+            <tbody>
+              <tr>
+                <td>III.1</td>
+                <td>Receiving an international award for a project implemented in the public administration</td>
+                <td>Per award</td>
+                <td>20</td>
+                <td class="corresp">DADOS-GERAIS &gt; PREMIOS-TITULOS &gt; PREMIO-TITULO (@NOME-DO-PREMIO-OU-TITULO, @NOME-DA-ENTIDADE-PROMOTORA, @ANO-DA-PREMIACAO). Strong correspondence; the scope (international) is not its own attribute — it would need to be inferred from the award/entity name.</td>
+              </tr>
+              <tr>
+                <td>III.2</td>
+                <td>Receiving a national award for a project implemented in the public administration</td>
+                <td>Per award</td>
+                <td>15</td>
+                <td class="corresp">DADOS-GERAIS &gt; PREMIOS-TITULOS &gt; PREMIO-TITULO. Strong correspondence; the scope (national) is not its own attribute — infer from the award/entity name.</td>
+              </tr>
+              <tr>
+                <td>III.3</td>
+                <td>Receiving a local or institutional award, formally instituted, for a project implemented in the public administration</td>
+                <td>Per award</td>
+                <td>7.5</td>
+                <td class="corresp">DADOS-GERAIS &gt; PREMIOS-TITULOS &gt; PREMIO-TITULO. Strong correspondence; the scope (local/institutional) is not its own attribute — infer from the award/entity name.</td>
+              </tr>
+            </tbody>
+          </table></div>
+        </section>
+
+        <section class="card" id="reqiv">
+          <h2><span class="pill">Requirement IV</span> Technical-administrative or specialized responsibilities</h2>
+          <div style="overflow-x:auto"><table>
+            <thead><tr><th style="width:2.5em">Item</th><th>Specific criterion</th><th style="width:11em">Unit</th><th style="width:5em">Points</th><th>Lattes Curriculum correspondence (XSD)</th></tr></thead>
+            <tbody>
+              <tr>
+                <td>IV.1</td>
+                <td>Technically qualified work in the operation, deployment, support of, or contribution to developing, configuring or improving core public-administration systems</td>
+                <td>Per system</td>
+                <td>4.5</td>
+                <td class="corresp">PRODUCAO-TECNICA &gt; SOFTWARE or PROCESSOS-OU-TECNICAS (if it results in a formalized product/process); or ATIVIDADES-DE-SERVICO-TECNICO-ESPECIALIZADO &gt; SERVICO-TECNICO-ESPECIALIZADO (for the work itself, with no formally registered product).</td>
+              </tr>
+              <tr>
+                <td>IV.2</td>
+                <td>Drafting a basic project or terms of reference, or membership on a procurement-planning team</td>
+                <td>Per appointment</td>
+                <td>3</td>
+                <td class="corresp">ATIVIDADES-DE-CONSELHO-COMISSAO-E-CONSULTORIA &gt; CONSELHO-COMISSAO-E-CONSULTORIA (a planning team = a commission), or DIRECAO-E-ADMINISTRACAO with FORMATO-CARGO-OU-FUNCAO="MEMBRO_DE_COMISSAO_TEMPORARIA".</td>
+              </tr>
+              <tr>
+                <td>IV.3</td>
+                <td>Performing contract management or oversight activities for procurement, services, covenants and agreements or related instruments</td>
+                <td>Per appointment</td>
+                <td>4.5</td>
+                <td class="corresp">ATIVIDADES-DE-SERVICO-TECNICO-ESPECIALIZADO &gt; SERVICO-TECNICO-ESPECIALIZADO (@SERVICO-REALIZADO, free text).</td>
+              </tr>
+              <tr>
+                <td>IV.4</td>
+                <td>Performing activities related to procurement bidding and its exceptions</td>
+                <td>Per year or fraction over six months</td>
+                <td>3</td>
+                <td class="corresp">ATIVIDADES-DE-SERVICO-TECNICO-ESPECIALIZADO &gt; SERVICO-TECNICO-ESPECIALIZADO, or OUTRAS-ATIVIDADES-TECNICO-CIENTIFICA &gt; OUTRA-ATIVIDADE-TECNICO-CIENTIFICA (both free text).</td>
+              </tr>
+              <tr>
+                <td>IV.5</td>
+                <td>Participation in specialized technical-support activities for policies, programs and actions promoting human health, animal health and environment, accessibility or diversity, of institutional interest<br><span class="tag">lattesZen: Conceptual correspondence, no dedicated structured field</span></td>
+                <td>Per year or fraction over six months</td>
+                <td>3</td>
+                <td class="corresp">ATIVIDADES-DE-SERVICO-TECNICO-ESPECIALIZADO &gt; SERVICO-TECNICO-ESPECIALIZADO (@SERVICO-REALIZADO). Good conceptual correspondence, though not structured by area (health/accessibility/diversity).</td>
+              </tr>
+              <tr>
+                <td>IV.6</td>
+                <td>Technically qualified work in environments or processes requiring special safety, care, or legal/regulatory compliance conditions, provided no hazard or unhealthy-conditions pay is received for the same conditions</td>
+                <td>Per year or fraction over six months</td>
+                <td>3</td>
+                <td class="corresp">ATIVIDADES-DE-SERVICO-TECNICO-ESPECIALIZADO &gt; SERVICO-TECNICO-ESPECIALIZADO, or OUTRA-ATIVIDADE-TECNICO-CIENTIFICA (free text).</td>
+              </tr>
+              <tr>
+                <td>IV.7</td>
+                <td>Working within institutional systems and/or work processes in teaching, research, outreach, management and innovation, provided it is not a routine duty of the position</td>
+                <td>Per appointment</td>
+                <td>3</td>
+                <td class="corresp">OUTRAS-ATIVIDADES-TECNICO-CIENTIFICA &gt; OUTRA-ATIVIDADE-TECNICO-CIENTIFICA (@ATIVIDADE-REALIZADA) — generic "catch-all" field; a broad criterion that may overlap with other already-mapped items (e.g. PROJETO-DE-PESQUISA, DIRECAO-E-ADMINISTRACAO).</td>
+              </tr>
+              <tr>
+                <td>IV.8</td>
+                <td>Serving as the formally designated head of a sector or unit, provided the designation carries no additional pay</td>
+                <td>Per year or fraction over six months</td>
+                <td>4.5</td>
+                <td class="corresp">ATUACAO-PROFISSIONAL &gt; DIRECAO-E-ADMINISTRACAO, with FORMATO-CARGO-OU-FUNCAO = "CHEFE_DE_DEPARTMENTO" / "COORDENADOR_DE_CURSO" / "COORDENADOR_DE_PROGRAMA" / "DIRETOR_DE_UNIDADE" / "OUTRO" (as applicable). Strong correspondence.</td>
+              </tr>
+            </tbody>
+          </table></div>
+        </section>
+
+        <section class="card" id="reqv">
+          <h2><span class="pill">Requirement V</span> Management or advisory position</h2>
+          <div style="overflow-x:auto"><table>
+            <thead><tr><th style="width:2.5em">Item</th><th>Specific criterion</th><th style="width:11em">Unit</th><th style="width:5em">Points</th><th>Lattes Curriculum correspondence (XSD)</th></tr></thead>
+            <tbody>
+              <tr>
+                <td>V.1</td>
+                <td>Holding a management position (CD-02) or equivalent</td>
+                <td>Per year or fraction over six months</td>
+                <td>9 as titleholder, 4.5 as substitute</td>
+                <td class="corresp">ATUACAO-PROFISSIONAL &gt; DIRECAO-E-ADMINISTRACAO, FORMATO-CARGO-OU-FUNCAO = "DIRETOR_DE_UNIDADE" or "DECANO_DE_CENTRO" (depending on the level), with CARGO-OU-FUNCAO (free text) recording "CD-02" and the period. There is no specific attribute for titleholder vs. substitute — it would need to go in the free text.</td>
+              </tr>
+              <tr>
+                <td>V.2</td>
+                <td>Holding a management position (CD-03 and 04) or equivalent</td>
+                <td>Per year or fraction over six months</td>
+                <td>7.5 as titleholder, 3 as substitute</td>
+                <td class="corresp">DIRECAO-E-ADMINISTRACAO, FORMATO-CARGO-OU-FUNCAO = "CHEFE_DE_DEPARTMENTO" / "COORDENADOR_DE_CURSO" / "OUTRO", with CARGO-OU-FUNCAO specifying "CD-03"/"CD-04". Same limitation regarding titleholder vs. substitute.</td>
+              </tr>
+              <tr>
+                <td>V.3</td>
+                <td>Holding a gratified function (FG-01 and 02) or equivalent</td>
+                <td>Per year or fraction over six months</td>
+                <td>4.5 as titleholder, 1.5 as substitute</td>
+                <td class="corresp">DIRECAO-E-ADMINISTRACAO, FORMATO-CARGO-OU-FUNCAO = "OUTRO"/"LIVRE", with CARGO-OU-FUNCAO specifying "FG-01"/"FG-02". Same limitation regarding titleholder vs. substitute.</td>
+              </tr>
+              <tr>
+                <td>V.4</td>
+                <td>Holding a gratified function (from FG-03 onward) or equivalent</td>
+                <td>Per year or fraction over six months</td>
+                <td>3 as titleholder, 1 as substitute</td>
+                <td class="corresp">DIRECAO-E-ADMINISTRACAO, FORMATO-CARGO-OU-FUNCAO = "OUTRO"/"LIVRE", with CARGO-OU-FUNCAO specifying the matching FG (from FG-03 onward). Same limitation regarding titleholder vs. substitute.</td>
+              </tr>
+            </tbody>
+          </table></div>
+        </section>
+
+        <section class="card" id="reqvi">
+          <h2><span class="pill">Requirement VI</span> Production, prospecting and dissemination of knowledge</h2>
+          <div style="overflow-x:auto"><table>
+            <thead><tr><th style="width:2.5em">Item</th><th>Specific criterion</th><th style="width:11em">Unit</th><th style="width:5em">Points</th><th>Lattes Curriculum correspondence (XSD)</th></tr></thead>
+            <tbody>
+              <tr>
+                <td>VI.1</td>
+                <td>Patent letter related to institutional interests</td>
+                <td>Per patent</td>
+                <td>30</td>
+                <td class="corresp">PRODUCAO-TECNICA &gt; PATENTE (DETALHAMENTO-DA-PATENTE &gt; REGISTRO-OU-PATENTE, @TIPO-PATENTE = "PRIVILEGIO_DE_INOVACAO_PI" or "MODELO_DE_UTILIDADE_MU"). Exact match.</td>
+              </tr>
+              <tr>
+                <td>VI.2</td>
+                <td>Relevant participation in developing prototypes, filings and/or intellectual-property registrations or invention privilege related to institutional interests</td>
+                <td>Per project</td>
+                <td>25</td>
+                <td class="corresp">PRODUCAO-TECNICA &gt; DESENHO-INDUSTRIAL, SOFTWARE, MARCA or TOPOGRAFIA-DE-CIRCUITO-INTEGRADO — each with DETALHAMENTO &gt; REGISTRO-OU-PATENTE (@TIPO-PATENTE with dedicated values: DESENHO_INDUSTRIAL_DI, PROGRAMA_DE_COMPUTADOR_PC, MARCA_REGISTRADA_*, TOPOGRAFIA_DE_CIRCUITO_INTEGRADO_REGISTRADA_TCI). Exact match.</td>
+              </tr>
+              <tr>
+                <td>VI.3</td>
+                <td>Participation in technology transfer, licensing or exploitation of a technological asset, as author or inventor, related to institutional interests</td>
+                <td>Per output</td>
+                <td>20</td>
+                <td class="corresp">PRODUCAO-TECNICA &gt; PRODUTO-TECNOLOGICO or PROCESSOS-OU-TECNICAS (the @DISPONIBILIDADE and @FINALIDADE attributes can indicate commercial use/transfer).</td>
+              </tr>
+              <tr>
+                <td>VI.4</td>
+                <td>Completing a formal higher-education course beyond what is required for the position held, and not used to claim the Qualification Incentive (IQ)</td>
+                <td>Per course</td>
+                <td>15</td>
+                <td class="corresp">FORMACAO-ACADEMICA-TITULACAO &gt; GRADUACAO / ESPECIALIZACAO / MESTRADO / MESTRADO-PROFISSIONALIZANTE / DOUTORADO / MBA (depending on the level completed). Exact match.</td>
+              </tr>
+              <tr>
+                <td>VI.5</td>
+                <td>Relevant participation in deploying or developing a product, project, process, technique or technology of institutional interest</td>
+                <td>Per output</td>
+                <td>15</td>
+                <td class="corresp">PRODUCAO-TECNICA &gt; PRODUTO-TECNOLOGICO or PROCESSOS-OU-TECNICAS. Strong correspondence.</td>
+              </tr>
+              <tr>
+                <td>VI.6</td>
+                <td>Leadership or deputy leadership of a research or outreach group registered with an official institutional-recognition body or system<br><span class="tag">lattesZen: Category 12 — Research Groups</span></td>
+                <td>Per research group</td>
+                <td>7.5</td>
+                <td class="corresp">No direct Lattes correspondence — this belongs in CNPq's Directory of Research Groups (DGP).</td>
+              </tr>
+              <tr>
+                <td>VI.7</td>
+                <td>Membership in a research group duly registered with an official institutional-recognition body or system<br><span class="tag">lattesZen: Category 12 — Research Groups</span></td>
+                <td>Per project</td>
+                <td>3</td>
+                <td class="corresp">No direct Lattes correspondence — this belongs in CNPq's Directory of Research Groups (DGP).</td>
+              </tr>
+              <tr>
+                <td>VI.8</td>
+                <td>Approval of a project to raise funds for the Federal Education Institution</td>
+                <td>Per project</td>
+                <td>7.5</td>
+                <td class="corresp">ATIVIDADES-DE-PARTICIPACAO-EM-PROJETO &gt; PROJETO-DE-PESQUISA &gt; FINANCIADORES-DO-PROJETO &gt; FINANCIADOR-DO-PROJETO (@NOME-INSTITUICAO, @NATUREZA). Strong, structured correspondence.</td>
+              </tr>
+              <tr>
+                <td>VI.9</td>
+                <td>Publishing or organizing a book related to institutional interests (with ISBN and editorial board)</td>
+                <td>Per output</td>
+                <td>20</td>
+                <td class="corresp">PRODUCAO-BIBLIOGRAFICA &gt; LIVROS-E-CAPITULOS &gt; LIVROS-PUBLICADOS-OU-ORGANIZADOS &gt; LIVRO-PUBLICADO-OU-ORGANIZADO (DETALHAMENTO-DO-LIVRO @ISBN). Exact match.</td>
+              </tr>
+              <tr>
+                <td>VI.10</td>
+                <td>Authorship or co-authorship of a book chapter, or article published in a specialized journal, scientific newspaper, or periodical, related to institutional interests</td>
+                <td>Per publication</td>
+                <td>7.5</td>
+                <td class="corresp">PRODUCAO-BIBLIOGRAFICA &gt; LIVROS-E-CAPITULOS &gt; CAPITULOS-DE-LIVROS-PUBLICADOS &gt; CAPITULO-DE-LIVRO-PUBLICADO; or &gt; ARTIGOS-PUBLICADOS &gt; ARTIGO-PUBLICADO; or &gt; TEXTOS-EM-JORNAIS-OU-REVISTAS &gt; TEXTO-EM-JORNAL-OU-REVISTA (depending on the venue). Exact match — several possible fields.</td>
+              </tr>
+              <tr>
+                <td>VI.11</td>
+                <td>Presenting work of institutional interest at a congress, seminar or other event</td>
+                <td>Per output</td>
+                <td>4.5</td>
+                <td class="corresp">PRODUCAO-TECNICA &gt; DEMAIS-TIPOS-DE-PRODUCAO-TECNICA &gt; APRESENTACAO-DE-TRABALHO (presentation without publication in proceedings); or PRODUCAO-BIBLIOGRAFICA &gt; TRABALHOS-EM-EVENTOS &gt; TRABALHO-EM-EVENTOS (@NATUREZA = "COMPLETO"/"RESUMO"/"RESUMO_EXPANDIDO", when published in the proceedings).</td>
+              </tr>
+              <tr>
+                <td>VI.12</td>
+                <td>Producing structured technical, scientific, methodological or administrative material aimed at disseminating knowledge</td>
+                <td>Per output</td>
+                <td>4.5</td>
+                <td class="corresp">PRODUCAO-TECNICA &gt; DEMAIS-TIPOS-DE-PRODUCAO-TECNICA &gt; OUTRA-PRODUCAO-TECNICA (catch-all) or DESENVOLVIMENTO-DE-MATERIAL-DIDATICO-OU-INSTRUCIONAL or RELATORIO-DE-PESQUISA, depending on the nature of the material.</td>
+              </tr>
+              <tr>
+                <td>VI.13</td>
+                <td>Evaluation of a teaching and/or research and/or outreach and/or innovation project</td>
+                <td>Per project</td>
+                <td>4.5</td>
+                <td class="corresp">OUTRA-ATIVIDADE-TECNICO-CIENTIFICA or DADOS-COMPLEMENTARES &gt; OUTRAS-BANCAS-JULGADORAS (@TIPO = "Project evaluator").</td>
+              </tr>
+              <tr>
+                <td>VI.14</td>
+                <td>Participation in dissemination or institutional-training-support activities (as speaker, facilitator, contributor)</td>
+                <td>Per event</td>
+                <td>3</td>
+                <td class="corresp">ATIVIDADES-DE-TREINAMENTO-MINISTRADO &gt; TREINAMENTO-MINISTRADO; or PRODUCAO-TECNICA &gt; CURSO-DE-CURTA-DURACAO-MINISTRADO; or DADOS-COMPLEMENTARES &gt; PARTICIPACAO-EM-EVENTOS-CONGRESSOS &gt; PARTICIPACAO-EM-EXPOSICAO (@TIPO-PARTICIPACAO/@FORMA-PARTICIPACAO = "Exhibitor").</td>
+              </tr>
+              <tr>
+                <td>VI.15</td>
+                <td>Formally authorized work as instructor, tutor, speaker, technical-content author or advisor in a structured training action of institutional interest, provided for in a people-development plan or program</td>
+                <td>Per course</td>
+                <td>4.5</td>
+                <td class="corresp">ATIVIDADES-DE-TREINAMENTO-MINISTRADO &gt; TREINAMENTO-MINISTRADO &gt; TREINAMENTO; or PRODUCAO-TECNICA &gt; CURSO-DE-CURTA-DURACAO-MINISTRADO (hours via DETALHAMENTO @DURACAO/@UNIDADE); and/or DADOS-COMPLEMENTARES &gt; ORIENTACOES-EM-ANDAMENTO / OUTRA-PRODUCAO &gt; ORIENTACOES-CONCLUIDAS (if the work is as an advisor).</td>
+              </tr>
+              <tr>
+                <td>VI.16</td>
+                <td>Coordinating a congress, symposium or seminar of institutional interest</td>
+                <td>Per event</td>
+                <td>3.5</td>
+                <td class="corresp">PRODUCAO-TECNICA &gt; DEMAIS-TIPOS-DE-PRODUCAO-TECNICA &gt; ORGANIZACAO-DE-EVENTO (@TIPO, @INSTITUICAO-PROMOTORA). Strong correspondence.</td>
+              </tr>
+              <tr>
+                <td>VI.17</td>
+                <td>Co-advising a capstone/final-year project across different education modalities</td>
+                <td>Per event</td>
+                <td>4.5</td>
+                <td class="corresp">OUTRA-PRODUCAO &gt; ORIENTACOES-CONCLUIDAS &gt; OUTRAS-ORIENTACOES-CONCLUIDAS (DETALHAMENTO-DE-OUTRAS-ORIENTACOES-CONCLUIDAS @TIPO-DE-ORIENTACAO-CONCLUIDA indicating "Co-advisor", and @TIPO = "TCC"/"Capstone project"). Strong correspondence, dependent on how the type field is filled in.</td>
+              </tr>
+              <tr>
+                <td>VI.18</td>
+                <td>Authorship of a registered artistic or cultural work with proven institutional contribution or impact</td>
+                <td>Per output</td>
+                <td>3</td>
+                <td class="corresp">OUTRA-PRODUCAO &gt; PRODUCAO-ARTISTICA-CULTURAL (ARTES-CENICAS, ARTES-VISUAIS/OBRA-DE-ARTES-VISUAIS, MUSICA, OUTRA-PRODUCAO-ARTISTICA-CULTURAL, etc., depending on the type of work). Strong correspondence.</td>
+              </tr>
+              <tr>
+                <td>VI.19</td>
+                <td>Institutional action in responding to an outbreak, epidemic or pandemic<br><span class="tag">lattesZen: Category 21 — Public Health Crisis Response</span></td>
+                <td>Per month</td>
+                <td>1</td>
+                <td class="corresp">SERVICO-TECNICO-ESPECIALIZADO, depending on the nature of the work.</td>
+              </tr>
+            </tbody>
+          </table></div>
+        </section>
+
+      </div>
+    </main>
+
+    <!-- ============================ FOOTER (same as the app) ============================ -->
+    <footer class="bg-govbr-800 dark:bg-gray-950 border-t border-govbr-700 dark:border-gray-700 py-3 px-6 text-xs text-blue-100 dark:text-gray-400 flex flex-col sm:flex-row justify-between items-center shrink-0 gap-4 transition-colors duration-300">
+        <div class="flex items-center gap-4 flex-wrap justify-center">
+            <a href="termodeuso.en.html" class="hover:text-white transition-colors flex items-center gap-1" title="Terms of use" aria-label="Terms of use"><i aria-hidden="true" class="fa-solid fa-file-contract"></i></a>
+            <span class="text-white/25 dark:text-gray-700">|</span>
+            <a href="privacidade.en.html" class="hover:text-white transition-colors flex items-center gap-1" title="Privacy policy" aria-label="Privacy policy"><i aria-hidden="true" class="fa-solid fa-shield-halved"></i></a>
+            <span class="text-white/25 dark:text-gray-700">|</span>
+            <a href="./ajuda.en.html" class="hover:text-white transition-colors flex items-center gap-1" title="Help" aria-label="Help"><i aria-hidden="true" class="fa-solid fa-circle-question"></i></a>
+            <span class="text-white/25 dark:text-gray-700">|</span>
+            <a href="sobre.en.html" class="hover:text-white transition-colors flex items-center gap-1" title="About" aria-label="About"><i aria-hidden="true" class="fa-solid fa-circle-info"></i></a>
+            <span class="text-white/25 dark:text-gray-700">|</span>
+            <button type="button" id="highContrastToggle" class="hover:text-white transition-colors flex items-center gap-1" aria-pressed="false" title="Toggle high contrast">
+                <i aria-hidden="true" class="fa-solid fa-circle-half-stroke"></i> <span class="sr-only">High contrast</span>
+            </button>
+            <span class="text-white/25 dark:text-gray-700">|</span>
+            <span class="flex items-center gap-1" role="group" aria-label="Font size">
+                <button type="button" id="fontDec" class="hover:text-white transition-colors flex items-center gap-1" title="Decrease font size" aria-label="Decrease font size"><i aria-hidden="true" class="fa-solid fa-magnifying-glass-minus"></i> A-</button>
+                <button type="button" id="fontInc" class="hover:text-white transition-colors flex items-center gap-1" title="Increase font size" aria-label="Increase font size"><i aria-hidden="true" class="fa-solid fa-magnifying-glass-plus"></i> A+</button>
+            </span>
+        </div>
+        <div class="flex gap-3 items-center flex-wrap justify-center">
+            <a href="https://github.com/alexsandroccarv" target="_blank" rel="noopener" class="hover:text-white hover:underline transition-colors flex items-center gap-1">
+                <i aria-hidden="true" class="fa-brands fa-github text-white/90 dark:text-unifesp-400"></i> Alexsandro Cardoso Carvalho
+            </a>
+            <span class="text-white/40 dark:text-gray-600">|</span>
+            <a href="doe-um-cafe.en.html" class="hover:text-white hover:underline transition-colors flex items-center gap-1">
+                <i aria-hidden="true" class="fa-solid fa-mug-hot text-white/90 dark:text-unifesp-400"></i> Buy me a coffee
+            </a>
+            <span class="text-white/40 dark:text-gray-600">|</span>
+            <a href="https://www.gnu.org/licenses/agpl-3.0.html" target="_blank" rel="noopener" class="hover:text-white transition-colors flex items-center gap-1" title="AGPLv3 License (Free Software Foundation)">
+                <i aria-hidden="true" class="fa-solid fa-scale-balanced text-white/90 dark:text-unifesp-400"></i> AGPLv3
+            </a>
+            <span class="text-white/40 dark:text-gray-600">|</span>
+            <span class="flex items-center gap-1"><i aria-hidden="true" class="fa-solid fa-tag" title="Version"></i> <a href="notas-de-versao.html" class="font-mono hover:text-white hover:underline transition-colors" title="Version notes (Portuguese)"><span id="appVersion"></span></a></span>
+            <a href="https://github.com/alexsandroccarv/latteszen" target="_blank" rel="noopener" class="hover:text-white transition-colors flex items-center gap-1" title="Source code (GitHub repository)" aria-label="Source code (GitHub repository)">
+                <i aria-hidden="true" class="fa-solid fa-code text-white/90 dark:text-unifesp-400"></i>
+            </a>
+        </div>
+    </footer>
+
+    <!-- Dynamic header/footer: version and owner name (same behavior as the app) -->
+    <script type="module" src="js/config.js"></script>
+    <script type="module" src="js/a11y.js"></script>
+    <script type="module" src="js/analytics.js"></script>
+    <script type="module" src="js/cookie-consent.js"></script>
+    <script type="module" src="js/pwa.js"></script>
+    <script type="module">
+        (function () {
+            // Fixes this page's locale (fixed English content), without
+            // touching localStorage — cookie-consent.js imports i18n.js,
+            // whose synchronous bootstrap would otherwise read the app's
+            // configured locale and could "leak" a mismatched <html
+            // lang>/cookie banner into this page.
+            try { window.LzI18n.setLocale('en'); } catch (e) {}
+        })();
+    </script>
+    <script type="module">
+        (function () {
+            var C = window.APP_CONFIG || {};
+            // This page's static title (from <title>, see SEO issue #37) —
+            // used as the "default" below instead of always rewriting to
+            // "lattesZen" when there's no saved profile name.
+            var tituloBase = document.title;
+            var setTxt = function (id, v) { var el = document.getElementById(id); if (el && v != null) el.textContent = v; };
+            setTxt('appVersion', C.version);
+            // Full name from the Identification item (same logic as the app): "lattesZen | Name".
+            var nome = '';
+            try {
+                var itens = JSON.parse(localStorage.getItem((C.storageKeys && C.storageKeys.catalog) || 'lz_catalog') || '[]');
+                var ident = itens.find(function (i) { return i.typeKey === 'IDENTIFICACAO' && i.fields && i.fields.titulo; });
+                if (ident) nome = String(ident.fields.titulo).trim();
+            } catch (e) {}
+            var nomeWrap = document.getElementById('headerNomeWrap');
+            if (nomeWrap) nomeWrap.classList.toggle('hidden', !nome);
+            setTxt('headerNome', nome);
+            document.title = nome ? (C.name || 'lattesZen') + ' | ' + nome : tituloBase;
+
+            var htmlEl = document.documentElement;
+
+            var hc = document.getElementById('highContrastToggle');
+            function syncHC() { hc.setAttribute('aria-pressed', htmlEl.classList.contains('high-contrast') ? 'true' : 'false'); }
+            if (hc) { syncHC(); hc.addEventListener('click', function () { htmlEl.classList.toggle('high-contrast'); localStorage.setItem('altoContraste', htmlEl.classList.contains('high-contrast') ? '1' : '0'); syncHC(); }); }
+
+            var FS_MIN = 80, FS_MAX = 150, FS_STEP = 10;
+            function getFS() { var n = parseInt(localStorage.getItem('fontScale') || '100', 10); return isNaN(n) ? 100 : n; }
+            var dec = document.getElementById('fontDec'), inc = document.getElementById('fontInc');
+            function applyFS(n) {
+                n = Math.max(FS_MIN, Math.min(FS_MAX, n));
+                htmlEl.style.fontSize = n === 100 ? '' : n + '%';
+                localStorage.setItem('fontScale', String(n));
+                if (dec) dec.disabled = n <= FS_MIN;
+                if (inc) inc.disabled = n >= FS_MAX;
+            }
+            applyFS(getFS());
+            if (dec) dec.addEventListener('click', function () { applyFS(getFS() - FS_STEP); });
+            if (inc) inc.addEventListener('click', function () { applyFS(getFS() + FS_STEP); });
+        })();
+    </script>
+</body>
+</html>
