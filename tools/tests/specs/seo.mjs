@@ -44,6 +44,40 @@ for (const pagina of PAGINAS) {
     });
 }
 
+const PAGINAS_ES = [
+    'ajuda.es.html', 'ajuda-lattes.es.html', 'ajuda-rsc.es.html',
+    'relacionando-lattes-rsc.es.html', 'doe-um-cafe.es.html',
+    'sobre.es.html', 'privacidade.es.html', 'termodeuso.es.html',
+];
+
+for (const pagina of PAGINAS_ES) {
+    const paginaPt = pagina.replace('.es.html', '.html');
+    test(`${pagina}: lang="es", hreflang próprio, meta traduzidas e seletor PT|EN`, async ({ page, baseUrl }) => {
+        const res = await page.goto(baseUrl + '/' + pagina);
+        assertEqual(res.status(), 200, `${pagina} deveria responder 200`);
+        const info = await page.evaluate(() => ({
+            lang: document.documentElement.getAttribute('lang'),
+            title: document.title,
+            ogLocale: document.querySelector('meta[property="og:locale"]')?.content || '',
+            canonical: document.querySelector('link[rel="canonical"]')?.href || '',
+            hreflangEs: document.querySelector('link[rel="alternate"][hreflang="es"]')?.href || '',
+            switcherLinks: Array.from(document.querySelectorAll('a[title="Ver en portugués"], a[title="View in English"]')).map(a => ({ text: a.textContent.trim(), href: a.getAttribute('href') })),
+        }));
+        assertEqual(info.lang, 'es', `${pagina}: <html lang> deveria ser "es"`);
+        assert(info.title && info.title !== 'lattesZen', `${pagina}: título deveria ser descritivo`);
+        assertEqual(info.ogLocale, 'es_ES', `${pagina}: og:locale deveria ser "es_ES"`);
+        assert(info.canonical.endsWith('/' + pagina), `${pagina}: canonical deveria apontar pro próprio arquivo .es.html, obtido "${info.canonical}"`);
+        assert(info.hreflangEs.endsWith('/' + pagina), `${pagina}: hreflang="es" deveria apontar pro próprio arquivo, obtido "${info.hreflangEs}"`);
+        assertEqual(info.switcherLinks.length, 2, `${pagina}: seletor de idioma deveria ter exatamente 2 links (PT e EN)`);
+        const pt = info.switcherLinks.find(l => l.text === 'PT');
+        const en = info.switcherLinks.find(l => l.text === 'EN');
+        assert(pt, `${pagina}: deveria ter um link "PT" no seletor de idioma`);
+        assert(en, `${pagina}: deveria ter um link "EN" no seletor de idioma`);
+        assertEqual(pt.href, paginaPt, `${pagina}: link "PT" deveria apontar pro arquivo pt-br irmão`);
+        assertEqual(en.href, paginaPt.replace('.html', '.en.html'), `${pagina}: link "EN" deveria apontar pro arquivo .en.html irmão`);
+    });
+}
+
 test('robots.txt é servido e aponta pro sitemap.xml', async ({ page, baseUrl }) => {
     const res = await page.goto(baseUrl + '/robots.txt');
     assertEqual(res.status(), 200, 'robots.txt deveria responder 200');
