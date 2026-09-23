@@ -268,6 +268,27 @@ test('i18n: com locale "es" persistido ANTES da carga da página, t() já devolv
     assertEqual(r.publishTemaModerno, 'Moderno', 'Chave dinâmica de tema (publish.tema.${style}.label) deveria vir traduzida');
 });
 
+test('i18n: com locale "es" persistido ANTES da carga da página, window.PAISES/IDIOMAS/SETORES trazem label em espanhol (Etapa 6)', async ({ page, baseUrl }) => {
+    await page.goto(baseUrl + '/index.html');
+    await page.evaluate(() => localStorage.setItem('lz_settings', JSON.stringify({ locale: 'es' })));
+    await page.reload();
+    await page.waitForTimeout(500);
+    const r = await page.evaluate(() => ({
+        localeInicial: window.LzI18n.getLocale(),
+        paisValor: window.PAISES[0].value,
+        paisLabel: window.PAISES[0].label,
+        idiomaLabel: window.IDIOMAS.find(o => o.value === 'Inglês').label,
+        setorLabel: window.SETORES[0].label,
+        tamanhos: [window.PAISES.length, window.IDIOMAS.length, window.SETORES.length],
+    }));
+    assertEqual(r.localeInicial, 'es', 'Com locale "es" persistido, i18n.js deveria se inicializar já em "es"');
+    assertEqual(r.paisValor, 'Alemanha', 'o VALOR do país não deveria mudar com o locale (mesma string em português)');
+    assertEqual(r.paisLabel, 'Alemania', 'o LABEL do 1º país (Alemanha) deveria vir traduzido em "es"');
+    assertEqual(r.idiomaLabel, 'Inglés', 'o LABEL do idioma "Inglês" deveria vir traduzido em "es"');
+    assertEqual(r.setorLabel, 'Administración pública, defensa y seguridad social', 'o LABEL do 1º setor deveria vir traduzido em "es"');
+    assert(r.tamanhos[0] > 100 && r.tamanhos[1] > 100 && r.tamanhos[2] > 50, 'as 3 listas deveriam manter o mesmo tamanho de sempre, só o label muda por locale');
+});
+
 test('i18n: com locale "en" persistido ANTES da carga da página, t() já devolve inglês em chaves de módulos diferentes (taxonomia, abas, core)', async ({ page, baseUrl }) => {
     await page.goto(baseUrl + '/index.html');
     await page.evaluate(() => localStorage.setItem('lz_settings', JSON.stringify({ locale: 'en' })));
