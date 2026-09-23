@@ -62,20 +62,21 @@
 
 export const LOCALE_PADRAO = 'pt-br';
 
-// Dicionário en importado (não registrado via registrarDicionario) porque
-// precisa existir em DICIONARIOS ANTES da primeira chamada de
+// Dicionários en/es importados (não registrados via registrarDicionario)
+// porque precisam existir em DICIONARIOS ANTES da primeira chamada de
 // localeValido() logo abaixo — se o locale persistido de quem abre o app
-// for 'en', localeValido('en') só reconhece como válido se a entrada já
+// for 'en'/'es', localeValido() só reconhece como válido se a entrada já
 // estiver aqui no bootstrap síncrono do módulo (ver lerLocalePersistido()/
 // localeAtual mais abaixo). registrarDicionario() continua existindo pra
 // dicionários carregados em runtime (ferramentas, testes).
 import { DICIONARIO_EN } from './i18n-en.js';
+import { DICIONARIO_ES } from './i18n-es.js';
 
 // Dicionários por idioma. pt-br fica vazio de propósito — t()/tp() já
 // funcionam com só o `padrao` embutido em cada chamada, que É o texto
 // pt-br; um dicionário só precisa existir pra ter prioridade sobre esse
 // padrao (ver registrarDicionario).
-const DICIONARIOS = { [LOCALE_PADRAO]: {}, en: DICIONARIO_EN };
+const DICIONARIOS = { [LOCALE_PADRAO]: {}, en: DICIONARIO_EN, es: DICIONARIO_ES };
 
 // Cai pro padrão se pedirem um locale sem dicionário carregado — nunca deixa
 // a UI "muda" por causa de um nome de locale errado/typo.
@@ -127,7 +128,7 @@ export function localesDisponiveis() { return Object.keys(DICIONARIOS); }
 // Nome de exibição de um locale (pro seletor de idioma) — cai pro próprio
 // código se ainda não houver nome cadastrado (locale novo sem tradução da UI
 // ainda, ex. logo após registrarDicionario de um idioma novo).
-const NOMES_LOCALE = { 'pt-br': 'Português (Brasil)', en: 'English' };
+const NOMES_LOCALE = { 'pt-br': 'Português (Brasil)', en: 'English', es: 'Español' };
 export function nomeLocale(locale) { return NOMES_LOCALE[locale] || locale; }
 // Só para ferramentas (import de um glossário, testes) — nunca chamado pela
 // UI em si. Faz merge raso: chamadas repetidas acrescentam/sobrescrevem

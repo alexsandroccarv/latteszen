@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<!--
+    lattesZen — Copyright (C) 2026 Alexsandro Cardoso Carvalho
+
+    This file is part of lattesZen.
+
+    lattesZen is free software: you can redistribute it and/or modify it
+    under the terms of the GNU Affero General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or (at
+    your option) any later version.
+
+    lattesZen is distributed in the hope that it will be useful, but WITHOUT
+    ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+    FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
+    License for more details.
+
+    You should have received a copy of the GNU Affero General Public License
+    along with lattesZen. If not, see <https://www.gnu.org/licenses/>.
+-->
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>lattesZen — Ayuda (Currículum Lattes)</title>
+    <meta name="description" content="Guía para organizar, comprobar y publicar su Currículum Lattes en lattesZen — carpeta local, importación del XML y cumplimiento.">
+    <link rel="canonical" href="https://ccarvalho.net/labs/latteszen/ajuda-lattes.es.html">
+    <link rel="alternate" hreflang="pt-BR" href="https://ccarvalho.net/labs/latteszen/ajuda-lattes.html">
+    <link rel="alternate" hreflang="en" href="https://ccarvalho.net/labs/latteszen/ajuda-lattes.en.html">
+    <link rel="alternate" hreflang="es" href="https://ccarvalho.net/labs/latteszen/ajuda-lattes.es.html">
+    <link rel="alternate" hreflang="x-default" href="https://ccarvalho.net/labs/latteszen/ajuda-lattes.html">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="lattesZen">
+    <meta property="og:locale" content="es_ES">
+    <meta property="og:title" content="lattesZen — Ayuda (Currículum Lattes)">
+    <meta property="og:description" content="Guía para organizar, comprobar y publicar su Currículum Lattes en lattesZen — carpeta local, importación del XML y cumplimiento.">
+    <meta property="og:url" content="https://ccarvalho.net/labs/latteszen/ajuda-lattes.es.html">
+    <meta property="og:image" content="https://ccarvalho.net/labs/latteszen/images/og-image.png">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="lattesZen — Ayuda (Currículum Lattes)">
+    <meta name="twitter:description" content="Guía para organizar, comprobar y publicar su Currículum Lattes en lattesZen — carpeta local, importación del XML y cumplimiento.">
+    <meta name="twitter:image" content="https://ccarvalho.net/labs/latteszen/images/og-image.png">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1351B4">
+
+    <!-- Mismos estilos que la aplicación -->
+    <link rel="stylesheet" href="css/styles.css">
+
+    <!-- Tema claro/oscuro y alto contraste: aplicado temprano para evitar un "flash" -->
+    <script>
+        (function () {
+            const htmlEl = document.documentElement;
+            const saved = localStorage.getItem('tema');
+            const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+            if (saved ? saved === 'dark' : prefersDark) htmlEl.classList.add('dark');
+            if (localStorage.getItem('altoContraste') === '1') htmlEl.classList.add('high-contrast');
+            // Tema (paletas listas, elegidas en Configuración): aplicado temprano
+            // para evitar un "flash" — misma lógica que oscuro/alto contraste arriba.
+            const temaPreset = localStorage.getItem('lz_tema_preset') || 'govbr';
+            htmlEl.classList.add('lz-theme');
+            htmlEl.setAttribute('data-lz-theme', temaPreset);
+            const fs = parseInt(localStorage.getItem('fontScale') || '100', 10);
+            if (fs && fs !== 100) htmlEl.style.fontSize = fs + '%';
+        })();
+    </script>
+
+    <!-- Recursos externos (Tailwind + config, Font Awesome, Rawline) — igual que la app -->
+    <script>
+        (function () {
+            var TW_CONFIG = {
+                darkMode: 'class',
+                theme: {
+                    extend: {
+                        fontFamily: { sans: ['Rawline', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif'] },
+                        colors: {
+                            unifesp: { 50: '#f0fdf4', 100: '#dcfce7', 400: '#4ade80', 600: '#16a34a', 700: '#15803d', 800: '#166534', 900: '#1E5A3A' },
+                            govbr:   { 50: '#D4E5FF', 100: '#ADCDFF', 400: '#1351B4', 600: '#1351B4', 700: '#0C326F', 800: '#071D41', 900: '#050F24' },
+                        }
+                    }
+                }
+            };
+            var tw = document.createElement('script');
+            tw.src = 'https://cdn.tailwindcss.com';
+            tw.async = true;
+            tw.onload = function () { try { window.tailwind.config = TW_CONFIG; } catch (e) {} };
+            tw.onerror = function () { document.documentElement.classList.add('no-tailwind'); };
+            document.head.appendChild(tw);
+            function loadCss(href) { var l = document.createElement('link'); l.rel = 'stylesheet'; l.href = href; l.media = 'all'; document.head.appendChild(l); }
+            loadCss('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css');
+            loadCss('https://cdngovbr-ds.estaleiro.serpro.gov.br/design-system/fonts/rawline/css/rawline.css');
+
+            // Tema: fuentes de Google por paleta (cargadas bajo demanda —
+            // "lattesZen noche" y "lattesZen día" reutilizan la fuente ya
+            // cargada arriba, sin CDN extra).
+            var THEME_FONTS = {
+                'catppuccin-latte': 'https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap',
+                'catppuccin-mocha': 'https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap',
+                dracula: 'https://fonts.googleapis.com/css2?family=Fira+Sans:wght@400;600;700&display=swap',
+                'rose-pine-dawn': 'https://fonts.googleapis.com/css2?family=Quicksand:wght@400;600;700&display=swap',
+                'solarized-light': 'https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&display=swap',
+                'solarized-dark': 'https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&display=swap',
+            };
+            window.__loadThemeFont = function (preset) {
+                var url = THEME_FONTS[preset];
+                if (!url) return;
+                if (document.querySelector('link[data-lz-font="' + preset + '"]')) return;
+                var l = document.createElement('link');
+                l.rel = 'stylesheet'; l.href = url; l.setAttribute('data-lz-font', preset);
+                document.head.appendChild(l);
+            };
+            window.__setThemeColor = function () {
+                var m = document.querySelector('meta[name="theme-color"]');
+                if (!m) { m = document.createElement('meta'); m.name = 'theme-color'; document.head.appendChild(m); }
+                var c = getComputedStyle(document.documentElement).getPropertyValue('--lz-header').trim();
+                m.setAttribute('content', c || '#1351B4');
+            };
+            var temaAtivo = localStorage.getItem('lz_tema_preset') || 'govbr';
+            window.__loadThemeFont(temaAtivo);
+            window.__setThemeColor();
+        })();
+    </script>
+
+    <!-- Estilo del contenido de esta página (ámbito .help-doc; oscuro por clase, como la app) -->
+    <style>
+      :root{
+        --hdoc-surface:#f9fafb; --hdoc-text:#1f2937; --hdoc-muted:#6b7280; --hdoc-line:#e5e7eb;
+        --hdoc-accent:#1351b4; --hdoc-code:#eef2f7; --hdoc-chip:#eef2ff; --hdoc-chipink:#1e3a8a;
+        --hdoc-note-bg:#eff6ff; --hdoc-note-line:#1351b4; --hdoc-warn-bg:#fff7ed; --hdoc-warn-line:#c2410c;
+        --hdoc-ok-bg:#ecfdf5; --hdoc-ok-line:#047857;
+      }
+      html.dark{
+        --hdoc-surface:#1f2937; --hdoc-text:#e5e7eb; --hdoc-muted:#9ca3af; --hdoc-line:#374151;
+        --hdoc-accent:#93c5fd; --hdoc-code:#0f172a; --hdoc-chip:#1e293b; --hdoc-chipink:#bfdbfe;
+        --hdoc-note-bg:#0f2033; --hdoc-note-line:#3b82f6; --hdoc-warn-bg:#2a1a0f; --hdoc-warn-line:#f59e0b;
+        --hdoc-ok-bg:#0e2a1e; --hdoc-ok-line:#34d399;
+      }
+      .help-doc{color:var(--hdoc-text);line-height:1.6;max-width:900px;margin:0 auto;padding:8px 4px 40px}
+      .help-doc h1{font-size:1.7rem;margin:.2em 0 .1em}
+      .help-doc .lead{color:var(--hdoc-muted);margin:0 0 1.5em}
+      .help-doc a{color:var(--hdoc-accent);text-decoration:none}
+      .help-doc a:hover{text-decoration:underline}
+      .help-doc nav.toc{background:var(--hdoc-surface);border:1px solid var(--hdoc-line);border-radius:10px;padding:14px 18px;margin-bottom:28px}
+      .help-doc nav.toc h2{font-size:.8rem;text-transform:uppercase;letter-spacing:.05em;color:var(--hdoc-muted);margin:0 0 8px}
+      .help-doc nav.toc ol{margin:0;padding-left:1.2em;columns:2;column-gap:28px}
+      .help-doc nav.toc li{margin:3px 0;break-inside:avoid}
+      .help-doc section.card{background:var(--hdoc-surface);border:1px solid var(--hdoc-line);border-radius:10px;padding:20px 22px;margin-bottom:22px}
+      .help-doc section.card h2{margin-top:0;font-size:1.25rem;display:flex;align-items:center;gap:10px}
+      .help-doc .step-num{display:inline-flex;align-items:center;justify-content:center;width:1.6em;height:1.6em;border-radius:50%;background:#1351b4;color:#fff;font-size:.85rem;font-weight:700;flex-shrink:0}
+      .help-doc h3{font-size:1.02rem;margin:1.2em 0 .3em}
+      .help-doc code{background:var(--hdoc-code);padding:.1em .4em;border-radius:4px;font-size:.88em;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+      .help-doc ul,.help-doc ol{padding-left:1.4em}
+      .help-doc li{margin:.25em 0}
+      .help-doc .note,.help-doc .warn,.help-doc .ok{border-left:4px solid;border-radius:6px;padding:12px 16px;margin:14px 0;font-size:.95rem}
+      .help-doc .note{background:var(--hdoc-note-bg);border-color:var(--hdoc-note-line)}
+      .help-doc .warn{background:var(--hdoc-warn-bg);border-color:var(--hdoc-warn-line)}
+      .help-doc .ok{background:var(--hdoc-ok-bg);border-color:var(--hdoc-ok-line)}
+      .help-doc .path{font-family:ui-monospace,monospace;font-size:.85rem;background:var(--hdoc-code);border:1px solid var(--hdoc-line);border-radius:6px;padding:10px 14px;margin:10px 0;white-space:pre-wrap}
+      .help-doc .tag{display:inline-block;background:var(--hdoc-chip);color:var(--hdoc-chipink);border-radius:20px;padding:1px 10px;font-size:.8rem;font-weight:600;margin:0 2px}
+      .help-doc table{width:100%;border-collapse:collapse;margin:12px 0;font-size:.92rem}
+      .help-doc th,.help-doc td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--hdoc-line);vertical-align:top}
+      .help-doc th{color:var(--hdoc-muted);font-size:.8rem;text-transform:uppercase;letter-spacing:.03em}
+      .help-doc .pill{display:inline-block;background:#0C326F;color:#fff;border-radius:6px;padding:2px 8px;font-size:.78rem;font-weight:600}
+      html.dark .help-doc .pill{background:#1351B4}
+    </style>
+</head>
+<body class="font-sans bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-100 min-h-screen flex flex-col transition-colors duration-300">
+
+    <!-- ============================ ENCABEZADO (igual que la app) ============================ -->
+    <header class="bg-govbr-600 dark:bg-gray-900 border-b border-govbr-700 dark:border-gray-700 flex flex-col shadow-sm dark:shadow-lg z-20 shrink-0 transition-colors duration-300">
+        <div class="flex items-center justify-between px-4 py-3 bg-govbr-600 dark:bg-gray-900 transition-colors duration-300">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded bg-white dark:bg-gradient-to-br dark:from-unifesp-600 dark:to-unifesp-900 flex items-center justify-center text-govbr-600 dark:text-white font-bold transition-colors duration-300">
+                    <svg viewBox="0 0 200 200" class="w-5 h-5" aria-hidden="true"><circle cx="100" cy="100" r="78" fill="none" stroke="currentColor" stroke-width="20" stroke-linecap="round" stroke-dasharray="440 46" transform="rotate(-100 100 100)"/></svg>
+                </div>
+                <div class="flex items-center gap-2 overflow-hidden">
+                    <h1 class="font-bold text-white leading-none whitespace-nowrap">lattesZen</h1>
+                    <span id="headerNomeWrap" class="flex items-center gap-2 overflow-hidden hidden">
+                        <span class="text-xl text-white/30 dark:text-gray-700 font-light">|</span>
+                        <span id="headerNome" class="font-bold text-white/90 dark:text-unifesp-400 leading-none whitespace-nowrap truncate"></span>
+                    </span>
+                </div>
+            </div>
+            <div class="flex items-center gap-3 shrink-0">
+                <div id="govBrLogo" class="bg-white rounded px-2 py-1.5 flex items-center shrink-0 dark:hidden">
+                    <img src="images/geral/gov_br.svg" alt="Gobierno Federal" class="h-5 w-auto" onerror="this.parentElement.style.display='none'">
+                </div>
+                <!-- Selector de idioma de esta página estática — ver la nota
+                     de arquitectura en el archivo hermano en portugués. -->
+                <a href="ajuda-lattes.html" title="Ver en portugués" aria-label="Ver en portugués" class="text-white/90 hover:text-white transition-colors text-xs font-semibold border border-white/30 rounded px-1.5 py-1 shrink-0">PT</a>
+                <span class="text-white/40 dark:text-gray-600 text-xs" aria-hidden="true">|</span>
+                <a href="ajuda-lattes.en.html" title="View in English" aria-label="View in English" class="text-white/90 hover:text-white transition-colors text-xs font-semibold border border-white/30 rounded px-1.5 py-1 shrink-0">EN</a>
+                <!-- Configuración: misma posición que templateZen (1ª fila
+                     del encabezado, extremo derecho) — abre index.html en
+                     la pestaña Configuración (ver el hash "#config"
+                     tratado en app.js). -->
+                <a href="index.html#config" title="Configuración" aria-label="Configuración" class="text-white/90 hover:text-white transition-colors w-8 h-8 flex items-center justify-center rounded shrink-0">
+                    <i aria-hidden="true" class="fa-solid fa-gear"></i>
+                </a>
+            </div>
+        </div>
+
+        <!-- Pestañas de navegación (enlaces de vuelta a la app) -->
+        <nav class="bg-white dark:bg-gray-800 border-t border-govbr-700/20 dark:border-gray-700 px-2" aria-label="Secciones">
+            <div class="max-w-5xl mx-auto flex gap-1 overflow-x-auto">
+                <a href="index.html" class="tab-btn px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-gray-600 dark:text-gray-300 hover:text-govbr-600 dark:hover:text-unifesp-400 whitespace-nowrap">
+                    <i aria-hidden="true" class="fa-solid fa-file-circle-plus mr-1"></i> Catalogar
+                </a>
+                <a href="index.html" class="tab-btn px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-gray-600 dark:text-gray-300 hover:text-govbr-600 dark:hover:text-unifesp-400 whitespace-nowrap">
+                    <i aria-hidden="true" class="fa-solid fa-clipboard-check mr-1"></i> Cumplimiento
+                </a>
+                <a href="index.html" class="tab-btn px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-gray-600 dark:text-gray-300 hover:text-govbr-600 dark:hover:text-unifesp-400 whitespace-nowrap">
+                    <i aria-hidden="true" class="fa-solid fa-globe mr-1"></i> Publicar en la Web
+                </a>
+                <span class="tab-btn px-4 py-2.5 text-sm font-medium border-b-2 border-govbr-600 dark:border-unifesp-400 text-govbr-700 dark:text-unifesp-400 font-bold whitespace-nowrap" aria-current="page">
+                    <i aria-hidden="true" class="fa-solid fa-circle-question mr-1"></i> Ayuda
+                </span>
+            </div>
+        </nav>
+    </header>
+
+    <!-- ============================ CONTENIDO ============================ -->
+    <main class="flex-1 w-full max-w-6xl mx-auto px-4 py-6">
+      <div class="help-doc">
+        <p style="margin:0 0 10px"><a href="ajuda.es.html">← Inicio de la Ayuda</a> · <a href="ajuda-rsc.es.html">Ver la guía del módulo RSC-PCCTAE →</a></p>
+        <h1>Cómo usar lattesZen</h1>
+        <p class="lead">Guía de los procedimientos para organizar, comprobar y publicar su Currículum Lattes. El módulo <strong>RSC-PCCTAE</strong> tiene una <a href="ajuda-rsc.es.html">página de ayuda propia</a>.</p>
+
+        <div class="note">
+          <strong>En una frase:</strong> usted elige una <em>carpeta en su computadora</em> → importa el XML de Lattes (o registra manualmente) → adjunta los PDF de comprobación → hace seguimiento de lo que falta en la pestaña <em>Cumplimiento</em> → y puede publicar todo como una página pública del currículum.
+        </div>
+
+        <nav class="toc">
+          <h2>En esta página</h2>
+          <ol>
+            <li><a href="#fluxo">Visión general del flujo</a></li>
+            <li><a href="#diretorio">1. Crear/elegir el directorio (o Google Drive)</a></li>
+            <li><a href="#inbox">2. La carpeta de entrada (Bandeja de Entrada)</a></li>
+            <li><a href="#importar">3. Importar el XML de Lattes</a></li>
+            <li><a href="#outras-fontes">4. Otras fuentes: ORCID, DOI y BibTeX/RIS</a></li>
+            <li><a href="#catalogar">5. Llenar los campos (Catalogar)</a></li>
+            <li><a href="#atalhos">6. Atajos de teclado</a></li>
+            <li><a href="#conformidade">7. La pestaña Cumplimiento</a></li>
+            <li><a href="#linha-tempo">8. La pestaña Gráficos</a></li>
+            <li><a href="#exportar">9. Publicar la página pública</a></li>
+            <li><a href="#backup">Copia de seguridad y codificación</a></li>
+          </ol>
+        </nav>
+
+        <section class="card" id="fluxo">
+          <h2>Visión general del flujo</h2>
+          <p>lattesZen funciona completamente en su navegador — <strong>ningún dato sale de su computadora</strong>. Los ítems del currículum se guardan en una carpeta que usted elige, cada uno como un par de archivos: el <code>ID.json</code> (los datos) y, cuando lo hay, el <code>ID.pdf</code> (la evidencia/comprobación).</p>
+          <p>El ciclo de trabajo típico es:</p>
+          <ol>
+            <li><strong>Configurar la carpeta</strong> donde todo se guardará (una única vez).</li>
+            <li><strong>Importar el XML</strong> exportado de la Plataforma Lattes — trae sus ítems automáticamente.</li>
+            <li><strong>Adjuntar las evidencias</strong> (PDF) a cada ítem, usando la carpeta de entrada.</li>
+            <li><strong>Revisar en la pestaña Cumplimiento</strong> lo que todavía falta (comprobación o campos).</li>
+            <li><strong>Publicar</strong> cuando quiera: genere la página pública del currículum a partir de la misma base.</li>
+          </ol>
+          <div class="warn">
+            <strong>Navegador:</strong> el guardado en carpeta usa la <em>File System Access API</em>, disponible en <strong>Google Chrome</strong> y <strong>Microsoft Edge</strong> (computadora). En navegadores sin soporte, usted aún puede registrar ítems y usar la <em>Copia de seguridad en JSON</em>, pero no el guardado automático de <code>PDF</code>/<code>JSON</code> en la carpeta.
+          </div>
+        </section>
+
+        <section class="card" id="diretorio">
+          <h2><span class="step-num">1</span> Crear y elegir el directorio de archivos</h2>
+          <p>Antes que nada, cree en su computadora una carpeta vacía para el currículum (por ejemplo <code>Mi-Lattes</code>). Luego, en lattesZen:</p>
+          <ol>
+            <li>Abra la pestaña <span class="pill">Configuración</span>.</li>
+            <li>En la sección <strong>Directorio de almacenamiento</strong>, elija <span class="tag">Primera configuración</span> → <span class="tag">Carpeta en la computadora</span> y haga clic en <span class="tag">📁 Elegir carpeta</span>.</li>
+            <li>Seleccione la carpeta que creó y <strong>autorice el acceso</strong> cuando el navegador lo solicite.</li>
+          </ol>
+          <p>Listo — a partir de ahí, cada ítem que usted guarde se escribe allí automáticamente. El nombre de la carpeta actual aparece en la misma sección.</p>
+
+          <h3>Alternativa: Google Drive</h3>
+          <p>Si prefiere no depender de una sola computadora, la misma sección de Configuración tiene <strong>Almacenamiento remoto (Google Drive)</strong>: indique el nombre de una carpeta y haga clic en <span class="tag">Conectar a Google Drive</span>. lattesZen crea la misma estructura de carpetas dentro de su Drive y pasa a leer/guardar por ahí — accesible desde más de un dispositivo. El acceso concedido está restringido al alcance <code>drive.file</code>: la aplicación solo ve los archivos que ella misma crea, nunca el resto de su Google Drive.</p>
+
+          <h3>Qué se guarda en la carpeta</h3>
+          <ul>
+            <li>Para cada ítem: <code>prefijo-XXX.json</code> (los datos) y, si usted adjunta una evidencia, <code>prefijo-XXX.pdf</code> (o <code>.jpg</code>/<code>.png</code>, entre otros).</li>
+            <li>Los archivos quedan organizados en <strong>subcarpetas por categoría</strong> dentro de <code>Evidências</code> (ej.: <code>02 Formação</code>, <code>05 Produções</code>, <code>10 Orientações</code>…), lo que mantiene todo navegable también fuera de la aplicación.</li>
+            <li>Una subcarpeta <code>Cópia de segurança</code> guarda copias automáticas del catálogo en JSON.</li>
+            <li>Dentro de <code>Exportação</code>, tres subcarpetas son llenadas automáticamente por la propia aplicación: <code>RSC-PCCTAE</code> y <code>Súmula Curricular FAPESP</code> (una subcarpeta fechada por exportación, con el memorial/formulario o el resumen en .docx — ver la <a href="ajuda-rsc.es.html">ayuda del RSC</a> y la pestaña <strong>Súmula FAPESP</strong> en Configuración) y <code>Lattes XML</code> (el XML generado en Configuración). <code>Progressão Docentes</code>, <code>Publicação para Web</code> y <code>Relatórios</code> permanecen vacías, para que usted organice sus propios archivos manualmente.</li>
+          </ul>
+          <div class="path">Mi-Lattes/
+├── Caixa de Entrada/         ← deposite aquí los PDF a catalogar
+│   └── Processados/          ← los originales ya usados se mueven aquí
+├── Cópia de segurança/       ← copias de seguridad automáticas (JSON)
+├── Exportação/
+│   ├── RSC-PCCTAE/
+│   ├── Progressão Docentes/
+│   ├── Súmula Curricular FAPESP/
+│   └── Lattes XML/
+├── Evidências/
+│   ├── 01 Dados gerais/
+│   ├── 02 Formação/
+│   ├── 05 Produções/
+│   │   ├── lz-a3f.json
+│   │   └── lz-a3f.pdf
+│   └── … (una subcarpeta por categoría, 01–21)
+├── Publicação para Web/
+└── Relatórios/</div>
+
+          <h3>Prefijo del identificador</h3>
+          <p>En <strong>Configuración → Prefijo del identificador de los archivos</strong> usted define hasta 3 caracteres (ej.: sus iniciales) usados en el nombre de los archivos: <code>abc-k7p.pdf</code>. Útil si usted mantiene los currículums de más de una persona en carpetas diferentes.</p>
+
+          <h3>Botones útiles de esta sección</h3>
+          <ul>
+            <li><strong>Sincronizar desde el directorio</strong>: vuelve a leer la carpeta y reconstruye el catálogo a partir de los archivos (ej.: al cambiar de computadora o abrir la misma carpeta otro día).</li>
+            <li><strong>Olvidar directorio de almacenamiento</strong>: desconecta la aplicación de la carpeta (no borra nada; solo elimina el vínculo).</li>
+          </ul>
+          <div class="note"><strong>Consejo:</strong> como los datos viven en la carpeta, usted puede hacerle copia de seguridad (nube, disco externo) o moverla a otra computadora y simplemente <em>Elegir carpeta</em> de nuevo allí.</div>
+        </section>
+
+        <section class="card" id="inbox">
+          <h2><span class="step-num">2</span> La carpeta de entrada — <code>Caixa de Entrada</code></h2>
+          <p>La carpeta <code>Caixa de Entrada</code> es su <strong>bandeja de entrada</strong>: el lugar donde usted deposita los PDF de comprobación <em>antes</em> de catalogarlos. Se crea automáticamente dentro del directorio.</p>
+          <h3>Cómo usarla</h3>
+          <ol>
+            <li>Copie a <code>Caixa de Entrada</code> todos los comprobantes que piensa adjuntar (certificados, declaraciones, primeras páginas de artículos, actas de tribunal…).</li>
+            <li>En la pestaña <span class="pill">Catalogar</span>, la bandeja muestra los archivos pendientes. Haga clic en el ícono de la bandeja para cargar el próximo archivo como evidencia del ítem que está llenando.</li>
+            <li>Al <strong>guardar</strong> el ítem, el archivo original se mueve a <code>Caixa de Entrada/Processados</code> — así usted siempre ve en la bandeja solo lo que aún falta catalogar.</li>
+          </ol>
+          <div class="note"><strong>Por qué existe:</strong> separa "lo que todavía necesito organizar" de "lo que ya está catalogado", evitando adjuntar el mismo documento dos veces. Usted también puede adjuntar evidencias arrastrando el archivo directamente al formulario, sin pasar por la Bandeja de Entrada.</div>
+        </section>
+
+        <section class="card" id="importar">
+          <h2><span class="step-num">3</span> Importar el XML del Currículum Lattes</h2>
+          <p>En vez de escribir todo, importe lo que ya existe en su Lattes:</p>
+          <h3>a) Exportar el XML en la Plataforma Lattes</h3>
+          <ol>
+            <li>Acceda a su currículum en el sitio del <strong>CNPq / Plataforma Lattes</strong>.</li>
+            <li>En el menú, elija <strong>Exportar → XML</strong> y descargue el archivo <code>.zip</code>; dentro de él está el <code>curriculo.xml</code> (descomprímalo).</li>
+          </ol>
+          <h3>b) Importar en lattesZen</h3>
+          <ol>
+            <li>Abra <span class="pill">Configuración</span> → sección <strong>Importar Currículum Lattes (XML)</strong>.</li>
+            <li>Seleccione el archivo <code>curriculo.xml</code>.</li>
+            <li>La aplicación lista todos los ítems reconocidos, agrupados por tipo, indicando cuántos son <strong>nuevos</strong> y cuántos <strong>ya están catalogados</strong>.</li>
+            <li>Marque los que desea traer (hay atajos <em>Seleccionar nuevos / Todos / Ninguno</em>) y haga clic en <strong>Importar seleccionados</strong>.</li>
+          </ol>
+          <div class="ok"><strong>Sin duplicar:</strong> en cada importación lattesZen reconoce ítems ya existentes (por firma de contenido) y no los duplica — incluso los que usted editó o creó manualmente. Aparecen como "ya catalogado", desmarcados por defecto. Después de importar, solo falta adjuntar los PDF de cada uno.</div>
+          <div class="warn"><strong>Para mantener la consistencia:</strong> después de adoptar lattesZen, haga las <strong>ediciones aquí en lattesZen</strong> y no más directamente en la Plataforma Lattes — lattesZen pasa a ser su fuente de referencia para los próximos ciclos de importación. Corregir un ítem directamente en la Plataforma Lattes cambia su identificador y puede generar duplicación en la próxima importación.</div>
+          <div class="note"><strong>Acentuación:</strong> Lattes usa la codificación <code>ISO-8859-1</code>. lattesZen decodifica correctamente los archivos importados, preservando acentos y caracteres especiales.</div>
+        </section>
+
+        <section class="card" id="outras-fontes">
+          <h2><span class="step-num">4</span> Otras fuentes: ORCID, DOI y BibTeX/RIS</h2>
+          <p>Además del XML de Lattes, la sección <strong>Otras fuentes</strong> en Configuración trae otras tres formas de traer publicaciones sin escribir todo a mano:</p>
+          <h3>a) ORCID iD</h3>
+          <p>En <strong>Configuración → Importar de ORCID</strong>, indique su <strong>ORCID iD</strong> (formato <code>0000-0000-0000-0000</code>) y haga clic en <strong>Buscar</strong>. La aplicación consulta la API pública de ORCID (sin contraseña) y lista sus obras públicas para que usted elija cuáles importar — mismo patrón de selección y detección de duplicados que la importación del XML.</p>
+          <h3>b) DOI (Crossref)</h3>
+          <p>Al registrar manualmente un ítem de producción bibliográfica (artículo, capítulo, trabajo en evento…) en la pestaña <span class="pill">Catalogar</span>, llene el campo <strong>DOI</strong> y haga clic en <span class="tag">Buscar metadatos</span> al lado: lattesZen consulta la API pública de Crossref y llena automáticamente los campos vacíos del formulario (título, autores, año, revista…). Si algún campo ya está lleno, la aplicación pregunta antes de sobrescribirlo.</p>
+          <h3>c) BibTeX / RIS</h3>
+          <p>En <strong>Configuración → Publicaciones (BibTeX/RIS)</strong>, importe un archivo <code>.bib</code> o <code>.ris</code> exportado de otra herramienta (Zotero, Mendeley, EndNote, Google Scholar) — la aplicación reconoce el formato automáticamente, lista las entradas asignadas (y avisa sobre las que no tienen correspondencia) y usted elige cuáles importar. La misma sección también <strong>exporta</strong> sus publicaciones ya catalogadas a <code>.bib</code> o <code>.ris</code>, en caso de que necesite llevarlas a otra herramienta.</p>
+        </section>
+
+        <section class="card" id="catalogar">
+          <h2><span class="step-num">5</span> Llenar los campos (pestaña Catalogar)</h2>
+          <p>La pestaña <span class="pill">Catalogar</span> es donde usted crea o edita un ítem. El formulario se adapta a lo que usted selecciona:</p>
+          <ol>
+            <li><strong>Categoría</strong>: elija entre las categorías de Lattes (Datos generales, Formación, Producciones, Patentes y Registros, Eventos, Orientaciones, Tribunales…).</li>
+            <li><strong>Tipo</strong>: dentro de la categoría, elija el tipo específico (ej.: en Producciones → <em>Artículo completo publicado en revista</em>). Hay un campo de búsqueda para encontrar el tipo rápidamente.</li>
+            <li><strong>Campos</strong>: el formulario muestra solo los campos de ese tipo (título, año, autores, ISSN, DOI, país, idioma, etc.). Los campos obligatorios están señalados.</li>
+            <li><strong>Evidencia (PDF)</strong>: arrastre el comprobante al área indicada, use el selector de archivo, o tráigalo de la bandeja con <em>"Próximo de la bandeja"</em>. Usted puede marcar una evidencia como <strong>"pública"</strong> — solo las públicas entran en la página pública del currículum.</li>
+            <li><strong>Guardar</strong>: graba el <code>JSON</code> (y el <code>PDF</code>, si lo hay) en la subcarpeta de la categoría.</li>
+          </ol>
+          <h3>Detalles que ayudan</h3>
+          <ul>
+            <li><strong>Campos de identidad</strong> (Identificación, Dirección, Texto inicial, Foto de perfil, entre otros de "1. Datos generales") son <em>únicos</em> — al guardar, actualizan el registro existente en vez de crear otro. Se registran/editan por el mismo flujo de Catalogar, como cualquier otro ítem.</li>
+            <li><strong>Autocompletado</strong>: campos como Institución y Agencia sugieren valores ya usados. Las listas pueden editarse en <em>Configuración → Listas de autocompletado</em>.</li>
+            <li><strong>Detección de duplicados</strong>: al crear un ítem muy parecido a uno ya existente, la aplicación avisa antes de guardar.</li>
+            <li><strong>Borrador</strong>: lo que usted está escribiendo se preserva; si sale sin guardar, la aplicación ofrece restaurar el borrador.</li>
+          </ul>
+        </section>
+
+        <section class="card" id="atalhos">
+          <h2><span class="step-num">6</span> Atajos de teclado</h2>
+          <p>En la pestaña <span class="pill">Catalogar</span>, algunos atajos agilizan el llenado sin quitar las manos del teclado:</p>
+          <table>
+            <thead><tr><th>Atajo</th><th>Acción</th></tr></thead>
+            <tbody>
+              <tr><td><code>Ctrl+S</code> <span class="tag">Cmd+S en Mac</span></td><td>Guarda el ítem en edición — equivalente al botón <strong>Guardar</strong>.</td></tr>
+              <tr><td><code>Ctrl+Enter</code> <span class="tag">Cmd+Enter en Mac</span></td><td>Guarda y avanza: abre el <strong>próximo ítem</strong> de la lista de Cumplimiento (mismo filtro/búsqueda/orden que allí) si usted está editando un ítem existente, o, al crear un ítem nuevo, guarda y limpia el formulario para <strong>un nuevo ítem</strong> en la misma categoría/tipo — equivalente a los botones <strong>Guardar y siguiente</strong>/<strong>Guardar y nuevo</strong>.</td></tr>
+              <tr><td><code>Alt+↓</code> / <code>Alt+↑</code></td><td>Mientras usted edita un ítem existente, navega al <strong>siguiente</strong>/<strong>anterior</strong> ítem de la misma lista de Cumplimiento <em>sin guardar</em>. Si hay cambios no guardados en el formulario, la aplicación confirma antes de descartarlos.</td></tr>
+            </tbody>
+          </table>
+          <div class="note"><strong>Consejo:</strong> los botones del formulario también muestran el atajo correspondiente al pasar el mouse (título/tooltip).</div>
+        </section>
+
+        <section class="card" id="conformidade">
+          <h2><span class="step-num">7</span> La pestaña Cumplimiento</h2>
+          <p>La pestaña <span class="pill">Cumplimiento</span> es su panel de control: muestra, de un vistazo, lo que está completo y lo que aún falta. Trabaja con <strong>dos dimensiones independientes</strong>:</p>
+          <table>
+            <thead><tr><th>Dimensión</th><th>Qué mide</th></tr></thead>
+            <tbody>
+              <tr><td><strong>Cumplimiento documental</strong></td><td>Porcentaje de ítems que <em>exigen comprobación</em> y ya tienen una evidencia (PDF) adjunta.</td></tr>
+              <tr><td><strong>Descripción completa</strong></td><td>Porcentaje de ítems con todos los campos llenos — <span style="color:#059669">verde</span> = completo, <span style="color:#d97706">amarillo</span> = falta campo opcional, <span style="color:#dc2626">rojo</span> = falta campo obligatorio.</td></tr>
+            </tbody>
+          </table>
+          <h3>Las tarjetas (filtros rápidos)</h3>
+          <p>En la parte superior hay tarjetas clicables que filtran la lista de abajo:</p>
+          <ul>
+            <li><strong>Comprobados</strong> — ítems con evidencia adjunta.</li>
+            <li><strong>Sin PDF</strong> — ítems que necesitan comprobación y aún no la tienen.</li>
+            <li><strong>Fuera de Lattes</strong> — ítems marcados como aún no registrados en la Plataforma Lattes.</li>
+            <li><strong>No Lattes</strong> — ítems personales/administrativos que no forman parte de Lattes.</li>
+            <li><strong>Descripción obligatoria</strong> — ítems a los que les falta un campo obligatorio.</li>
+          </ul>
+          <p>Haga clic en una tarjeta para ver solo ese recorte; haga clic en <em>"ver todos"</em> para limpiar el filtro. También hay búsqueda por texto y ordenación por año.</p>
+          <h3>La lista</h3>
+          <p>Debajo de las tarjetas, los ítems aparecen <strong>agrupados por categoría</strong> (y, en Actuación, por institución). Cada ítem trae botones de acción (editar, ver evidencia, eliminar) y marcadores de estado. Use esta pestaña como <em>lista de verificación</em> hasta dejar los pendientes en cero.</p>
+        </section>
+
+        <section class="card" id="linha-tempo">
+          <h2><span class="step-num">8</span> La pestaña Gráficos</h2>
+          <p>La pestaña <span class="pill">Gráficos</span> trae dos vistas rápidas sobre su catálogo:</p>
+          <h3>Nube de palabras</h3>
+          <p>Muestra los términos más frecuentes en los <strong>títulos</strong>, <strong>palabras clave</strong> y <strong>área de conocimiento</strong> de sus ítems — cuanto más grande la palabra, más veces aparece. Pase el mouse sobre una palabra para ver el total exacto.</p>
+          <p>En <strong>Configuración → Nube de palabras</strong> usted personaliza el resultado con dos listas: <strong>palabras excluidas</strong> (términos que nunca deben aparecer, ej.: una sigla genérica) y <strong>palabras compuestas</strong> (términos de más de una palabra que deben contar como un único término, ej.: "tech talks", en vez de "tech" y "talks" por separado).</p>
+          <h3>Línea de tiempo (mapa de calor)</h3>
+          <p>Un panel estilo "gráfico de contribuciones": cada <strong>fila</strong> es una categoría de su catálogo (solo las que ya tienen algún ítem), cada <strong>columna</strong> es un año, y el <strong>color del cuadradito</strong> se hace más intenso cuantos más ítems de esa categoría caen en ese año. Pase el mouse sobre un cuadradito para ver el total exacto.</p>
+          <div class="note">El año de cada ítem usa el mismo criterio ya aplicado en la ordenación por año de Cumplimiento: el campo <code>Año</code> del ítem o, en su ausencia, el fin (o inicio) del período — un único año por ítem, incluso para los que tienen inicio y fin (ej.: Formación, Actuación). Las dos vistas ignoran la categoría <strong>Datos generales</strong> — son datos de identificación/perfil, no "producción".</div>
+        </section>
+
+        <section class="card" id="exportar">
+          <h2><span class="step-num">9</span> Publicar la página pública</h2>
+          <p>En la pestaña <span class="pill">Publicar en la Web</span> usted genera la <strong>página pública del currículum</strong> — un único archivo HTML autosuficiente, con las evidencias marcadas como "públicas" incrustadas. Puede alojarse o compartirse.</p>
+        </section>
+
+        <section class="card" id="backup">
+          <h2>Copia de seguridad y codificación</h2>
+          <h3>Copia de seguridad en JSON</h3>
+          <p>En <strong>Configuración → Copia de seguridad (JSON)</strong> usted exporta/importa todo el catálogo (los metadatos) en un único archivo. Con un directorio configurado, una copia de seguridad también se guarda automáticamente en <code>Cópia de segurança</code>. Guárdela con regularidad — la aplicación le recuerda periódicamente.</p>
+          <h3>Compatibilidad ISO-8859-1</h3>
+          <p>Todavía en Configuración, la sección <strong>Compatibilidad con Lattes</strong> señala caracteres fuera de la tabla ISO-8859-1 (comillas "curvas", raya —, emoji…) que se convertirían en entidades numéricas en la exportación, y ofrece <em>Normalizar puntuación</em> para dejar el texto limpio.</p>
+          <div class="ok" style="margin-top:18px">¿Dudas sobre la progresión por <strong>RSC-PCCTAE</strong>? Vea la <a href="ajuda-rsc.es.html">página de ayuda del RSC</a>.</div>
+        </section>
+      </div>
+    </main>
+
+    <!-- ============================ PIE DE PÁGINA (igual que la app) ============================ -->
+    <footer class="bg-govbr-800 dark:bg-gray-950 border-t border-govbr-700 dark:border-gray-700 py-3 px-6 text-xs text-blue-100 dark:text-gray-400 flex flex-col sm:flex-row justify-between items-center shrink-0 gap-4 transition-colors duration-300">
+        <div class="flex items-center gap-4 flex-wrap justify-center">
+            <a href="termodeuso.es.html" class="hover:text-white transition-colors flex items-center gap-1" title="Términos de uso" aria-label="Términos de uso"><i aria-hidden="true" class="fa-solid fa-file-contract"></i></a>
+            <span class="text-white/25 dark:text-gray-700">|</span>
+            <a href="privacidade.es.html" class="hover:text-white transition-colors flex items-center gap-1" title="Política de privacidad" aria-label="Política de privacidad"><i aria-hidden="true" class="fa-solid fa-shield-halved"></i></a>
+            <span class="text-white/25 dark:text-gray-700">|</span>
+            <a href="./ajuda.es.html" class="hover:text-white transition-colors flex items-center gap-1" title="Ayuda" aria-label="Ayuda"><i aria-hidden="true" class="fa-solid fa-circle-question"></i></a>
+            <span class="text-white/25 dark:text-gray-700">|</span>
+            <a href="sobre.es.html" class="hover:text-white transition-colors flex items-center gap-1" title="Acerca de" aria-label="Acerca de"><i aria-hidden="true" class="fa-solid fa-circle-info"></i></a>
+            <span class="text-white/25 dark:text-gray-700">|</span>
+            <button type="button" id="highContrastToggle" class="hover:text-white transition-colors flex items-center gap-1" aria-pressed="false" title="Alternar alto contraste">
+                <i aria-hidden="true" class="fa-solid fa-circle-half-stroke"></i> <span class="sr-only">Alto contraste</span>
+            </button>
+            <span class="text-white/25 dark:text-gray-700">|</span>
+            <span class="flex items-center gap-1" role="group" aria-label="Tamaño de fuente">
+                <button type="button" id="fontDec" class="hover:text-white transition-colors flex items-center gap-1" title="Disminuir fuente" aria-label="Disminuir fuente"><i aria-hidden="true" class="fa-solid fa-magnifying-glass-minus"></i> A-</button>
+                <button type="button" id="fontInc" class="hover:text-white transition-colors flex items-center gap-1" title="Aumentar fuente" aria-label="Aumentar fuente"><i aria-hidden="true" class="fa-solid fa-magnifying-glass-plus"></i> A+</button>
+            </span>
+        </div>
+        <div class="flex gap-3 items-center flex-wrap justify-center">
+            <a href="https://github.com/alexsandroccarv" target="_blank" rel="noopener" class="hover:text-white hover:underline transition-colors flex items-center gap-1">
+                <i aria-hidden="true" class="fa-brands fa-github text-white/90 dark:text-unifesp-400"></i> Alexsandro Cardoso Carvalho
+            </a>
+            <span class="text-white/40 dark:text-gray-600">|</span>
+            <a href="doe-um-cafe.es.html" class="hover:text-white hover:underline transition-colors flex items-center gap-1">
+                <i aria-hidden="true" class="fa-solid fa-mug-hot text-white/90 dark:text-unifesp-400"></i> Invítame un café
+            </a>
+            <span class="text-white/40 dark:text-gray-600">|</span>
+            <a href="https://www.gnu.org/licenses/agpl-3.0.html" target="_blank" rel="noopener" class="hover:text-white transition-colors flex items-center gap-1" title="Licencia AGPLv3 (Free Software Foundation)">
+                <i aria-hidden="true" class="fa-solid fa-scale-balanced text-white/90 dark:text-unifesp-400"></i> AGPLv3
+            </a>
+            <span class="text-white/40 dark:text-gray-600">|</span>
+            <span class="flex items-center gap-1"><i aria-hidden="true" class="fa-solid fa-tag" title="Versión"></i> <a href="notas-de-versao.html" class="font-mono hover:text-white hover:underline transition-colors" title="Notas de la versión (en portugués)"><span id="appVersion"></span></a></span>
+            <a href="https://github.com/alexsandroccarv/latteszen" target="_blank" rel="noopener" class="hover:text-white transition-colors flex items-center gap-1" title="Código fuente (repositorio en GitHub)" aria-label="Código fuente (repositorio en GitHub)">
+                <i aria-hidden="true" class="fa-solid fa-code text-white/90 dark:text-unifesp-400"></i>
+            </a>
+        </div>
+    </footer>
+
+    <!-- Encabezado/pie dinámicos: versión y nombre del titular (mismo comportamiento que la app) -->
+    <script type="module" src="js/config.js"></script>
+    <script type="module" src="js/a11y.js"></script>
+    <script type="module" src="js/analytics.js"></script>
+    <script type="module" src="js/cookie-consent.js"></script>
+    <script type="module" src="js/pwa.js"></script>
+    <script type="module">
+        (function () {
+            // Esta página es siempre en español — ver la nota equivalente en
+            // ajuda.es.html (fuerza el locale usado por cookie-consent.js/
+            // <html lang>, independiente del idioma configurado en la app).
+            try { window.LzI18n.setLocale('es'); } catch (e) {}
+            var C = window.APP_CONFIG || {};
+            // Título estático de esta página (del <title>, ver issue de SEO #37) —
+            // usado como "predeterminado" abajo en vez de siempre reescribir a
+            // "lattesZen" cuando no hay nombre de perfil guardado.
+            var tituloBase = document.title;
+            var setTxt = function (id, v) { var el = document.getElementById(id); if (el && v != null) el.textContent = v; };
+            setTxt('appVersion', C.version);
+            // Nombre completo del ítem de Identificación (misma lógica que la app): "lattesZen | Nombre".
+            var nome = '';
+            try {
+                var itens = JSON.parse(localStorage.getItem((C.storageKeys && C.storageKeys.catalog) || 'lz_catalog') || '[]');
+                var ident = itens.find(function (i) { return i.typeKey === 'IDENTIFICACAO' && i.fields && i.fields.titulo; });
+                if (ident) nome = String(ident.fields.titulo).trim();
+            } catch (e) {}
+            var nomeWrap = document.getElementById('headerNomeWrap');
+            if (nomeWrap) nomeWrap.classList.toggle('hidden', !nome);
+            setTxt('headerNome', nome);
+            document.title = nome ? (C.name || 'lattesZen') + ' | ' + nome : tituloBase;
+
+            var htmlEl = document.documentElement;
+
+            var hc = document.getElementById('highContrastToggle');
+            function syncHC() { hc.setAttribute('aria-pressed', htmlEl.classList.contains('high-contrast') ? 'true' : 'false'); }
+            if (hc) { syncHC(); hc.addEventListener('click', function () { htmlEl.classList.toggle('high-contrast'); localStorage.setItem('altoContraste', htmlEl.classList.contains('high-contrast') ? '1' : '0'); syncHC(); }); }
+
+            var FS_MIN = 80, FS_MAX = 150, FS_STEP = 10;
+            function getFS() { var n = parseInt(localStorage.getItem('fontScale') || '100', 10); return isNaN(n) ? 100 : n; }
+            var dec = document.getElementById('fontDec'), inc = document.getElementById('fontInc');
+            function applyFS(n) {
+                n = Math.max(FS_MIN, Math.min(FS_MAX, n));
+                htmlEl.style.fontSize = n === 100 ? '' : n + '%';
+                localStorage.setItem('fontScale', String(n));
+                if (dec) dec.disabled = n <= FS_MIN;
+                if (inc) inc.disabled = n >= FS_MAX;
+            }
+            applyFS(getFS());
+            if (dec) dec.addEventListener('click', function () { applyFS(getFS() - FS_STEP); });
+            if (inc) inc.addEventListener('click', function () { applyFS(getFS() + FS_STEP); });
+        })();
+    </script>
+</body>
+</html>

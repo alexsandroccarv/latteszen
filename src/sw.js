@@ -19,7 +19,7 @@
    (ver js/pwa.js). Sem isso, uma aba já aberta pode continuar servindo JS
    antigo por tempo indefinido mesmo depois de um conserto já publicado.
    ========================================================================== */
-const CACHE_VERSION = 'v23';
+const CACHE_VERSION = 'v24';
 const PRECACHE = `lattesZen-precache-${CACHE_VERSION}`;
 const RUNTIME = `lattesZen-runtime-${CACHE_VERSION}`;
 
@@ -27,21 +27,29 @@ const PRECACHE_URLS = [
     './index.html',
     './doe-um-cafe.html',
     './doe-um-cafe.en.html',
+    './doe-um-cafe.es.html',
     './ajuda.html',
     './ajuda.en.html',
+    './ajuda.es.html',
     './ajuda-lattes.html',
     './ajuda-lattes.en.html',
+    './ajuda-lattes.es.html',
     './ajuda-rsc.html',
     './ajuda-rsc.en.html',
+    './ajuda-rsc.es.html',
     './relacionando-lattes-rsc.html',
     './relacionando-lattes-rsc.en.html',
+    './relacionando-lattes-rsc.es.html',
     './notas-de-versao.html',
     './sobre.html',
     './sobre.en.html',
+    './sobre.es.html',
     './privacidade.html',
     './privacidade.en.html',
+    './privacidade.es.html',
     './termodeuso.html',
     './termodeuso.en.html',
+    './termodeuso.es.html',
     './manifest.json',
     './favicon.svg',
     './css/styles.css',

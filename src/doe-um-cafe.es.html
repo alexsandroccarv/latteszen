@@ -17,36 +17,36 @@
     You should have received a copy of the GNU Affero General Public License
     along with lattesZen. If not, see <https://www.gnu.org/licenses/>.
 -->
-<html lang="pt-BR">
+<html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>lattesZen — Doe um café</title>
-    <meta name="description" content="O lattesZen é gratuito e roda só no seu navegador. Considere apoiar o projeto com um café.">
-    <link rel="canonical" href="https://ccarvalho.net/labs/latteszen/doe-um-cafe.html">
+    <title>lattesZen — Done un café</title>
+    <meta name="description" content="lattesZen es gratuito y funciona solo en su navegador. Considere apoyar el proyecto con un café.">
+    <link rel="canonical" href="https://ccarvalho.net/labs/latteszen/doe-um-cafe.es.html">
     <link rel="alternate" hreflang="pt-BR" href="https://ccarvalho.net/labs/latteszen/doe-um-cafe.html">
     <link rel="alternate" hreflang="en" href="https://ccarvalho.net/labs/latteszen/doe-um-cafe.en.html">
     <link rel="alternate" hreflang="es" href="https://ccarvalho.net/labs/latteszen/doe-um-cafe.es.html">
     <link rel="alternate" hreflang="x-default" href="https://ccarvalho.net/labs/latteszen/doe-um-cafe.html">
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="lattesZen">
-    <meta property="og:locale" content="pt_BR">
-    <meta property="og:title" content="lattesZen — Doe um café">
-    <meta property="og:description" content="O lattesZen é gratuito e roda só no seu navegador. Considere apoiar o projeto com um café.">
-    <meta property="og:url" content="https://ccarvalho.net/labs/latteszen/doe-um-cafe.html">
+    <meta property="og:locale" content="es_ES">
+    <meta property="og:title" content="lattesZen — Done un café">
+    <meta property="og:description" content="lattesZen es gratuito y funciona solo en su navegador. Considere apoyar el proyecto con un café.">
+    <meta property="og:url" content="https://ccarvalho.net/labs/latteszen/doe-um-cafe.es.html">
     <meta property="og:image" content="https://ccarvalho.net/labs/latteszen/images/og-image.png">
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="lattesZen — Doe um café">
-    <meta name="twitter:description" content="O lattesZen é gratuito e roda só no seu navegador. Considere apoiar o projeto com um café.">
+    <meta name="twitter:title" content="lattesZen — Done un café">
+    <meta name="twitter:description" content="lattesZen es gratuito y funciona solo en su navegador. Considere apoyar el proyecto con un café.">
     <meta name="twitter:image" content="https://ccarvalho.net/labs/latteszen/images/og-image.png">
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#1351B4">
 
-    <!-- Mesmos estilos da aplicação -->
+    <!-- Same styles as the app -->
     <link rel="stylesheet" href="css/styles.css">
 
-    <!-- Tema claro/escuro e alto contraste: aplicar cedo para evitar "flash" -->
+    <!-- Light/dark theme and high contrast: applied early to avoid a "flash" -->
     <script>
         (function () {
             const htmlEl = document.documentElement;
@@ -54,8 +54,8 @@
             const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
             if (saved ? saved === 'dark' : prefersDark) htmlEl.classList.add('dark');
             if (localStorage.getItem('altoContraste') === '1') htmlEl.classList.add('high-contrast');
-            // Tema (paletas prontas, escolhidas em Configurações): aplicar cedo
-            // para evitar "flash" — mesma lógica de dark/altoContraste acima.
+            // Theme (ready-made palettes, chosen in Settings): applied early
+            // to avoid a "flash" — same logic as dark/high-contrast above.
             const temaPreset = localStorage.getItem('lz_tema_preset') || 'govbr';
             htmlEl.classList.add('lz-theme');
             htmlEl.setAttribute('data-lz-theme', temaPreset);
@@ -64,7 +64,7 @@
         })();
     </script>
 
-    <!-- Recursos externos (Tailwind + config, Font Awesome, Rawline) — mesmo do app -->
+    <!-- External resources (Tailwind + config, Font Awesome, Rawline) — same as the app -->
     <script>
         (function () {
             var TW_CONFIG = {
@@ -89,14 +89,14 @@
             loadCss('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css');
             loadCss('https://cdngovbr-ds.estaleiro.serpro.gov.br/design-system/fonts/rawline/css/rawline.css');
 
-            // Tema: fontes do Google por paleta (carregadas sob demanda —
-            // "lattesZen noite" e "lattesZen dia" usam fonte já carregada acima, sem CDN extra).
+            // Theme: Google fonts per palette (loaded on demand —
+            // "lattesZen night" and "lattesZen day" use a font already loaded above, no extra CDN).
             var THEME_FONTS = {
                 'catppuccin-latte': 'https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap',
                 'catppuccin-mocha': 'https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap',
                 dracula: 'https://fonts.googleapis.com/css2?family=Fira+Sans:wght@400;600;700&display=swap',
-                // lattesZen dia (govbr) usa a Rawline já carregada acima (sem CDN extra); GitHub
-                // Light/Dark usam a fonte do sistema — por isso não têm entrada aqui.
+                // lattesZen day (govbr) uses the Rawline already loaded above (no extra CDN); GitHub
+                // Light/Dark use the system font — that's why they have no entry here.
                 'rose-pine-dawn': 'https://fonts.googleapis.com/css2?family=Quicksand:wght@400;600;700&display=swap',
                 'solarized-light': 'https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&display=swap',
                 'solarized-dark': 'https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&display=swap',
@@ -109,8 +109,8 @@
                 l.rel = 'stylesheet'; l.href = url; l.setAttribute('data-lz-font', preset);
                 document.head.appendChild(l);
             };
-            // Sincroniza <meta name="theme-color"> (barra do navegador no
-            // mobile) com a cor do cabeçalho do tema ativo.
+            // Syncs <meta name="theme-color"> (mobile browser bar) with the
+            // active theme's header color.
             window.__setThemeColor = function () {
                 var m = document.querySelector('meta[name="theme-color"]');
                 if (!m) { m = document.createElement('meta'); m.name = 'theme-color'; document.head.appendChild(m); }
@@ -123,7 +123,7 @@
         })();
     </script>
 
-    <!-- Estilo do conteúdo desta página (escopo .cafe-doc; dark por classe, como o app) -->
+    <!-- Content style for this page (scoped to .cafe-doc; dark by class, like the app) -->
     <style>
       :root{
         --cafe-surface:#f9fafb; --cafe-text:#1f2937; --cafe-muted:#6b7280; --cafe-line:#e5e7eb;
@@ -134,8 +134,8 @@
         --cafe-accent:#93c5fd; --cafe-code:#0f172a; --cafe-note-bg:#2a1a0f; --cafe-note-line:#f59e0b;
       }
 
-      /* Tema escolhido tem prioridade sobre os padrões claro/escuro acima —
-         ver o mesmo comentário em privacidade.html/.help-doc. */
+      /* Chosen theme takes priority over the light/dark defaults above —
+         same comment as privacidade.html/.help-doc. */
       html.lz-theme{
         --cafe-surface:var(--lz-surface); --cafe-text:var(--lz-text); --cafe-muted:var(--lz-muted); --cafe-line:var(--lz-border);
         --cafe-accent:var(--lz-accent); --cafe-code:var(--lz-surface); --cafe-note-bg:var(--lz-surface); --cafe-note-line:var(--lz-accent);
@@ -159,7 +159,7 @@
 </head>
 <body class="font-sans bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-100 min-h-screen flex flex-col transition-colors duration-300">
 
-    <!-- ============================ CABEÇALHO (igual ao app) ============================ -->
+    <!-- ============================ HEADER (same as the app) ============================ -->
     <header class="bg-govbr-600 dark:bg-gray-900 border-b border-govbr-700 dark:border-gray-700 flex flex-col shadow-sm dark:shadow-lg z-20 shrink-0 transition-colors duration-300">
         <div class="flex items-center justify-between px-4 py-3 bg-govbr-600 dark:bg-gray-900 transition-colors duration-300">
             <div class="flex items-center gap-3">
@@ -176,42 +176,45 @@
             </div>
             <div class="flex items-center gap-3 shrink-0">
                 <div id="govBrLogo" class="bg-white rounded px-2 py-1.5 flex items-center shrink-0 dark:hidden">
-                    <img src="images/geral/gov_br.svg" alt="Governo Federal" class="h-5 w-auto" onerror="this.parentElement.style.display='none'">
+                    <img src="images/geral/gov_br.svg" alt="Gobierno Federal" class="h-5 w-auto" onerror="this.parentElement.style.display='none'">
                 </div>
-                <!-- Configurações: mesma posição do templateZen (1ª linha do
-                     cabeçalho, extrema direita) — abre index.html na aba
-                     Configurações (ver hash "#config" tratado em app.js). -->
-                <a href="doe-um-cafe.en.html" title="View in English" aria-label="View in English" class="text-white/90 hover:text-white transition-colors text-xs font-semibold border border-white/30 rounded px-1.5 py-1 shrink-0">EN</a>
+                <!-- Settings: same position as templateZen (1st header row,
+                     far right) — opens index.html on the Settings tab (see
+                     hash "#config" handled in app.js). -->
+                <a href="doe-um-cafe.html" title="Ver en portugués" aria-label="Ver en portugués" class="text-white/90 hover:text-white transition-colors text-xs font-semibold border border-white/30 rounded px-1.5 py-1 shrink-0">PT</a>
                 <span class="text-white/40 dark:text-gray-600 text-xs" aria-hidden="true">|</span>
-                <a href="doe-um-cafe.es.html" title="Ver en español" aria-label="Ver en español" class="text-white/90 hover:text-white transition-colors text-xs font-semibold border border-white/30 rounded px-1.5 py-1 shrink-0">ES</a>
-                <a href="index.html#config" title="Configurações" aria-label="Configurações" class="text-white/90 hover:text-white transition-colors w-8 h-8 flex items-center justify-center rounded shrink-0">
+                <a href="doe-um-cafe.en.html" title="View in English" aria-label="View in English" class="text-white/90 hover:text-white transition-colors text-xs font-semibold border border-white/30 rounded px-1.5 py-1 shrink-0">EN</a>
+                <a href="index.html#config" title="Configuración" aria-label="Configuración" class="text-white/90 hover:text-white transition-colors w-8 h-8 flex items-center justify-center rounded shrink-0">
                     <i aria-hidden="true" class="fa-solid fa-gear"></i>
                 </a>
             </div>
         </div>
 
-        <!-- 2ª linha do cabeçalho: só "Início" (volta pro app) — sem
-             fingir uma régua de abas com Catalogar/Conformidade/Publicar
-             (todas levavam pra index.html de qualquer forma). -->
-        <nav class="bg-white dark:bg-gray-800 border-t border-govbr-700/20 dark:border-gray-700 px-2" aria-label="Voltar">
+        <!-- 2nd header row: just "Home" (back to the app) — no pretending to
+             have a Catalog/Compliance/Publish tab row (they all led to
+             index.html anyway). -->
+        <nav class="bg-white dark:bg-gray-800 border-t border-govbr-700/20 dark:border-gray-700 px-2" aria-label="Volver">
             <div class="max-w-5xl mx-auto flex gap-1">
                 <a href="index.html" class="tab-btn px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-gray-600 dark:text-gray-300 hover:text-govbr-600 dark:hover:text-unifesp-400 whitespace-nowrap">
-                    <i aria-hidden="true" class="fa-solid fa-house mr-1"></i> Início
+                    <i aria-hidden="true" class="fa-solid fa-house mr-1"></i> Inicio
                 </a>
             </div>
         </nav>
     </header>
 
-    <!-- ============================ CONTEÚDO ============================ -->
+    <!-- ============================ CONTENT ============================ -->
     <main class="flex-1 w-full max-w-6xl mx-auto px-4 py-6">
       <div class="cafe-doc">
-        <p style="margin:0 0 10px"><a href="index.html" style="color:var(--cafe-accent);text-decoration:none">← Voltar para o lattesZen</a></p>
-        <h1>☕ Doe um café</h1>
-        <p class="lead">O lattesZen é gratuito, roda inteiramente no seu navegador e não guarda seus dados em nenhum servidor. Se ele te ajudou a organizar o currículo, considere pagar um cafezinho — qualquer valor ajuda a manter o projeto no ar.</p>
+        <p style="margin:0 0 10px"><a href="index.html" style="color:var(--cafe-accent);text-decoration:none">← Volver a lattesZen</a></p>
+        <h1>☕ Done un café</h1>
+        <p class="lead">lattesZen es gratuito, funciona enteramente en su navegador y no guarda sus datos en ningún servidor. Si le ayudó a organizar el currículum, considere invitarnos un café — cualquier monto ayuda a mantener el proyecto en funcionamiento.</p>
 
         <section class="card" id="pix">
-          <h2><i aria-hidden="true" class="fa-solid fa-qrcode text-govbr-600 dark:text-unifesp-400"></i> Doar via Pix</h2>
-          <p>Escolha um valor (ou digite outro), depois escaneie o QR code ou copie o código Pix “copia e cola” no seu banco.</p>
+          <h2><i aria-hidden="true" class="fa-solid fa-qrcode text-govbr-600 dark:text-unifesp-400"></i> Donar vía Pix</h2>
+          <p>Elija un monto (o ingrese otro), luego escanee el código QR o copie el código Pix "copiar y pegar" en su banco.</p>
+          <div class="note">
+            <strong>¿Qué es Pix?</strong> Pix es el sistema de pagos instantáneos de Brasil, administrado por el Banco Central de Brasil. Solo funciona desde una cuenta bancaria brasileña o una aplicación compatible con bancos brasileños — actualmente no hay ninguna opción de pago internacional configurada en esta página. Si usted está fuera de Brasil y desea apoyar el proyecto de otra manera, consulte los enlaces de afiliados a continuación.
+          </div>
 
           <div class="flex flex-wrap gap-2 my-3" id="amountBtns">
             <button type="button" class="amount-btn active" data-amount="25">R$ 25</button>
@@ -219,73 +222,73 @@
             <button type="button" class="amount-btn" data-amount="100">R$ 100</button>
             <span class="flex items-center gap-1">
               <span class="text-sm text-gray-500 dark:text-gray-400">R$</span>
-              <input type="number" id="customAmount" min="1" step="1" placeholder="Outro valor" class="w-28 text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900">
+              <input type="number" id="customAmount" min="1" step="1" placeholder="Otro monto" class="w-28 text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900">
             </span>
           </div>
 
           <div class="grid sm:grid-cols-[auto_1fr] gap-5 items-start">
             <div class="flex flex-col items-center gap-2">
               <div class="p-3 bg-white rounded-lg border-2 border-govbr-200 dark:border-unifesp-600" style="width:200px;height:200px" id="qrWrap">
-                <img id="qrImg" alt="QR code Pix" class="w-full h-full object-contain" referrerpolicy="no-referrer">
+                <img id="qrImg" alt="Código QR Pix" class="w-full h-full object-contain" referrerpolicy="no-referrer">
               </div>
               <p id="qrValor" class="font-bold text-lg"></p>
             </div>
             <div class="space-y-3 min-w-0">
               <div>
-                <label class="block text-xs font-semibold mb-1 text-gray-600 dark:text-gray-300">Código Pix (copia e cola)</label>
+                <label class="block text-xs font-semibold mb-1 text-gray-600 dark:text-gray-300">Código Pix (copiar y pegar)</label>
                 <p class="pix-code" id="pixPayload"></p>
                 <button type="button" id="btnCopyPayload" class="mt-2 px-3 py-1.5 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm font-semibold hover:opacity-90">
                   <i aria-hidden="true" class="fa-solid fa-copy mr-1"></i> Copiar código Pix
                 </button>
               </div>
               <div>
-                <label class="block text-xs font-semibold mb-1 text-gray-600 dark:text-gray-300">Chave Pix</label>
+                <label class="block text-xs font-semibold mb-1 text-gray-600 dark:text-gray-300">Clave Pix</label>
                 <div class="flex items-center gap-2 flex-wrap">
                   <span class="text-sm font-mono" id="pixChave"></span>
                   <button type="button" id="btnCopyChave" class="px-2 py-1 rounded border border-gray-300 dark:border-gray-600 text-xs hover:border-govbr-500 dark:hover:border-unifesp-400">
-                    <i aria-hidden="true" class="fa-solid fa-copy mr-1"></i> Copiar chave
+                    <i aria-hidden="true" class="fa-solid fa-copy mr-1"></i> Copiar clave
                   </button>
                 </div>
               </div>
               <button type="button" id="btnShare" class="px-3 py-1.5 rounded border border-gray-300 dark:border-gray-600 text-sm hover:border-govbr-500 dark:hover:border-unifesp-400">
-                <i aria-hidden="true" class="fa-solid fa-share-nodes mr-1"></i> Compartilhar esta página
+                <i aria-hidden="true" class="fa-solid fa-share-nodes mr-1"></i> Compartir esta página
               </button>
             </div>
           </div>
 
-          <div class="note" id="qrNote" style="display:none">O QR code precisa de conexão com a internet para carregar. Se não aparecer, use o <strong>código Pix (copia e cola)</strong> acima — cole no “Pix Copia e Cola” do seu banco.</div>
+          <div class="note" id="qrNote" style="display:none">El código QR necesita conexión a internet para cargar. Si no aparece, use el <strong>código Pix (copiar y pegar)</strong> arriba — péguelo en el campo "Pix Copiar y Pegar" de su banco.</div>
         </section>
 
         <section class="card" id="parcerias">
-          <h2><i aria-hidden="true" class="fa-solid fa-handshake text-govbr-600 dark:text-unifesp-400"></i> Parcerias e afiliados</h2>
-          <p>Outra forma de apoiar sem gastar nada a mais: usar os links/códigos de parceiros abaixo quando for contratar algo que você já ia contratar mesmo. São parcerias comerciais — ao usá-los, o lattesZen pode receber uma comissão, que ajuda a cobrir os custos de manutenção e hospedagem do projeto.</p>
+          <h2><i aria-hidden="true" class="fa-solid fa-handshake text-govbr-600 dark:text-unifesp-400"></i> Alianzas y afiliados</h2>
+          <p>Otra forma de apoyar sin gastar nada extra: use los enlaces/códigos de socios a continuación cuando vaya a contratar algo que de todos modos ya iba a contratar. Son alianzas comerciales — al usarlos, lattesZen puede recibir una comisión, que ayuda a cubrir los costos de mantenimiento y alojamiento del proyecto.</p>
           <div class="grid sm:grid-cols-2 md:grid-cols-3 gap-3 mt-3" id="affGrid"></div>
           <p class="text-xs text-gray-500 dark:text-gray-400 mt-3 flex items-start gap-2">
             <i aria-hidden="true" class="fa-solid fa-circle-info mt-0.5"></i>
-            <span><strong>Transparência:</strong> os links/códigos acima são de afiliados. Isso não muda o preço que você paga, e não influencia em nada o funcionamento do lattesZen — que continua sendo software livre e independente.</span>
+            <span><strong>Transparencia:</strong> los enlaces/códigos anteriores son de afiliados. Esto no cambia el precio que usted paga, y no influye en nada en el funcionamiento de lattesZen — que sigue siendo software libre e independiente.</span>
           </p>
         </section>
       </div>
     </main>
 
-    <!-- ============================ RODAPÉ (igual ao app) ============================ -->
+    <!-- ============================ FOOTER (same as the app) ============================ -->
     <footer class="bg-govbr-800 dark:bg-gray-950 border-t border-govbr-700 dark:border-gray-700 py-3 px-6 text-xs text-blue-100 dark:text-gray-400 flex flex-col sm:flex-row justify-between items-center shrink-0 gap-4 transition-colors duration-300">
         <div class="flex items-center gap-4 flex-wrap justify-center">
-            <a href="termodeuso.html" class="hover:text-white transition-colors flex items-center gap-1" title="Termo de uso" aria-label="Termo de uso"><i aria-hidden="true" class="fa-solid fa-file-contract"></i></a>
+            <a href="termodeuso.es.html" class="hover:text-white transition-colors flex items-center gap-1" title="Términos de uso" aria-label="Términos de uso"><i aria-hidden="true" class="fa-solid fa-file-contract"></i></a>
             <span class="text-white/25 dark:text-gray-700">|</span>
-            <a href="privacidade.html" class="hover:text-white transition-colors flex items-center gap-1" title="Política de privacidade" aria-label="Política de privacidade"><i aria-hidden="true" class="fa-solid fa-shield-halved"></i></a>
+            <a href="privacidade.es.html" class="hover:text-white transition-colors flex items-center gap-1" title="Política de privacidad" aria-label="Política de privacidad"><i aria-hidden="true" class="fa-solid fa-shield-halved"></i></a>
             <span class="text-white/25 dark:text-gray-700">|</span>
-            <a href="./ajuda.html" class="hover:text-white transition-colors flex items-center gap-1" title="Ajuda" aria-label="Ajuda"><i aria-hidden="true" class="fa-solid fa-circle-question"></i></a>
+            <a href="./ajuda.html" class="hover:text-white transition-colors flex items-center gap-1" title="Ayuda" aria-label="Ayuda"><i aria-hidden="true" class="fa-solid fa-circle-question"></i></a>
             <span class="text-white/25 dark:text-gray-700">|</span>
-            <a href="sobre.html" class="hover:text-white transition-colors flex items-center gap-1" title="Sobre" aria-label="Sobre"><i aria-hidden="true" class="fa-solid fa-circle-info"></i></a>
+            <a href="sobre.es.html" class="hover:text-white transition-colors flex items-center gap-1" title="Acerca de" aria-label="Acerca de"><i aria-hidden="true" class="fa-solid fa-circle-info"></i></a>
             <span class="text-white/25 dark:text-gray-700">|</span>
-            <button type="button" id="highContrastToggle" class="hover:text-white transition-colors flex items-center gap-1" aria-pressed="false" title="Alternar alto contraste">
-                <i aria-hidden="true" class="fa-solid fa-circle-half-stroke"></i> <span class="sr-only">Alto contraste</span>
+            <button type="button" id="highContrastToggle" class="hover:text-white transition-colors flex items-center gap-1" aria-pressed="false" title="Alternar contraste alto">
+                <i aria-hidden="true" class="fa-solid fa-circle-half-stroke"></i> <span class="sr-only">Contraste alto</span>
             </button>
             <span class="text-white/25 dark:text-gray-700">|</span>
-            <span class="flex items-center gap-1" role="group" aria-label="Tamanho da fonte">
-                <button type="button" id="fontDec" class="hover:text-white transition-colors flex items-center gap-1" title="Diminuir fonte" aria-label="Diminuir fonte"><i aria-hidden="true" class="fa-solid fa-magnifying-glass-minus"></i> A-</button>
-                <button type="button" id="fontInc" class="hover:text-white transition-colors flex items-center gap-1" title="Aumentar fonte" aria-label="Aumentar fonte"><i aria-hidden="true" class="fa-solid fa-magnifying-glass-plus"></i> A+</button>
+            <span class="flex items-center gap-1" role="group" aria-label="Tamaño de fuente">
+                <button type="button" id="fontDec" class="hover:text-white transition-colors flex items-center gap-1" title="Reducir fuente" aria-label="Reducir fuente"><i aria-hidden="true" class="fa-solid fa-magnifying-glass-minus"></i> A-</button>
+                <button type="button" id="fontInc" class="hover:text-white transition-colors flex items-center gap-1" title="Aumentar fuente" aria-label="Aumentar fuente"><i aria-hidden="true" class="fa-solid fa-magnifying-glass-plus"></i> A+</button>
             </span>
         </div>
         <div class="flex gap-3 items-center flex-wrap justify-center">
@@ -293,22 +296,22 @@
                 <i aria-hidden="true" class="fa-brands fa-github text-white/90 dark:text-unifesp-400"></i> Alexsandro Cardoso Carvalho
             </a>
             <span class="text-white/40 dark:text-gray-600">|</span>
-            <a href="doe-um-cafe.html" class="hover:text-white hover:underline transition-colors flex items-center gap-1">
-                <i aria-hidden="true" class="fa-solid fa-mug-hot text-white/90 dark:text-unifesp-400"></i> Doe um café
+            <a href="doe-um-cafe.es.html" class="hover:text-white hover:underline transition-colors flex items-center gap-1">
+                <i aria-hidden="true" class="fa-solid fa-mug-hot text-white/90 dark:text-unifesp-400"></i> Done un café
             </a>
             <span class="text-white/40 dark:text-gray-600">|</span>
-            <a href="https://www.gnu.org/licenses/agpl-3.0.html" target="_blank" rel="noopener" class="hover:text-white transition-colors flex items-center gap-1" title="Licença AGPLv3 (Free Software Foundation)">
+            <a href="https://www.gnu.org/licenses/agpl-3.0.html" target="_blank" rel="noopener" class="hover:text-white transition-colors flex items-center gap-1" title="Licencia AGPLv3 (Free Software Foundation)">
                 <i aria-hidden="true" class="fa-solid fa-scale-balanced text-white/90 dark:text-unifesp-400"></i> AGPLv3
             </a>
             <span class="text-white/40 dark:text-gray-600">|</span>
-            <span class="flex items-center gap-1"><i aria-hidden="true" class="fa-solid fa-tag" title="Versão"></i> <a href="notas-de-versao.html" class="font-mono hover:text-white hover:underline transition-colors" title="Notas de versão"><span id="appVersion"></span></a></span>
-            <a href="https://github.com/alexsandroccarv/latteszen" target="_blank" rel="noopener" class="hover:text-white transition-colors flex items-center gap-1" title="Código-fonte (repositório no GitHub)" aria-label="Código-fonte (repositório no GitHub)">
+            <span class="flex items-center gap-1"><i aria-hidden="true" class="fa-solid fa-tag" title="Versión"></i> <a href="notas-de-versao.html" class="font-mono hover:text-white hover:underline transition-colors" title="Notas de la versión (en portugués)"><span id="appVersion"></span></a></span>
+            <a href="https://github.com/alexsandroccarv/latteszen" target="_blank" rel="noopener" class="hover:text-white transition-colors flex items-center gap-1" title="Código fuente (repositorio en GitHub)" aria-label="Código fuente (repositorio en GitHub)">
                 <i aria-hidden="true" class="fa-solid fa-code text-white/90 dark:text-unifesp-400"></i>
             </a>
         </div>
     </footer>
 
-    <!-- Cabeçalho/rodapé dinâmicos: versão e nome do titular (mesmo comportamento do app) -->
+    <!-- Dynamic header/footer: version and owner name (same behavior as the app) -->
     <script type="module" src="js/config.js"></script>
     <script type="module" src="js/a11y.js"></script>
     <script type="module" src="js/analytics.js"></script>
@@ -316,11 +319,12 @@
     <script type="module" src="js/pwa.js"></script>
     <script type="module">
         (function () {
-            // Fixa o locale desta página (conteúdo estático em pt-br), sem
-            // mexer no localStorage — cookie-consent.js importa i18n.js, cujo
-            // bootstrap síncrono leria o locale configurado no app e podia
-            // "vazar" um <html lang>/banner de cookies em outro idioma aqui.
-            try { window.LzI18n.setLocale('pt-br'); } catch (e) {}
+            // Fixes this page's locale (fixed Spanish content), without
+            // touching localStorage — cookie-consent.js imports i18n.js,
+            // whose synchronous bootstrap would otherwise read the app's
+            // configured locale and could "leak" a mismatched <html
+            // lang>/cookie banner into this page.
+            try { window.LzI18n.setLocale('es'); } catch (e) {}
         })();
     </script>
     <script type="module">
@@ -360,27 +364,28 @@
         })();
     </script>
 
-    <!-- ============================ Pix "copia e cola" (BR Code / EMVCo) + parcerias ============================
-         Ajuste os dados abaixo com as suas informações reais antes de publicar. -->
+    <!-- ============================ Pix "copy and paste" (BR Code / EMVCo) + partnerships ============================
+         Same real configuration as the pt-br page — Pix is a Brazilian
+         payment system regardless of the page's display language, so the
+         key/QR/affiliate data must stay identical between all versions. -->
     <script>
         (function () {
-            // ---- Configuração: ajuste com seus dados reais ----
+            // ---- Configuration: matches doe-um-cafe.html ----
             var PIX_CONFIG = {
-                chave: 'alexsandroccarv@ccarvalho.net',  // sua chave Pix (e-mail, telefone, CPF/CNPJ ou aleatória)
-                nome: 'ALEXSANDRO CARVALHO',              // nome do recebedor: até 25 caracteres, sem acentos
-                cidade: 'BRASIL',                          // cidade do recebedor: até 15 caracteres, sem acentos — ajuste para a sua
+                chave: 'alexsandroccarv@ccarvalho.net',  // Pix key (email, phone, tax ID or random key)
+                nome: 'ALEXSANDRO CARVALHO',              // recipient name: up to 25 characters, no accents
+                cidade: 'BRASIL',                          // recipient city: up to 15 characters, no accents
             };
-            // Links/códigos de afiliados: preencha "codigo" e/ou "url" de cada parceria
-            // já confirmada. Enquanto ficarem vazios, o cartão mostra "Em breve".
+            // Affiliate links/codes: same list as the pt-br page.
             var AFFILIATES = [
-                { nome: 'Preply', icon: 'fa-solid fa-chalkboard-user', desc: 'Desconto de 70% para aulas — qualquer matéria, qualquer docente.', codigo: 'MjM0NzYzMTU=', url: 'https://preply.com/pt/?pref=MjM0NzYzMTU=&id=1787109331.653596&ep=a1' },
-                { nome: 'Parafuzo', icon: 'fa-solid fa-broom', desc: 'Diarista/faxina online: agende pelo site ou app e pague por hora contratada.', codigo: 'HGJED8A45DD61D56', url: 'https://parafuzo.com/limpeza/contratar/padrao/?utm_medium=mgm&utm_source=tela-saldo&utm_campaign=Q3VzdG9tZXJVc2VyOjY4NDUwMTUwNDIxYWE5MDAwZjgyYjUzMA==&cupom=HGJED8A45DD61D56' },
-                { nome: 'Airbnb', icon: 'fa-brands fa-airbnb', desc: 'Desconto na primeira hospedagem usando este link.', codigo: 'iZfy7IrKgxEW7aJA', url: 'https://www.airbnb.com/c/iZfy7IrKgxEW7aJA' },
-                { nome: 'Genera', icon: 'fa-solid fa-dna', desc: 'Desconto nos testes de DNA — cupom válido só no pacote Premium.', codigo: 'GEN-L40EZ', url: 'http://bit.ly/3h2s3R7' },
-                { nome: 'Claude Code', icon: 'fa-solid fa-gift', desc: 'Compartilhe o Claude, ganhe mais Claude: envie a um amigo uma semana grátis do Claude Code. Se ele assinar, você recebe R$ 55 em créditos. Seus amigos podem experimentar tanto o Cowork quanto o Claude Code. Aplicam-se condições.', url: 'https://claude.ai/referral/t6MUEIcZEA' },
+                { nome: 'Preply', icon: 'fa-solid fa-chalkboard-user', desc: 'Descuento del 70% en clases — cualquier materia, cualquier profesor.', codigo: 'MjM0NzYzMTU=', url: 'https://preply.com/es/?pref=MjM0NzYzMTU=&id=1787109331.653596&ep=a1' },
+                { nome: 'Parafuzo', icon: 'fa-solid fa-broom', desc: 'Limpieza doméstica a demanda en Brasil: reserve por el sitio o la app y pague por hora contratada.', codigo: 'HGJED8A45DD61D56', url: 'https://parafuzo.com/limpeza/contratar/padrao/?utm_medium=mgm&utm_source=tela-saldo&utm_campaign=Q3VzdG9tZXJVc2VyOjY4NDUwMTUwNDIxYWE5MDAwZjgyYjUzMA==&cupom=HGJED8A45DD61D56' },
+                { nome: 'Airbnb', icon: 'fa-brands fa-airbnb', desc: 'Descuento en su primera estadía utilizando este enlace.', codigo: 'iZfy7IrKgxEW7aJA', url: 'https://www.airbnb.com/c/iZfy7IrKgxEW7aJA' },
+                { nome: 'Genera', icon: 'fa-solid fa-dna', desc: 'Descuento en las pruebas de ADN — cupón válido solo para el paquete Premium.', codigo: 'GEN-L40EZ', url: 'http://bit.ly/3h2s3R7' },
+                { nome: 'Claude Code', icon: 'fa-solid fa-gift', desc: 'Comparta Claude, obtenga más Claude: envíele a un amigo una semana gratis de Claude Code. Si se suscribe, usted recibe $10 en créditos. Sus amigos pueden probar tanto Cowork como Claude Code. Aplican condiciones.', url: 'https://claude.ai/referral/t6MUEIcZEA' },
             ];
 
-            // ---- Pix BR Code (EMVCo / Banco Central) ----
+            // ---- Pix BR Code (EMVCo / Central Bank of Brazil) ----
             function crc16(str) {
                 var crc = 0xFFFF;
                 for (var i = 0; i < str.length; i++) {
@@ -414,7 +419,7 @@
             function updatePix(amount) {
                 var payload = buildPixPayload(amount);
                 payloadEl.textContent = payload;
-                valorEl.textContent = amount ? fmtBRL(amount) : 'Valor livre';
+                valorEl.textContent = amount ? fmtBRL(amount) : 'Monto libre';
                 qrImg.src = 'https://api.qrserver.com/v1/create-qr-code/?size=260x260&margin=8&data=' + encodeURIComponent(payload);
                 qrNote.style.display = 'none';
             }
@@ -443,31 +448,31 @@
                 setTimeout(function () { btn.classList.remove('copied'); btn.innerHTML = original; }, 1800);
             }
             function copyText(text, btn, label) {
-                navigator.clipboard.writeText(text).then(function () { flashCopied(btn, label || 'Copiado!'); });
+                navigator.clipboard.writeText(text).then(function () { flashCopied(btn, label || '¡Copiado!'); });
             }
-            document.getElementById('btnCopyPayload').addEventListener('click', function (e) { copyText(payloadEl.textContent, e.currentTarget, 'Código copiado!'); });
-            document.getElementById('btnCopyChave').addEventListener('click', function (e) { copyText(PIX_CONFIG.chave, e.currentTarget, 'Chave copiada!'); });
+            document.getElementById('btnCopyPayload').addEventListener('click', function (e) { copyText(payloadEl.textContent, e.currentTarget, '¡Código copiado!'); });
+            document.getElementById('btnCopyChave').addEventListener('click', function (e) { copyText(PIX_CONFIG.chave, e.currentTarget, '¡Clave copiada!'); });
             document.getElementById('btnShare').addEventListener('click', function (e) {
                 var url = window.location.href;
-                if (navigator.share) { navigator.share({ title: 'Doe um café — lattesZen', url: url }).catch(function () {}); }
-                else { copyText(url, e.currentTarget, 'Link copiado!'); }
+                if (navigator.share) { navigator.share({ title: 'Done un café — lattesZen', url: url }).catch(function () {}); }
+                else { copyText(url, e.currentTarget, '¡Enlace copiado!'); }
             });
 
-            // ---- Parcerias / afiliados ----
+            // ---- Partnerships / affiliates ----
             var affGrid = document.getElementById('affGrid');
             affGrid.innerHTML = AFFILIATES.map(function (a) {
                 var hasCodigo = !!a.codigo;
                 var hasUrl = !!a.url;
                 var action = (hasCodigo || hasUrl)
                     ? (hasUrl
-                        ? '<a href="' + a.url + '" target="_blank" rel="noopener" class="mt-1 inline-flex items-center justify-center gap-1 px-3 py-1.5 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm font-semibold hover:opacity-90">Acessar <i aria-hidden="true" class="fa-solid fa-arrow-up-right-from-square ml-1 text-xs"></i></a>'
+                        ? '<a href="' + a.url + '" target="_blank" rel="noopener" class="mt-1 inline-flex items-center justify-center gap-1 px-3 py-1.5 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm font-semibold hover:opacity-90">Acceder <i aria-hidden="true" class="fa-solid fa-arrow-up-right-from-square ml-1 text-xs"></i></a>'
                         : '')
                     + (hasCodigo
                         ? '<button type="button" data-code="' + a.codigo.replace(/"/g, '&quot;') + '" class="btn-copy-code mt-1 inline-flex items-center justify-center gap-1 px-3 py-1.5 rounded border border-gray-300 dark:border-gray-600 text-sm">Código: <span class="font-mono">' + a.codigo + '</span></button>'
                         : '')
-                    : '<span class="pill-soon w-fit">Em breve</span>';
+                    : '<span class="pill-soon w-fit">Próximamente</span>';
                 return '<div class="aff-card">'
-                    + '<span class="aff-badge"><i aria-hidden="true" class="fa-solid fa-handshake"></i> Parceria</span>'
+                    + '<span class="aff-badge"><i aria-hidden="true" class="fa-solid fa-handshake"></i> Alianza</span>'
                     + '<div class="aff-icon"><i aria-hidden="true" class="' + a.icon + '"></i></div>'
                     + '<div class="font-bold">' + a.nome + '</div>'
                     + '<p class="text-sm text-gray-500 dark:text-gray-400 flex-1">' + a.desc + '</p>'
@@ -475,7 +480,7 @@
                     + '</div>';
             }).join('');
             affGrid.querySelectorAll('.btn-copy-code').forEach(function (btn) {
-                btn.addEventListener('click', function (e) { copyText(btn.dataset.code, e.currentTarget, 'Código copiado!'); });
+                btn.addEventListener('click', function (e) { copyText(btn.dataset.code, e.currentTarget, '¡Código copiado!'); });
             });
         })();
     </script>

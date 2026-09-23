@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<!--
+    lattesZen — Copyright (C) 2026 Alexsandro Cardoso Carvalho
+
+    This file is part of lattesZen.
+
+    lattesZen is free software: you can redistribute it and/or modify it
+    under the terms of the GNU Affero General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or (at
+    your option) any later version.
+
+    lattesZen is distributed in the hope that it will be useful, but WITHOUT
+    ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+    FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public
+    License for more details.
+
+    You should have received a copy of the GNU Affero General Public License
+    along with lattesZen. If not, see <https://www.gnu.org/licenses/>.
+-->
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>lattesZen — Política de Privacidad</title>
+    <meta name="description" content="Cómo lattesZen trata (o no trata) sus datos personales, en conformidad con la LGPD (Ley n.º 13.709/2018) de Brasil.">
+    <link rel="canonical" href="https://ccarvalho.net/labs/latteszen/privacidade.es.html">
+    <link rel="alternate" hreflang="pt-BR" href="https://ccarvalho.net/labs/latteszen/privacidade.html">
+    <link rel="alternate" hreflang="en" href="https://ccarvalho.net/labs/latteszen/privacidade.en.html">
+    <link rel="alternate" hreflang="es" href="https://ccarvalho.net/labs/latteszen/privacidade.es.html">
+    <link rel="alternate" hreflang="x-default" href="https://ccarvalho.net/labs/latteszen/privacidade.html">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="lattesZen">
+    <meta property="og:locale" content="es_ES">
+    <meta property="og:title" content="lattesZen — Política de Privacidad">
+    <meta property="og:description" content="Cómo lattesZen trata (o no trata) sus datos personales, en conformidad con la LGPD (Ley n.º 13.709/2018) de Brasil.">
+    <meta property="og:url" content="https://ccarvalho.net/labs/latteszen/privacidade.es.html">
+    <meta property="og:image" content="https://ccarvalho.net/labs/latteszen/images/og-image.png">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="lattesZen — Política de Privacidad">
+    <meta name="twitter:description" content="Cómo lattesZen trata (o no trata) sus datos personales, en conformidad con la LGPD (Ley n.º 13.709/2018) de Brasil.">
+    <meta name="twitter:image" content="https://ccarvalho.net/labs/latteszen/images/og-image.png">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1351B4">
+
+    <!-- Same styles as the app -->
+    <link rel="stylesheet" href="css/styles.css">
+
+    <!-- Light/dark theme and high contrast: applied early to avoid a "flash" -->
+    <script>
+        (function () {
+            const htmlEl = document.documentElement;
+            const saved = localStorage.getItem('tema');
+            const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+            if (saved ? saved === 'dark' : prefersDark) htmlEl.classList.add('dark');
+            if (localStorage.getItem('altoContraste') === '1') htmlEl.classList.add('high-contrast');
+            // Theme (ready-made palettes, chosen in Settings): applied early
+            // to avoid a "flash" — same logic as dark/high-contrast above.
+            const temaPreset = localStorage.getItem('lz_tema_preset') || 'govbr';
+            htmlEl.classList.add('lz-theme');
+            htmlEl.setAttribute('data-lz-theme', temaPreset);
+            const fs = parseInt(localStorage.getItem('fontScale') || '100', 10);
+            if (fs && fs !== 100) htmlEl.style.fontSize = fs + '%';
+        })();
+    </script>
+
+    <!-- External resources (Tailwind + config, Font Awesome, Rawline) — same as the app -->
+    <script>
+        (function () {
+            var TW_CONFIG = {
+                darkMode: 'class',
+                theme: {
+                    extend: {
+                        fontFamily: { sans: ['Rawline', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif'] },
+                        colors: {
+                            unifesp: { 50: '#f0fdf4', 100: '#dcfce7', 400: '#4ade80', 600: '#16a34a', 700: '#15803d', 800: '#166534', 900: '#1E5A3A' },
+                            govbr:   { 50: '#D4E5FF', 100: '#ADCDFF', 400: '#1351B4', 600: '#1351B4', 700: '#0C326F', 800: '#071D41', 900: '#050F24' },
+                        }
+                    }
+                }
+            };
+            var tw = document.createElement('script');
+            tw.src = 'https://cdn.tailwindcss.com';
+            tw.async = true;
+            tw.onload = function () { try { window.tailwind.config = TW_CONFIG; } catch (e) {} };
+            tw.onerror = function () { document.documentElement.classList.add('no-tailwind'); };
+            document.head.appendChild(tw);
+            function loadCss(href) { var l = document.createElement('link'); l.rel = 'stylesheet'; l.href = href; l.media = 'all'; document.head.appendChild(l); }
+            loadCss('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css');
+            loadCss('https://cdngovbr-ds.estaleiro.serpro.gov.br/design-system/fonts/rawline/css/rawline.css');
+
+            // Theme: Google fonts per palette (loaded on demand —
+            // "lattesZen night" and "lattesZen day" use a font already loaded above, no extra CDN).
+            var THEME_FONTS = {
+                'catppuccin-latte': 'https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap',
+                'catppuccin-mocha': 'https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap',
+                dracula: 'https://fonts.googleapis.com/css2?family=Fira+Sans:wght@400;600;700&display=swap',
+                // lattesZen day (govbr) uses the Rawline already loaded above (no extra CDN); GitHub
+                // Light/Dark use the system font — that's why they have no entry here.
+                'rose-pine-dawn': 'https://fonts.googleapis.com/css2?family=Quicksand:wght@400;600;700&display=swap',
+                'solarized-light': 'https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&display=swap',
+                'solarized-dark': 'https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&display=swap',
+            };
+            window.__loadThemeFont = function (preset) {
+                var url = THEME_FONTS[preset];
+                if (!url) return;
+                if (document.querySelector('link[data-lz-font="' + preset + '"]')) return;
+                var l = document.createElement('link');
+                l.rel = 'stylesheet'; l.href = url; l.setAttribute('data-lz-font', preset);
+                document.head.appendChild(l);
+            };
+            // Syncs <meta name="theme-color"> (mobile browser bar) with the
+            // active theme's header color.
+            window.__setThemeColor = function () {
+                var m = document.querySelector('meta[name="theme-color"]');
+                if (!m) { m = document.createElement('meta'); m.name = 'theme-color'; document.head.appendChild(m); }
+                var c = getComputedStyle(document.documentElement).getPropertyValue('--lz-header').trim();
+                m.setAttribute('content', c || '#1351B4');
+            };
+            var temaAtivo = localStorage.getItem('lz_tema_preset') || 'govbr';
+            window.__loadThemeFont(temaAtivo);
+            window.__setThemeColor();
+        })();
+    </script>
+
+    <!-- Content style for this page (scoped to .help-doc; dark by class, like the app) -->
+    <style>
+      :root{
+        --hdoc-surface:#f9fafb; --hdoc-text:#1f2937; --hdoc-muted:#6b7280; --hdoc-line:#e5e7eb;
+        --hdoc-accent:#1351b4; --hdoc-code:#eef2f7; --hdoc-chip:#eef2ff; --hdoc-chipink:#1e3a8a;
+        --hdoc-note-bg:#eff6ff; --hdoc-note-line:#1351b4; --hdoc-warn-bg:#fff7ed; --hdoc-warn-line:#c2410c;
+        --hdoc-ok-bg:#ecfdf5; --hdoc-ok-line:#047857;
+      }
+      html.dark{
+        --hdoc-surface:#1f2937; --hdoc-text:#e5e7eb; --hdoc-muted:#9ca3af; --hdoc-line:#374151;
+        --hdoc-accent:#93c5fd; --hdoc-code:#0f172a; --hdoc-chip:#1e293b; --hdoc-chipink:#bfdbfe;
+        --hdoc-note-bg:#0f2033; --hdoc-note-line:#3b82f6; --hdoc-warn-bg:#2a1a0f; --hdoc-warn-line:#f59e0b;
+        --hdoc-ok-bg:#0e2a1e; --hdoc-ok-line:#34d399;
+      }
+
+      /* Chosen theme (Settings → Other resources) takes priority over the
+         light/dark defaults above — same principle already used in the
+         app's header/footer/tabs (see "html.lz-theme" in styles.css):
+         without this, choosing a theme (Dracula, Catppuccin, etc.) would
+         have no effect on this page's content, only on the header/footer. */
+      html.lz-theme{
+        --hdoc-surface:var(--lz-surface); --hdoc-text:var(--lz-text); --hdoc-muted:var(--lz-muted); --hdoc-line:var(--lz-border);
+        --hdoc-accent:var(--lz-accent); --hdoc-code:var(--lz-surface); --hdoc-chip:var(--lz-surface); --hdoc-chipink:var(--lz-accent);
+        --hdoc-note-bg:var(--lz-surface); --hdoc-note-line:var(--lz-accent); --hdoc-warn-bg:var(--lz-surface); --hdoc-warn-line:var(--lz-accent);
+        --hdoc-ok-bg:var(--lz-surface); --hdoc-ok-line:var(--lz-accent-2, var(--lz-accent));
+      }
+      .help-doc{color:var(--hdoc-text);line-height:1.6;max-width:900px;margin:0 auto;padding:8px 4px 40px}
+      .help-doc h1{font-size:1.7rem;margin:.2em 0 .1em}
+      .help-doc .lead{color:var(--hdoc-muted);margin:0 0 1.5em}
+      .help-doc a{color:var(--hdoc-accent);text-decoration:none}
+      .help-doc a:hover{text-decoration:underline}
+      .help-doc nav.toc{background:var(--hdoc-surface);border:1px solid var(--hdoc-line);border-radius:10px;padding:14px 18px;margin-bottom:28px}
+      .help-doc nav.toc h2{font-size:.8rem;text-transform:uppercase;letter-spacing:.05em;color:var(--hdoc-muted);margin:0 0 8px}
+      .help-doc nav.toc ol{margin:0;padding-left:1.2em;columns:2;column-gap:28px}
+      .help-doc nav.toc li{margin:3px 0;break-inside:avoid}
+      .help-doc section.card{background:var(--hdoc-surface);border:1px solid var(--hdoc-line);border-radius:10px;padding:20px 22px;margin-bottom:22px}
+      .help-doc section.card h2{margin-top:0;font-size:1.25rem;display:flex;align-items:center;gap:10px}
+      .help-doc h3{font-size:1.02rem;margin:1.2em 0 .3em}
+      .help-doc code{background:var(--hdoc-code);padding:.1em .4em;border-radius:4px;font-size:.88em;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+      .help-doc ul,.help-doc ol{padding-left:1.4em}
+      .help-doc li{margin:.25em 0}
+      .help-doc .note,.help-doc .warn,.help-doc .ok{border-left:4px solid;border-radius:6px;padding:12px 16px;margin:14px 0;font-size:.95rem}
+      .help-doc .note{background:var(--hdoc-note-bg);border-color:var(--hdoc-note-line)}
+      .help-doc .warn{background:var(--hdoc-warn-bg);border-color:var(--hdoc-warn-line)}
+      .help-doc .ok{background:var(--hdoc-ok-bg);border-color:var(--hdoc-ok-line)}
+      .help-doc .tag{display:inline-block;background:var(--hdoc-chip);color:var(--hdoc-chipink);border-radius:20px;padding:1px 10px;font-size:.8rem;font-weight:600;margin:0 2px}
+      .help-doc .pill{display:inline-block;background:#0C326F;color:#fff;border-radius:6px;padding:2px 8px;font-size:.78rem;font-weight:600}
+      html.dark .help-doc .pill{background:#1351B4}
+    </style>
+</head>
+<body class="font-sans bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-100 min-h-screen flex flex-col transition-colors duration-300">
+
+    <!-- ============================ HEADER (same as the app) ============================ -->
+    <header class="bg-govbr-600 dark:bg-gray-900 border-b border-govbr-700 dark:border-gray-700 flex flex-col shadow-sm dark:shadow-lg z-20 shrink-0 transition-colors duration-300">
+        <div class="flex items-center justify-between px-4 py-3 bg-govbr-600 dark:bg-gray-900 transition-colors duration-300">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded bg-white dark:bg-gradient-to-br dark:from-unifesp-600 dark:to-unifesp-900 flex items-center justify-center text-govbr-600 dark:text-white font-bold transition-colors duration-300">
+                    <svg viewBox="0 0 200 200" class="w-5 h-5" aria-hidden="true"><circle cx="100" cy="100" r="78" fill="none" stroke="currentColor" stroke-width="20" stroke-linecap="round" stroke-dasharray="440 46" transform="rotate(-100 100 100)"/></svg>
+                </div>
+                <div class="flex items-center gap-2 overflow-hidden">
+                    <h1 class="font-bold text-white leading-none whitespace-nowrap">lattesZen</h1>
+                    <span id="headerNomeWrap" class="flex items-center gap-2 overflow-hidden hidden">
+                        <span class="text-xl text-white/30 dark:text-gray-700 font-light">|</span>
+                        <span id="headerNome" class="font-bold text-white/90 dark:text-unifesp-400 leading-none whitespace-nowrap truncate"></span>
+                    </span>
+                </div>
+            </div>
+            <div class="flex items-center gap-3 shrink-0">
+                <div id="govBrLogo" class="bg-white rounded px-2 py-1.5 flex items-center shrink-0 dark:hidden">
+                    <img src="images/geral/gov_br.svg" alt="Gobierno Federal" class="h-5 w-auto" onerror="this.parentElement.style.display='none'">
+                </div>
+                <!-- Settings: same position as templateZen (1st header row,
+                     far right) — opens index.html on the Settings tab (see
+                     hash "#config" handled in app.js). -->
+                <a href="privacidade.html" title="Ver en portugués" aria-label="Ver en portugués" class="text-white/90 hover:text-white transition-colors text-xs font-semibold border border-white/30 rounded px-1.5 py-1 shrink-0">PT</a>
+                <span class="text-white/40 dark:text-gray-600 text-xs" aria-hidden="true">|</span>
+                <a href="privacidade.en.html" title="View in English" aria-label="View in English" class="text-white/90 hover:text-white transition-colors text-xs font-semibold border border-white/30 rounded px-1.5 py-1 shrink-0">EN</a>
+                <a href="index.html#config" title="Configuración" aria-label="Configuración" class="text-white/90 hover:text-white transition-colors w-8 h-8 flex items-center justify-center rounded shrink-0">
+                    <i aria-hidden="true" class="fa-solid fa-gear"></i>
+                </a>
+            </div>
+        </div>
+
+        <!-- 2nd header row: a single "Back to home" link (back to the app) —
+             previously there were 2 redundant links (Home + Back to
+             lattesZen, both going to the same place); no pretending to have
+             a Catalog/Compliance/Publish tab row (they all led to
+             index.html anyway). -->
+        <nav class="bg-white dark:bg-gray-800 border-t border-govbr-700/20 dark:border-gray-700 px-2" aria-label="Volver">
+            <div class="max-w-5xl mx-auto flex gap-1">
+                <a href="index.html" class="tab-btn px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-gray-600 dark:text-gray-300 hover:text-govbr-600 dark:hover:text-unifesp-400 whitespace-nowrap">
+                    <i aria-hidden="true" class="fa-solid fa-house mr-1"></i><i aria-hidden="true" class="fa-solid fa-arrow-left mr-1"></i> Volver al inicio
+                </a>
+            </div>
+        </nav>
+    </header>
+
+    <!-- ============================ CONTENT ============================ -->
+    <main class="flex-1 w-full max-w-6xl mx-auto px-4 py-6">
+      <div class="help-doc">
+        <h1>Política de Privacidad</h1>
+        <p class="lead">Cómo lattesZen trata (o, sobre todo, <em>no</em> trata) sus datos personales — en conformidad con la Ley General de Protección de Datos de Brasil (LGPD, Ley n.º 13.709/2018).</p>
+
+        <div class="warn">
+          <strong>Aviso de traducción:</strong> esta página es una traducción de la versión original en portugués <a href="privacidade.es.html">Política de Privacidade</a>, ofrecida por conveniencia. No constituye una revisión legal oficial y no tiene validez legal independiente — la política de privacidad de lattesZen que rige legalmente es la versión en portugués, conforme a la LGPD de Brasil. Si algo en esta página entra en conflicto con el original en portugués, prevalece la versión en portugués.
+        </div>
+
+        <div class="ok">
+          <strong>Resumen en una frase:</strong> lattesZen <strong>no tiene servidor propio</strong>. Todo lo que usted registra permanece en su navegador y, por defecto, en una carpeta de su computadora — nada se envía a nosotros. Si usted opta por conectar Google Drive (función opcional, ver sección 4), los archivos pasan a guardarse allí, directamente desde su navegador hacia Google — nunca a través de un servidor de lattesZen.
+        </div>
+
+        <nav class="toc">
+          <h2>En esta página</h2>
+          <ol>
+            <li><a href="#sobre">Sobre este documento</a></li>
+            <li><a href="#arquitetura">1. Cómo funciona lattesZen (sin servidor)</a></li>
+            <li><a href="#dados">2. Qué datos existen y dónde se almacenan</a></li>
+            <li><a href="#naofaz">3. Qué no hace lattesZen</a></li>
+            <li><a href="#terceiros">4. Recursos de terceros cargados por la página</a></li>
+            <li><a href="#fora">5. Acciones que salen de lattesZen</a></li>
+            <li><a href="#base">6. Base legal (LGPD)</a></li>
+            <li><a href="#direitos">7. Sus derechos como titular</a></li>
+            <li><a href="#criancas">8. Niños y adolescentes</a></li>
+            <li><a href="#alteracoes">9. Cambios en esta política</a></li>
+            <li><a href="#contato">10. Contacto</a></li>
+          </ol>
+        </nav>
+
+        <section class="card" id="sobre">
+          <h2>Sobre este documento</h2>
+          <p>lattesZen es un <strong>software libre</strong> (licencia AGPLv3), mantenido de forma independiente, para ayudar a profesionales del servicio público, la docencia y la investigación a organizar su propio Currículum Lattes. Este documento explica, de forma directa, qué sucede con los datos que usted registra al usar la herramienta.</p>
+          <p>Este texto tiene carácter informativo y busca reflejar <strong>fielmente el funcionamiento técnico</strong> de lattesZen — como el código es abierto, usted (o cualquier persona) puede verificar cada afirmación a continuación directamente en el <a href="https://github.com/alexsandroccarv/lattesZen" target="_blank" rel="noopener">repositorio del proyecto</a>.</p>
+        </section>
+
+        <section class="card" id="arquitetura">
+          <h2><i class="fa-solid fa-laptop-code text-govbr-600 dark:text-unifesp-400"></i> 1. Cómo funciona lattesZen (sin servidor)</h2>
+          <p>lattesZen es una <strong>aplicación que se ejecuta íntegramente en su navegador</strong> (client-side). No existe un servidor, backend, base de datos remota ni API propia a la que se envíe la información de su currículum — tampoco existe <strong>registro, inicio de sesión o contraseña</strong> de ningún tipo.</p>
+          <ul>
+            <li>El <strong>índice del catálogo</strong> (los elementos que usted registra) y sus <strong>preferencias</strong> (tema, alto contraste, tamaño de fuente) se guardan en el <code>localStorage</code> de su navegador, asociado a este sitio.</li>
+            <li><strong>Por defecto</strong>, si su navegador lo admite (Chrome/Edge) y usted <strong>elige una carpeta</strong> en Configuración, los archivos de cada elemento (PDF + metadatos) y las demás carpetas del currículum (evidencias, copia de seguridad, exportación, publicación) se leen y se guardan <strong>directamente en su computadora</strong>, sin pasar por ningún servidor intermediario.</li>
+            <li><strong>Opcionalmente</strong>, en lugar de una carpeta local, usted puede conectar una cuenta de <strong>Google Drive</strong> (útil para acceder al mismo catálogo desde más de una computadora) — en ese caso, los mismos archivos pasan a guardarse en una carpeta de su propio Drive, directamente desde el navegador hacia la API de Google, sin pasar por un servidor de lattesZen — vea los detalles en la sección 4.</li>
+          </ul>
+          <div class="note">Esto significa que, sin una acción suya (exportar, publicar, donar o conectar Google Drive), <strong>ningún dato de su currículum sale de su dispositivo</strong>.</div>
+        </section>
+
+        <section class="card" id="dados">
+          <h2><i class="fa-solid fa-database text-govbr-600 dark:text-unifesp-400"></i> 2. Qué datos existen y dónde se almacenan</h2>
+          <p>Los datos tratados por lattesZen son exclusivamente los que <strong>usted mismo escribe o importa</strong>: identificación, formación, producciones, actuación profesional, proyectos, eventos, evidencias (PDFs) y, si el módulo está habilitado, datos funcionales para el simulador de RSC-PCCTAE (cargo, SIAPE, dependencia, escolaridad — un régimen del servicio civil federal brasileño). Nada de esto es recolectado por nosotros — es usted quien lo registra, y permanece con usted.</p>
+          <table>
+            <thead><tr><th>Dónde se guarda</th><th>Qué</th><th>¿Sale de su dispositivo?</th></tr></thead>
+            <tbody>
+              <tr><td><code>localStorage</code> del navegador</td><td>Índice del catálogo, configuraciones y preferencias de interfaz</td><td>No</td></tr>
+              <tr><td>Carpeta elegida en su computadora (por defecto, opcional)</td><td>Archivos PDF de evidencia, JSON de cada elemento, copias de seguridad, página pública generada</td><td>No</td></tr>
+              <tr><td>Google Drive de su propia cuenta (alternativa opcional a la carpeta local)</td><td>Los mismos archivos anteriores, guardados directamente desde el navegador hacia Drive — ver sección 4</td><td>Sí, hacia Google (nunca hacia lattesZen)</td></tr>
+              <tr><td>Memoria de la pestaña del navegador</td><td>Estado temporal de la pantalla mientras usted usa la aplicación</td><td>No</td></tr>
+            </tbody>
+          </table>
+          <p>Como todo permanece en su propio navegador/computadora, <strong>cambiar de dispositivo o de navegador no migra los datos automáticamente</strong> — use la función <strong>Exportar catálogo</strong> (Configuración › Copia de seguridad) para llevar sus datos con usted.</p>
+        </section>
+
+        <section class="card" id="naofaz">
+          <h2><i class="fa-solid fa-ban text-govbr-600 dark:text-unifesp-400"></i> 3. Qué no hace lattesZen</h2>
+          <ul>
+            <li>No tiene servidor, backend ni base de datos propia a la que se envíen sus datos.</li>
+            <li>No solicita cuenta, inicio de sesión, contraseña ni correo electrónico para su uso.</li>
+            <li>No usa herramientas de publicidad ni píxeles de redes sociales (Meta Pixel y similares). El sitio usa <strong>Google Analytics</strong>, mediante su consentimiento, para métricas de acceso — ver detalles en la sección 4, a continuación.</li>
+            <li>No vende, alquila, comparte ni cede datos a terceros por iniciativa propia. Las excepciones son siempre por elección explícita suya: Google Analytics (métricas de navegación, mediante consentimiento) y Google Drive (si usted opta por ese modo de almacenamiento en lugar de la carpeta local) — ambos detallados en la sección 4.</li>
+            <li>No envía nada automáticamente a la Plataforma Lattes ni a ningún otro servicio — toda exportación/publicación es una acción explícita suya.</li>
+          </ul>
+        </section>
+
+        <section class="card" id="terceiros">
+          <h2><i class="fa-solid fa-cloud text-govbr-600 dark:text-unifesp-400"></i> 4. Recursos de terceros cargados por la página</h2>
+          <p>Para mostrar la interfaz, el navegador obtiene algunas bibliotecas públicas directamente de sus proveedores originales:</p>
+          <ul>
+            <li><strong>Tailwind CSS</strong> (<code>cdn.tailwindcss.com</code>) — estilo visual.</li>
+            <li><strong>Font Awesome</strong> (<code>cdnjs.cloudflare.com</code>) — iconos.</li>
+            <li><strong>Fuente Rawline</strong> y <strong>logo Gov.br</strong> (<code>cdngovbr-ds.estaleiro.serpro.gov.br</code>) — identidad visual del estándar del Gobierno Federal brasileño.</li>
+          </ul>
+          <p>Estas solicitudes siguen el funcionamiento normal de la web: los proveedores pueden registrar metadatos estándar de acceso (como dirección IP y navegador utilizado), según sus propias políticas — lattesZen no les envía ningún dato adicional, y no tiene control sobre esos registros. Si alguno de estos recursos no carga (red lenta, bloqueo de firewall), la aplicación sigue funcionando con un estilo más simple.</p>
+          <h3>Google Drive (almacenamiento opcional)</h3>
+          <p>En Configuración, usted puede optar por conectar una cuenta de Google Drive como alternativa a una carpeta local — útil para acceder al mismo catálogo desde más de una computadora. Esta función está <strong>desactivada por defecto</strong>: solo se activa si usted mismo hace clic en «Conectar a Google Drive» y autoriza el acceso a través de la propia pantalla de consentimiento de Google.</p>
+          <p>La autenticación usa <strong>Google Identity Services</strong> — sin ningún servidor de lattesZen involucrado, la autorización ocurre directamente entre su navegador y Google. El acceso se realiza con el alcance <code>drive.file</code>: lattesZen solo puede ver los archivos que él mismo crea en su Drive, o los que usted elija explícitamente a través del selector de archivos de Google (Picker) — nunca el resto de su Drive.</p>
+          <p>Una vez conectado, los archivos de su catálogo (PDFs de evidencia, metadatos de cada elemento, copias de seguridad) pasan a guardarse y leerse directamente desde su navegador hacia la API de Google Drive, bajo la <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">política de privacidad de Google</a> — el contenido de su currículum pasa a existir también en Google, además de en su navegador/computadora. Usted puede desconectarse en cualquier momento en Configuración (lo que no elimina los archivos ya guardados en Drive) y volver al modo local.</p>
+          <h3>Google Analytics (GA4)</h3>
+          <p>A diferencia de los recursos anteriores (que solo cargan bibliotecas visuales), Google Analytics <strong>recopila y registra datos de navegación</strong>: páginas visitadas, duración de la sesión, tipo de dispositivo/navegador, dirección IP (usada para estimar la región aproximada) y sitio de origen — nunca <strong>el contenido de su currículum</strong> (elementos registrados, PDFs, datos del RSC), que permanece exclusivamente en su navegador/computadora, como se describe en las secciones 1 y 2. Antes de cualquier recolección, un <strong>aviso de cookies bloquea el uso de la aplicación</strong> hasta que usted haga clic en «Aceptar» — sin esa decisión, ninguna solicitud sale de su navegador hacia Google (no existe la opción de «rechazar» y seguir usando: o acepta, o no usa esa instancia). Al aceptar, los datos pasan a enviarse a Google, bajo la <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">política de privacidad de Google</a>, y quedan disponibles de forma agregada para quien mantiene lattesZen. Google Analytics usa cookies (p. ej., <code>_ga</code>) para diferenciar sesiones de acceso; su decisión de aceptar también se guarda en su navegador — para revisarla, basta con borrar los datos de navegación de este sitio, y el aviso volverá a bloquear la aplicación hasta una nueva decisión en su próxima visita.</p>
+          <div class="note">
+            <strong>¿Quiere la máxima privacidad posible?</strong> Por ser software libre y de código abierto, usted no necesita confiar en ninguna instancia alojada por terceros (incluida la oficial): descargue o clone el
+            <a href="https://github.com/alexsandroccarv/lattesZen" target="_blank" rel="noopener">repositorio</a>
+            y ejecute lattesZen totalmente en local, en su propia computadora. Ejecutándolo así, borre el valor de <code>analyticsId</code> en <code>src/js/config.js</code> antes de ejecutarlo — sin un ID configurado, Google Analytics queda desactivado y no aparece ningún aviso de cookies, garantizando que ningún dato de navegación salga de su navegador. Instalado como aplicación (PWA), lattesZen también sigue funcionando con normalidad en el día a día sin conexión a internet.
+          </div>
+        </section>
+
+        <section class="card" id="fora">
+          <h2><i class="fa-solid fa-arrow-up-right-from-square text-govbr-600 dark:text-unifesp-400"></i> 5. Acciones que salen de lattesZen</h2>
+          <p>Algunas funciones, por naturaleza, llevan información fuera de la aplicación — siempre por iniciativa propia suya:</p>
+          <ul>
+            <li><strong>Publicar en la Web:</strong> genera una página HTML (y la carpeta lista para alojar) en su computadora; si usted opta por publicarla en algún servicio de alojamiento, la exposición pública de esos datos pasa a regirse por la política de privacidad de ese servicio.</li>
+            <li><strong>Invíteme un café:</strong> el código QR de Pix se genera consultando el servicio externo <code>api.qrserver.com</code>, que solo recibe el código Pix «copiar y pegar» (datos del receptor de la donación, no los suyos) para dibujar la imagen. Esa página también incluye enlaces de socios/afiliados (p. ej., Preply, Airbnb) — al hacer clic, usted sale de lattesZen y queda sujeto a la política de privacidad de cada sitio de destino.</li>
+          </ul>
+        </section>
+
+        <section class="card" id="base">
+          <h2><i class="fa-solid fa-scale-balanced text-govbr-600 dark:text-unifesp-400"></i> 6. Base legal (LGPD)</h2>
+          <p>El <strong>contenido de su currículum</strong> (elementos registrados, PDFs, datos del RSC) se procesa <strong>íntegramente en su dispositivo</strong>, sin recolección ni tratamiento centralizado por parte de la persona desarrolladora — este uso se enmarca en el tratamiento de datos realizado por una persona física con fines <strong>exclusivamente particulares</strong> (art. 4.º, §1.º, de la LGPD), fuera del alcance de las hipótesis de tratamiento que la ley impone a los responsables (controladores) de datos de terceros.</p>
+          <p>Por su parte, las <strong>métricas de acceso al sitio</strong> (Google Analytics, sección 4) constituyen un tratamiento aparte, bajo responsabilidad de quien mantiene lattesZen, con base en el <strong>interés legítimo</strong> (art. 7.º, IX, de la LGPD) de comprender el uso de la herramienta para mejorarla — limitado a datos de navegación, nunca al contenido de su currículum.</p>
+          <p>Cuando usted opta por actividades que involucran servicios de terceros — importar desde la Plataforma Lattes, alojar la página pública, donar vía Pix o usar un enlace de socio —, se aplica la política de privacidad y la base legal de cada servicio utilizado, no la de este documento.</p>
+        </section>
+
+        <section class="card" id="direitos">
+          <h2><i class="fa-solid fa-user-check text-govbr-600 dark:text-unifesp-400"></i> 7. Sus derechos como titular</h2>
+          <p>El artículo 18 de la LGPD garantiza derechos como el acceso, la corrección, la eliminación y la portabilidad de los datos. Como todo permanece en su propio navegador/computadora, usted ya ejerce esos derechos directamente, sin necesidad de solicitar nada a nadie:</p>
+          <ul>
+            <li><strong>Acceso y corrección:</strong> vea y edite cualquier elemento en cualquier momento en la pestaña Catalogar.</li>
+            <li><strong>Eliminación:</strong> use <strong>Limpiar catálogo</strong> (Configuración) y/o elimine los archivos de la carpeta elegida en su sistema operativo.</li>
+            <li><strong>Portabilidad:</strong> exporte la copia de seguridad (JSON) siempre que quiera llevar sus datos a otro lugar.</li>
+            <li><strong>Revocación:</strong> basta con dejar de usar la aplicación y eliminar los datos locales — no hay cuenta que cancelar ni servidor al cual solicitar la eliminación.</li>
+          </ul>
+        </section>
+
+        <section class="card" id="criancas">
+          <h2><i class="fa-solid fa-child text-govbr-600 dark:text-unifesp-400"></i> 8. Niños y adolescentes</h2>
+          <p>lattesZen es una herramienta destinada a la organización del Currículum Lattes por parte de profesionales del servicio público, la docencia y la investigación, y no está dirigida a niños ni adolescentes.</p>
+        </section>
+
+        <section class="card" id="alteracoes">
+          <h2><i class="fa-solid fa-clock-rotate-left text-govbr-600 dark:text-unifesp-400"></i> 9. Cambios en esta política</h2>
+          <p>Por ser software libre y de código abierto, cualquier cambio en este documento queda registrado en el historial del <a href="https://github.com/alexsandroccarv/lattesZen" target="_blank" rel="noopener">repositorio en GitHub</a>. La versión y la fecha en el pie de esta página indican la última actualización.</p>
+        </section>
+
+        <section class="card" id="contato">
+          <h2><i class="fa-solid fa-envelope text-govbr-600 dark:text-unifesp-400"></i> 10. Contacto</h2>
+          <p>Las dudas sobre esta política o sobre cómo lattesZen trata los datos pueden enviarse como un <a href="https://github.com/alexsandroccarv/lattesZen/issues" target="_blank" rel="noopener">issue en el repositorio del proyecto</a> — el mismo canal usado para reportar errores y sugerir funcionalidades.</p>
+        </section>
+      </div>
+    </main>
+
+    <!-- ============================ FOOTER (same as the app) ============================ -->
+    <footer class="bg-govbr-800 dark:bg-gray-950 border-t border-govbr-700 dark:border-gray-700 py-3 px-6 text-xs text-blue-100 dark:text-gray-400 flex flex-col sm:flex-row justify-between items-center shrink-0 gap-4 transition-colors duration-300">
+        <div class="flex items-center gap-4 flex-wrap justify-center">
+            <a href="termodeuso.es.html" class="hover:text-white transition-colors flex items-center gap-1" title="Términos de uso" aria-label="Términos de uso"><i aria-hidden="true" class="fa-solid fa-file-contract"></i></a>
+            <span class="text-white/25 dark:text-gray-700">|</span>
+            <a href="privacidade.es.html" class="hover:text-white transition-colors flex items-center gap-1" title="Política de privacidad" aria-label="Política de privacidad"><i aria-hidden="true" class="fa-solid fa-shield-halved"></i></a>
+            <span class="text-white/25 dark:text-gray-700">|</span>
+            <a href="./ajuda.es.html" class="hover:text-white transition-colors flex items-center gap-1" title="Ayuda" aria-label="Ayuda"><i aria-hidden="true" class="fa-solid fa-circle-question"></i></a>
+            <span class="text-white/25 dark:text-gray-700">|</span>
+            <a href="sobre.es.html" class="hover:text-white transition-colors flex items-center gap-1" title="Acerca de" aria-label="Acerca de"><i aria-hidden="true" class="fa-solid fa-circle-info"></i></a>
+            <span class="text-white/25 dark:text-gray-700">|</span>
+            <button type="button" id="highContrastToggle" class="hover:text-white transition-colors flex items-center gap-1" aria-pressed="false" title="Alternar alto contraste">
+                <i aria-hidden="true" class="fa-solid fa-circle-half-stroke"></i> <span class="sr-only">Alto contraste</span>
+            </button>
+            <span class="text-white/25 dark:text-gray-700">|</span>
+            <span class="flex items-center gap-1" role="group" aria-label="Tamaño de fuente">
+                <button type="button" id="fontDec" class="hover:text-white transition-colors flex items-center gap-1" title="Disminuir fuente" aria-label="Disminuir fuente"><i aria-hidden="true" class="fa-solid fa-magnifying-glass-minus"></i> A-</button>
+                <button type="button" id="fontInc" class="hover:text-white transition-colors flex items-center gap-1" title="Aumentar fuente" aria-label="Aumentar fuente"><i aria-hidden="true" class="fa-solid fa-magnifying-glass-plus"></i> A+</button>
+            </span>
+        </div>
+        <div class="flex gap-3 items-center flex-wrap justify-center">
+            <a href="https://github.com/alexsandroccarv" target="_blank" rel="noopener" class="hover:text-white hover:underline transition-colors flex items-center gap-1">
+                <i aria-hidden="true" class="fa-brands fa-github text-white/90 dark:text-unifesp-400"></i> Alexsandro Cardoso Carvalho
+            </a>
+            <span class="text-white/40 dark:text-gray-600">|</span>
+            <a href="doe-um-cafe.es.html" class="hover:text-white hover:underline transition-colors flex items-center gap-1">
+                <i aria-hidden="true" class="fa-solid fa-mug-hot text-white/90 dark:text-unifesp-400"></i> Invíteme un café
+            </a>
+            <span class="text-white/40 dark:text-gray-600">|</span>
+            <a href="https://www.gnu.org/licenses/agpl-3.0.html" target="_blank" rel="noopener" class="hover:text-white transition-colors flex items-center gap-1" title="Licencia AGPLv3 (Free Software Foundation)">
+                <i aria-hidden="true" class="fa-solid fa-scale-balanced text-white/90 dark:text-unifesp-400"></i> AGPLv3
+            </a>
+            <span class="text-white/40 dark:text-gray-600">|</span>
+            <span class="flex items-center gap-1"><i aria-hidden="true" class="fa-solid fa-tag" title="Versión"></i> <a href="notas-de-versao.html" class="font-mono hover:text-white hover:underline transition-colors" title="Notas de versión (en portugués)"><span id="appVersion"></span></a></span>
+            <a href="https://github.com/alexsandroccarv/latteszen" target="_blank" rel="noopener" class="hover:text-white transition-colors flex items-center gap-1" title="Código fuente (repositorio en GitHub)" aria-label="Código fuente (repositorio en GitHub)">
+                <i aria-hidden="true" class="fa-solid fa-code text-white/90 dark:text-unifesp-400"></i>
+            </a>
+        </div>
+    </footer>
+
+    <!-- Dynamic header/footer: version and owner name (same behavior as the app) -->
+    <script type="module" src="js/config.js"></script>
+    <script type="module" src="js/a11y.js"></script>
+    <script type="module" src="js/analytics.js"></script>
+    <script type="module" src="js/cookie-consent.js"></script>
+    <script type="module" src="js/pwa.js"></script>
+    <script type="module">
+        (function () {
+            // Fixes this page's locale (fixed Spanish content), without
+            // touching localStorage — cookie-consent.js imports i18n.js,
+            // whose synchronous bootstrap would otherwise read the app's
+            // configured locale and could "leak" a mismatched <html
+            // lang>/cookie banner into this page.
+            try { window.LzI18n.setLocale('es'); } catch (e) {}
+        })();
+    </script>
+    <script type="module">
+        (function () {
+            var C = window.APP_CONFIG || {};
+            // This page's static title (from <title>, see SEO issue #37) —
+            // used as the "default" below instead of always rewriting to
+            // "lattesZen" when there's no saved profile name.
+            var tituloBase = document.title;
+            var setTxt = function (id, v) { var el = document.getElementById(id); if (el && v != null) el.textContent = v; };
+            setTxt('appVersion', C.version);
+            // Full name from the Identification item (same logic as the app): "lattesZen | Name".
+            var nome = '';
+            try {
+                var itens = JSON.parse(localStorage.getItem((C.storageKeys && C.storageKeys.catalog) || 'lz_catalog') || '[]');
+                var ident = itens.find(function (i) { return i.typeKey === 'IDENTIFICACAO' && i.fields && i.fields.titulo; });
+                if (ident) nome = String(ident.fields.titulo).trim();
+            } catch (e) {}
+            var nomeWrap = document.getElementById('headerNomeWrap');
+            if (nomeWrap) nomeWrap.classList.toggle('hidden', !nome);
+            setTxt('headerNome', nome);
+            document.title = nome ? (C.name || 'lattesZen') + ' | ' + nome : tituloBase;
+
+            var htmlEl = document.documentElement;
+
+            var hc = document.getElementById('highContrastToggle');
+            function syncHC() { hc.setAttribute('aria-pressed', htmlEl.classList.contains('high-contrast') ? 'true' : 'false'); }
+            if (hc) { syncHC(); hc.addEventListener('click', function () { htmlEl.classList.toggle('high-contrast'); localStorage.setItem('altoContraste', htmlEl.classList.contains('high-contrast') ? '1' : '0'); syncHC(); }); }
+
+            var FS_MIN = 80, FS_MAX = 150, FS_STEP = 10;
+            function getFS() { var n = parseInt(localStorage.getItem('fontScale') || '100', 10); return isNaN(n) ? 100 : n; }
+            var dec = document.getElementById('fontDec'), inc = document.getElementById('fontInc');
+            function applyFS(n) {
+                n = Math.max(FS_MIN, Math.min(FS_MAX, n));
+                htmlEl.style.fontSize = n === 100 ? '' : n + '%';
+                localStorage.setItem('fontScale', String(n));
+                if (dec) dec.disabled = n <= FS_MIN;
+                if (inc) inc.disabled = n >= FS_MAX;
+            }
+            applyFS(getFS());
+            if (dec) dec.addEventListener('click', function () { applyFS(getFS() - FS_STEP); });
+            if (inc) inc.addEventListener('click', function () { applyFS(getFS() + FS_STEP); });
+        })();
+    </script>
+</body>
+</html>

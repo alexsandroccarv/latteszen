@@ -17,36 +17,36 @@
     You should have received a copy of the GNU Affero General Public License
     along with lattesZen. If not, see <https://www.gnu.org/licenses/>.
 -->
-<html lang="pt-BR">
+<html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>lattesZen — Ajuda</title>
-    <meta name="description" content="Guia rápido do lattesZen: como catalogar itens, anexar evidências, verificar conformidade e publicar seu Currículo Lattes.">
-    <link rel="canonical" href="https://ccarvalho.net/labs/latteszen/ajuda.html">
+    <title>lattesZen — Ayuda</title>
+    <meta name="description" content="Guía rápida de lattesZen: cómo catalogar ítems, adjuntar evidencias, verificar el cumplimiento y publicar su Currículum Lattes.">
+    <link rel="canonical" href="https://ccarvalho.net/labs/latteszen/ajuda.es.html">
     <link rel="alternate" hreflang="pt-BR" href="https://ccarvalho.net/labs/latteszen/ajuda.html">
     <link rel="alternate" hreflang="en" href="https://ccarvalho.net/labs/latteszen/ajuda.en.html">
     <link rel="alternate" hreflang="es" href="https://ccarvalho.net/labs/latteszen/ajuda.es.html">
     <link rel="alternate" hreflang="x-default" href="https://ccarvalho.net/labs/latteszen/ajuda.html">
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="lattesZen">
-    <meta property="og:locale" content="pt_BR">
-    <meta property="og:title" content="lattesZen — Ajuda">
-    <meta property="og:description" content="Guia rápido do lattesZen: como catalogar itens, anexar evidências, verificar conformidade e publicar seu Currículo Lattes.">
-    <meta property="og:url" content="https://ccarvalho.net/labs/latteszen/ajuda.html">
+    <meta property="og:locale" content="es_ES">
+    <meta property="og:title" content="lattesZen — Ayuda">
+    <meta property="og:description" content="Guía rápida de lattesZen: cómo catalogar ítems, adjuntar evidencias, verificar el cumplimiento y publicar su Currículum Lattes.">
+    <meta property="og:url" content="https://ccarvalho.net/labs/latteszen/ajuda.es.html">
     <meta property="og:image" content="https://ccarvalho.net/labs/latteszen/images/og-image.png">
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="lattesZen — Ajuda">
-    <meta name="twitter:description" content="Guia rápido do lattesZen: como catalogar itens, anexar evidências, verificar conformidade e publicar seu Currículo Lattes.">
+    <meta name="twitter:title" content="lattesZen — Ayuda">
+    <meta name="twitter:description" content="Guía rápida de lattesZen: cómo catalogar ítems, adjuntar evidencias, verificar el cumplimiento y publicar su Currículum Lattes.">
     <meta name="twitter:image" content="https://ccarvalho.net/labs/latteszen/images/og-image.png">
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#1351B4">
 
-    <!-- Mesmos estilos da aplicação -->
+    <!-- Mismos estilos que la aplicación -->
     <link rel="stylesheet" href="css/styles.css">
 
-    <!-- Tema claro/escuro e alto contraste: aplicar cedo para evitar "flash" -->
+    <!-- Tema claro/oscuro y alto contraste: aplicado temprano para evitar un "flash" -->
     <script>
         (function () {
             const htmlEl = document.documentElement;
@@ -54,8 +54,8 @@
             const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
             if (saved ? saved === 'dark' : prefersDark) htmlEl.classList.add('dark');
             if (localStorage.getItem('altoContraste') === '1') htmlEl.classList.add('high-contrast');
-            // Tema (paletas prontas, escolhidas em Configurações): aplicar cedo
-            // para evitar "flash" — mesma lógica de dark/altoContraste acima.
+            // Tema (paletas listas, elegidas en Configuración): aplicado temprano
+            // para evitar un "flash" — misma lógica que oscuro/alto contraste arriba.
             const temaPreset = localStorage.getItem('lz_tema_preset') || 'govbr';
             htmlEl.classList.add('lz-theme');
             htmlEl.setAttribute('data-lz-theme', temaPreset);
@@ -64,7 +64,7 @@
         })();
     </script>
 
-    <!-- Recursos externos (Tailwind + config, Font Awesome, Rawline) — mesmo do app -->
+    <!-- Recursos externos (Tailwind + config, Font Awesome, Rawline) — igual que la app -->
     <script>
         (function () {
             var TW_CONFIG = {
@@ -89,14 +89,15 @@
             loadCss('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css');
             loadCss('https://cdngovbr-ds.estaleiro.serpro.gov.br/design-system/fonts/rawline/css/rawline.css');
 
-            // Tema: fontes do Google por paleta (carregadas sob demanda —
-            // "lattesZen noite" e "lattesZen dia" usam fonte já carregada acima, sem CDN extra).
+            // Tema: fuentes de Google por paleta (cargadas bajo demanda —
+            // "lattesZen noche" y "lattesZen día" reutilizan la fuente ya
+            // cargada arriba, sin CDN extra).
             var THEME_FONTS = {
                 'catppuccin-latte': 'https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap',
                 'catppuccin-mocha': 'https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap',
                 dracula: 'https://fonts.googleapis.com/css2?family=Fira+Sans:wght@400;600;700&display=swap',
-                // lattesZen dia (govbr) usa a Rawline já carregada acima (sem CDN extra); GitHub
-                // Light/Dark usam a fonte do sistema — por isso não têm entrada aqui.
+                // lattesZen día (govbr) usa la Rawline ya cargada arriba (sin CDN extra); GitHub
+                // Light/Dark usan la fuente del sistema — por eso no tienen entrada aquí.
                 'rose-pine-dawn': 'https://fonts.googleapis.com/css2?family=Quicksand:wght@400;600;700&display=swap',
                 'solarized-light': 'https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&display=swap',
                 'solarized-dark': 'https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&display=swap',
@@ -109,8 +110,8 @@
                 l.rel = 'stylesheet'; l.href = url; l.setAttribute('data-lz-font', preset);
                 document.head.appendChild(l);
             };
-            // Sincroniza <meta name="theme-color"> (barra do navegador no
-            // mobile) com a cor do cabeçalho do tema ativo.
+            // Sincroniza <meta name="theme-color"> (barra del navegador en
+            // móvil) con el color del encabezado del tema activo.
             window.__setThemeColor = function () {
                 var m = document.querySelector('meta[name="theme-color"]');
                 if (!m) { m = document.createElement('meta'); m.name = 'theme-color'; document.head.appendChild(m); }
@@ -123,7 +124,7 @@
         })();
     </script>
 
-    <!-- Estilo do conteúdo desta página (escopo .help-doc; dark por classe, como o app) -->
+    <!-- Estilo del contenido de esta página (ámbito .help-doc; oscuro por clase, como la app) -->
     <style>
       :root{
         --hdoc-surface:#f9fafb; --hdoc-text:#1f2937; --hdoc-muted:#6b7280; --hdoc-line:#e5e7eb;
@@ -138,11 +139,10 @@
         --hdoc-ok-bg:#0e2a1e; --hdoc-ok-line:#34d399;
       }
 
-      /* Tema escolhido (Configurações → Outros recursos) tem prioridade
-         sobre os padrões claro/escuro acima — mesmo princípio já usado no
-         cabeçalho/rodapé/abas do app (ver "html.lz-theme" em styles.css):
-         sem isto, escolher um tema (Drácula, Catppuccin etc.) não tinha
-         nenhum efeito no conteúdo desta página, só no cabeçalho/rodapé. */
+      /* El tema elegido (Configuración → Otras funciones) tiene prioridad
+         sobre los valores claro/oscuro por defecto de arriba — mismo
+         principio ya usado en el encabezado/pie/pestañas de la app (ver
+         "html.lz-theme" en styles.css). */
       html.lz-theme{
         --hdoc-surface:var(--lz-surface); --hdoc-text:var(--lz-text); --hdoc-muted:var(--lz-muted); --hdoc-line:var(--lz-border);
         --hdoc-accent:var(--lz-accent); --hdoc-code:var(--lz-surface); --hdoc-chip:var(--lz-surface); --hdoc-chipink:var(--lz-accent);
@@ -183,7 +183,7 @@
 </head>
 <body class="font-sans bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-100 min-h-screen flex flex-col transition-colors duration-300">
 
-    <!-- ============================ CABEÇALHO (igual ao app) ============================ -->
+    <!-- ============================ ENCABEZADO (igual que la app) ============================ -->
     <header class="bg-govbr-600 dark:bg-gray-900 border-b border-govbr-700 dark:border-gray-700 flex flex-col shadow-sm dark:shadow-lg z-20 shrink-0 transition-colors duration-300">
         <div class="flex items-center justify-between px-4 py-3 bg-govbr-600 dark:bg-gray-900 transition-colors duration-300">
             <div class="flex items-center gap-3">
@@ -200,124 +200,126 @@
             </div>
             <div class="flex items-center gap-3 shrink-0">
                 <div id="govBrLogo" class="bg-white rounded px-2 py-1.5 flex items-center shrink-0 dark:hidden">
-                    <img src="images/geral/gov_br.svg" alt="Governo Federal" class="h-5 w-auto" onerror="this.parentElement.style.display='none'">
+                    <img src="images/geral/gov_br.svg" alt="Gobierno Federal" class="h-5 w-auto" onerror="this.parentElement.style.display='none'">
                 </div>
-                <!-- Seletor de idioma desta página estática — ver nota de
-                     arquitetura no topo do arquivo .en.html irmão: cada
-                     idioma é um ARQUIVO separado (não dinâmico via t()),
-                     diferente do app (index.html), que muda de idioma ao
-                     vivo. Independe do locale configurado no app. -->
-                <a href="ajuda.en.html" title="View in English" aria-label="View in English" class="text-white/90 hover:text-white transition-colors text-xs font-semibold border border-white/30 rounded px-1.5 py-1 shrink-0">EN</a>
+                <!-- Selector de idioma de esta página estática — ver la nota
+                     de arquitectura en el encabezado del archivo .en.html
+                     hermano: cada idioma es un ARCHIVO separado (no
+                     dinámico vía t()), a diferencia de la app (index.html),
+                     que cambia de idioma en vivo. Independiente del locale
+                     configurado en la app. -->
+                <a href="ajuda.html" title="Ver en portugués" aria-label="Ver en portugués" class="text-white/90 hover:text-white transition-colors text-xs font-semibold border border-white/30 rounded px-1.5 py-1 shrink-0">PT</a>
                 <span class="text-white/40 dark:text-gray-600 text-xs" aria-hidden="true">|</span>
-                <a href="ajuda.es.html" title="Ver en español" aria-label="Ver en español" class="text-white/90 hover:text-white transition-colors text-xs font-semibold border border-white/30 rounded px-1.5 py-1 shrink-0">ES</a>
-                <!-- Configurações: mesma posição do templateZen (1ª linha do
-                     cabeçalho, extrema direita) — abre index.html na aba
-                     Configurações (ver hash "#config" tratado em app.js). -->
-                <a href="index.html#config" title="Configurações" aria-label="Configurações" class="text-white/90 hover:text-white transition-colors w-8 h-8 flex items-center justify-center rounded shrink-0">
+                <a href="ajuda.en.html" title="View in English" aria-label="View in English" class="text-white/90 hover:text-white transition-colors text-xs font-semibold border border-white/30 rounded px-1.5 py-1 shrink-0">EN</a>
+                <!-- Configuración: misma posición que templateZen (1ª fila
+                     del encabezado, extremo derecho) — abre index.html en
+                     la pestaña Configuración (ver el hash "#config"
+                     tratado en app.js). -->
+                <a href="index.html#config" title="Configuración" aria-label="Configuración" class="text-white/90 hover:text-white transition-colors w-8 h-8 flex items-center justify-center rounded shrink-0">
                     <i aria-hidden="true" class="fa-solid fa-gear"></i>
                 </a>
             </div>
         </div>
 
-        <!-- 2ª linha do cabeçalho: um único link "Voltar ao início" (volta
-             pro app) — antes eram 2 links redundantes (Início + Voltar ao
-             lattesZen, ambos indo pro mesmo lugar); sem fingir uma régua de
-             abas com Catalogar/Conformidade/Publicar (todas levavam pra
-             index.html de qualquer forma). -->
-        <nav class="bg-white dark:bg-gray-800 border-t border-govbr-700/20 dark:border-gray-700 px-2" aria-label="Voltar">
+        <!-- 2ª fila del encabezado: un único enlace "Volver al inicio"
+             (vuelve a la app) — antes eran 2 enlaces redundantes (Inicio +
+             Volver a lattesZen, ambos yendo al mismo lugar); sin fingir una
+             barra de pestañas con Catalogar/Cumplimiento/Publicar (todas
+             llevaban a index.html de todos modos). -->
+        <nav class="bg-white dark:bg-gray-800 border-t border-govbr-700/20 dark:border-gray-700 px-2" aria-label="Volver">
             <div class="max-w-5xl mx-auto flex gap-1">
                 <a href="index.html" class="tab-btn px-4 py-2.5 text-sm font-medium border-b-2 border-transparent text-gray-600 dark:text-gray-300 hover:text-govbr-600 dark:hover:text-unifesp-400 whitespace-nowrap">
-                    <i aria-hidden="true" class="fa-solid fa-house mr-1"></i><i aria-hidden="true" class="fa-solid fa-arrow-left mr-1"></i> Voltar ao início
+                    <i aria-hidden="true" class="fa-solid fa-house mr-1"></i><i aria-hidden="true" class="fa-solid fa-arrow-left mr-1"></i> Volver al inicio
                 </a>
             </div>
         </nav>
     </header>
 
-    <!-- ============================ CONTEÚDO ============================ -->
+    <!-- ============================ CONTENIDO ============================ -->
     <main class="flex-1 w-full max-w-6xl mx-auto px-4 py-6">
       <div class="help-doc">
-        <h1>Ajuda — Início Rápido</h1>
-        <p class="lead">Tudo que você precisa para organizar o Currículo Lattes com o lattesZen, num único lugar. Se você já conhece o app, vá direto para um dos <a href="#guias">dois guias completos</a> abaixo.</p>
+        <h1>Ayuda — Inicio rápido</h1>
+        <p class="lead">Todo lo que necesita para organizar el Currículum Lattes con lattesZen, en un solo lugar. Si ya conoce la aplicación, vaya directamente a una de las <a href="#guias">dos guías completas</a> a continuación.</p>
 
         <div class="note">
-          <strong>Em uma frase:</strong> você escolhe uma <em>pasta no seu computador</em> (ou o Google Drive) → importa itens do Lattes/ORCID/BibTeX → anexa os PDFs de comprovação → acompanha o que falta na aba <em>Conformidade</em> → e publica o currículo como uma página pública.
+          <strong>En una frase:</strong> usted elige una <em>carpeta en su computadora</em> (o Google Drive) → importa ítems de Lattes/ORCID/BibTeX → adjunta los PDF de comprobación → hace seguimiento de lo que falta en la pestaña <em>Cumplimiento</em> → y publica el currículum como una página pública.
         </div>
 
         <nav class="toc">
-          <h2>Nesta página</h2>
+          <h2>En esta página</h2>
           <ol>
-            <li><a href="#oque">O que é o lattesZen</a></li>
-            <li><a href="#passos">Primeiros passos (5 minutos)</a></li>
-            <li><a href="#guias">Guias completos</a></li>
-            <li><a href="#faq">Perguntas rápidas</a></li>
+            <li><a href="#oque">Qué es lattesZen</a></li>
+            <li><a href="#passos">Primeros pasos (5 minutos)</a></li>
+            <li><a href="#guias">Guías completas</a></li>
+            <li><a href="#faq">Preguntas rápidas</a></li>
           </ol>
         </nav>
 
         <section class="card" id="oque">
-          <h2>O que é o lattesZen</h2>
-          <p>O <strong>lattesZen</strong> é um organizador de Currículo Lattes que roda inteiramente no seu navegador — <strong>nenhum dado sai do seu computador</strong>. Ele ajuda você a manter os itens do currículo organizados, comprovados (com PDF anexado) e prontos para publicação, além de simular o <strong>RSC-PCCTAE</strong> (Reconhecimento de Saberes e Competências) para servidores técnico-administrativos em educação.</p>
+          <h2>Qué es lattesZen</h2>
+          <p><strong>lattesZen</strong> es un organizador de Currículum Lattes que funciona completamente en su navegador — <strong>ningún dato sale de su computadora</strong>. Le ayuda a mantener los ítems del currículum organizados, comprobados (con PDF adjunto) y listos para publicación, además de simular el <strong>RSC-PCCTAE</strong> (Reconocimiento de Saberes y Competencias) para servidores técnico-administrativos en educación.</p>
         </section>
 
         <section class="card" id="passos">
-          <h2>Primeiros passos (5 minutos)</h2>
+          <h2>Primeros pasos (5 minutos)</h2>
           <ol>
-            <li><strong>Escolha uma pasta</strong> em <span class="pill">Configurações → Diretório de armazenamento</span> (ou conecte o Google Drive, se preferir acesso de mais de um dispositivo).</li>
-            <li><strong>Traga seus itens</strong>: importe o XML exportado da Plataforma Lattes, ou busque suas obras por <strong>ORCID iD</strong>, ou importe um arquivo <strong>BibTeX/RIS</strong> — tudo em <span class="pill">Configurações</span>.</li>
-            <li><strong>Anexe as evidências</strong> (PDFs) a cada item na aba <span class="pill">Catalogar</span>, usando a Caixa de Entrada ou arrastando o arquivo direto para o formulário.</li>
-            <li><strong>Confira o que falta</strong> na aba <span class="pill">Conformidade</span> — comprovação e campos obrigatórios, tudo num só painel.</li>
-            <li><strong>Publique</strong> quando quiser, em <span class="pill">Publicar na Web</span>: gera uma página pública do currículo, autossuficiente, a partir da mesma base.</li>
+            <li><strong>Elija una carpeta</strong> en <span class="pill">Configuración → Directorio de almacenamiento</span> (o conecte Google Drive, si prefiere acceso desde más de un dispositivo).</li>
+            <li><strong>Traiga sus ítems</strong>: importe el XML exportado de la Plataforma Lattes, o busque sus obras por <strong>ORCID iD</strong>, o importe un archivo <strong>BibTeX/RIS</strong> — todo en <span class="pill">Configuración</span>.</li>
+            <li><strong>Adjunte las evidencias</strong> (PDF) a cada ítem en la pestaña <span class="pill">Catalogar</span>, usando la Bandeja de Entrada o arrastrando el archivo directamente al formulario.</li>
+            <li><strong>Revise lo que falta</strong> en la pestaña <span class="pill">Cumplimiento</span> — comprobación y campos obligatorios, todo en un solo panel.</li>
+            <li><strong>Publique</strong> cuando quiera, en <span class="pill">Publicar en la Web</span>: genera una página pública del currículum, autosuficiente, a partir de la misma base.</li>
           </ol>
-          <div class="warn"><strong>Navegador:</strong> a gravação automática em pasta usa a <em>File System Access API</em>, disponível no <strong>Google Chrome</strong> e no <strong>Microsoft Edge</strong> (computador). Em outros navegadores, ou usando o Google Drive, o app funciona normalmente.</div>
+          <div class="warn"><strong>Navegador:</strong> el guardado automático en carpeta usa la <em>File System Access API</em>, disponible en <strong>Google Chrome</strong> y <strong>Microsoft Edge</strong> (computadora). En otros navegadores, o usando Google Drive, la aplicación funciona normalmente.</div>
         </section>
 
         <section class="card" id="guias">
-          <h2>Guias completos</h2>
-          <p>Para o passo a passo detalhado de cada fluxo, escolha um guia:</p>
+          <h2>Guías completas</h2>
+          <p>Para el paso a paso detallado de cada flujo, elija una guía:</p>
           <div class="guide-grid">
-            <a class="guide-card" href="ajuda-lattes.html">
-              <h3><i aria-hidden="true" class="fa-solid fa-file-lines"></i> Currículo Lattes</h3>
-              <p>Diretório de arquivos, Caixa de Entrada, importação do XML/ORCID/BibTeX-RIS, preenchimento dos campos, atalhos de teclado, a aba Conformidade, publicação da página pública, backup e compatibilidade com o Lattes.</p>
-              <span class="go">Abrir guia do Lattes →</span>
+            <a class="guide-card" href="ajuda-lattes.es.html">
+              <h3><i aria-hidden="true" class="fa-solid fa-file-lines"></i> Currículum Lattes</h3>
+              <p>Directorio de archivos, Bandeja de Entrada, importación de XML/ORCID/BibTeX-RIS, llenado de los campos, atajos de teclado, la pestaña Cumplimiento, publicación de la página pública, copia de seguridad y compatibilidad con Lattes.</p>
+              <span class="go">Abrir guía de Lattes →</span>
             </a>
-            <a class="guide-card" href="ajuda-rsc.html">
+            <a class="guide-card" href="ajuda-rsc.es.html">
               <h3><i aria-hidden="true" class="fa-solid fa-award"></i> RSC-PCCTAE</h3>
-              <p>Como habilitar o módulo, marcar itens com um critério do RSC, as categorias 20/21 (sem correspondência no Lattes), o simulador de pontuação e nível, e a geração do memorial, planilha e formulário oficial (.docx).</p>
-              <span class="go">Abrir guia do RSC →</span>
+              <p>Cómo habilitar el módulo, marcar ítems con un criterio del RSC, las categorías 20/21 (sin correspondencia en Lattes), el simulador de puntuación y nivel, y la generación del memorial, planilla y formulario oficial (.docx).</p>
+              <span class="go">Abrir guía del RSC →</span>
             </a>
           </div>
         </section>
 
         <section class="card" id="faq">
-          <h2>Perguntas rápidas</h2>
-          <h3>Meus dados ficam salvos onde?</h3>
-          <p>Na pasta que você escolher no seu próprio computador (ou, opcionalmente, numa pasta dedicada no seu Google Drive). O lattesZen não tem servidor próprio nem envia seus dados para fora do navegador.</p>
-          <h3>Preciso reescrever tudo que já tenho no Lattes?</h3>
-          <p>Não — importe o XML exportado da Plataforma Lattes (ou suas obras via ORCID/BibTeX/RIS) e o app traz os itens automaticamente, sem duplicar em importações futuras.</p>
-          <h3>O simulador de RSC tem valor oficial?</h3>
-          <p>Não — é uma ferramenta de apoio de uso individual, baseada nas tabelas do decreto vigente, para você organizar sua pontuação e comprovação. A avaliação formal cabe sempre à comissão da sua instituição.</p>
-          <div class="ok">Ainda com dúvidas? Os dois guias completos acima cobrem cada tela e cada botão do app em detalhe.</div>
+          <h2>Preguntas rápidas</h2>
+          <h3>¿Dónde se guardan mis datos?</h3>
+          <p>En la carpeta que usted elija en su propia computadora (o, opcionalmente, en una carpeta dedicada en su Google Drive). lattesZen no tiene servidor propio ni envía sus datos fuera del navegador.</p>
+          <h3>¿Necesito volver a escribir todo lo que ya tengo en Lattes?</h3>
+          <p>No — importe el XML exportado de la Plataforma Lattes (o sus obras vía ORCID/BibTeX/RIS) y la aplicación trae los ítems automáticamente, sin duplicarlos en importaciones futuras.</p>
+          <h3>¿El simulador de RSC tiene valor oficial?</h3>
+          <p>No — es una herramienta de apoyo de uso individual, basada en las tablas del decreto vigente, para que usted organice su puntuación y comprobación. La evaluación formal siempre corresponde a la comisión de su institución.</p>
+          <div class="ok">¿Todavía tiene dudas? Las dos guías completas de arriba cubren cada pantalla y cada botón de la aplicación en detalle.</div>
         </section>
       </div>
     </main>
 
-    <!-- ============================ RODAPÉ (igual ao app) ============================ -->
+    <!-- ============================ PIE DE PÁGINA (igual que la app) ============================ -->
     <footer class="bg-govbr-800 dark:bg-gray-950 border-t border-govbr-700 dark:border-gray-700 py-3 px-6 text-xs text-blue-100 dark:text-gray-400 flex flex-col sm:flex-row justify-between items-center shrink-0 gap-4 transition-colors duration-300">
         <div class="flex items-center gap-4 flex-wrap justify-center">
-            <a href="termodeuso.html" class="hover:text-white transition-colors flex items-center gap-1" title="Termo de uso" aria-label="Termo de uso"><i aria-hidden="true" class="fa-solid fa-file-contract"></i></a>
+            <a href="termodeuso.es.html" class="hover:text-white transition-colors flex items-center gap-1" title="Términos de uso" aria-label="Términos de uso"><i aria-hidden="true" class="fa-solid fa-file-contract"></i></a>
             <span class="text-white/25 dark:text-gray-700">|</span>
-            <a href="privacidade.html" class="hover:text-white transition-colors flex items-center gap-1" title="Política de privacidade" aria-label="Política de privacidade"><i aria-hidden="true" class="fa-solid fa-shield-halved"></i></a>
+            <a href="privacidade.es.html" class="hover:text-white transition-colors flex items-center gap-1" title="Política de privacidad" aria-label="Política de privacidad"><i aria-hidden="true" class="fa-solid fa-shield-halved"></i></a>
             <span class="text-white/25 dark:text-gray-700">|</span>
-            <a href="./ajuda.html" class="hover:text-white transition-colors flex items-center gap-1" title="Ajuda" aria-label="Ajuda"><i aria-hidden="true" class="fa-solid fa-circle-question"></i></a>
+            <a href="./ajuda.es.html" class="hover:text-white transition-colors flex items-center gap-1" title="Ayuda" aria-label="Ayuda"><i aria-hidden="true" class="fa-solid fa-circle-question"></i></a>
             <span class="text-white/25 dark:text-gray-700">|</span>
-            <a href="sobre.html" class="hover:text-white transition-colors flex items-center gap-1" title="Sobre" aria-label="Sobre"><i aria-hidden="true" class="fa-solid fa-circle-info"></i></a>
+            <a href="sobre.es.html" class="hover:text-white transition-colors flex items-center gap-1" title="Acerca de" aria-label="Acerca de"><i aria-hidden="true" class="fa-solid fa-circle-info"></i></a>
             <span class="text-white/25 dark:text-gray-700">|</span>
             <button type="button" id="highContrastToggle" class="hover:text-white transition-colors flex items-center gap-1" aria-pressed="false" title="Alternar alto contraste">
                 <i aria-hidden="true" class="fa-solid fa-circle-half-stroke"></i> <span class="sr-only">Alto contraste</span>
             </button>
             <span class="text-white/25 dark:text-gray-700">|</span>
-            <span class="flex items-center gap-1" role="group" aria-label="Tamanho da fonte">
-                <button type="button" id="fontDec" class="hover:text-white transition-colors flex items-center gap-1" title="Diminuir fonte" aria-label="Diminuir fonte"><i aria-hidden="true" class="fa-solid fa-magnifying-glass-minus"></i> A-</button>
-                <button type="button" id="fontInc" class="hover:text-white transition-colors flex items-center gap-1" title="Aumentar fonte" aria-label="Aumentar fonte"><i aria-hidden="true" class="fa-solid fa-magnifying-glass-plus"></i> A+</button>
+            <span class="flex items-center gap-1" role="group" aria-label="Tamaño de fuente">
+                <button type="button" id="fontDec" class="hover:text-white transition-colors flex items-center gap-1" title="Disminuir fuente" aria-label="Disminuir fuente"><i aria-hidden="true" class="fa-solid fa-magnifying-glass-minus"></i> A-</button>
+                <button type="button" id="fontInc" class="hover:text-white transition-colors flex items-center gap-1" title="Aumentar fuente" aria-label="Aumentar fuente"><i aria-hidden="true" class="fa-solid fa-magnifying-glass-plus"></i> A+</button>
             </span>
         </div>
         <div class="flex gap-3 items-center flex-wrap justify-center">
@@ -325,22 +327,22 @@
                 <i aria-hidden="true" class="fa-brands fa-github text-white/90 dark:text-unifesp-400"></i> Alexsandro Cardoso Carvalho
             </a>
             <span class="text-white/40 dark:text-gray-600">|</span>
-            <a href="doe-um-cafe.html" class="hover:text-white hover:underline transition-colors flex items-center gap-1">
-                <i aria-hidden="true" class="fa-solid fa-mug-hot text-white/90 dark:text-unifesp-400"></i> Doe um café
+            <a href="doe-um-cafe.es.html" class="hover:text-white hover:underline transition-colors flex items-center gap-1">
+                <i aria-hidden="true" class="fa-solid fa-mug-hot text-white/90 dark:text-unifesp-400"></i> Invítame un café
             </a>
             <span class="text-white/40 dark:text-gray-600">|</span>
-            <a href="https://www.gnu.org/licenses/agpl-3.0.html" target="_blank" rel="noopener" class="hover:text-white transition-colors flex items-center gap-1" title="Licença AGPLv3 (Free Software Foundation)">
+            <a href="https://www.gnu.org/licenses/agpl-3.0.html" target="_blank" rel="noopener" class="hover:text-white transition-colors flex items-center gap-1" title="Licencia AGPLv3 (Free Software Foundation)">
                 <i aria-hidden="true" class="fa-solid fa-scale-balanced text-white/90 dark:text-unifesp-400"></i> AGPLv3
             </a>
             <span class="text-white/40 dark:text-gray-600">|</span>
-            <span class="flex items-center gap-1"><i aria-hidden="true" class="fa-solid fa-tag" title="Versão"></i> <a href="notas-de-versao.html" class="font-mono hover:text-white hover:underline transition-colors" title="Notas de versão"><span id="appVersion"></span></a></span>
-            <a href="https://github.com/alexsandroccarv/latteszen" target="_blank" rel="noopener" class="hover:text-white transition-colors flex items-center gap-1" title="Código-fonte (repositório no GitHub)" aria-label="Código-fonte (repositório no GitHub)">
+            <span class="flex items-center gap-1"><i aria-hidden="true" class="fa-solid fa-tag" title="Versión"></i> <a href="notas-de-versao.html" class="font-mono hover:text-white hover:underline transition-colors" title="Notas de la versión (en portugués)"><span id="appVersion"></span></a></span>
+            <a href="https://github.com/alexsandroccarv/latteszen" target="_blank" rel="noopener" class="hover:text-white transition-colors flex items-center gap-1" title="Código fuente (repositorio en GitHub)" aria-label="Código fuente (repositorio en GitHub)">
                 <i aria-hidden="true" class="fa-solid fa-code text-white/90 dark:text-unifesp-400"></i>
             </a>
         </div>
     </footer>
 
-    <!-- Cabeçalho/rodapé dinâmicos: versão e nome do titular (mesmo comportamento do app) -->
+    <!-- Encabezado/pie dinámicos: versión y nombre del titular (mismo comportamiento que la app) -->
     <script type="module" src="js/config.js"></script>
     <script type="module" src="js/a11y.js"></script>
     <script type="module" src="js/analytics.js"></script>
@@ -348,23 +350,24 @@
     <script type="module" src="js/pwa.js"></script>
     <script type="module">
         (function () {
-            // Esta página é sempre em português (arquivo separado do
-            // .en.html irmão — ver seletor de idioma no cabeçalho): força o
-            // locale usado por t()/<html lang> (cookie-consent.js importa
-            // i18n.js) pra pt-br, independente do idioma configurado no
-            // app (persistido em lz_settings) — sem isto, alguém com o app
-            // em "en" veria o aviso de cookies em inglês numa página cujo
-            // conteúdo é todo em português. Não mexe no localStorage (não
-            // afeta a configuração de fato do app).
-            try { window.LzI18n.setLocale('pt-br'); } catch (e) {}
+            // Esta página es siempre en español (archivo separado de los
+            // hermanos .html/.en.html — ver el selector de idioma en el
+            // encabezado): fuerza el locale usado por t()/<html lang>
+            // (cookie-consent.js importa i18n.js) a "es", independiente del
+            // idioma configurado en la app (persistido en lz_settings) —
+            // sin esto, alguien con la app en "pt-br" vería el aviso de
+            // cookies en portugués en una página cuyo contenido es todo en
+            // español. No modifica localStorage (no afecta la
+            // configuración real de la app).
+            try { window.LzI18n.setLocale('es'); } catch (e) {}
             var C = window.APP_CONFIG || {};
-            // Título estático desta página (do <title>, ver issue de SEO #37) —
-            // usado como "padrão" abaixo em vez de sempre reescrever pra
-            // "lattesZen" quando não há nome de perfil salvo.
+            // Título estático de esta página (del <title>, ver issue de SEO #37) —
+            // usado como "predeterminado" abajo en vez de siempre reescribir a
+            // "lattesZen" cuando no hay nombre de perfil guardado.
             var tituloBase = document.title;
             var setTxt = function (id, v) { var el = document.getElementById(id); if (el && v != null) el.textContent = v; };
             setTxt('appVersion', C.version);
-            // Nome completo do item de Identificação (mesma lógica do app): "lattesZen | Nome".
+            // Nombre completo del ítem de Identificación (misma lógica que la app): "lattesZen | Nombre".
             var nome = '';
             try {
                 var itens = JSON.parse(localStorage.getItem((C.storageKeys && C.storageKeys.catalog) || 'lz_catalog') || '[]');
