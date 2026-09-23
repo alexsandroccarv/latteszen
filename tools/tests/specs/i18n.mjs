@@ -314,6 +314,28 @@ test('i18n: com locale "es" persistido ANTES da carga da página, t() já devolv
     assertEqual(r.nivelHabilidadeJaExistente, 'Bueno', 'Chave de nivel_habilidade, já traduzida antes da Etapa 7 (reaproveitada em tab-catalogar.js), deveria continuar traduzida');
 });
 
+test('i18n: com locale "es" persistido ANTES da carga da página, o shell estático (index.html) já vem em espanhol (Etapa 8)', async ({ page, baseUrl }) => {
+    await page.goto(baseUrl + '/index.html');
+    await page.evaluate(() => localStorage.setItem('lz_settings', JSON.stringify({ locale: 'es' })));
+    await page.reload();
+    await page.waitForTimeout(500);
+    const r = await page.evaluate(() => ({
+        localeInicial: window.LzI18n.getLocale(),
+        htmlLang: document.documentElement.getAttribute('lang'),
+        titulo: document.title,
+        metaDescricao: document.querySelector('meta[name="description"]')?.getAttribute('content'),
+        ogLocale: document.querySelector('meta[property="og:locale"]')?.getAttribute('content'),
+        navAriaLabel: document.querySelector('nav[role="tablist"]')?.getAttribute('aria-label'),
+        configAriaLabel: document.querySelector('#headerConfigBtn')?.getAttribute('aria-label'),
+    }));
+    assertEqual(r.localeInicial, 'es', 'Com locale "es" persistido, i18n.js deveria se inicializar já em "es"');
+    assertEqual(r.titulo, 'lattesZen — Organizador de Currículum Lattes', '<title> deveria vir traduzido em "es"');
+    assert(r.metaDescricao?.startsWith('Organice su Currículum Lattes'), 'meta[name=description] deveria vir traduzida em "es"');
+    assertEqual(r.ogLocale, 'es_ES', 'meta[property=og:locale] deveria refletir "es_ES"');
+    assertEqual(r.navAriaLabel, 'Secciones', 'aria-label do nav de seções deveria vir traduzido em "es"');
+    assertEqual(r.configAriaLabel, 'Configuración', 'aria-label do botão de Configurações deveria vir traduzido em "es"');
+});
+
 test('i18n: com locale "en" persistido ANTES da carga da página, t() já devolve inglês em chaves de módulos diferentes (taxonomia, abas, core)', async ({ page, baseUrl }) => {
     await page.goto(baseUrl + '/index.html');
     await page.evaluate(() => localStorage.setItem('lz_settings', JSON.stringify({ locale: 'en' })));
