@@ -439,7 +439,7 @@ window.TabConfig = (function () {
     // horizontal rolável (ver .cfg-sidebar no CSS/classes abaixo).
     function cfgSidebarHtml(activeId) {
         return `
-        <nav aria-label="Seções de Configurações" class="flex lg:flex-col gap-1.5 overflow-x-auto lg:overflow-visible lg:w-48 lg:shrink-0">
+        <nav aria-label="${esc(t('tab_config.secoes_aria_label', 'Seções de Configurações'))}" class="flex lg:flex-col gap-1.5 overflow-x-auto lg:overflow-visible lg:w-48 lg:shrink-0">
             ${CFG_GROUPS.map(g => `
                 <button type="button" data-cfg-page-link="${g.id}" aria-current="${g.id === activeId ? 'page' : 'false'}" class="shrink-0 flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-left whitespace-nowrap ${g.id === activeId ? 'bg-govbr-600 dark:bg-unifesp-700 text-white' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'}">
                     <i aria-hidden="true" class="fa-solid ${g.icon}"></i> ${esc(g.label)}
@@ -668,7 +668,7 @@ window.TabConfig = (function () {
                 html += `
                 ${dirWizardModo === 'novo' ? `
                 <div class="flex flex-wrap gap-2 mb-2">
-                    <input id="gdrivePasta" type="text" placeholder="Pasta (ex.: lattesZen)" value="lattesZen" class="text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900">
+                    <input id="gdrivePasta" type="text" placeholder="${esc(t('tab_config.gdrive_pasta_placeholder', 'Pasta (ex.: lattesZen)'))}" value="lattesZen" class="text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900">
                 </div>` : `
                 <p class="text-xs text-gray-500 mb-2">${t('tab_config.gdrive_seletor_ajuda', 'Ao clicar, um seletor do Google Drive abre para você escolher a pasta que já usa — o nome dela é usado automaticamente, não precisa digitar nada.{avisoChave}', { avisoChave: temGDrivePickerKey ? '' : ` <span class="text-red-600 font-semibold">${esc(t('tab_config.picker_nao_configurado', 'Recurso ainda não configurado neste site (falta a Chave de API do Picker em config.js).'))}</span>` })}</p>`}
                 <p class="text-xs text-gray-500 mb-2">
