@@ -174,6 +174,45 @@ test('i18n: com locale "es" persistido ANTES da carga da página, t() já devolv
     assertEqual(r.tabCatalogarSalvarAindaPtBr, 'Salvar', 'tab_catalogar.salvar ainda não foi traduzido pro dicionário es (fica pra Etapa 4) — deve continuar caindo pro padrão pt-br');
 });
 
+test('i18n: com locale "es" persistido ANTES da carga da página, t() já devolve espanhol nas chaves da Etapa 3 (taxonomia Lattes — lattes-types*.js)', async ({ page, baseUrl }) => {
+    await page.goto(baseUrl + '/index.html');
+    await page.evaluate(() => localStorage.setItem('lz_settings', JSON.stringify({ locale: 'es' })));
+    await page.reload();
+    await page.waitForTimeout(500);
+    const r = await page.evaluate(() => ({
+        localeInicial: window.LzI18n.getLocale(),
+        campoTitulo: window.LzI18n.t('campos.f_titulo.label', 'Título'),
+        categoriaDadosGerais: window.LzI18n.t('lattes.categoria.DADOS_GERAIS.label', 'Dados gerais'),
+        pastaCaixaEntrada: window.LzI18n.t('lattes.pasta.caixa_entrada', 'Caixa de Entrada'),
+        tipoIdentificacao: window.LzI18n.t('lattes.tipo.IDENTIFICACAO.campo.cor_raca.label', 'Cor ou raça'),
+        tipoFormacao: window.LzI18n.t('lattes.tipo.FORMACAO_ACADEMICA.label', 'Formação acadêmica/titulação'),
+        tipoAtuacao: window.LzI18n.t('lattes.tipo.ATIV_ENSINO.label', 'Ensino'),
+        tipoArtigo: window.LzI18n.t('lattes.tipo.ARTIGO_PERIODICO.label', 'Artigos completos publicados em periódicos'),
+        tipoSoftware: window.LzI18n.t('lattes.tipo.SOFTWARE_SEM_REGISTRO.label', 'Programa de computador sem registro'),
+        tipoArtesCenicas: window.LzI18n.t('lattes.tipo.ARTES_CENICAS.label', 'Artes cênicas'),
+        tipoPatente: window.LzI18n.t('lattes.tipo.PATENTE.label', 'Patente'),
+        tipoOrientacao: window.LzI18n.t('lattes.tipo.ORIENTACAO_CONCLUIDA.label', 'Orientações e supervisões concluídas'),
+        tipoBanca: window.LzI18n.t('lattes.tipo.BANCA_JULGADORA.label', 'Participação em bancas de comissões julgadoras'),
+        tipoAlemLattes: window.LzI18n.t('lattes.tipo.AL_LEITURA.label', 'Leituras e clubes do livro'),
+        tipoRegistro: window.LzI18n.t('lattes.tipo.CONEXAO_SOCIAL.label', 'Redes sociais'),
+    }));
+    assertEqual(r.localeInicial, 'es', 'Com locale "es" persistido, i18n.js deveria se inicializar já em "es"');
+    assertEqual(r.campoTitulo, 'Título', 'Chave de lattes-types-campos.js deveria vir traduzida (mesma grafia em es e pt-br)');
+    assertEqual(r.categoriaDadosGerais, 'Datos generales', 'Categoria de lattes-types.js deveria vir traduzida');
+    assertEqual(r.pastaCaixaEntrada, 'Bandeja de Entrada', 'Nome de pasta (lattes.pasta.*, definido em lattes-types.js) deveria vir traduzido nesta etapa');
+    assertEqual(r.tipoIdentificacao, 'Color o raza', 'Chave de lattes-types-01-dados-gerais.js deveria vir traduzida');
+    assertEqual(r.tipoFormacao, 'Formación académica/titulación', 'Chave de lattes-types-02-formacao.js deveria vir traduzida');
+    assertEqual(r.tipoAtuacao, 'Docencia', 'Chave de lattes-types-03-atuacao.js deveria vir traduzida');
+    assertEqual(r.tipoArtigo, 'Artículos completos publicados en revistas', 'Chave de lattes-types-05-producao-bibliografica.js deveria vir traduzida');
+    assertEqual(r.tipoSoftware, 'Programa de computación sin registro', 'Chave de lattes-types-05-producao-tecnica.js deveria vir traduzida');
+    assertEqual(r.tipoArtesCenicas, 'Artes escénicas', 'Chave de lattes-types-05-producao-artistica.js deveria vir traduzida');
+    assertEqual(r.tipoPatente, 'Patente', 'Chave de lattes-types-06-07-patentes-registros.js deveria vir traduzida (mesma grafia)');
+    assertEqual(r.tipoOrientacao, 'Direcciones y supervisiones concluidas', 'Chave de lattes-types-10-orientacoes.js deveria vir traduzida');
+    assertEqual(r.tipoBanca, 'Participación en tribunales de comisiones evaluadoras', 'Chave de lattes-types-11-bancas.js deveria vir traduzida');
+    assertEqual(r.tipoAlemLattes, 'Lecturas y clubes de lectura', 'Chave de lattes-types-12-15-alem-lattes.js deveria vir traduzida');
+    assertEqual(r.tipoRegistro, 'Redes sociales', 'Chave de lattes-types-20-registros.js deveria vir traduzida');
+});
+
 test('i18n: com locale "en" persistido ANTES da carga da página, t() já devolve inglês em chaves de módulos diferentes (taxonomia, abas, core)', async ({ page, baseUrl }) => {
     await page.goto(baseUrl + '/index.html');
     await page.evaluate(() => localStorage.setItem('lz_settings', JSON.stringify({ locale: 'en' })));
