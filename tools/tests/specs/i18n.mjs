@@ -146,6 +146,34 @@ test('i18n: dicionário es está registrado (esqueleto, Etapa 1) — localeValid
     assertEqual(r.valorAindaPtBr, 'Salvar', 'com o dicionário es ainda vazio (Etapa 1), t() deve continuar caindo pro padrão pt-br — comportamento correto até as próximas etapas preencherem as chaves');
 });
 
+test('i18n: com locale "es" persistido ANTES da carga da página, t() já devolve espanhol nas chaves da Etapa 2 (app.js/app-core.js/pdf-report.js/storage.js/lattes-xml.js)', async ({ page, baseUrl }) => {
+    await page.goto(baseUrl + '/index.html');
+    await page.evaluate(() => localStorage.setItem('lz_settings', JSON.stringify({ locale: 'es' })));
+    await page.reload();
+    await page.waitForTimeout(500);
+    const r = await page.evaluate(() => ({
+        localeInicial: window.LzI18n.getLocale(),
+        htmlLang: document.documentElement.getAttribute('lang'),
+        appCoreEmailInvalido: window.LzI18n.t('app_core.email_invalido', 'E-mail inválido.'),
+        appRestaurar: window.LzI18n.t('app.restaurar', 'Restaurar'),
+        pdfReportAnexos: window.LzI18n.t('pdf_report.anexos', 'Anexos'),
+        storagePastaProcessados: window.LzI18n.t('storage.pasta.processados', 'Processados'),
+        lattesXmlInvalido: window.LzI18n.t('lattes_xml.invalido', 'XML inválido ou corrompido.'),
+        // Chave ainda NÃO traduzida nesta etapa (só na Etapa 4, tab-catalogar.js)
+        // — deve continuar caindo pro padrão pt-br, confirmando que o
+        // dicionário es cobre exatamente o escopo já preenchido até aqui.
+        tabCatalogarSalvarAindaPtBr: window.LzI18n.t('tab_catalogar.salvar', 'Salvar'),
+    }));
+    assertEqual(r.localeInicial, 'es', 'Com locale "es" persistido, i18n.js deveria se inicializar já em "es" (bootstrap síncrono, antes de qualquer setLocale() explícito)');
+    assertEqual(r.htmlLang, 'es', '<html lang> deveria refletir "es" já na carga inicial');
+    assertEqual(r.appCoreEmailInvalido, 'Correo electrónico inválido.', 'Chave de validação (app-core.js) deveria vir traduzida');
+    assertEqual(r.appRestaurar, 'Restaurar', 'Chave de app.js deveria vir traduzida (mesma grafia em es e pt-br, mas vindo do dicionário es)');
+    assertEqual(r.pdfReportAnexos, 'Anexos', 'Chave de pdf-report.js deveria vir traduzida (mesma grafia em es e pt-br)');
+    assertEqual(r.storagePastaProcessados, 'Procesados', 'Chave de storage.js deveria vir traduzida');
+    assertEqual(r.lattesXmlInvalido, 'XML inválido o dañado.', 'Chave de lattes-xml.js deveria vir traduzida');
+    assertEqual(r.tabCatalogarSalvarAindaPtBr, 'Salvar', 'tab_catalogar.salvar ainda não foi traduzido pro dicionário es (fica pra Etapa 4) — deve continuar caindo pro padrão pt-br');
+});
+
 test('i18n: com locale "en" persistido ANTES da carga da página, t() já devolve inglês em chaves de módulos diferentes (taxonomia, abas, core)', async ({ page, baseUrl }) => {
     await page.goto(baseUrl + '/index.html');
     await page.evaluate(() => localStorage.setItem('lz_settings', JSON.stringify({ locale: 'en' })));
