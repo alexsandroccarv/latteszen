@@ -123,7 +123,7 @@ window.DeployGithub = (function () {
         });
         const newTree = await treeResp.json();
 
-        const commitBody = { message: message || 'Publicar currículo — lattesZen', tree: newTree.sha };
+        const commitBody = { message: message || t('deploy_github.commit_padrao', 'Publicar currículo — lattesZen'), tree: newTree.sha };
         if (baseCommitSha) commitBody.parents = [baseCommitSha];
         const commitResp2 = await req(token, 'POST', `/repos/${owner}/${repo}/git/commits`, {
             headers: { 'Content-Type': 'application/json' },
