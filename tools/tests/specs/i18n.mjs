@@ -245,6 +245,29 @@ test('i18n: com locale "es" persistido ANTES da carga da página, t() já devolv
     assertEqual(r.tabInicioCopiado, '¡Copiado!', 'Chave de tab-inicio.js deveria vir traduzida');
 });
 
+test('i18n: com locale "es" persistido ANTES da carga da página, t() já devolve espanhol nas chaves da Etapa 5 (integrações — deploy/gdrive/cookie-consent/publish)', async ({ page, baseUrl }) => {
+    await page.goto(baseUrl + '/index.html');
+    await page.evaluate(() => localStorage.setItem('lz_settings', JSON.stringify({ locale: 'es' })));
+    await page.reload();
+    await page.waitForTimeout(500);
+    const r = await page.evaluate(() => ({
+        localeInicial: window.LzI18n.getLocale(),
+        deployGithubErroSemToken: window.LzI18n.t('deploy_github.erro_sem_token', 'Informe um token de acesso do GitHub.'),
+        deployNetlifyErroSemToken: window.LzI18n.t('deploy_netlify.erro_sem_token', 'Informe um token de acesso do Netlify.'),
+        gdriveDrivesCompartilhados: window.LzI18n.t('gdrive.picker_label_drives_compartilhados', 'Drives compartilhados'),
+        cookiesAceitar: window.LzI18n.t('cookies.aceitar', 'Aceitar'),
+        publishTituloPadrao: window.LzI18n.t('publish.titulo_padrao', 'Currículo'),
+        publishTemaModerno: window.LzI18n.t('publish.tema.moderno.label', 'Moderno'),
+    }));
+    assertEqual(r.localeInicial, 'es', 'Com locale "es" persistido, i18n.js deveria se inicializar já em "es"');
+    assertEqual(r.deployGithubErroSemToken, 'Indique un token de acceso de GitHub.', 'Chave de deploy-github.js deveria vir traduzida');
+    assertEqual(r.deployNetlifyErroSemToken, 'Indique un token de acceso de Netlify.', 'Chave de deploy-netlify.js deveria vir traduzida');
+    assertEqual(r.gdriveDrivesCompartilhados, 'Unidades compartidas', 'Chave de gdrive-client.js deveria vir traduzida');
+    assertEqual(r.cookiesAceitar, 'Aceptar', 'Chave de cookie-consent.js deveria vir traduzida');
+    assertEqual(r.publishTituloPadrao, 'Currículum', 'Chave de publish.js deveria vir traduzida ("Currículo" sozinho nunca é usado — regra do projeto)');
+    assertEqual(r.publishTemaModerno, 'Moderno', 'Chave dinâmica de tema (publish.tema.${style}.label) deveria vir traduzida');
+});
+
 test('i18n: com locale "en" persistido ANTES da carga da página, t() já devolve inglês em chaves de módulos diferentes (taxonomia, abas, core)', async ({ page, baseUrl }) => {
     await page.goto(baseUrl + '/index.html');
     await page.evaluate(() => localStorage.setItem('lz_settings', JSON.stringify({ locale: 'en' })));
