@@ -44,10 +44,10 @@ window.TabConformidade = (function () {
         descObrig:    { cor: 'red', icone: 'fa-align-left', titulo: t('tab_conformidade.view.desc_obrig.titulo', 'Obrigatórios pendentes'), desc: t('tab_conformidade.view.desc_obrig.desc', 'Falta campo obrigatório') },
         descOpcional: { cor: 'amber', icone: 'fa-align-left', titulo: t('tab_conformidade.view.desc_opcional.titulo', 'Falta campo opcional'), desc: t('tab_conformidade.view.desc_opcional.desc', 'Descrição incompleta (opcional)') },
         descCompleta: { cor: 'green', icone: 'fa-align-left', titulo: t('tab_conformidade.view.desc_completa.titulo', 'Descrição completa'), desc: t('tab_conformidade.view.desc_completa.desc', 'Todos os campos preenchidos') },
-        rscUsavel:    { cor: 'amber', icone: 'fa-award', titulo: t('tab_conformidade.view.rsc_usavel.titulo', 'Usáveis para RSC'), desc: t('tab_conformidade.view.rsc_usavel.desc', 'Elegíveis dentro do período de uso') },
-        rscMarcado:   { cor: 'green', icone: 'fa-award', titulo: t('tab_conformidade.view.rsc_marcado.titulo', 'Marcados para RSC'), desc: t('tab_conformidade.view.rsc_marcado.desc', 'Já contabilizados no RSC') },
-        rscElegivel:  { cor: 'amber', icone: 'fa-award', titulo: t('tab_conformidade.view.rsc_elegivel.titulo', 'Elegíveis para RSC'), desc: t('tab_conformidade.view.rsc_elegivel.desc', 'Dentro do período, ainda não marcados') },
-        rscForaPeriodo: { cor: 'gray', icone: 'fa-award', titulo: t('tab_conformidade.view.rsc_fora_periodo.titulo', 'RSC fora do período'), desc: t('tab_conformidade.view.rsc_fora_periodo.desc', 'Fora do período de uso do RSC') },
+        rscUsavel:    { cor: 'amber', icone: 'fa-award', titulo: 'Usáveis para RSC', desc: 'Elegíveis dentro do período de uso' },
+        rscMarcado:   { cor: 'green', icone: 'fa-award', titulo: 'Marcados para RSC', desc: 'Já contabilizados no RSC' },
+        rscElegivel:  { cor: 'amber', icone: 'fa-award', titulo: 'Elegíveis para RSC', desc: 'Dentro do período, ainda não marcados' },
+        rscForaPeriodo: { cor: 'gray', icone: 'fa-award', titulo: 'RSC fora do período', desc: 'Fora do período de uso do RSC' },
         chVerde:      { cor: 'green', icone: 'fa-clock', titulo: t('tab_conformidade.view.ch_verde.titulo', 'Com carga horária'), desc: t('tab_conformidade.view.ch_verde.desc', 'Carga horária preenchida') },
         chVermelho:   { cor: 'red', icone: 'fa-clock', titulo: t('tab_conformidade.view.ch_vermelho.titulo', 'Sem carga horária'), desc: t('tab_conformidade.view.ch_vermelho.desc', 'Falta preencher a carga horária') },
         chCinza:      { cor: 'gray', icone: 'fa-clock', titulo: t('tab_conformidade.view.ch_cinza.titulo', 'Carga horária N/A'), desc: t('tab_conformidade.view.ch_cinza.desc', 'Não se aplica') },
@@ -121,7 +121,7 @@ window.TabConformidade = (function () {
         const chip = (key, n) => {
             const m = VIEW_META[key];
             const active = state.ui.viewFilter === key;
-            return `<button type="button" data-view="${key}" data-tooltip="${t('tab_conformidade.filtrar_por', 'Filtrar: {titulo}', { titulo: m.titulo })}" aria-pressed="${active}"
+            return `<button type="button" data-view="${key}" data-tooltip="Filtrar: ${m.titulo}" aria-pressed="${active}"
                 class="text-left bg-white dark:bg-gray-900 border rounded px-3 py-2 hover:shadow transition ${active ? `border-${m.cor}-500 ring-2 ring-${m.cor}-500/40` : 'border-gray-200 dark:border-gray-700'}">
                 <span class="block text-xl font-bold text-${m.cor}-600 dark:text-${m.cor}-400">${n}</span>
                 <span class="block text-xs text-gray-600 dark:text-gray-400">${m.titulo}</span>
@@ -129,7 +129,7 @@ window.TabConformidade = (function () {
         };
         return `
             <div class="bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800 rounded-lg p-4 mb-5">
-                <h3 class="font-bold text-sm flex items-center gap-2 mb-3"><i aria-hidden="true" class="fa-solid fa-award text-amber-600"></i> ${t('tab_conformidade.rsc_itens_usaveis', 'RSC-PCCTAE — itens usáveis')}</h3>
+                <h3 class="font-bold text-sm flex items-center gap-2 mb-3"><i aria-hidden="true" class="fa-solid fa-award text-amber-600"></i> RSC-PCCTAE — itens usáveis</h3>
                 <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
                     ${chip('rscUsavel', usaveis.length)}
                     ${chip('rscMarcado', marcados)}
@@ -382,9 +382,9 @@ window.TabConformidade = (function () {
     function rscIconHtml(item) {
         const estado = rscEstado(item);
         if (!estado) return '';
-        const title = estado === 'green' ? t('tab_conformidade.rsc_marcado_titulo', 'Marcado para uso no RSC')
-            : estado === 'amber' ? t('tab_conformidade.rsc_elegivel_titulo', 'Dentro do período de uso do RSC — ainda não marcado')
-            : t('tab_conformidade.rsc_fora_periodo_titulo', 'Fora do período de uso do RSC');
+        const title = estado === 'green' ? 'Marcado para uso no RSC'
+            : estado === 'amber' ? 'Dentro do período de uso do RSC — ainda não marcado'
+            : 'Fora do período de uso do RSC';
         const key = estado === 'green' ? 'rscMarcado' : estado === 'amber' ? 'rscElegivel' : 'rscForaPeriodo';
         return iconBtnHtml(key, estado, title, 'fa-award');
     }

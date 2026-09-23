@@ -143,7 +143,7 @@ window.TabCatalogar = (function () {
             <span class="font-semibold">${esc(t('tab_catalogar.publicar', 'Publicar'))}</span>
             ${doLattes ? `<label class="flex items-center gap-1.5"><input type="checkbox" id="visExportarLattes" ${exportarLattes ? 'checked' : ''}> <i aria-hidden="true" class="fa-solid fa-file-export"></i> ${esc(t('tab_catalogar.publicar_lattes', 'Lattes'))}</label>` : ''}
             <label class="flex items-center gap-1.5"><input type="checkbox" id="visPublicarWeb" ${publicarWeb ? 'checked' : ''}> <i aria-hidden="true" class="fa-solid fa-globe"></i> ${esc(t('tab_catalogar.publicar_web', 'Web'))}</label>
-            ${doRsc ? `<label class="flex items-center gap-1.5"><input type="checkbox" id="rscConta" ${rsc.conta ? 'checked' : ''}> <i aria-hidden="true" class="fa-solid fa-award"></i> ${esc(t('tab_catalogar.publicar_rsc', 'usar para RSC'))}</label>` : ''}
+            ${doRsc ? `<label class="flex items-center gap-1.5"><input type="checkbox" id="rscConta" ${rsc.conta ? 'checked' : ''}> <i aria-hidden="true" class="fa-solid fa-award"></i> ${esc('usar para RSC')}</label>` : ''}
         </div>`;
 
         const expChk = $('#visExportarLattes');
