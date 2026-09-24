@@ -306,7 +306,7 @@ window.TabConfig = (function () {
     // módulo, pra não duplicar formulário em dois lugares diferentes.
     function rscSectionHtml() {
         return `<section id="rscSection" class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-            <h2 class="text-lg font-bold mb-2 flex items-center gap-2"><i class="fa-solid fa-award text-govbr-600 dark:text-unifesp-400"></i> RSC-PCCTAE</h2>
+            <h2 class="text-lg font-bold mb-2 flex items-center gap-2 flex-wrap"><i class="fa-solid fa-award text-govbr-600 dark:text-unifesp-400"></i> RSC-PCCTAE <span class="text-xs font-normal text-gray-500 dark:text-gray-400" title="Módulo disponível apenas em português do Brasil">🇧🇷 apenas em português</span></h2>
             <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">Reconhecimento de Saberes e Competências (Decreto nº 13.048/2026). Quando habilitado, cada item elegível ganha uma camada com os dados do RSC, e surge a aba <strong>RSC</strong> (simulador) — os dados da pessoa servidora (cargo, SIAPE, contatos etc.) são preenchidos lá. Uso individual.</p>
             <label class="flex items-center gap-2 text-sm">
                 <input type="checkbox" id="rscEnable" ${state.rsc.enabled ? 'checked' : ''}>
@@ -331,7 +331,7 @@ window.TabConfig = (function () {
     // texto da súmula ficam na própria aba Súmula FAPESP (ver tab-sumula.js).
     function sumulaSectionHtml() {
         return `<section id="sumulaSection" class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-            <h2 class="text-lg font-bold mb-2 flex items-center gap-2"><i class="fa-solid fa-file-lines text-govbr-600 dark:text-unifesp-400"></i> Súmula Curricular FAPESP</h2>
+            <h2 class="text-lg font-bold mb-2 flex items-center gap-2 flex-wrap"><i class="fa-solid fa-file-lines text-govbr-600 dark:text-unifesp-400"></i> Súmula Curricular FAPESP <span class="text-xs font-normal text-gray-500 dark:text-gray-400" title="Módulo disponível apenas em português do Brasil">🇧🇷 apenas em português</span></h2>
             <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">Gera, a partir do catálogo, uma base de texto organizada no modelo de Súmula Curricular exigido pela FAPESP em processos de bolsas/auxílios (não é um documento oficial pronto para submissão — é um ponto de partida a revisar e ajustar). Quando habilitado, surge a aba <strong>Súmula FAPESP</strong>.</p>
             <label class="flex items-center gap-2 text-sm">
                 <input type="checkbox" id="sumulaEnable" ${state.sumula.enabled ? 'checked' : ''}>
