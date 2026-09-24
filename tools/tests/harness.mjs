@@ -137,7 +137,16 @@ export async function runAll() {
         // travando num teste de erro de rede que nunca falhava, PR/issue de
         // SEO #37). pwa-atualizacao.mjs já mocka navigator.serviceWorker
         // inteiro via addInitScript, então não depende de um SW real.
-        const context = await browser.newContext({ serviceWorkers: 'block' });
+        // locale: 'pt-BR' fixa o idioma do navegador (navigator.language) —
+        // sem isto, o Chromium usa o locale do runner (varia por máquina/CI,
+        // não necessariamente pt-BR), e a suíte inteira ficaria instável
+        // desde que i18n.js passou a detectar o idioma do navegador como
+        // palpite inicial pra quem ainda não escolheu idioma nenhum (ver
+        // detectarLocaleNavegador() em i18n.js) — quase todo teste carrega a
+        // página sem ter escolhido idioma explicitamente, e a suíte pressupõe
+        // pt-br nesse caso. Testes específicos de detecção (i18n.mjs)
+        // sobrescrevem via page.addInitScript, que roda depois deste.
+        const context = await browser.newContext({ serviceWorkers: 'block', locale: 'pt-BR' });
         // Bloqueia as CDNs externas de estilo/ícone/fonte/analytics (Tailwind
         // Play CDN, Font Awesome, fonte Rawline do governo, Google Tag
         // Manager, Google Fonts — usada pelo seletor de Tema em Configurações

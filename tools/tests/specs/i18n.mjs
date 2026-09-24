@@ -422,3 +422,56 @@ test('i18n: window.AppCore.t/tp existem e se comportam como window.LzI18n.t/tp (
     assert(r.tpExiste, 'window.AppCore.tp deveria existir');
     assertEqual(r.valor, 'Texto via AppCore', 'window.AppCore.t deveria se comportar como window.LzI18n.t');
 });
+
+// Detecção do idioma do navegador (detectarLocaleNavegador() em i18n.js):
+// sem NENHUMA preferência salva ainda (1ª visita), o idioma inicial segue
+// navigator.language/navigator.languages em vez de sempre pt-br — cobre o
+// aviso de cookies e o modal de 1ª execução, que aparecem antes de qualquer
+// escolha no assistente. A suíte inteira roda com locale: 'pt-BR' fixado no
+// contexto (ver harness.mjs); estes testes sobrescrevem navigator.language
+// via addInitScript pra simular outros idiomas de navegador.
+async function comNavigatorLanguage(page, baseUrl, idiomas) {
+    await page.addInitScript((idiomas) => {
+        Object.defineProperty(window.navigator, 'language', { get: () => idiomas[0], configurable: true });
+        Object.defineProperty(window.navigator, 'languages', { get: () => idiomas, configurable: true });
+    }, idiomas);
+    await page.goto(baseUrl + '/index.html');
+    await page.waitForTimeout(300);
+}
+
+test('i18n: sem locale salvo ainda, navigator.language = "es-ES" faz o app nascer em espanhol', async ({ page, baseUrl }) => {
+    await comNavigatorLanguage(page, baseUrl, ['es-ES']);
+    const r = await page.evaluate(() => ({ locale: window.LzI18n.getLocale(), htmlLang: document.documentElement.getAttribute('lang') }));
+    assertEqual(r.locale, 'es', 'Sem nenhuma preferência salva, o locale detectado deveria vir do navegador ("es-ES" → "es")');
+    assertEqual(r.htmlLang, 'es', '<html lang> deveria refletir o locale detectado já na carga inicial');
+});
+
+test('i18n: sem locale salvo ainda, navigator.language = "en-GB" faz o app nascer em inglês', async ({ page, baseUrl }) => {
+    await comNavigatorLanguage(page, baseUrl, ['en-GB']);
+    const locale = await page.evaluate(() => window.LzI18n.getLocale());
+    assertEqual(locale, 'en', 'Sem nenhuma preferência salva, "en-GB" deveria detectar "en" (só o idioma base importa, não a região)');
+});
+
+test('i18n: sem locale salvo ainda, um idioma de navegador sem dicionário nosso (ex.: "fr-FR") cai pro padrão pt-br', async ({ page, baseUrl }) => {
+    await comNavigatorLanguage(page, baseUrl, ['fr-FR', 'de-DE']);
+    const locale = await page.evaluate(() => window.LzI18n.getLocale());
+    assertEqual(locale, 'pt-br', 'Idioma de navegador sem dicionário (francês, alemão) deveria cair pro padrão pt-br, nunca escolher um idioma não suportado');
+});
+
+test('i18n: sem locale salvo ainda, navigator.language = "pt-PT" cai pro padrão pt-br (mesmo resultado, não um locale "pt" à parte)', async ({ page, baseUrl }) => {
+    await comNavigatorLanguage(page, baseUrl, ['pt-PT']);
+    const locale = await page.evaluate(() => window.LzI18n.getLocale());
+    assertEqual(locale, 'pt-br', '"pt-PT" deveria mapear pro nosso único locale português (pt-br), não ficar sem dicionário');
+});
+
+test('i18n: uma preferência de locale já salva (mesmo "pt-br" explícito) sempre prevalece sobre o idioma do navegador', async ({ page, baseUrl }) => {
+    await page.addInitScript((idiomas) => {
+        Object.defineProperty(window.navigator, 'language', { get: () => idiomas[0], configurable: true });
+        Object.defineProperty(window.navigator, 'languages', { get: () => idiomas, configurable: true });
+        localStorage.setItem('lz_settings', JSON.stringify({ locale: 'pt-br' }));
+    }, ['es-ES']);
+    await page.goto(baseUrl + '/index.html');
+    await page.waitForTimeout(300);
+    const locale = await page.evaluate(() => window.LzI18n.getLocale());
+    assertEqual(locale, 'pt-br', 'Com "pt-br" já salvo explicitamente, o navegador em espanhol não deveria mudar o locale ativo');
+});
