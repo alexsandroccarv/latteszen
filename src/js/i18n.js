@@ -82,6 +82,30 @@ const DICIONARIOS = { [LOCALE_PADRAO]: {}, en: DICIONARIO_EN, es: DICIONARIO_ES 
 // a UI "muda" por causa de um nome de locale errado/typo.
 function localeValido(locale) { return DICIONARIOS[locale] ? locale : LOCALE_PADRAO; }
 
+// Idioma do navegador (navigator.languages, em ordem de preferência — cai
+// pra navigator.language se a lista não existir) traduzido pra um locale
+// nosso: só usado quando NINGUÉM ainda escolheu um idioma nesta instalação
+// (ver lerLocalePersistido() abaixo) — cobre a 1ª tela que aparece antes do
+// assistente (aviso de cookies, modal de 1ª execução), que hoje sempre
+// nascia em português mesmo pra quem usa o navegador em inglês/espanhol.
+// 'pt'/'pt-PT'/etc. caem pro padrão (mesmo resultado de não achar nada);
+// qualquer outro idioma sem dicionário nosso (fr, de, ja...) também cai pro
+// padrão — nunca escolhe um idioma que a instalação não suporta.
+function detectarLocaleNavegador() {
+    try {
+        const candidatos = (typeof navigator !== 'undefined' && navigator.languages && navigator.languages.length)
+            ? navigator.languages
+            : [typeof navigator !== 'undefined' ? navigator.language : null];
+        for (const c of candidatos) {
+            if (!c) continue;
+            const base = c.toLowerCase().split('-')[0];
+            if (base === 'pt') return LOCALE_PADRAO;
+            if (DICIONARIOS[base]) return base;
+        }
+    } catch (_) { /* navigator indisponível (SSR/testes) — cai pro padrão */ }
+    return LOCALE_PADRAO;
+}
+
 // Lê a preferência de locale já persistida (Configurações › geral) direto do
 // localStorage, sem depender de Storage (storage.js carrega DEPOIS deste
 // módulo no index.html) nem esperar app.js/init() rodar (só acontece bem
@@ -89,12 +113,15 @@ function localeValido(locale) { return DICIONARIOS[locale] ? locale : LOCALE_PAD
 // módulo sempre seria o padrão — mesmo já havendo outro configurado —
 // porque paises.js/idiomas.js/lattes-types-*.js (que chamam t()/opcoes()
 // uma única vez, ao carregar) rodam ANTES de qualquer setLocale() explícito.
+// Sem NENHUMA preferência salva ainda (1ª visita — cfg.locale ausente),
+// usa o idioma do navegador como palpite inicial em vez de sempre pt-br;
+// uma escolha explícita (inclusive pt-br) sempre prevalece depois disso.
 function lerLocalePersistido() {
     try {
         const chave = (window.APP_CONFIG && window.APP_CONFIG.storageKeys && window.APP_CONFIG.storageKeys.settings) || 'lz_settings';
         const cfg = JSON.parse(localStorage.getItem(chave));
-        return (cfg && cfg.locale) || LOCALE_PADRAO;
-    } catch (_) { return LOCALE_PADRAO; }
+        return (cfg && cfg.locale) || detectarLocaleNavegador();
+    } catch (_) { return detectarLocaleNavegador(); }
 }
 
 // Código interno de locale ('pt-br', minúsculo) → tag BCP 47 própria pra

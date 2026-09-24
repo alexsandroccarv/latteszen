@@ -54,7 +54,7 @@ window.TabInicio = (function () {
                         <h2 class="text-2xl font-bold mb-1">lattesZen</h2>
                         <p class="text-govbr-700 dark:text-unifesp-400 font-semibold mb-3">${t('tab_inicio.tagline', 'descomplicando o currículo acadêmico.')}</p>
                         <p class="text-sm text-gray-600 dark:text-gray-400">
-                            ${t('tab_inicio.intro', 'O lattesZen organiza seu currículo acadêmico — formação, produções, atuação, projetos, eventos e muito mais — num só lugar, no seu computador, com as evidências (PDFs) já guardadas junto de cada item. A partir dessa base você verifica o que falta para ficar em conformidade com o Lattes, monta o dossiê de RSC-PCCTAE e publica uma página do currículo na web — tudo sem depender de servidor.')}
+                            ${t('tab_inicio.intro', 'O lattesZen organiza seu currículo acadêmico — formação, produções, atuação, projetos, eventos e muito mais — num só lugar, no seu computador, com as evidências (PDFs) já guardadas junto de cada item. A partir dessa base você verifica o que falta para ficar em conformidade com o Lattes, monta seu dossiê ou memorial progressão de carreira e publica uma página do currículo na web.')}
                         </p>
                     </div>
                 </section>
@@ -65,9 +65,28 @@ window.TabInicio = (function () {
                         <div class="flex gap-2"><i class="fa-solid fa-rotate text-govbr-600 dark:text-unifesp-400 mt-1"></i><span>${t('tab_inicio.dor_retrabalho', '<strong>Chega de retrabalho:</strong> cadastre uma vez e reaproveite — gere a página pública do currículo a partir da mesma base usada em tudo o mais.')}</span></div>
                         <div class="flex gap-2"><i class="fa-solid fa-paperclip text-govbr-600 dark:text-unifesp-400 mt-1"></i><span>${t('tab_inicio.dor_evidencias', '<strong>Evidências organizadas:</strong> cada item guarda seu comprovante (PDF) já na pasta certa — nada de procurar arquivo solto na hora de comprovar algo.')}</span></div>
                         <div class="flex gap-2"><i class="fa-solid fa-clipboard-check text-govbr-600 dark:text-unifesp-400 mt-1"></i><span>${t('tab_inicio.dor_conformidade', '<strong>Conformidade visível:</strong> ícones mostram, item a item, o que falta (carga horária, descrição, prazos) — sem caçar campo por campo.')}</span></div>
+                        <div class="flex gap-2"><i class="fa-solid fa-lock text-govbr-600 dark:text-unifesp-400 mt-1"></i><span>${t('tab_inicio.dor_privacidade', '<strong>Foco na privacidade:</strong> todo processamento ocorre localmente, no seu navegador — seus dados não saem do seu computador.')}</span></div>
+                    </div>
+                </section>
+
+                <section class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+                    <h2 class="text-lg font-bold mb-3 flex items-center gap-2"><i class="fa-solid fa-shoe-prints text-govbr-600 dark:text-unifesp-400"></i> ${t('tab_inicio.primeiros_passos_titulo', 'Primeiros passos')}</h2>
+                    <ol class="space-y-4 text-sm">
+                        <li class="flex flex-col sm:flex-row sm:items-center gap-2">
+                            <span>${t('tab_inicio.passo1', '<strong>1.</strong> Defina o diretório (pasta) onde tudo vai ficar salvo.')}</span>
+                            <button type="button" id="btnInicioDir" class="sm:ml-auto px-3 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm whitespace-nowrap"><i class="fa-solid fa-folder mr-1"></i> ${t('tab_inicio.ir_para_configuracoes', 'Ir para Configurações')}</button>
+                        </li>
+                        <li>
+                            <span>${t('tab_inicio.passo2', '<strong>2.</strong> Use <strong>Catalogar</strong> para incluir itens, ou importe o XML do Lattes.')}</span>
+                        </li>
+                    </ol>
+                </section>
+
+                <section class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+                    <h2 class="text-lg font-bold mb-3 flex items-center gap-2"><i class="fa-solid fa-puzzle-piece text-govbr-600 dark:text-unifesp-400"></i> ${t('tab_inicio.modulos_opcionais_titulo', 'Módulos opcionais')}</h2>
+                    <div class="grid sm:grid-cols-2 gap-3 text-sm">
                         <div class="flex gap-2"><i class="fa-solid fa-award text-govbr-600 dark:text-unifesp-400 mt-1"></i><span>${t('tab_inicio.dor_rsc', '<strong>RSC sem planilha (opcional):</strong> simulador de pontuação e memorial descritivo do RSC-PCCTAE prontos a partir dos itens já cadastrados.')}</span></div>
                         <div class="flex gap-2"><i class="fa-solid fa-file-lines text-govbr-600 dark:text-unifesp-400 mt-1"></i><span>${t('tab_inicio.dor_sumula', '<strong>Súmula FAPESP (opcional):</strong> roteiro da Súmula Curricular já organizado nas seções oficiais, com o texto de cada uma montado a partir dos itens já cadastrados.')}</span></div>
-                        <div class="flex gap-2"><i class="fa-solid fa-lock text-govbr-600 dark:text-unifesp-400 mt-1"></i><span>${t('tab_inicio.dor_privacidade', '<strong>Foco na privacidade:</strong> todo processamento ocorre localmente, no seu navegador — seus dados não saem do seu computador.')}</span></div>
                     </div>
                 </section>
 
@@ -120,27 +139,8 @@ window.TabInicio = (function () {
                         </div>
                     </div>
                 </section>
-
-                <section class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-                    <h2 class="text-lg font-bold mb-3 flex items-center gap-2"><i class="fa-solid fa-shoe-prints text-govbr-600 dark:text-unifesp-400"></i> ${t('tab_inicio.primeiros_passos_titulo', 'Primeiros passos')}</h2>
-                    <ol class="space-y-4 text-sm">
-                        <li class="flex flex-col sm:flex-row sm:items-center gap-2">
-                            <span>${t('tab_inicio.passo1', '<strong>1.</strong> Defina o diretório (pasta) onde tudo vai ficar salvo.')}</span>
-                            <button type="button" id="btnInicioDir" class="sm:ml-auto px-3 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm whitespace-nowrap"><i class="fa-solid fa-folder mr-1"></i> ${t('tab_inicio.ir_para_configuracoes', 'Ir para Configurações')}</button>
-                        </li>
-                        <li class="flex flex-col sm:flex-row sm:items-center gap-2">
-                            <span>${t('tab_inicio.passo2', '<strong>2.</strong> Use <strong>Catalogar</strong> para incluir itens, ou importe o XML do Lattes.')}</span>
-                            <div class="sm:ml-auto flex gap-2 flex-wrap">
-                                <button type="button" id="btnInicioCatalogar" class="px-3 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm whitespace-nowrap"><i class="fa-solid fa-file-circle-plus mr-1"></i> ${t('tab_inicio.ir_para_catalogar', 'Ir para Catalogar')}</button>
-                                <button type="button" id="btnInicioImportar" class="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 text-sm whitespace-nowrap"><i class="fa-solid fa-file-import mr-1"></i> ${t('tab_inicio.importar_xml', 'Importar XML do Lattes')}</button>
-                            </div>
-                        </li>
-                    </ol>
-                </section>
             </div>`;
         $('#btnInicioDir').addEventListener('click', () => irParaConfigSecao('dirSection'));
-        $('#btnInicioCatalogar').addEventListener('click', () => window.AppCore.switchTab('catalogar'));
-        $('#btnInicioImportar').addEventListener('click', () => irParaConfigSecao('importXmlSection'));
 
         const btnCitacao = $('#btnCopiarCitacao');
         if (btnCitacao) btnCitacao.addEventListener('click', () => {

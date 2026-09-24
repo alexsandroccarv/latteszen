@@ -7,9 +7,8 @@
    navegação, com uma dica explicando o motivo; "Início" e "Configurações"
    continuam sempre livres, pois é em Configurações › Armazenamento que
    mora o assistente de escolha do diretório (e Início já linka pra lá).
-   A trava também vale a nível de código (switchTab), não só visual — um
-   botão que chame switchTab() direto (ex.: "Ir para Catalogar" em Início)
-   não consegue burlar o bloqueio.
+   A trava também vale a nível de código (switchTab), não só visual — nada
+   que chame switchTab() direto consegue burlar o bloqueio.
 
    window.__LZ_TEST_SKIP_DIR_GATE é ligado por padrão em toda a suíte (ver
    harness.mjs) pra não quebrar os outros ~350 testes, que semeiam o
@@ -76,17 +75,6 @@ test('Chamar switchTab() direto pra uma aba travada não troca de aba e mostra u
     assertEqual(ativa, 'inicio', 'Sem diretório configurado, switchTab("catalogar") não deveria trocar de aba');
     const toasts = await page.evaluate(() => Array.from(document.querySelectorAll('#toasts > div')).map((d) => d.textContent));
     assert(toasts.some((t) => /diret[oó]rio/i.test(t)), 'Deveria mostrar um aviso pedindo pra configurar um diretório');
-});
-
-test('O botão "Ir para Catalogar" em Início não navega quando não há diretório configurado', async ({ page, baseUrl }) => {
-    await ligarTravaDeVerdade(page);
-    await seedCatalog(page, baseUrl, []);
-
-    await page.click('#btnInicioCatalogar');
-    await page.waitForTimeout(150);
-
-    const ativa = await page.evaluate(() => window.AppCore.state.ui.activeTab);
-    assertEqual(ativa, 'inicio', 'Sem diretório configurado, "Ir para Catalogar" não deveria trocar de aba');
 });
 
 test('Com diretório já configurado, as abas nascem habilitadas e trocar de aba funciona normalmente', async ({ page, baseUrl }) => {

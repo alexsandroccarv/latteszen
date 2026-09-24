@@ -2,8 +2,10 @@
    Regressão: aba Início (onboarding)
    --------------------------------------------------------------------------
    Segunda aba extraída de app.js (tab-inicio.js) — não existia cobertura
-   antes. Cobre os 3 botões de "Primeiros passos": navegar para Catalogar e
-   ir para as duas seções de Configurações (pasta e importar XML).
+   antes. "Primeiros passos" tem só um botão de verdade ("Ir para
+   Configurações", passo 1) — o passo 2 (Catalogar/Importar XML) é só texto
+   informativo, sem botão, porque essas ações começam travadas até haver um
+   diretório configurado (ver dir-gate.mjs).
    ========================================================================== */
 import { test, assert, assertEqual } from '../harness.mjs';
 
@@ -28,13 +30,6 @@ test('Início é a aba mostrada ao abrir o app', async ({ page, baseUrl }) => {
     assertEqual(titulo, 'lattesZen', 'O título de apresentação deveria estar na tela');
 });
 
-test('"Ir para Catalogar" troca para a aba Catalogar', async ({ page, baseUrl }) => {
-    await abrirInicio(page, baseUrl);
-    await page.click('#btnInicioCatalogar');
-    await page.waitForTimeout(200);
-    assertEqual(await abaAtiva(page), 'catalogar', 'Deveria ter trocado para a aba Catalogar');
-});
-
 test('"Ir para Configurações" (pasta) troca para Configurações e rola até a seção de diretório', async ({ page, baseUrl }) => {
     await abrirInicio(page, baseUrl);
     await page.click('#btnInicioDir');
@@ -44,44 +39,61 @@ test('"Ir para Configurações" (pasta) troca para Configurações e rola até a
     assert(existeSecao, 'A seção de diretório deveria existir na tela de Configurações');
 });
 
-test('"Importar XML do Lattes" troca para Configurações e rola até a seção de importação', async ({ page, baseUrl }) => {
-    await abrirInicio(page, baseUrl);
-    await page.click('#btnInicioImportar');
-    await page.waitForTimeout(300);
-    assertEqual(await abaAtiva(page), 'config', 'Deveria ter trocado para a aba Configurações');
-    const existeSecao = await page.$('#importXmlSection');
-    assert(existeSecao, 'A seção de importação de XML deveria existir na tela de Configurações');
-});
-
-test('Seção "Importante: suporte do navegador" aparece entre "Que dores..." e "Software livre", com o link de solicitação do Google Drive', async ({ page, baseUrl }) => {
+test('Seção "Primeiros passos" aparece logo abaixo de "Que dores...", sem botões pro passo 2 (Catalogar/Importar XML começam travados)', async ({ page, baseUrl }) => {
     await abrirInicio(page, baseUrl);
     const titulos = await page.$$eval('#tab-inicio section h2', (els) => els.map((el) => el.textContent.trim()));
     const idxDores = titulos.findIndex((t) => t.includes('Que dores'));
+    const idxPassos = titulos.findIndex((t) => t.includes('Primeiros passos'));
+    assert(idxDores >= 0 && idxPassos === idxDores + 1,
+        `"Primeiros passos" deveria ficar logo abaixo de "Que dores..." — ordem obtida: ${JSON.stringify(titulos)}`);
+
+    assert(!(await page.$('#btnInicioCatalogar')), 'O botão "Ir para Catalogar" não deveria mais existir (a ação começa travada até configurar o diretório)');
+    assert(!(await page.$('#btnInicioImportar')), 'O botão "Importar XML do Lattes" não deveria mais existir (a ação começa travada até configurar o diretório)');
+    assert(await page.$('#btnInicioDir'), 'O botão "Ir para Configurações" (passo 1) deveria continuar existindo — essa ação não é travada');
+});
+
+test('Seção "Importante: suporte do navegador" aparece entre "Módulos opcionais" e "Software livre", com o link de solicitação do Google Drive', async ({ page, baseUrl }) => {
+    await abrirInicio(page, baseUrl);
+    const titulos = await page.$$eval('#tab-inicio section h2', (els) => els.map((el) => el.textContent.trim()));
+    const idxModulos = titulos.findIndex((t) => t.includes('Módulos opcionais'));
     const idxImportante = titulos.findIndex((t) => t.includes('Importante'));
     const idxSoftware = titulos.findIndex((t) => t.includes('Software livre'));
-    assert(idxDores >= 0 && idxImportante === idxDores + 1 && idxSoftware === idxImportante + 1,
-        `A seção "Importante" deveria ficar entre "Que dores..." e "Software livre" — ordem obtida: ${JSON.stringify(titulos)}`);
+    assert(idxModulos >= 0 && idxImportante === idxModulos + 1 && idxSoftware === idxImportante + 1,
+        `A seção "Importante" deveria ficar entre "Módulos opcionais" e "Software livre" — ordem obtida: ${JSON.stringify(titulos)}`);
 
     const texto = await page.$eval('#tab-inicio', (el) => el.textContent);
     assert(texto.includes('Chromium'), 'Deveria mencionar navegadores baseados em Chromium');
     assert(texto.includes('Google Drive'), 'Deveria mencionar a opção de conectar ao Google Drive');
-});
-
-test('Seção "Que dores..." lista "RSC sem planilha (opcional)" e, logo abaixo, "Súmula FAPESP (opcional)"', async ({ page, baseUrl }) => {
-    await abrirInicio(page, baseUrl);
-    const itens = await page.$$eval('#tab-inicio section', (secs) => {
-        const sec = secs.find((s) => s.querySelector('h2')?.textContent.includes('Que dores'));
-        return sec ? Array.from(sec.querySelectorAll(':scope > div > div')).map((d) => d.textContent.trim()) : [];
-    });
-    const idxRsc = itens.findIndex((t) => t.includes('RSC sem planilha'));
-    const idxSumula = itens.findIndex((t) => t.includes('Súmula FAPESP'));
-    assert(idxRsc >= 0, `Deveria haver um item "RSC sem planilha" na seção "Que dores..." — itens: ${JSON.stringify(itens)}`);
-    assert(itens[idxRsc].includes('(opcional)'), 'O item "RSC sem planilha" deveria estar marcado como "(opcional)"');
-    assert(idxSumula === idxRsc + 1, `"Súmula FAPESP" deveria vir logo abaixo de "RSC sem planilha" — itens: ${JSON.stringify(itens)}`);
-    assert(itens[idxSumula].includes('(opcional)'), 'O item "Súmula FAPESP" deveria estar marcado como "(opcional)"');
 
     const linkSolicitar = await page.$eval('#tab-inicio a[href*="github.com"][href*="issues"]', (el) => el.href);
     assert(linkSolicitar.includes('/issues'), 'Deveria linkar para o canal de solicitação (issues do repositório)');
+});
+
+test('Seção "Módulos opcionais" aparece logo abaixo de "Primeiros passos", com "RSC sem planilha (opcional)" e, logo abaixo, "Súmula FAPESP (opcional)" — e não mais dentro de "Que dores..."', async ({ page, baseUrl }) => {
+    await abrirInicio(page, baseUrl);
+    const titulos = await page.$$eval('#tab-inicio section h2', (els) => els.map((el) => el.textContent.trim()));
+    const idxPassos = titulos.findIndex((t) => t.includes('Primeiros passos'));
+    const idxModulos = titulos.findIndex((t) => t.includes('Módulos opcionais'));
+    assert(idxPassos >= 0 && idxModulos === idxPassos + 1,
+        `"Módulos opcionais" deveria ficar logo abaixo de "Primeiros passos" — ordem obtida: ${JSON.stringify(titulos)}`);
+
+    const itensModulos = await page.$$eval('#tab-inicio section', (secs) => {
+        const sec = secs.find((s) => s.querySelector('h2')?.textContent.includes('Módulos opcionais'));
+        return sec ? Array.from(sec.querySelectorAll(':scope > div > div')).map((d) => d.textContent.trim()) : [];
+    });
+    const idxRsc = itensModulos.findIndex((t) => t.includes('RSC sem planilha'));
+    const idxSumula = itensModulos.findIndex((t) => t.includes('Súmula FAPESP'));
+    assert(idxRsc >= 0, `Deveria haver um item "RSC sem planilha" na seção "Módulos opcionais" — itens: ${JSON.stringify(itensModulos)}`);
+    assert(itensModulos[idxRsc].includes('(opcional)'), 'O item "RSC sem planilha" deveria estar marcado como "(opcional)"');
+    assert(idxSumula === idxRsc + 1, `"Súmula FAPESP" deveria vir logo abaixo de "RSC sem planilha" — itens: ${JSON.stringify(itensModulos)}`);
+    assert(itensModulos[idxSumula].includes('(opcional)'), 'O item "Súmula FAPESP" deveria estar marcado como "(opcional)"');
+
+    const itensDores = await page.$$eval('#tab-inicio section', (secs) => {
+        const sec = secs.find((s) => s.querySelector('h2')?.textContent.includes('Que dores'));
+        return sec ? Array.from(sec.querySelectorAll(':scope > div > div')).map((d) => d.textContent.trim()) : [];
+    });
+    assert(!itensDores.some((t) => t.includes('RSC sem planilha') || t.includes('Súmula FAPESP')),
+        `"Que dores..." não deveria mais listar RSC/Súmula (movidos pra "Módulos opcionais") — itens: ${JSON.stringify(itensDores)}`);
 });
 
 test('Seção "Como citar" mostra a referência completa e o botão de copiar funciona', async ({ page, baseUrl }) => {

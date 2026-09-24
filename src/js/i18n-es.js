@@ -1798,7 +1798,7 @@ export const DICIONARIO_ES = {
 
     // --- tab-inicio.js ---
     'tab_inicio.tagline': 'simplificando el currículum académico.',
-    'tab_inicio.intro': 'lattesZen organiza su currículum académico — formación, producciones, actuación, proyectos, eventos y mucho más — en un solo lugar, en su computadora, con las evidencias (PDF) ya guardadas junto a cada elemento. A partir de esa base, usted verifica lo que falta para estar en conformidad con el Lattes, arma el dosier del RSC-PCCTAE y publica una página del currículum en la web — todo sin depender de un servidor.',
+    'tab_inicio.intro': 'lattesZen organiza su currículum académico — formación, producciones, actuación, proyectos, eventos y mucho más — en un solo lugar, en su computadora, con las evidencias (PDF) ya guardadas junto a cada elemento. A partir de esa base, usted verifica lo que falta para estar en conformidad con el Lattes, arma su dosier o memorial de progresión de carrera y publica una página del currículum en la web.',
     'tab_inicio.dores_titulo': 'Qué problemas busca resolver lattesZen',
     'tab_inicio.dor_retrabalho': '<strong>Basta de repetir trabajo:</strong> regístrelo una vez y reutilícelo — genere la página pública del currículum a partir de la misma base usada en todo lo demás.',
     'tab_inicio.dor_evidencias': '<strong>Evidencias organizadas:</strong> cada elemento guarda su comprobante (PDF) ya en la carpeta correcta — nada de buscar un archivo suelto a la hora de comprobar algo.',
@@ -1823,11 +1823,10 @@ export const DICIONARIO_ES = {
     'tab_inicio.colaborar_cafe': '<strong>Invite un café:</strong> ayude con los gastos de infraestructura del proyecto.',
     'tab_inicio.colaborar_espalhar': '<strong>Y, sobre todo: úselo y cuente que lo usa</strong> — correr la voz es la colaboración más simple de todas :-)',
     'tab_inicio.primeiros_passos_titulo': 'Primeros pasos',
+    'tab_inicio.modulos_opcionais_titulo': 'Módulos opcionales',
     'tab_inicio.passo1': '<strong>1.</strong> Defina el directorio (carpeta) donde se guardará todo.',
     'tab_inicio.ir_para_configuracoes': 'Ir a Configuración',
     'tab_inicio.passo2': '<strong>2.</strong> Use <strong>Catalogar</strong> para agregar elementos, o importe el XML del Lattes.',
-    'tab_inicio.ir_para_catalogar': 'Ir a Catalogar',
-    'tab_inicio.importar_xml': 'Importar XML del Lattes',
     'tab_inicio.citacao_texto_plano': 'CARVALHO, Alexsandro Cardoso. LattesZen: descomplicando o currículo Acadêmico. Versão 1.0.0. Santos: Github, 2016. DOI: https://zenodo.org/records/22781288.',
     'tab_inicio.copiado': '¡Copiado!',
 
