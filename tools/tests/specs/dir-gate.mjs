@@ -17,7 +17,7 @@
    ========================================================================== */
 import { test, assert, assertEqual, seedCatalog } from '../harness.mjs';
 
-const ABAS_TRAVADAS = ['catalogar', 'conformidade', 'linhatempo', 'publicar', 'rsc', 'sumula'];
+const ABAS_TRAVADAS = ['catalogar', 'conformidade', 'linhatempo', 'publicar', 'rsc', 'sumula', 'progressao'];
 const ABAS_LIVRES = ['inicio', 'config'];
 // Dentro de Configurações, o mesmo bloqueio vale pra 5 das 6 páginas do
 // menu lateral — só "Armazenamento" (onde mora o assistente) fica livre.

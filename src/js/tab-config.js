@@ -350,6 +350,31 @@ window.TabConfig = (function () {
         });
     }
 
+    /* ------------------- Configuração da Progressão Docente ----------------- */
+    // Mesmo mecanismo do RSC/Súmula acima: aqui só o habilitar/desabilitar do
+    // módulo — os dados funcionais (data de posse, última progressão,
+    // lotação) ficam na própria aba Progressão Docente (ver tab-progressao.js).
+    function progressaoSectionHtml() {
+        return `<section id="progressaoSection" class="bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+            <h2 class="text-lg font-bold mb-2 flex items-center gap-2 flex-wrap"><i class="fa-solid fa-arrow-up-right-dots text-govbr-600 dark:text-unifesp-400"></i> Unifesp: Progressão docente <span class="text-xs font-normal text-gray-500 dark:text-gray-400" title="Módulo disponível apenas em português do Brasil">🇧🇷 apenas em português</span></h2>
+            <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">Apoio ao Memorial Descritivo para Progressão Funcional exigido pela CPPD/Unifesp. Quando habilitado, surge a aba <strong>Progressão Docente</strong> — por enquanto, só a entrada manual dos dados funcionais que não existem em nenhum outro módulo (data de posse, data da última progressão, Campus/Unidade/Departamento).</p>
+            <label class="flex items-center gap-2 text-sm">
+                <input type="checkbox" id="progressaoEnable" ${state.progressao.enabled ? 'checked' : ''}>
+                <span>Habilitar módulo <strong>Progressão Docente Unifesp</strong></span>
+            </label>
+        </section>`;
+    }
+    function wireProgressaoConfig() {
+        const en = $('#progressaoEnable'); if (!en) return;
+        en.addEventListener('change', () => {
+            state.progressao.enabled = en.checked;
+            const s = Storage.loadSettings(); s.progressaoEnabled = state.progressao.enabled; Storage.saveSettings(s);
+            window.AppCore.persistirProgressao();
+            window.AppCore.applyProgressaoVisibility();
+            toast(state.progressao.enabled ? 'Módulo Progressão Docente Unifesp habilitado.' : 'Módulo Progressão Docente Unifesp desabilitado.', 'ok');
+        });
+    }
+
     // Mesmo mecanismo do RSC acima (checkbox mostra/oculta a aba): padrão
     // desmarcada na primeira utilização, e — como RSC/Súmula — fica como a
     // pessoa deixou até ser trocada de novo (ver comentário em
@@ -805,6 +830,7 @@ window.TabConfig = (function () {
                 ${cfgGroup(CFG_GROUPS[4])}
                 ${rscSectionHtml()}
                 ${sumulaSectionHtml()}
+                ${progressaoSectionHtml()}
                 </div>
 
                 <div data-cfg-page="${CFG_GROUPS[5].id}" class="grid grid-cols-1 lg:grid-cols-2 gap-6 ${cfgAtiva === CFG_GROUPS[5].id ? '' : 'hidden'}">
@@ -826,6 +852,7 @@ window.TabConfig = (function () {
         wireThemeSection();
         wireRscConfig();
         wireSumulaConfig();
+        wireProgressaoConfig();
         wirePubWebConfig();
         wireNuvemPalavrasSection();
         wireExportLattes();
@@ -1063,7 +1090,7 @@ window.TabConfig = (function () {
         $('#btnExport').addEventListener('click', exportCatalog);
         $('#importJson').addEventListener('change', importCatalog);
         $('#btnClear').addEventListener('click', () => {
-            if (!confirm(t('tab_config.confirmar_limpar_catalogo', 'Isto apaga TODO o índice local no navegador — itens catalogados, rascunho, prévia de importação, listas de autocomplete e as configurações do RSC-PCCTAE e da Súmula FAPESP. Os arquivos no diretório NÃO são removidos. Continuar?'))) return;
+            if (!confirm(t('tab_config.confirmar_limpar_catalogo', 'Isto apaga TODO o índice local no navegador — itens catalogados, rascunho, prévia de importação, listas de autocomplete e as configurações do RSC-PCCTAE, da Súmula FAPESP e da Progressão Docente Unifesp. Os arquivos no diretório NÃO são removidos. Continuar?'))) return;
             state.catalogo.items = [];
             window.AppCore.saveCatalog();
             window.AppCore.clearDraft();                 // rascunho não salvo (lz_draft)
@@ -1076,13 +1103,15 @@ window.TabConfig = (function () {
             state.rsc.cfg = {};            // configuração do RSC-PCCTAE
             state.sumula.cfg = {};         // configuração da Súmula FAPESP
             state.sumula.texto = '';       // texto da Súmula FAPESP
-            // Persiste a limpeza das listas, do RSC e da Súmula nas configurações.
-            const s = Storage.loadSettings(); s.vocab = {}; s.rsc = {}; s.sumula = {}; s.sumulaTexto = ''; Storage.saveSettings(s);
+            state.progressao.cfg = {};     // dados funcionais da Progressão Docente Unifesp
+            // Persiste a limpeza das listas, do RSC, da Súmula e da Progressão nas configurações.
+            const s = Storage.loadSettings(); s.vocab = {}; s.rsc = {}; s.sumula = {}; s.sumulaTexto = ''; s.progressao = {}; Storage.saveSettings(s);
             window.AppCore.persistirGeral();
             window.AppCore.persistirRsc();
             window.AppCore.persistirSumula();
+            window.AppCore.persistirProgressao();
             window.AppCore.resetBackupReminder();        // zera o contador de backup
-            toast(t('tab_config.indice_limpo', 'Índice local limpo (itens, listas, RSC e Súmula FAPESP).'), 'ok');
+            toast(t('tab_config.indice_limpo', 'Índice local limpo (itens, listas, RSC, Súmula FAPESP e Progressão Docente).'), 'ok');
             window.AppCore.renderItemList();
             render();               // re-renderiza a aba (Perfil, listas, RSC, contadores)
         });

@@ -85,6 +85,11 @@ window.AppCore = (function () {
         // (ORCID/Lattes/Web of Science/Google Scholar); texto = texto final
         // (modelo automático ou editado manualmente).
         sumula: { enabled: false, cfg: {}, texto: '' },
+        // Módulo Progressão Docente Unifesp (mesmo padrão do RSC/Súmula
+        // acima): enabled = módulo habilitado?; cfg = dados funcionais
+        // (data de posse, data da última progressão, Campus/Unidade/
+        // Departamento — nada disso existe em nenhum outro tipo Lattes).
+        progressao: { enabled: false, cfg: {} },
         // Nuvem de palavras da Linha do tempo (issue #140):
         // nuvemExclusao = palavras que nunca devem aparecer; nuvemCompostas
         // = termos de mais de uma palavra tratados como um só (ex.: "tech talks").

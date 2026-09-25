@@ -68,6 +68,7 @@ import './specs/config-reorganizacao.mjs';
 import './specs/sumula-config-campos.mjs';
 import './specs/sumula.mjs';
 import './specs/sumula-docx.mjs';
+import './specs/progressao-config-campos.mjs';
 import './specs/idiomas-duplicata.mjs';
 import './specs/redes-academicas-plataforma.mjs';
 import './specs/atuacao-profissional.mjs';

@@ -233,6 +233,9 @@
     function persistirSumula() {
         Storage.writeConfigModule('sumula', { enabled: state.sumula.enabled, cfg: state.sumula.cfg, texto: state.sumula.texto });
     }
+    function persistirProgressao() {
+        Storage.writeConfigModule('progressao', { enabled: state.progressao.enabled, cfg: state.progressao.cfg });
+    }
     // idPrefix/vocab/pubWebEnabled — lastCat/lastType (última categoria/tipo
     // usados em Catalogar) ficam DE FORA de propósito: mudam a cada item
     // salvo, e perder essa conveniência (só agiliza o próximo cadastro) num
@@ -258,6 +261,7 @@
     window.AppCore.persistirNuvem = persistirNuvem;
     window.AppCore.persistirRsc = persistirRsc;
     window.AppCore.persistirSumula = persistirSumula;
+    window.AppCore.persistirProgressao = persistirProgressao;
     window.AppCore.persistirGeral = persistirGeral;
     window.AppCore.persistirPublicar = persistirPublicar;
     window.AppCore.persistirAcessibilidade = persistirAcessibilidade;
@@ -357,6 +361,13 @@
                 state.sumula.texto = sumula.dados.texto || '';
                 applySumulaVisibility();
 
+                const progressao = await Storage.restaurarModuloConfig('progressao', blobAntigo,
+                    (b) => (b.progressaoEnabled !== undefined || b.progressao) ? { enabled: !!b.progressaoEnabled, cfg: b.progressao || {} } : null,
+                    { enabled: state.progressao.enabled, cfg: state.progressao.cfg });
+                state.progressao.enabled = !!progressao.dados.enabled;
+                state.progressao.cfg = progressao.dados.cfg || {};
+                applyProgressaoVisibility();
+
                 const geral = await Storage.restaurarModuloConfig('geral', blobAntigo,
                     (b) => (b.idPrefix || b.vocab || b.pubWebEnabled !== undefined) ? { idPrefix: b.idPrefix || '', vocab: b.vocab || {}, pubWebEnabled: b.pubWebEnabled } : null,
                     { idPrefix: state.idPrefix, locale: state.locale, vocab: state.vocab, pubWebEnabled: state.pubWebEnabled });
@@ -379,7 +390,7 @@
                     });
                 aplicarAcessibilidade(acessibilidade.dados);
 
-                configRestaurada = nuvem.deFora || rsc.deFora || sumula.deFora || geral.deFora || publicar.deFora || acessibilidade.deFora;
+                configRestaurada = nuvem.deFora || rsc.deFora || sumula.deFora || progressao.deFora || geral.deFora || publicar.deFora || acessibilidade.deFora;
 
                 // Mantém o blob local (lz_settings) coerente com o que acabou
                 // de ser restaurado — continua sendo o cache rápido desta
@@ -395,6 +406,7 @@
                     s.nuvemCompostas = state.linhaTempo.nuvemCompostas;
                     s.rscEnabled = state.rsc.enabled; s.rsc = state.rsc.cfg; s.rscMemorialTexto = state.rsc.memorialTexto;
                     s.sumulaEnabled = state.sumula.enabled; s.sumula = state.sumula.cfg; s.sumulaTexto = state.sumula.texto;
+                    s.progressaoEnabled = state.progressao.enabled; s.progressao = state.progressao.cfg;
                     s.idPrefix = state.idPrefix; s.locale = state.locale; s.vocab = state.vocab; s.pubWebEnabled = state.pubWebEnabled;
                     s.pubStyle = publicar.dados.pubStyle;
                     if (publicar.dados.deployGithub) s.deploy_github = publicar.dados.deployGithub;
@@ -749,14 +761,15 @@
        ===================================================================== */
     const RENDERERS = {
         inicio: TabInicio.render, catalogar: TabCatalogar.render, conformidade: TabConformidade.render,
-        linhatempo: TabLinhaTempo.render, publicar: TabPublicar.render, rsc: TabRsc.render, sumula: TabSumula.render, config: TabConfig.render,
+        linhatempo: TabLinhaTempo.render, publicar: TabPublicar.render, rsc: TabRsc.render, sumula: TabSumula.render,
+        progressao: TabProgressao.render, config: TabConfig.render,
     };
     // Abas que dependem de haver um diretório de armazenamento configurado
     // (local ou Google Drive) — ficam travadas até a pessoa escolher um em
     // Configurações › Armazenamento. "Início" e "Configurações" continuam
     // sempre livres: é lá que mora o assistente de escolha do diretório (e
     // Início já linka pra lá em "Primeiros passos").
-    const DIR_GATED_TABS = ['catalogar', 'conformidade', 'linhatempo', 'publicar', 'rsc', 'sumula'];
+    const DIR_GATED_TABS = ['catalogar', 'conformidade', 'linhatempo', 'publicar', 'rsc', 'sumula', 'progressao'];
     // Mesma trava, agora também para 4 das 5 páginas do menu lateral de
     // Configurações — só "Armazenamento" (onde mora o assistente de escolha
     // do diretório) fica sempre livre; "Importar", "Exportar", "Recursos
@@ -821,6 +834,13 @@
         if (btn) btn.classList.toggle('hidden', !state.sumula.enabled);
     }
     window.AppCore.applySumulaVisibility = applySumulaVisibility;
+    // Mostra/oculta a aba Progressão Docente Unifesp conforme o módulo
+    // esteja habilitado (mesmo mecanismo do RSC/Súmula acima).
+    function applyProgressaoVisibility() {
+        const btn = $('.tab-btn[data-tab="progressao"]');
+        if (btn) btn.classList.toggle('hidden', !state.progressao.enabled);
+    }
+    window.AppCore.applyProgressaoVisibility = applyProgressaoVisibility;
     // Mostra/oculta a aba Publicar na Web conforme o toggle em Configurações
     // (mesmo mecanismo do RSC acima).
     function applyPublicarVisibility() {
@@ -1073,6 +1093,8 @@
         state.sumula.enabled = !!cfg.sumulaEnabled;
         state.sumula.cfg = cfg.sumula || {};
         state.sumula.texto = cfg.sumulaTexto || '';
+        state.progressao.enabled = !!cfg.progressaoEnabled;
+        state.progressao.cfg = cfg.progressao || {};
         state.linhaTempo.nuvemExclusao = Array.isArray(cfg.nuvemExclusao) ? cfg.nuvemExclusao : [];
         state.linhaTempo.nuvemCompostas = Array.isArray(cfg.nuvemCompostas) ? cfg.nuvemCompostas : [];
         // Mesmo padrão do RSC/Súmula agora (opt-in, começa desabilitada) —
@@ -1087,6 +1109,7 @@
         updateHeaderIdentity();
         applyRscVisibility();
         applySumulaVisibility();
+        applyProgressaoVisibility();
         applyPublicarVisibility();
         try { await Storage.restoreDirectory(); } catch (_) {}
         applyDirGate();

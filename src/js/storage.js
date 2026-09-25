@@ -927,7 +927,7 @@ window.Storage = (function () {
     // "Configurações modulares" mais abaixo) — sem isto, scanDirectory()
     // tentaria ler "rsc.json"/"nuvem-palavras.json" etc. como se fossem
     // itens do catálogo.
-    const MODULOS_CONFIG = ['nuvem-palavras', 'rsc', 'sumula', 'geral', 'publicar', 'acessibilidade'];
+    const MODULOS_CONFIG = ['nuvem-palavras', 'rsc', 'sumula', 'progressao', 'geral', 'publicar', 'acessibilidade'];
     function ehArquivoDeConfiguracao(name) {
         return name === 'catalogo.json' || name === SETTINGS_FILE || name.indexOf('latteszen-') === 0
             || MODULOS_CONFIG.some((m) => name === nomeArquivoModulo(m));
