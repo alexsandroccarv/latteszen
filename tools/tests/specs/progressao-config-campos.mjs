@@ -59,7 +59,7 @@ test('Progressão Docente: data de posse, data da última progressão e Campus/U
     await page.fill('#progressao-dataPosse', '01/03/2015');
     await page.fill('#progressao-dataUltimaProgressao', '01/03/2023');
     await page.selectOption('#progressao-campus', 'São Paulo');
-    await page.fill('#progressao-unidade', 'Escola Paulista de Medicina');
+    await page.selectOption('#progressao-unidade', 'Escola Paulista de Medicina (EPM)');
     await page.fill('#progressao-departamento', 'Informática em Saúde');
     await page.click('#btnSaveProgressaoCfg');
     await page.waitForTimeout(200);
@@ -68,11 +68,11 @@ test('Progressão Docente: data de posse, data da última progressão e Campus/U
     assertEqual(cfg.dataPosse, '01/03/2015', 'Data de posse deveria ser salva');
     assertEqual(cfg.dataUltimaProgressao, '01/03/2023', 'Data da última progressão deveria ser salva');
     assertEqual(cfg.campus, 'São Paulo', 'Campus deveria ser salvo');
-    assertEqual(cfg.unidade, 'Escola Paulista de Medicina', 'Unidade deveria ser salva');
+    assertEqual(cfg.unidade, 'Escola Paulista de Medicina (EPM)', 'Unidade deveria ser salva');
     assertEqual(cfg.departamento, 'Informática em Saúde', 'Departamento deveria ser salvo');
 });
 
-test('Progressão Docente: "Campus" é uma lista fechada com os 7 campi da Unifesp', async ({ page, baseUrl }) => {
+test('Progressão Docente: "Campus" é uma lista fechada com os 8 campi da Unifesp', async ({ page, baseUrl }) => {
     await seedCatalog(page, baseUrl, []);
     await abrirModulos(page);
     await page.click('#progressaoEnable');
@@ -81,8 +81,35 @@ test('Progressão Docente: "Campus" é uma lista fechada com os 7 campi da Unife
     await page.waitForTimeout(200);
 
     const opcoes = await page.$$eval('#progressao-campus option', (opts) => opts.map((o) => o.value).filter(Boolean));
-    assertEqual(opcoes.sort(), ['Baixada Santista', 'Guarulhos', 'Osasco', 'Reitoria', 'São José dos Campos', 'São Paulo', 'Zona Leste'].sort(),
-        `As opções de Campus deveriam ser exatamente os 7 campi da Unifesp — obtido: ${JSON.stringify(opcoes)}`);
+    assertEqual(opcoes.sort(), ['Baixada Santista', 'Diadema', 'Guarulhos', 'Osasco', 'Reitoria', 'São José dos Campos', 'São Paulo', 'Zona Leste'].sort(),
+        `As opções de Campus deveriam ser exatamente os 8 campi da Unifesp — obtido: ${JSON.stringify(opcoes)}`);
+});
+
+test('Progressão Docente: "Unidade" é filtrada pelas unidades vinculadas ao Campus escolhido', async ({ page, baseUrl }) => {
+    await seedCatalog(page, baseUrl, []);
+    await abrirModulos(page);
+    await page.click('#progressaoEnable');
+    await page.waitForTimeout(100);
+    await page.click('[data-tab="progressao"]');
+    await page.waitForTimeout(200);
+
+    // Antes de escolher um Campus, "Unidade" só tem a opção em branco.
+    const opcoesAntes = await page.$$eval('#progressao-unidade option', (opts) => opts.map((o) => o.value).filter(Boolean));
+    assertEqual(opcoesAntes, [], 'Sem Campus escolhido, "Unidade" não deveria oferecer nenhuma unidade');
+
+    await page.selectOption('#progressao-campus', 'São Paulo');
+    const opcoesSP = await page.$$eval('#progressao-unidade option', (opts) => opts.map((o) => o.value).filter(Boolean));
+    assertEqual(opcoesSP.sort(), ['Escola Paulista de Enfermagem (EPE)', 'Escola Paulista de Medicina (EPM)'].sort(),
+        `As unidades de São Paulo deveriam ser EPM/EPE — obtido: ${JSON.stringify(opcoesSP)}`);
+    await page.selectOption('#progressao-unidade', 'Escola Paulista de Medicina (EPM)');
+
+    // Trocar o Campus reseta a Unidade e filtra pra as unidades do novo Campus.
+    await page.selectOption('#progressao-campus', 'Diadema');
+    const opcoesDiadema = await page.$$eval('#progressao-unidade option', (opts) => opts.map((o) => o.value).filter(Boolean));
+    assertEqual(opcoesDiadema, ['Instituto de Ciências Ambientais, Químicas e Farmacêuticas (ICAQF)'],
+        `As unidades de Diadema deveriam ser só o ICAQF — obtido: ${JSON.stringify(opcoesDiadema)}`);
+    const valorUnidade = await page.inputValue('#progressao-unidade');
+    assertEqual(valorUnidade, '', 'Trocar o Campus deveria limpar a Unidade escolhida anteriormente (EPM não é de Diadema)');
 });
 
 test('Progressão Docente: datas inválidas bloqueiam o salvamento (mesmo validador "dataCompleta" do resto do app)', async ({ page, baseUrl }) => {

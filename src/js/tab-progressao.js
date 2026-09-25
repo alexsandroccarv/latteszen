@@ -50,7 +50,7 @@ window.TabProgressao = (function () {
     // Campus da Unifesp — lista fechada (pedido do Alexsandro), em vez de
     // texto livre: evita grafias divergentes do mesmo campus entre itens
     // diferentes (ex.: "São José dos Campos" vs. "S. J. dos Campos").
-    const CAMPUS_OPCOES = ['Baixada Santista', 'Guarulhos', 'Osasco', 'Reitoria', 'São José dos Campos', 'São Paulo', 'Zona Leste'];
+    const CAMPUS_OPCOES = ['Baixada Santista', 'Diadema', 'Guarulhos', 'Osasco', 'Reitoria', 'São José dos Campos', 'São Paulo', 'Zona Leste'];
     function inpCampus(c) {
         const v = c.campus || '';
         return `<div>${labelHtml('progressao-campus', 'Campus')}
@@ -58,6 +58,43 @@ window.TabProgressao = (function () {
                 <option value="">—</option>
                 ${CAMPUS_OPCOES.map((o) => `<option value="${esc(o)}" ${o === v ? 'selected' : ''}>${esc(o)}</option>`).join('')}
             </select></div>`;
+    }
+    // Unidade universitária — também lista fechada (pedido do Alexsandro),
+    // mas dependente do Campus escolhido: cada campus da Unifesp tem seu
+    // próprio conjunto de institutos/escolas. Reitoria não tem unidades
+    // subordinadas no mesmo sentido (é a própria administração central),
+    // então aparece como opção única dela mesma.
+    const UNIDADES_POR_CAMPUS = {
+        'Baixada Santista': ['Instituto do Mar (IMar)', 'Instituto Saúde e Sociedade (ISS)'],
+        Diadema: ['Instituto de Ciências Ambientais, Químicas e Farmacêuticas (ICAQF)'],
+        Guarulhos: ['Escola de Filosofia, Letras e Ciências Humanas (EFLCH)'],
+        Osasco: ['Escola Paulista de Política, Economia e Negócios (EPPEN)'],
+        Reitoria: ['Reitoria'],
+        'São José dos Campos': ['Instituto de Ciência e Tecnologia (ICT)'],
+        'São Paulo': ['Escola Paulista de Medicina (EPM)', 'Escola Paulista de Enfermagem (EPE)'],
+        'Zona Leste': ['Instituto das Cidades (IC)'],
+    };
+    // Se o valor salvo não bater com nenhuma opção do campus atual (dado
+    // legado, digitado quando "Unidade" ainda era texto livre), mantém como
+    // opção extra em vez de descartar silenciosamente.
+    function unidadeOpcoesHtml(campus, v) {
+        const opcoes = UNIDADES_POR_CAMPUS[campus] || [];
+        const todas = v && !opcoes.includes(v) ? [...opcoes, v] : opcoes;
+        return '<option value="">—</option>' + todas.map((o) => `<option value="${esc(o)}" ${o === v ? 'selected' : ''}>${esc(o)}</option>`).join('');
+    }
+    function inpUnidade(c) {
+        return `<div>${labelHtml('progressao-unidade', 'Unidade universitária')}
+            <select id="progressao-unidade" class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900">
+                ${unidadeOpcoesHtml(c.campus || '', c.unidade || '')}
+            </select></div>`;
+    }
+    function wireUnidadeFiltro() {
+        const campusEl = $('#progressao-campus');
+        const unidadeEl = $('#progressao-unidade');
+        if (!campusEl || !unidadeEl) return;
+        campusEl.addEventListener('change', () => {
+            unidadeEl.innerHTML = unidadeOpcoesHtml(campusEl.value, '');
+        });
     }
     // Campo de data com a MESMA máscara dd/mm/aaaa (auto-insere as barras
     // enquanto digita, largura fixa) usada em qualquer campo de data de
@@ -89,7 +126,7 @@ window.TabProgressao = (function () {
                 ${inpData(c, 'dataPosse', 'Data de posse')}
                 ${inpData(c, 'dataUltimaProgressao', 'Data da última progressão')}
                 ${inpCampus(c)}
-                ${inpTexto(c, 'unidade', 'Unidade universitária')}
+                ${inpUnidade(c)}
                 ${inpTexto(c, 'departamento', 'Departamento')}
             </div>
             <div class="flex gap-2 mt-3">
@@ -101,6 +138,7 @@ window.TabProgressao = (function () {
         const panel = $('#tab-progressao');
         window.AppCore.wireValidators(panel);
         wireDateMask(panel);
+        wireUnidadeFiltro();
         $$('[data-ro-focus]', panel).forEach((el) => {
             el.addEventListener('focus', () => el.removeAttribute('readonly'), { once: true });
         });
