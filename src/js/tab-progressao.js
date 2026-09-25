@@ -123,12 +123,21 @@ window.TabProgressao = (function () {
             <div class="space-y-1 max-h-[32rem] overflow-y-auto">
                 ${candidatos.map(({ item, status }) => {
                     const marcado = !!(item.progressao && item.progressao.usar);
-                    const cor = status === 'verde' ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400';
-                    const bg = status === 'verde' ? 'bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800' : 'bg-amber-50 dark:bg-amber-900/10 border-amber-200 dark:border-amber-800';
+                    // Fundo/borda NEUTROS (mesmo padrão usado no resto do app,
+                    // ex.: tab-conformidade.js) — cores como bg-green-50/
+                    // bg-amber-50 não são remapeadas pelos temas coloridos de
+                    // Configurações › Tema (só as classes neutras e as
+                    // govbr-*/unifesp-* têm essa regra em styles.css), então
+                    // um card inteiro nessas cores ficava sempre "claro",
+                    // mesmo com um tema escuro ativo. A distinção verde/
+                    // amarelo agora é só um detalhe pequeno (ícone + friso à
+                    // esquerda), que fica legível em qualquer tema.
+                    const corIcone = status === 'verde' ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400';
+                    const friso = status === 'verde' ? 'border-l-green-500' : 'border-l-amber-500';
                     const ano = itemYear(item);
-                    return `<div class="flex items-center justify-between gap-2 border ${bg} rounded px-2 py-1.5 text-sm">
+                    return `<div class="flex items-center justify-between gap-2 border border-l-4 ${friso} border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 rounded px-2 py-1.5 text-sm">
                         <div class="min-w-0 flex-1 truncate">
-                            <span class="${cor}"><i aria-hidden="true" class="fa-solid ${marcado ? 'fa-square-check' : 'fa-square'}"></i></span>
+                            <span class="${corIcone}"><i aria-hidden="true" class="fa-solid ${marcado ? 'fa-square-check' : 'fa-square'}"></i></span>
                             <span class="ml-1">${esc(LattesTypes.itemTitle(item))}</span>
                             ${ano ? `<span class="text-xs text-gray-400 ml-1">(${esc(String(ano))})</span>` : ''}
                         </div>
