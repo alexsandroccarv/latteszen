@@ -137,6 +137,14 @@ window.TabCatalogar = (function () {
         const doLattes = elegivelAoLattes(typeKey, catKey);
         const rsc = (item && item.rsc) || {};
         const doRsc = state.rsc.enabled && !LattesTypes.isNaoLattesType(typeKey);
+        // Progressão Docente Unifesp — mesmo mecanismo do RSC acima: um
+        // checkbox só aparece pra typeKeys com correspondência mapeada no
+        // memorial da CPPD (ver progressao-mapeamento.js). Não depende dos
+        // valores dos campos (ex.: `nivel`), só do typeKey — a distinção
+        // verde/amarelo (que também olha os campos) só importa pra lista de
+        // "itens candidatos" da aba Progressão, não pra esta checkbox.
+        const progressao = (item && item.progressao) || {};
+        const doProgressao = state.progressao.enabled && window.LzProgressaoMapa.elegivel(typeKey);
 
         box.innerHTML = `
         <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm bg-sky-50 dark:bg-sky-900/10 border border-sky-200 dark:border-sky-800 rounded px-3 py-2">
@@ -144,12 +152,23 @@ window.TabCatalogar = (function () {
             ${doLattes ? `<label class="flex items-center gap-1.5"><input type="checkbox" id="visExportarLattes" ${exportarLattes ? 'checked' : ''}> <i aria-hidden="true" class="fa-solid fa-file-export"></i> ${esc(t('tab_catalogar.publicar_lattes', 'Lattes'))}</label>` : ''}
             <label class="flex items-center gap-1.5"><input type="checkbox" id="visPublicarWeb" ${publicarWeb ? 'checked' : ''}> <i aria-hidden="true" class="fa-solid fa-globe"></i> ${esc(t('tab_catalogar.publicar_web', 'Web'))}</label>
             ${doRsc ? `<label class="flex items-center gap-1.5"><input type="checkbox" id="rscConta" ${rsc.conta ? 'checked' : ''}> <i aria-hidden="true" class="fa-solid fa-award"></i> ${esc('usar para RSC')}</label>` : ''}
+            ${doProgressao ? `<label class="flex items-center gap-1.5"><input type="checkbox" id="progressaoUsar" ${progressao.usar ? 'checked' : ''}> <i aria-hidden="true" class="fa-solid fa-arrow-up-right-dots"></i> ${esc('usar na Progressão')}</label>` : ''}
         </div>`;
 
         const expChk = $('#visExportarLattes');
         if (expChk) expChk.addEventListener('change', () => { state.ui.formDirty = true; });
         const pubChk = $('#visPublicarWeb');
         if (pubChk) pubChk.addEventListener('change', () => { state.ui.formDirty = true; });
+        const progChk = $('#progressaoUsar');
+        if (progChk) progChk.addEventListener('change', () => { state.ui.formDirty = true; });
+    }
+    // Lê a camada Progressão Docente Unifesp do formulário → { usar } (ou
+    // null se o checkbox não existir — typeKey não elegível, ou módulo
+    // desabilitado). Mesmo padrão de collectVisibilidade acima.
+    function collectProgressao(form) {
+        const chk = form.querySelector('#progressaoUsar');
+        if (!chk) return null;
+        return { usar: chk.checked };
     }
     // Lê a camada de Visibilidade do formulário → { exportarLattes,
     // visivelNoLattes, publicarWeb } (ou null se o bloco não foi montado —
@@ -1633,6 +1652,8 @@ window.TabCatalogar = (function () {
         // Camada de Visibilidade (Exportar Lattes / visibilidade no Lattes / Publicar na Web)
         const visibilidadeData = collectVisibilidade(form);
         if (visibilidadeData) item.visibilidade = visibilidadeData;
+        // Camada Progressão Docente Unifesp (se habilitado e o item é elegível)
+        if (state.progressao.enabled) { const progressaoData = collectProgressao(form); if (progressaoData) item.progressao = progressaoData; }
 
         // ---- Evidências: grava novas, remove excluídas, aplica ordem/pública ----
         const subdir = LattesTypes.categoryFolder(item.categoryKey);

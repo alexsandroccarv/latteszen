@@ -32,7 +32,7 @@
    interstício, exportação) fica para as próximas etapas.
    ========================================================================== */
 window.TabProgressao = (function () {
-    const { state, $, esc, toast } = window.AppCore;
+    const { state, $, $$, esc, toast, itemYear, anoDe } = window.AppCore;
 
     function labelHtml(forId, lbl) {
         return `<label class="block text-xs font-semibold mb-1" for="${forId}">${esc(lbl)}</label>`;
@@ -85,6 +85,71 @@ window.TabProgressao = (function () {
         });
     }
 
+    /* ------------------------- Itens candidatos ------------------------- */
+    // A partir da "data da última progressão" e do mapeamento memorial ↔
+    // Lattes (ver progressao-mapeamento.js), lista os itens do catálogo que
+    // são candidatos ao memorial: typeKey mapeado (verde ou amarelo) e
+    // datados a partir daquela data (ou sem ano legível — entram por
+    // segurança, pra não esconder itens em andamento sem data de fim).
+    // Sem a data ainda preenchida, mostra todos os itens mapeados (nada pra
+    // cortar ainda). O "usar na Progressão" em si é marcado na própria aba
+    // Catalogar (mesmo mecanismo do RSC-PCCTAE — ver renderVisibilidadeBlock
+    // em tab-catalogar.js) — aqui é só a lista de revisão + atalho "Editar".
+    function candidatosProgressao() {
+        const cfg = state.progressao.cfg || {};
+        const anoRefStr = anoDe(cfg.dataUltimaProgressao || '');
+        const anoRef = anoRefStr ? parseInt(anoRefStr, 10) : null;
+        return state.catalogo.items
+            .map((item) => ({ item, status: window.LzProgressaoMapa.status(item) }))
+            .filter(({ status, item }) => {
+                if (!status) return false;
+                if (anoRef == null) return true;
+                const ano = itemYear(item);
+                return ano == null || ano >= anoRef;
+            })
+            .sort((a, b) => (itemYear(b.item) || 0) - (itemYear(a.item) || 0));
+    }
+
+    function candidatosSectionHtml() {
+        const candidatos = candidatosProgressao();
+        const cfg = state.progressao.cfg || {};
+        const marcados = candidatos.filter(({ item }) => item.progressao && item.progressao.usar).length;
+        return `<section class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+            <h3 class="font-bold text-sm mb-2 flex items-center gap-2"><i class="fa-solid fa-list-check text-govbr-600 dark:text-unifesp-400"></i> ${esc('Itens candidatos ao memorial')} ${candidatos.length ? `<span class="text-xs font-normal text-gray-500">(${esc(String(marcados))} de ${esc(String(candidatos.length))} marcados)</span>` : ''}</h3>
+            <p class="text-xs text-gray-500 mb-3">${cfg.dataUltimaProgressao
+                ? esc(`Itens do catálogo datados a partir de ${cfg.dataUltimaProgressao} (ou sem ano definido) com correspondência no memorial da CPPD. `)
+                : esc('Informe a "Data da última progressão" acima para restringir a lista ao período correto — por enquanto, todos os itens com correspondência no memorial. ')}${esc('Marque "usar na Progressão" na própria aba Catalogar (mesmo mecanismo do RSC-PCCTAE): itens ')}<span class="text-green-600 dark:text-green-400 font-semibold">${esc('verdes')}</span>${esc(' precisam só do checkbox; itens ')}<span class="text-amber-600 dark:text-amber-400 font-semibold">${esc('amarelos')}</span>${esc(' têm lacunas cujos campos complementares ainda vamos desenhar juntos.')}</p>
+            ${!candidatos.length ? `<p class="text-sm text-gray-500 italic py-4 text-center">${esc('Nenhum item candidato encontrado ainda — cadastre itens em Catalogar.')}</p>` : `
+            <div class="space-y-1 max-h-[32rem] overflow-y-auto">
+                ${candidatos.map(({ item, status }) => {
+                    const marcado = !!(item.progressao && item.progressao.usar);
+                    const cor = status === 'verde' ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400';
+                    const bg = status === 'verde' ? 'bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800' : 'bg-amber-50 dark:bg-amber-900/10 border-amber-200 dark:border-amber-800';
+                    const ano = itemYear(item);
+                    return `<div class="flex items-center justify-between gap-2 border ${bg} rounded px-2 py-1.5 text-sm">
+                        <div class="min-w-0 flex-1 truncate">
+                            <span class="${cor}"><i aria-hidden="true" class="fa-solid ${marcado ? 'fa-square-check' : 'fa-square'}"></i></span>
+                            <span class="ml-1">${esc(LattesTypes.itemTitle(item))}</span>
+                            ${ano ? `<span class="text-xs text-gray-400 ml-1">(${esc(String(ano))})</span>` : ''}
+                        </div>
+                        <button type="button" data-editar="${esc(item.id)}" class="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600 shrink-0">${esc('Editar')}</button>
+                    </div>`;
+                }).join('')}
+            </div>`}
+        </section>`;
+    }
+    function wireCandidatosSection(panel) {
+        $$('[data-editar]', panel).forEach((btn) => {
+            btn.addEventListener('click', () => {
+                const item = state.catalogo.items.find((i) => i.id === btn.dataset.editar);
+                if (!item) return;
+                window.AppCore.switchTab('catalogar');
+                window.AppCore.buildForm(item);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            });
+        });
+    }
+
     function render() {
         const panel = $('#tab-progressao');
         if (!state.progressao.enabled) {
@@ -94,8 +159,10 @@ window.TabProgressao = (function () {
         const cfg = state.progressao.cfg || {};
         panel.innerHTML = `
             <h2 class="text-xl font-bold mb-4 flex items-center gap-2"><i class="fa-solid fa-arrow-up-right-dots text-govbr-600 dark:text-unifesp-400"></i> ${esc('Progressão Docente Unifesp')}</h2>
-            ${progressaoCfgSectionHtml(cfg)}`;
+            ${progressaoCfgSectionHtml(cfg)}
+            ${candidatosSectionHtml()}`;
         wireProgressaoCfgSection();
+        wireCandidatosSection(panel);
     }
 
     return { render };
