@@ -97,6 +97,44 @@ test('Progressão Docente: datas inválidas bloqueiam o salvamento (mesmo valida
     assert(toasts.some((t) => /corrija os campos destacados/i.test(t)), 'Deveria avisar pra corrigir os campos antes de salvar');
 });
 
+test('Progressão Docente: campos de data têm máscara dd/mm/aaaa (auto-insere as barras) e largura fixa, igual ao resto do app', async ({ page, baseUrl }) => {
+    await seedCatalog(page, baseUrl, []);
+    await abrirModulos(page);
+    await page.click('#progressaoEnable');
+    await page.waitForTimeout(100);
+    await page.click('[data-tab="progressao"]');
+    await page.waitForTimeout(200);
+
+    const info = await page.evaluate(() => {
+        const el = document.getElementById('progressao-dataPosse');
+        return { temDatebr: el.hasAttribute('data-datebr'), classe: el.className };
+    });
+    assert(info.temDatebr, 'O campo de data deveria ter o atributo data-datebr (mesma máscara de Catalogar)');
+    assert(info.classe.includes('w-32'), 'O campo de data deveria ter largura fixa (w-32), igual aos campos de data de Catalogar');
+
+    await page.locator('#progressao-dataPosse').click(); // sai do readonly (mesmo padrão anti-autofill do resto do app)
+    await page.locator('#progressao-dataPosse').fill(''); // limpa antes de digitar caractere a caractere
+    await page.type('#progressao-dataPosse', '01032015');
+    const valor = await page.inputValue('#progressao-dataPosse');
+    assertEqual(valor, '01/03/2015', 'A máscara deveria auto-inserir as barras enquanto digita, igual aos campos de data de Catalogar');
+});
+
+test('Progressão Docente: campos de texto começam "readonly" e liberam ao focar (mesma proteção contra autofill do navegador usada no resto do app)', async ({ page, baseUrl }) => {
+    await seedCatalog(page, baseUrl, []);
+    await abrirModulos(page);
+    await page.click('#progressaoEnable');
+    await page.waitForTimeout(100);
+    await page.click('[data-tab="progressao"]');
+    await page.waitForTimeout(200);
+
+    const antes = await page.evaluate(() => document.getElementById('progressao-campus').hasAttribute('readonly'));
+    assert(antes, 'O campo "Campus" deveria começar readonly (contorna autofill de endereço do navegador)');
+
+    await page.locator('#progressao-campus').click();
+    const depois = await page.evaluate(() => document.getElementById('progressao-campus').hasAttribute('readonly'));
+    assert(!depois, 'Focar o campo deveria remover o readonly, liberando a digitação normal');
+});
+
 test('"Limpar catálogo" também zera a configuração da Progressão Docente Unifesp', async ({ page, baseUrl }) => {
     await seedCatalog(page, baseUrl, []);
     await page.evaluate(() => {

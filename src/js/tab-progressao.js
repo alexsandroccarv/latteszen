@@ -34,12 +34,38 @@
 window.TabProgressao = (function () {
     const { state, $, $$, esc, toast, itemYear, anoDe } = window.AppCore;
 
+    // Começa `readonly` até o primeiro foco — mesmo mecanismo usado em todo
+    // formulário de Catalogar (ver RO/wireReadonlyUntilFocus em
+    // tab-catalogar.js): sem isso, o Chrome (e afins) autopreenche campos
+    // como "Campus"/"Departamento" com sugestões de endereço só pelo nome
+    // do rótulo, mesmo sem o usuário ter digitado nada ali antes.
+    const RO = 'readonly data-ro-focus';
     function labelHtml(forId, lbl) {
         return `<label class="block text-xs font-semibold mb-1" for="${forId}">${esc(lbl)}</label>`;
     }
-    function inp(c, k, lbl, ph, validateKind) {
+    function inpTexto(c, k, lbl) {
         return `<div>${labelHtml('progressao-' + k, lbl)}
-            <input id="progressao-${k}" type="text" value="${esc(c[k] || '')}" placeholder="${esc(ph || '')}" ${validateKind ? `data-validate="${validateKind}"` : ''} class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900"></div>`;
+            <input id="progressao-${k}" type="text" value="${esc(c[k] || '')}" autocomplete="off" ${RO} class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900"></div>`;
+    }
+    // Campo de data com a MESMA máscara dd/mm/aaaa (auto-insere as barras
+    // enquanto digita, largura fixa) usada em qualquer campo de data de
+    // Catalogar — ver wireDateBr em tab-catalogar.js. Módulo 100% pt-br
+    // (sem i18n — ver cabeçalho do arquivo), então sem a complexidade de
+    // ordem por locale que existe lá: aqui é sempre dd/mm/aaaa.
+    function inpData(c, k, lbl) {
+        return `<div>${labelHtml('progressao-' + k, lbl)}
+            <input id="progressao-${k}" type="text" value="${esc(c[k] || '')}" autocomplete="off" ${RO} inputmode="numeric" maxlength="10" placeholder="dd/mm/aaaa" data-datebr data-validate="dataCompleta" class="w-32 text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900"></div>`;
+    }
+    function wireDateMask(container) {
+        $$('[data-datebr]', container).forEach((el) => {
+            el.addEventListener('input', () => {
+                const d = el.value.replace(/\D/g, '').slice(0, 8);
+                let out = d;
+                if (d.length > 6) out = d.slice(0, 2) + '/' + d.slice(2, 4) + '/' + d.slice(4);
+                else if (d.length > 4) out = d.slice(0, 2) + '/' + d.slice(2);
+                el.value = out;
+            });
+        });
     }
 
     function progressaoCfgSectionHtml(cfg) {
@@ -48,11 +74,11 @@ window.TabProgressao = (function () {
             <h3 class="font-bold text-sm mb-2 flex items-center gap-2"><i class="fa-solid fa-id-card text-govbr-600 dark:text-unifesp-400"></i> ${esc('Progressão Docente: Dados funcionais')}</h3>
             <p class="text-xs text-gray-500 mb-2">${esc('Nenhum desses dados existe em outro módulo do lattesZen — preencha manualmente.')}</p>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
-                ${inp(c, 'dataPosse', 'Data de posse', '25/12/2026', 'dataCompleta')}
-                ${inp(c, 'dataUltimaProgressao', 'Data da última progressão', '25/12/2026', 'dataCompleta')}
-                ${inp(c, 'campus', 'Campus', '')}
-                ${inp(c, 'unidade', 'Unidade universitária', '')}
-                ${inp(c, 'departamento', 'Departamento', '')}
+                ${inpData(c, 'dataPosse', 'Data de posse')}
+                ${inpData(c, 'dataUltimaProgressao', 'Data da última progressão')}
+                ${inpTexto(c, 'campus', 'Campus')}
+                ${inpTexto(c, 'unidade', 'Unidade universitária')}
+                ${inpTexto(c, 'departamento', 'Departamento')}
             </div>
             <div class="flex gap-2 mt-3">
                 <button id="btnSaveProgressaoCfg" class="px-3 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm"><i class="fa-solid fa-floppy-disk mr-1"></i> ${esc('Salvar')}</button>
@@ -60,7 +86,12 @@ window.TabProgressao = (function () {
         </section>`;
     }
     function wireProgressaoCfgSection() {
-        window.AppCore.wireValidators($('#tab-progressao'));
+        const panel = $('#tab-progressao');
+        window.AppCore.wireValidators(panel);
+        wireDateMask(panel);
+        $$('[data-ro-focus]', panel).forEach((el) => {
+            el.addEventListener('focus', () => el.removeAttribute('readonly'), { once: true });
+        });
         const btn = $('#btnSaveProgressaoCfg'); if (!btn) return;
         btn.addEventListener('click', () => {
             const keys = ['dataPosse', 'dataUltimaProgressao', 'campus', 'unidade', 'departamento'];
