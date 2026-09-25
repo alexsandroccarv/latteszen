@@ -1,12 +1,12 @@
 name: Publicar lattesZen
 
 # Quando roda:
-#  - a cada push em "principal" (produção) — publica em zen/lattesZen (ver
-#    passo "Definir destino" abaixo);
-#  - a cada push em "latteszen-devel-alexsandroccarv" OU "progressao-unifesp"
-#    — as duas publicam no MESMO destino de staging/labs (labs/latteszen);
-#    ou seja, essas duas branches compartilham o mesmo destino no servidor —
-#    a última que publicar sobrescreve o que a outra tinha lá;
+#  - a cada push em "principal" (produção) — publica em zen/lattesZen;
+#  - a cada push em "latteszen-devel-alexsandroccarv" — publica no staging
+#    de sempre, labs/latteszen;
+#  - a cada push em "progressao-unifesp" — publica num staging PRÓPRIO,
+#    labs/latteszen2 (separado, não sobrescreve o de cima);
+#    (ver passo "Definir destino" abaixo pros 3 caminhos exatos)
 #  - quando você clica em "Run workflow" na aba Actions (execução manual, na
 #    branch escolhida no seletor).
 on:
@@ -77,16 +77,18 @@ jobs:
           test -f dist/css/styles.css || { echo "ERRO: dist/css/ ausente.";      exit 1; }
 
       # Destino no servidor varia por branch: "principal" (produção) publica
-      # em public_html/zen/lattesZen; qualquer outra branch neste workflow
-      # (hoje "latteszen-devel-alexsandroccarv" e "progressao-unifesp")
-      # publica no mesmo caminho de staging, public_html/labs/latteszen —
-      # elas compartilham o destino, então publicar numa sobrescreve o que a
-      # outra tinha deixado lá.
+      # em public_html/zen/lattesZen; "latteszen-devel-alexsandroccarv" publica
+      # no staging de sempre, public_html/labs/latteszen; "progressao-unifesp"
+      # publica num staging PRÓPRIO, public_html/labs/latteszen2 — separado
+      # de propósito, pra não sobrescrever o que a branch de desenvolvimento
+      # tem publicado em labs/latteszen.
       - name: Definir destino conforme a branch
         id: destino
         run: |
           if [ "${{ github.ref_name }}" = "principal" ]; then
             echo "path=/home1/ccarv978/public_html/zen/lattesZen" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.ref_name }}" = "progressao-unifesp" ]; then
+            echo "path=/home1/ccarv978/public_html/labs/latteszen2" >> "$GITHUB_OUTPUT"
           else
             echo "path=/home1/ccarv978/public_html/labs/latteszen" >> "$GITHUB_OUTPUT"
           fi
