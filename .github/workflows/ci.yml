@@ -1,0 +1,68 @@
+name: CI — validação
+
+# Só valida (testes + build), nunca publica no servidor — isso continua
+# exclusivo do deploy.yml, que só roda em "principal"/"latteszen-devel-
+# alexsandroccarv". Este workflow cobre o resto:
+#  - qualquer push numa branch de feature (ex.: progressao-unifesp) — dá
+#    sinal verde/vermelho antes mesmo de abrir um Pull Request;
+#  - qualquer Pull Request contra "principal" ou a branch de desenvolvimento
+#    — aparece como check na tela do PR;
+#  - execução manual ("Run workflow" na aba Actions).
+on:
+  push:
+    branches-ignore: ['principal', 'latteszen-devel-alexsandroccarv']
+  pull_request:
+    branches: ['principal', 'latteszen-devel-alexsandroccarv']
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+# Evita execuções simultâneas pisando uma na outra — agrupado por branch/PR,
+# mesmo padrão do deploy.yml.
+concurrency:
+  group: ci-${{ github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  validar:
+    name: Validar (sintaxe, testes, build)
+    runs-on: ubuntu-latest
+    # Mesma rede de segurança do deploy.yml (ver comentário lá): sem isto, um
+    # hang de verdade na suíte de testes deixa o job rodando por até 6h.
+    timeout-minutes: 50
+    steps:
+      - name: Baixar o código
+        uses: actions/checkout@v4
+
+      - name: Preparar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Verificar sintaxe dos módulos JS
+        run: for f in src/js/*.js; do node --check "$f"; done
+
+      - name: Instalar dependências de teste (Playwright)
+        run: npm ci
+
+      - name: Instalar o navegador do Playwright (Chromium)
+        run: npx playwright install --with-deps chromium
+
+      - name: Rodar a suíte de testes de regressão (UI, Playwright)
+        run: npm test
+
+      - name: Garantir xmllint disponível (validação de XML)
+        run: command -v xmllint >/dev/null || (sudo apt-get update && sudo apt-get install -y libxml2-utils)
+
+      - name: Validar exportação XML contra o schema oficial (XSD/DTD)
+        run: npm run test:xml
+
+      - name: Montar a pasta publicável (dist/) — só como checagem de build
+        run: node build.mjs
+
+      - name: Conferir a estrutura do dist/
+        run: |
+          test -f dist/index.html   || { echo "ERRO: dist/index.html ausente."; exit 1; }
+          test -f dist/js/app.js    || { echo "ERRO: dist/js/ ausente.";        exit 1; }
+          test -f dist/css/styles.css || { echo "ERRO: dist/css/ ausente.";      exit 1; }
