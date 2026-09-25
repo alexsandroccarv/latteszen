@@ -1,16 +1,19 @@
 name: CI — validação
 
 # Só valida (testes + build), nunca publica no servidor — isso continua
-# exclusivo do deploy.yml, que só roda em "principal"/"latteszen-devel-
-# alexsandroccarv". Este workflow cobre o resto:
-#  - qualquer push numa branch de feature (ex.: progressao-unifesp) — dá
+# exclusivo do deploy.yml. Este workflow cobre o resto:
+#  - qualquer push numa branch de feature que NÃO publique sozinha — dá
 #    sinal verde/vermelho antes mesmo de abrir um Pull Request;
 #  - qualquer Pull Request contra "principal" ou a branch de desenvolvimento
 #    — aparece como check na tela do PR;
 #  - execução manual ("Run workflow" na aba Actions).
+# Branches que o deploy.yml já valida (e publica) sozinho —
+# "latteszen-devel-alexsandroccarv" e "progressao-unifesp" — ficam de fora
+# do gatilho de push aqui, senão a suíte de testes rodaria em dobro a cada
+# push nelas.
 on:
   push:
-    branches-ignore: ['principal', 'latteszen-devel-alexsandroccarv']
+    branches-ignore: ['principal', 'latteszen-devel-alexsandroccarv', 'progressao-unifesp']
   pull_request:
     branches: ['principal', 'latteszen-devel-alexsandroccarv']
   workflow_dispatch: {}

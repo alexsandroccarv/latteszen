@@ -1,14 +1,17 @@
 name: Publicar lattesZen
 
 # Quando roda:
-#  - a cada push em "principal" (produção) ou na branch de desenvolvimento
-#    "latteszen-devel-alexsandroccarv" (staging/labs) — cada uma publica num
-#    destino diferente no servidor (ver passo "Definir destino" abaixo);
+#  - a cada push em "principal" (produção) — publica em zen/lattesZen (ver
+#    passo "Definir destino" abaixo);
+#  - a cada push em "latteszen-devel-alexsandroccarv" OU "progressao-unifesp"
+#    — as duas publicam no MESMO destino de staging/labs (labs/latteszen);
+#    ou seja, essas duas branches compartilham o mesmo destino no servidor —
+#    a última que publicar sobrescreve o que a outra tinha lá;
 #  - quando você clica em "Run workflow" na aba Actions (execução manual, na
 #    branch escolhida no seletor).
 on:
   push:
-    branches: ['principal', 'latteszen-devel-alexsandroccarv']
+    branches: ['principal', 'latteszen-devel-alexsandroccarv', 'progressao-unifesp']
   workflow_dispatch: {}
 
 permissions:
@@ -74,8 +77,11 @@ jobs:
           test -f dist/css/styles.css || { echo "ERRO: dist/css/ ausente.";      exit 1; }
 
       # Destino no servidor varia por branch: "principal" (produção) publica
-      # em public_html/zen/lattesZen; a branch de desenvolvimento publica no
-      # caminho de sempre, public_html/labs/latteszen (staging).
+      # em public_html/zen/lattesZen; qualquer outra branch neste workflow
+      # (hoje "latteszen-devel-alexsandroccarv" e "progressao-unifesp")
+      # publica no mesmo caminho de staging, public_html/labs/latteszen —
+      # elas compartilham o destino, então publicar numa sobrescreve o que a
+      # outra tinha deixado lá.
       - name: Definir destino conforme a branch
         id: destino
         run: |
