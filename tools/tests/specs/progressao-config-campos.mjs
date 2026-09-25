@@ -58,7 +58,7 @@ test('Progressão Docente: data de posse, data da última progressão e Campus/U
 
     await page.fill('#progressao-dataPosse', '01/03/2015');
     await page.fill('#progressao-dataUltimaProgressao', '01/03/2023');
-    await page.fill('#progressao-campus', 'Campus São Paulo');
+    await page.selectOption('#progressao-campus', 'São Paulo');
     await page.fill('#progressao-unidade', 'Escola Paulista de Medicina');
     await page.fill('#progressao-departamento', 'Informática em Saúde');
     await page.click('#btnSaveProgressaoCfg');
@@ -67,9 +67,22 @@ test('Progressão Docente: data de posse, data da última progressão e Campus/U
     const cfg = await page.evaluate(() => JSON.parse(localStorage.getItem('lz_settings') || '{}').progressao || {});
     assertEqual(cfg.dataPosse, '01/03/2015', 'Data de posse deveria ser salva');
     assertEqual(cfg.dataUltimaProgressao, '01/03/2023', 'Data da última progressão deveria ser salva');
-    assertEqual(cfg.campus, 'Campus São Paulo', 'Campus deveria ser salvo');
+    assertEqual(cfg.campus, 'São Paulo', 'Campus deveria ser salvo');
     assertEqual(cfg.unidade, 'Escola Paulista de Medicina', 'Unidade deveria ser salva');
     assertEqual(cfg.departamento, 'Informática em Saúde', 'Departamento deveria ser salvo');
+});
+
+test('Progressão Docente: "Campus" é uma lista fechada com os 7 campi da Unifesp', async ({ page, baseUrl }) => {
+    await seedCatalog(page, baseUrl, []);
+    await abrirModulos(page);
+    await page.click('#progressaoEnable');
+    await page.waitForTimeout(100);
+    await page.click('[data-tab="progressao"]');
+    await page.waitForTimeout(200);
+
+    const opcoes = await page.$$eval('#progressao-campus option', (opts) => opts.map((o) => o.value).filter(Boolean));
+    assertEqual(opcoes.sort(), ['Baixada Santista', 'Guarulhos', 'Osasco', 'Reitoria', 'São José dos Campos', 'São Paulo', 'Zona Leste'].sort(),
+        `As opções de Campus deveriam ser exatamente os 7 campi da Unifesp — obtido: ${JSON.stringify(opcoes)}`);
 });
 
 test('Progressão Docente: datas inválidas bloqueiam o salvamento (mesmo validador "dataCompleta" do resto do app)', async ({ page, baseUrl }) => {
@@ -127,11 +140,11 @@ test('Progressão Docente: campos de texto começam "readonly" e liberam ao foca
     await page.click('[data-tab="progressao"]');
     await page.waitForTimeout(200);
 
-    const antes = await page.evaluate(() => document.getElementById('progressao-campus').hasAttribute('readonly'));
-    assert(antes, 'O campo "Campus" deveria começar readonly (contorna autofill de endereço do navegador)');
+    const antes = await page.evaluate(() => document.getElementById('progressao-departamento').hasAttribute('readonly'));
+    assert(antes, 'O campo "Departamento" deveria começar readonly (contorna autofill de endereço do navegador)');
 
-    await page.locator('#progressao-campus').click();
-    const depois = await page.evaluate(() => document.getElementById('progressao-campus').hasAttribute('readonly'));
+    await page.locator('#progressao-departamento').click();
+    const depois = await page.evaluate(() => document.getElementById('progressao-departamento').hasAttribute('readonly'));
     assert(!depois, 'Focar o campo deveria remover o readonly, liberando a digitação normal');
 });
 

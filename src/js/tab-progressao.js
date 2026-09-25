@@ -47,6 +47,18 @@ window.TabProgressao = (function () {
         return `<div>${labelHtml('progressao-' + k, lbl)}
             <input id="progressao-${k}" type="text" value="${esc(c[k] || '')}" autocomplete="off" ${RO} class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900"></div>`;
     }
+    // Campus da Unifesp — lista fechada (pedido do Alexsandro), em vez de
+    // texto livre: evita grafias divergentes do mesmo campus entre itens
+    // diferentes (ex.: "São José dos Campos" vs. "S. J. dos Campos").
+    const CAMPUS_OPCOES = ['Baixada Santista', 'Guarulhos', 'Osasco', 'Reitoria', 'São José dos Campos', 'São Paulo', 'Zona Leste'];
+    function inpCampus(c) {
+        const v = c.campus || '';
+        return `<div>${labelHtml('progressao-campus', 'Campus')}
+            <select id="progressao-campus" class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900">
+                <option value="">—</option>
+                ${CAMPUS_OPCOES.map((o) => `<option value="${esc(o)}" ${o === v ? 'selected' : ''}>${esc(o)}</option>`).join('')}
+            </select></div>`;
+    }
     // Campo de data com a MESMA máscara dd/mm/aaaa (auto-insere as barras
     // enquanto digita, largura fixa) usada em qualquer campo de data de
     // Catalogar — ver wireDateBr em tab-catalogar.js. Módulo 100% pt-br
@@ -76,7 +88,7 @@ window.TabProgressao = (function () {
             <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
                 ${inpData(c, 'dataPosse', 'Data de posse')}
                 ${inpData(c, 'dataUltimaProgressao', 'Data da última progressão')}
-                ${inpTexto(c, 'campus', 'Campus')}
+                ${inpCampus(c)}
                 ${inpTexto(c, 'unidade', 'Unidade universitária')}
                 ${inpTexto(c, 'departamento', 'Departamento')}
             </div>
