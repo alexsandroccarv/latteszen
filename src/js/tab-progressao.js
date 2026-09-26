@@ -122,6 +122,11 @@ window.TabProgressao = (function () {
     function inpNivel(c) {
         return inpSelectFechado('progressao-nivel', 'Nível atual', NIVEL_OPCOES, c.nivel || '');
     }
+    // Regime de trabalho — mesma estratégia de lista fechada.
+    const REGIME_OPCOES = ['20h semanais', '40h semanais', 'Dedicação exclusiva'];
+    function inpRegime(c) {
+        return inpSelectFechado('progressao-regime', 'Regime de trabalho', REGIME_OPCOES, c.regime || '');
+    }
     // Campo de data com a MESMA máscara dd/mm/aaaa (auto-insere as barras
     // enquanto digita, largura fixa) usada em qualquer campo de data de
     // Catalogar — ver wireDateBr em tab-catalogar.js. Módulo 100% pt-br
@@ -156,6 +161,7 @@ window.TabProgressao = (function () {
                 ${inpTexto(c, 'departamento', 'Departamento')}
                 ${inpClasse(c)}
                 ${inpNivel(c)}
+                ${inpRegime(c)}
             </div>
             <div class="flex gap-2 mt-3">
                 <button id="btnSaveProgressaoCfg" class="px-3 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm"><i class="fa-solid fa-floppy-disk mr-1"></i> ${esc('Salvar')}</button>
@@ -172,7 +178,7 @@ window.TabProgressao = (function () {
         });
         const btn = $('#btnSaveProgressaoCfg'); if (!btn) return;
         btn.addEventListener('click', () => {
-            const keys = ['dataPosse', 'dataUltimaProgressao', 'campus', 'unidade', 'departamento', 'classe', 'nivel'];
+            const keys = ['dataPosse', 'dataUltimaProgressao', 'campus', 'unidade', 'departamento', 'classe', 'nivel', 'regime'];
             const cfg = {};
             let temErro = false;
             keys.forEach((k) => {

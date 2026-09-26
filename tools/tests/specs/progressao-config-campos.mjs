@@ -63,6 +63,7 @@ test('Progressão Docente: data de posse, data da última progressão e Campus/U
     await page.fill('#progressao-departamento', 'Informática em Saúde');
     await page.selectOption('#progressao-classe', 'Adjunto');
     await page.selectOption('#progressao-nivel', '3');
+    await page.selectOption('#progressao-regime', 'Dedicação exclusiva');
     await page.click('#btnSaveProgressaoCfg');
     await page.waitForTimeout(200);
 
@@ -74,9 +75,10 @@ test('Progressão Docente: data de posse, data da última progressão e Campus/U
     assertEqual(cfg.departamento, 'Informática em Saúde', 'Departamento deveria ser salvo');
     assertEqual(cfg.classe, 'Adjunto', 'Classe atual deveria ser salva');
     assertEqual(cfg.nivel, '3', 'Nível atual deveria ser salvo');
+    assertEqual(cfg.regime, 'Dedicação exclusiva', 'Regime de trabalho deveria ser salvo');
 });
 
-test('Progressão Docente: "Classe atual" e "Nível atual" são listas fechadas', async ({ page, baseUrl }) => {
+test('Progressão Docente: "Classe atual", "Nível atual" e "Regime de trabalho" são listas fechadas', async ({ page, baseUrl }) => {
     await seedCatalog(page, baseUrl, []);
     await abrirModulos(page);
     await page.click('#progressaoEnable');
@@ -89,6 +91,9 @@ test('Progressão Docente: "Classe atual" e "Nível atual" são listas fechadas'
 
     const niveis = await page.$$eval('#progressao-nivel option', (opts) => opts.map((o) => o.value).filter(Boolean));
     assertEqual(niveis, ['1', '2', '3', '4'], `Opções de Nível inesperadas — obtido: ${JSON.stringify(niveis)}`);
+
+    const regimes = await page.$$eval('#progressao-regime option', (opts) => opts.map((o) => o.value).filter(Boolean));
+    assertEqual(regimes, ['20h semanais', '40h semanais', 'Dedicação exclusiva'], `Opções de Regime de trabalho inesperadas — obtido: ${JSON.stringify(regimes)}`);
 });
 
 test('Progressão Docente: "Campus" é uma lista fechada com os 8 campi da Unifesp', async ({ page, baseUrl }) => {
