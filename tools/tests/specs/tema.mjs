@@ -169,6 +169,43 @@ test('Todos os temas definem de fato as variáveis --lz-* (regressão: comentár
     }
 });
 
+test('Regressão: campos de texto (border-gray-*) continuam com borda visível em temas onde --lz-border == --lz-surface (Catppuccin Mocha)', async ({ page, baseUrl }) => {
+    // Bug real (relatado pelo usuário via print de tela): a regra genérica
+    // "html.lz-theme input:not(...):not(...):not(...):not(...)" (fundo/texto
+    // dos campos) tinha, por causa dos ":not()", especificidade MAIOR que
+    // ".border-gray-300"/".dark:border-gray-600" (que usam color-mix() pra
+    // garantir contraste — ver comentário logo acima dessas regras em
+    // styles.css) — então "roubava" a prioridade delas só em <input>,
+    // fixando border-color: var(--lz-border) puro. Em temas onde
+    // --lz-border é IGUAL a --lz-surface (Catppuccin Mocha, Drácula), isso
+    // deixava os campos de texto/data sem nenhuma borda visível, enquanto
+    // os <select> ao lado (sem ":not()" no seletor, logo menos específico)
+    // continuavam normais — corrigido tirando border-color daquela regra
+    // genérica, que não deveria mesmo decidir cor de borda.
+    await page.goto(baseUrl + '/index.html');
+    await page.evaluate(() => {
+        localStorage.setItem('tema', 'dark');
+        localStorage.setItem('lz_tema_preset', 'catppuccin-mocha');
+    });
+    await page.reload();
+    await page.waitForTimeout(500);
+    await page.click('[data-tab="catalogar"]');
+    await page.waitForTimeout(200);
+    const catVal = await page.$eval('#selCategoria', (sel) => Array.from(sel.options).find((o) => o.textContent.includes('Formação')).value);
+    await page.selectOption('#selCategoria', catVal);
+    await page.waitForTimeout(150);
+    const tipoVal = await page.$eval('#selTipo', (sel) => Array.from(sel.options).find((o) => o.textContent.includes('complementar')).value);
+    await page.selectOption('#selTipo', tipoVal);
+    await page.waitForTimeout(200);
+
+    const cores = await page.evaluate(() => {
+        const el = document.querySelector('[name="titulo"]');
+        const cs = getComputedStyle(el);
+        return { border: cs.borderTopColor, bg: cs.backgroundColor };
+    });
+    assert(cores.border !== cores.bg, `O campo de texto deveria ter uma borda visível (cor diferente do fundo) — border=${cores.border} bg=${cores.bg}`);
+});
+
 test('Sem tema escolhido, a grade da Linha do tempo continua com a escala própria (.viz-heat-*)', async ({ page, baseUrl }) => {
     await page.goto(baseUrl + '/index.html');
     await page.waitForTimeout(400);

@@ -257,12 +257,23 @@ html.lz-theme footer [class*="text-white/25"] { color: var(--lz-footer-text) !im
 html.lz-theme footer a:hover,
 html.lz-theme footer button:hover { color: var(--lz-footer-text) !important; text-decoration: underline; }
 
+/* SEM border-color aqui de propósito: por causa dos ":not(...)" no
+   seletor de <input>, esta regra fica MAIS específica que as regras de
+   ".border-gray-300"/".dark:border-gray-600" (bloco mais abaixo, que usa
+   color-mix() pra garantir contraste), então uma borda aqui "roubaria" a
+   prioridade delas SÓ em <input> (não em <select>, cujo seletor não tem
+   ":not()" e por isso já perde pra elas). Resultado real visto: em temas
+   onde --lz-border e --lz-surface são o mesmo tom (Catppuccin Mocha,
+   Drácula), os campos de texto/data ficavam sem nenhuma borda visível
+   (cor idêntica ao fundo), enquanto os <select> ao lado ficavam normais —
+   cada input/select já traz sua própria classe border-gray-*/border-govbr-*
+   (ver base/RO em tab-catalogar.js e tab-progressao.js), que cuida da cor
+   da borda sozinha. */
 html.lz-theme input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="range"]),
 html.lz-theme select,
 html.lz-theme textarea {
     background-color: var(--lz-surface) !important;
     color: var(--lz-text) !important;
-    border-color: var(--lz-border) !important;
 }
 html.lz-theme input,
 html.lz-theme select,
