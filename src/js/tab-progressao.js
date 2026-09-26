@@ -270,24 +270,22 @@ window.TabProgressao = (function () {
             <h3 class="font-bold text-sm mb-2 flex items-center gap-2"><i class="fa-solid fa-id-card text-govbr-600 dark:text-unifesp-400"></i> ${esc('Progressão Docente: Dados funcionais')}</h3>
             <p class="text-xs text-gray-500 mb-2">${esc('Nenhum desses dados existe em outro módulo do lattesZen — preencha manualmente.')}</p>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
-                ${inpData(c, 'dataPosse', 'Data de posse')}
-                ${inpDataUltimaProgressaoComEvidencia(c)}
+                <div class="flex flex-wrap gap-4 md:col-span-2">
+                    ${inpData(c, 'dataPosse', 'Data de posse')}
+                    ${inpDataUltimaProgressaoComEvidencia(c)}
+                    ${inpData(c, 'dataFinalPeriodo', 'Data final do período do memorial')}
+                </div>
                 ${inpCampus(c)}
                 ${inpUnidade(c)}
                 ${inpTexto(c, 'departamento', 'Departamento')}
                 ${inpClasse(c)}
                 ${inpNivel(c)}
                 ${inpRegime(c)}
-            </div>
-            <h4 class="font-bold text-xs mt-4 mb-2 pt-3 border-t border-gray-200 dark:border-gray-700">${esc('Requerimento à CPPD')}</h4>
-            <p class="text-xs text-gray-500 mb-2">${esc('Campos do requerimento formal que ainda não existem em outro módulo. Nome completo, telefone e e-mail já vêm do seu perfil e são reaproveitados na hora de gerar o requerimento.')}</p>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
                 ${inpRegistroFuncional(c)}
                 ${inpSiape(c)}
                 ${inpTitulacao(c)}
                 ${inpClassePretendida(c)}
                 ${inpNivelPretendido(c)}
-                ${inpData(c, 'dataFinalPeriodo', 'Data final do período do memorial')}
             </div>
             <div class="flex gap-2 mt-3">
                 <button id="btnSaveProgressaoCfg" class="px-3 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm"><i class="fa-solid fa-floppy-disk mr-1"></i> ${esc('Salvar')}</button>
