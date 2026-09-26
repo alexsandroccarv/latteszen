@@ -218,16 +218,26 @@ test('Aba Progressão Docente: "Gerar prévia do item 3" produz o texto com os r
     assert(texto.includes('Link de divulgação: [completar manualmente]'), 'Campo sem correspondência no catálogo (Link de divulgação) deveria virar placeholder');
 });
 
-test('Aba Progressão Docente: "Gerar prévia do item 3" avisa quando não há itens de Extensão validados', async ({ page, baseUrl }) => {
+test('Aba Progressão Docente: "Gerar prévia do item 3" nunca fica bloqueada por falta de itens — só aponta a ausência num relatório inicial', async ({ page, baseUrl }) => {
+    // Catálogo TOTALMENTE vazio: o botão de prévia continua existindo (não
+    // é escondido junto com o aviso de "nenhum candidato").
     await seedCatalog(page, baseUrl, []);
     await habilitarProgressao(page);
     await page.click('[data-tab="progressao"]');
     await page.waitForTimeout(200);
 
-    // Sem candidatos nenhum, o botão de prévia não aparece (a seção
-    // "itens candidatos" mostra o aviso de catálogo vazio).
-    assertEqual(await page.locator('#btnPreviaItem3').count(), 0, 'Sem candidatos, o botão de prévia do item 3 não deveria existir');
+    assertEqual(await page.locator('#btnPreviaItem3').count(), 1, 'O botão de prévia do item 3 deveria existir mesmo sem nenhum candidato no catálogo');
+    await page.click('#btnPreviaItem3');
+    await page.waitForTimeout(150);
+    let texto = await page.inputValue('#previaItem3Texto');
+    assert(texto.includes('RELATÓRIO INICIAL'), 'A prévia deveria sempre trazer o relatório inicial, mesmo com 0 itens');
+    assert(texto.includes('Total de itens validados: 0'), 'O relatório deveria mostrar 0 itens validados, sem bloquear a prévia');
+    assert(texto.includes('Nenhum item de Atividades de Extensão validado ainda'), 'O relatório deveria apontar a ausência de itens, não escondê-la');
+    assert(texto.includes('3. ATIVIDADES DE EXTENSÃO À COMUNIDADE, DE CURSOS E SERVIÇOS'), 'A prévia deveria continuar mostrando a estrutura do item 3 mesmo sem itens');
 
+    // Agora com um item de Extensão cadastrado mas NÃO validado: o relatório
+    // continua apontando a subseção correspondente (3.4) como vazia, sem
+    // bloquear a prévia das demais.
     const naoValidado = makeItem('ATIV_EXTENSAO', 'ATUACAO', { titulo: 'Atividade de extensão não validada', instituicao: 'Unifesp', anoInicio: '2024' });
     await seedCatalog(page, baseUrl, [naoValidado]);
     await habilitarProgressao(page);
@@ -236,6 +246,6 @@ test('Aba Progressão Docente: "Gerar prévia do item 3" avisa quando não há i
 
     await page.click('#btnPreviaItem3');
     await page.waitForTimeout(150);
-    const texto = await page.locator('#progressaoCandidatos').innerText();
-    assert(texto.includes('Nenhum item de Atividades de Extensão validado ainda'), 'Deveria avisar que não há itens de Extensão validados (o item existe, mas não foi marcado "usar na Progressão")');
+    texto = await page.inputValue('#previaItem3Texto');
+    assert(texto.includes('3.4 Outras Ações de Extensão: nenhum item validado ainda'), 'O relatório deveria apontar a subseção 3.4 como vazia (item existe, mas não foi marcado "usar na Progressão")');
 });

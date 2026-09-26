@@ -178,20 +178,48 @@ window.LzProgressaoMemorial = (function () {
         return construtor(item).map(([rotulo, valor]) => `${rotulo}: ${valor}`).join('\n');
     }
 
-    // Monta o texto completo do item 3, agrupado por subcategoria (3.1 a
-    // 3.4, na ordem oficial) e, dentro de cada uma, em ordem cronológica
-    // (mais antigo primeiro — mesma convenção usada no restante do
-    // documento, ex.: "1.1 ... (ordenar cronologicamente)"). `candidatos` é
-    // a lista já filtrada (categoria === "3. ATIVIDADES DE EXTENSÃO..." e
-    // item.progressao.usar === true) — quem decide isso é quem chama.
-    function gerarItem3(candidatos) {
+    function agruparPorSubcategoria(candidatos) {
         const porSub = {};
         candidatos.forEach((c) => {
             const nome = c.subcategoria || 'Outros';
             (porSub[nome] = porSub[nome] || []).push(c);
         });
+        return porSub;
+    }
+
+    // Resumo do que foi encontrado, sempre gerado (mesmo com 0 itens) — a
+    // ausência de itens NUNCA impede a prévia de aparecer, só é sinalizada
+    // aqui, pra quem está montando o memorial saber o que falta cadastrar/
+    // marcar em Catalogar antes de fechar o item 3.
+    function gerarRelatorioInicial(candidatos) {
+        const porSub = agruparPorSubcategoria(candidatos);
         const ordemSub = window.LzProgressaoMapa.ordemSubcategorias(window.LzProgressaoMapa.CATEGORIA_EXTENSAO);
-        const blocos = ['3. ATIVIDADES DE EXTENSÃO À COMUNIDADE, DE CURSOS E SERVIÇOS'];
+        const linhas = ['RELATÓRIO INICIAL — item 3 (Atividades de Extensão)', `Total de itens validados: ${candidatos.length}`];
+        ordemSub.forEach((sub) => {
+            const n = (porSub[sub] || []).length;
+            linhas.push(n ? `${sub}: ${n} ${n === 1 ? 'item' : 'itens'}` : `${sub}: nenhum item validado ainda`);
+        });
+        if (!candidatos.length) {
+            linhas.push('', 'Nenhum item de Atividades de Extensão validado ainda — marque "usar na Progressão" em Catalogar quando tiver o que incluir. A prévia abaixo já vem pronta pra usar assim que houver itens.');
+        }
+        return linhas.join('\n');
+    }
+
+    // Monta o texto completo do item 3 (relatório inicial + conteúdo),
+    // agrupado por subcategoria (3.1 a 3.4, na ordem oficial) e, dentro de
+    // cada uma, em ordem cronológica (mais antigo primeiro — mesma
+    // convenção usada no restante do documento, ex.: "1.1 ... (ordenar
+    // cronologicamente)"). Subseções sem nenhum item candidato ficam de
+    // fora do conteúdo em si (não faz sentido colar um "3.2" vazio no
+    // documento final) — a ausência delas já foi sinalizada no relatório
+    // inicial. `candidatos` é a lista já filtrada (categoria === "3.
+    // ATIVIDADES DE EXTENSÃO..." e item.progressao.usar === true) — quem
+    // decide isso é quem chama; uma lista vazia é uma entrada válida, não
+    // um erro.
+    function gerarItem3(candidatos) {
+        const porSub = agruparPorSubcategoria(candidatos);
+        const ordemSub = window.LzProgressaoMapa.ordemSubcategorias(window.LzProgressaoMapa.CATEGORIA_EXTENSAO);
+        const blocos = [gerarRelatorioInicial(candidatos), '', '3. ATIVIDADES DE EXTENSÃO À COMUNIDADE, DE CURSOS E SERVIÇOS'];
         ordemSub.forEach((sub) => {
             const itens = porSub[sub];
             if (!itens || !itens.length) return;
@@ -206,5 +234,5 @@ window.LzProgressaoMemorial = (function () {
         return blocos.join('\n');
     }
 
-    return { gerarItem3, PLACEHOLDER };
+    return { gerarItem3, gerarRelatorioInicial, PLACEHOLDER };
 })();

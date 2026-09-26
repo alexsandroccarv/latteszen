@@ -338,10 +338,10 @@ window.TabProgressao = (function () {
     // progressao-memorial.js. Só os itens marcados "usar na Progressão"
     // entram (os demais o(a) docente ainda não decidiu incluir).
     function previaItem3Html(candidatos) {
+        // A ausência de itens NÃO impede a prévia de aparecer — o próprio
+        // texto gerado já traz um "relatório inicial" apontando o que falta
+        // (ver progressao-memorial.js), em vez de esconder a seção inteira.
         const itensExtensao = candidatos.filter((c) => c.categoria === window.LzProgressaoMapa.CATEGORIA_EXTENSAO && c.item.progressao && c.item.progressao.usar);
-        if (!itensExtensao.length) {
-            return `<p class="text-xs text-gray-500 italic mt-2">${esc('Nenhum item de Atividades de Extensão validado ainda — marque "usar na Progressão" em Catalogar.')}</p>`;
-        }
         const texto = window.LzProgressaoMemorial.gerarItem3(itensExtensao);
         return `<div class="mt-2 border border-gray-200 dark:border-gray-700 rounded-lg p-3 bg-gray-50 dark:bg-gray-900">
             <div class="flex items-center justify-between gap-2 mb-2">
@@ -392,13 +392,13 @@ window.TabProgressao = (function () {
                 </div>`).join('')}
             </div>
             ${stepperHtml(totalCompletos, totalAmareloValidados)}
+            `}
             <div class="mt-3">
                 <button type="button" id="btnPreviaItem3" class="text-xs font-semibold px-3 py-1.5 rounded border border-gray-300 dark:border-gray-600">
                     <i aria-hidden="true" class="fa-solid fa-file-lines mr-1"></i> ${esc(mostrarPreviaItem3 ? 'Ocultar prévia do item 3' : 'Gerar prévia do item 3 — Atividades de Extensão')}
                 </button>
                 ${mostrarPreviaItem3 ? previaItem3Html(candidatos) : ''}
             </div>
-            `}
         </section>`;
     }
     function wireCandidatosSection(panel) {
