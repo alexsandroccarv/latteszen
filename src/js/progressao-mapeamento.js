@@ -113,5 +113,69 @@ window.LzProgressaoMapa = (function () {
         return REGRAS.some((r) => r.typeKey === typeKey);
     }
 
-    return { status, elegivel };
+    // Categoria do memorial (mesma seção do CPPD) a que cada typeKey mapeado
+    // pertence — usada pra agrupar a lista de "itens candidatos" na aba
+    // Progressão Docente. Um typeKey só pertence a uma categoria, mesmo
+    // quando tem mais de uma regra em REGRAS (condições diferentes do mesmo
+    // tipo, ex.: POS_DOUTORADO), por isso é um mapa à parte, não um campo em
+    // cada regra.
+    const ORDEM_CATEGORIAS = [
+        'Formação e Títulos',
+        'Atividades de Ensino',
+        'Atividades de Pesquisa',
+        'Atividades de Extensão',
+        'Atividades de Gestão e Representação Acadêmica',
+        'Classe/Nível funcional',
+    ];
+    const CATEGORIAS = {
+        POS_DOUTORADO: 'Formação e Títulos',
+        FORMACAO_ACADEMICA: 'Formação e Títulos',
+
+        ATIV_ENSINO: 'Atividades de Ensino',
+        ORIENTACAO_CONCLUIDA: 'Atividades de Ensino',
+        ORIENTACAO_ANDAMENTO: 'Atividades de Ensino',
+        CURSO_MINISTRADO: 'Atividades de Ensino',
+        FORMACAO_COMPLEMENTAR: 'Atividades de Ensino',
+
+        PROJETO_PESQUISA: 'Atividades de Pesquisa',
+        ARTIGO_PERIODICO: 'Atividades de Pesquisa',
+        ARTIGO_ACEITO: 'Atividades de Pesquisa',
+        TRABALHO_EVENTO: 'Atividades de Pesquisa',
+        LIVROS: 'Atividades de Pesquisa',
+        CAPITULOS_LIVRO: 'Atividades de Pesquisa',
+        LIVRO_CAPITULO: 'Atividades de Pesquisa',
+        SOFTWARE_SEM_REGISTRO: 'Atividades de Pesquisa',
+        PRODUTO_TECNOLOGICO: 'Atividades de Pesquisa',
+        MATERIAL_DIDATICO: 'Atividades de Pesquisa',
+        RELATORIO_PESQUISA: 'Atividades de Pesquisa',
+        OUTRA_TECNICA: 'Atividades de Pesquisa',
+        PREMIO: 'Atividades de Pesquisa',
+        BANCA_CONCLUSAO: 'Atividades de Pesquisa',
+        BANCA_JULGADORA: 'Atividades de Pesquisa',
+        CORPO_EDITORIAL: 'Atividades de Pesquisa',
+        REVISOR_PERIODICO: 'Atividades de Pesquisa',
+        PARTICIPACAO_EVENTO: 'Atividades de Pesquisa',
+        ATIV_PESQUISA: 'Atividades de Pesquisa',
+        ATIV_OUTRA: 'Atividades de Pesquisa',
+
+        PROJETO_EXTENSAO: 'Atividades de Extensão',
+        ORGANIZACAO_EVENTO: 'Atividades de Extensão',
+        ASSESSORIA_CONSULTORIA: 'Atividades de Extensão',
+        COMITE_ASSESSORAMENTO: 'Atividades de Extensão',
+        REVISOR_FOMENTO: 'Atividades de Extensão',
+        ATIV_EXTENSAO: 'Atividades de Extensão',
+
+        ATIV_DIRECAO: 'Atividades de Gestão e Representação Acadêmica',
+        ATIV_CONSELHO: 'Atividades de Gestão e Representação Acadêmica',
+
+        VINCULO_PROFISSIONAL: 'Classe/Nível funcional',
+    };
+    function categoria(typeKey) {
+        return CATEGORIAS[typeKey] || null;
+    }
+    function ordemCategorias() {
+        return ORDEM_CATEGORIAS.slice();
+    }
+
+    return { status, elegivel, categoria, ordemCategorias };
 })();

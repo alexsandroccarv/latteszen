@@ -61,6 +61,8 @@ test('Progressão Docente: data de posse, data da última progressão e Campus/U
     await page.selectOption('#progressao-campus', 'São Paulo');
     await page.selectOption('#progressao-unidade', 'Escola Paulista de Medicina (EPM)');
     await page.fill('#progressao-departamento', 'Informática em Saúde');
+    await page.selectOption('#progressao-classe', 'Adjunto');
+    await page.selectOption('#progressao-nivel', '3');
     await page.click('#btnSaveProgressaoCfg');
     await page.waitForTimeout(200);
 
@@ -70,6 +72,23 @@ test('Progressão Docente: data de posse, data da última progressão e Campus/U
     assertEqual(cfg.campus, 'São Paulo', 'Campus deveria ser salvo');
     assertEqual(cfg.unidade, 'Escola Paulista de Medicina (EPM)', 'Unidade deveria ser salva');
     assertEqual(cfg.departamento, 'Informática em Saúde', 'Departamento deveria ser salvo');
+    assertEqual(cfg.classe, 'Adjunto', 'Classe atual deveria ser salva');
+    assertEqual(cfg.nivel, '3', 'Nível atual deveria ser salvo');
+});
+
+test('Progressão Docente: "Classe atual" e "Nível atual" são listas fechadas', async ({ page, baseUrl }) => {
+    await seedCatalog(page, baseUrl, []);
+    await abrirModulos(page);
+    await page.click('#progressaoEnable');
+    await page.waitForTimeout(100);
+    await page.click('[data-tab="progressao"]');
+    await page.waitForTimeout(200);
+
+    const classes = await page.$$eval('#progressao-classe option', (opts) => opts.map((o) => o.value).filter(Boolean));
+    assertEqual(classes, ['Auxiliar', 'Assistente', 'Adjunto', 'Associado', 'Titular'], `Opções de Classe inesperadas — obtido: ${JSON.stringify(classes)}`);
+
+    const niveis = await page.$$eval('#progressao-nivel option', (opts) => opts.map((o) => o.value).filter(Boolean));
+    assertEqual(niveis, ['1', '2', '3', '4'], `Opções de Nível inesperadas — obtido: ${JSON.stringify(niveis)}`);
 });
 
 test('Progressão Docente: "Campus" é uma lista fechada com os 8 campi da Unifesp', async ({ page, baseUrl }) => {

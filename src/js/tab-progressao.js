@@ -34,6 +34,11 @@
 window.TabProgressao = (function () {
     const { state, $, $$, esc, toast, itemYear, anoDe } = window.AppCore;
 
+    // Filtro por categoria da lista "itens candidatos" (Mockup B) — estado
+    // do módulo, não de settings: só controla o que fica visível na tela,
+    // não é salvo. null = "Todas".
+    let filtroCategoria = null;
+
     // Começa `readonly` até o primeiro foco — mesmo mecanismo usado em todo
     // formulário de Catalogar (ver RO/wireReadonlyUntilFocus em
     // tab-catalogar.js): sem isso, o Chrome (e afins) autopreenche campos
@@ -96,6 +101,27 @@ window.TabProgressao = (function () {
             unidadeEl.innerHTML = unidadeOpcoesHtml(campusEl.value, '');
         });
     }
+    // Classe/nível funcional atual — dado usado no cabeçalho do memorial
+    // (carreira docente Lei 12.772/2012). Também lista fechada, mesmo
+    // motivo do Campus/Unidade: evita grafias divergentes ("Adjunto" vs.
+    // "Prof. Adjunto"). Não é o mesmo que o item VINCULO_PROFISSIONAL do
+    // catálogo (esse continua um candidato "amarelo" normal) — aqui é o
+    // dado funcional atual, preenchido uma vez, igual Campus/Unidade.
+    const CLASSE_OPCOES = ['Auxiliar', 'Assistente', 'Adjunto', 'Associado', 'Titular'];
+    const NIVEL_OPCOES = ['1', '2', '3', '4'];
+    function inpSelectFechado(id, lbl, opcoes, v) {
+        return `<div>${labelHtml(id, lbl)}
+            <select id="${id}" class="w-full text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900">
+                <option value="">—</option>
+                ${opcoes.map((o) => `<option value="${esc(o)}" ${o === v ? 'selected' : ''}>${esc(o)}</option>`).join('')}
+            </select></div>`;
+    }
+    function inpClasse(c) {
+        return inpSelectFechado('progressao-classe', 'Classe atual', CLASSE_OPCOES, c.classe || '');
+    }
+    function inpNivel(c) {
+        return inpSelectFechado('progressao-nivel', 'Nível atual', NIVEL_OPCOES, c.nivel || '');
+    }
     // Campo de data com a MESMA máscara dd/mm/aaaa (auto-insere as barras
     // enquanto digita, largura fixa) usada em qualquer campo de data de
     // Catalogar — ver wireDateBr em tab-catalogar.js. Módulo 100% pt-br
@@ -128,6 +154,8 @@ window.TabProgressao = (function () {
                 ${inpCampus(c)}
                 ${inpUnidade(c)}
                 ${inpTexto(c, 'departamento', 'Departamento')}
+                ${inpClasse(c)}
+                ${inpNivel(c)}
             </div>
             <div class="flex gap-2 mt-3">
                 <button id="btnSaveProgressaoCfg" class="px-3 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm"><i class="fa-solid fa-floppy-disk mr-1"></i> ${esc('Salvar')}</button>
@@ -144,7 +172,7 @@ window.TabProgressao = (function () {
         });
         const btn = $('#btnSaveProgressaoCfg'); if (!btn) return;
         btn.addEventListener('click', () => {
-            const keys = ['dataPosse', 'dataUltimaProgressao', 'campus', 'unidade', 'departamento'];
+            const keys = ['dataPosse', 'dataUltimaProgressao', 'campus', 'unidade', 'departamento', 'classe', 'nivel'];
             const cfg = {};
             let temErro = false;
             keys.forEach((k) => {
@@ -181,7 +209,7 @@ window.TabProgressao = (function () {
         const anoRefStr = anoDe(cfg.dataUltimaProgressao || '');
         const anoRef = anoRefStr ? parseInt(anoRefStr, 10) : null;
         return state.catalogo.items
-            .map((item) => ({ item, status: window.LzProgressaoMapa.status(item) }))
+            .map((item) => ({ item, status: window.LzProgressaoMapa.status(item), categoria: window.LzProgressaoMapa.categoria(item.typeKey) }))
             .filter(({ status, item }) => {
                 if (!status) return false;
                 if (anoRef == null) return true;
@@ -191,41 +219,130 @@ window.TabProgressao = (function () {
             .sort((a, b) => (itemYear(b.item) || 0) - (itemYear(a.item) || 0));
     }
 
+    // Agrupa os candidatos pela categoria do memorial (mesma ordem das
+    // seções oficiais da CPPD — ver ordemCategorias() em
+    // progressao-mapeamento.js), só incluindo categorias que têm pelo menos
+    // um candidato.
+    function agruparPorCategoria(candidatos) {
+        const porNome = {};
+        candidatos.forEach((c) => {
+            const nome = c.categoria || 'Outros';
+            (porNome[nome] = porNome[nome] || []).push(c);
+        });
+        return window.LzProgressaoMapa.ordemCategorias()
+            .filter((nome) => porNome[nome])
+            .map((nome) => ({ nome, itens: porNome[nome] }));
+    }
+
+    function statTileHtml(icon, colorClass, label, valor, sub) {
+        return `<div class="flex-1 min-w-[170px] bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-3">
+            <div class="flex items-center gap-2 mb-1">
+                <i aria-hidden="true" class="fa-solid ${icon} ${colorClass}"></i>
+                <span class="text-[11px] font-bold uppercase tracking-wide text-gray-500">${esc(label)}</span>
+            </div>
+            <div class="text-2xl font-extrabold">${esc(valor)}</div>
+            <div class="text-xs text-gray-500">${esc(sub)}</div>
+        </div>`;
+    }
+
+    function pillFiltroHtml(nome, count, ativo) {
+        const cls = ativo
+            ? 'bg-govbr-600 dark:bg-unifesp-700 text-white border-govbr-600 dark:border-unifesp-700'
+            : 'bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600';
+        return `<button type="button" data-filtro-cat="${esc(nome === 'Todas' ? '' : nome)}" class="text-xs font-semibold px-3 py-1 rounded-full border ${cls}">${esc(nome)} (${esc(String(count))})</button>`;
+    }
+
+    // Fundo/borda NEUTROS na linha do item (mesmo padrão usado no resto do
+    // app, ex.: tab-conformidade.js) — cores como bg-green-50/bg-amber-50
+    // não são remapeadas pelos temas coloridos de Configurações › Tema (só
+    // as classes neutras e as govbr-*/unifesp-* têm essa regra em
+    // styles.css), então um card inteiro nessas cores ficava sempre
+    // "claro", mesmo com um tema escuro ativo. A distinção verde/amarelo é
+    // só um detalhe pequeno (ícone + friso à esquerda), legível em qualquer
+    // tema.
+    function itemRowHtml({ item, status }) {
+        const marcado = !!(item.progressao && item.progressao.usar);
+        const corIcone = status === 'verde' ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400';
+        const friso = status === 'verde' ? 'border-l-green-500' : 'border-l-amber-500';
+        const ano = itemYear(item);
+        // "Informações complementares" ainda não tem formulário próprio (ver
+        // cabeçalho do arquivo/progressao-mapeamento.js) — por enquanto só
+        // reflete item.progressao.complementoOk, que nenhuma tela ainda
+        // grava; assim que essa etapa futura existir, este selo passa a
+        // acender "Info completa" sozinho, sem mudar nada aqui.
+        const completo = !!(item.progressao && item.progressao.complementoOk);
+        const infoHtml = status !== 'amarelo' || !marcado
+            ? `<span class="text-xs text-gray-400 dark:text-gray-500 w-28 text-center shrink-0">—</span>`
+            : completo
+                ? `<span class="text-xs font-semibold px-2 py-0.5 rounded-full border border-green-300 dark:border-green-700 text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/20 w-28 text-center shrink-0">${esc('Info completa')}</span>`
+                : `<span class="text-xs font-semibold px-2 py-0.5 rounded-full border border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 w-28 text-center shrink-0">${esc('Info pendente')}</span>`;
+        return `<div class="flex items-center justify-between gap-2 border border-l-4 ${friso} border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 rounded px-2 py-1.5 text-sm">
+            <div class="min-w-0 flex-1 flex items-center gap-1">
+                <span class="${corIcone} shrink-0"><i aria-hidden="true" class="fa-solid ${marcado ? 'fa-square-check' : 'fa-square'}"></i></span>
+                <span class="truncate ml-1">${esc(LattesTypes.itemTitle(item))}</span>
+                ${ano ? `<span class="text-xs text-gray-400 shrink-0 ml-1">(${esc(String(ano))})</span>` : ''}
+            </div>
+            ${infoHtml}
+            <button type="button" data-editar="${esc(item.id)}" class="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600 shrink-0">${esc('Editar')}</button>
+        </div>`;
+    }
+
+    function stepperHtml(totalCompletos, totalAmareloValidados) {
+        const etapa2Sub = totalAmareloValidados ? `${totalCompletos} de ${totalAmareloValidados} completas` : 'Nenhuma pendência';
+        return `<div class="flex flex-wrap items-center gap-4 border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-3 mt-3 bg-gray-50 dark:bg-gray-900">
+            <div class="flex items-center gap-2">
+                <span class="w-6 h-6 rounded-full bg-green-600 text-white flex items-center justify-center text-xs shrink-0"><i aria-hidden="true" class="fa-solid fa-check"></i></span>
+                <div><div class="text-xs font-bold">${esc('Seleção dos itens')}</div><div class="text-[11px] text-gray-500">${esc('Em andamento em Catalogar')}</div></div>
+            </div>
+            <div class="w-8 h-px bg-gray-300 dark:bg-gray-600 shrink-0"></div>
+            <div class="flex items-center gap-2">
+                <span class="w-6 h-6 rounded-full border-2 border-amber-500 text-amber-600 dark:text-amber-400 flex items-center justify-center text-xs font-bold shrink-0">2</span>
+                <div><div class="text-xs font-bold">${esc('Informações complementares')}</div><div class="text-[11px] text-gray-500">${esc(etapa2Sub)}</div></div>
+            </div>
+            <div class="w-8 h-px bg-gray-300 dark:bg-gray-600 shrink-0"></div>
+            <div class="flex items-center gap-2 opacity-50">
+                <span class="w-6 h-6 rounded-full border-2 border-gray-300 dark:border-gray-600 text-gray-400 flex items-center justify-center text-xs font-bold shrink-0">3</span>
+                <div><div class="text-xs font-bold text-gray-400">${esc('Formulário de submissão')}</div><div class="text-[11px] text-gray-500">${esc('Em uma próxima etapa do módulo')}</div></div>
+            </div>
+        </div>`;
+    }
+
     function candidatosSectionHtml() {
         const candidatos = candidatosProgressao();
         const cfg = state.progressao.cfg || {};
-        const marcados = candidatos.filter(({ item }) => item.progressao && item.progressao.usar).length;
-        return `<section class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-            <h3 class="font-bold text-sm mb-2 flex items-center gap-2"><i class="fa-solid fa-list-check text-govbr-600 dark:text-unifesp-400"></i> ${esc('Itens candidatos ao memorial')} ${candidatos.length ? `<span class="text-xs font-normal text-gray-500">(${esc(String(marcados))} de ${esc(String(candidatos.length))} marcados)</span>` : ''}</h3>
+        const totalItens = candidatos.length;
+        const totalValidados = candidatos.filter((c) => c.item.progressao && c.item.progressao.usar).length;
+        const naoValidados = totalItens - totalValidados;
+        const amareloValidados = candidatos.filter((c) => c.status === 'amarelo' && c.item.progressao && c.item.progressao.usar);
+        const totalAmareloValidados = amareloValidados.length;
+        const totalCompletos = amareloValidados.filter((c) => c.item.progressao && c.item.progressao.complementoOk).length;
+        const pendentesBloqueio = totalAmareloValidados - totalCompletos;
+        const grupos = agruparPorCategoria(candidatos);
+        const gruposVisiveis = grupos.filter((g) => !filtroCategoria || g.nome === filtroCategoria);
+
+        return `<section id="progressaoCandidatos" class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+            <h3 class="font-bold text-sm mb-1 flex items-center gap-2"><i aria-hidden="true" class="fa-solid fa-list-check text-govbr-600 dark:text-unifesp-400"></i> ${esc('Itens candidatos ao memorial')}</h3>
             <p class="text-xs text-gray-500 mb-3">${cfg.dataUltimaProgressao
                 ? esc(`Itens do catálogo datados a partir de ${cfg.dataUltimaProgressao} (ou sem ano definido) com correspondência no memorial da CPPD. `)
                 : esc('Informe a "Data da última progressão" acima para restringir a lista ao período correto — por enquanto, todos os itens com correspondência no memorial. ')}${esc('Marque "usar na Progressão" na própria aba Catalogar (mesmo mecanismo do RSC-PCCTAE): itens ')}<span class="text-green-600 dark:text-green-400 font-semibold">${esc('verdes')}</span>${esc(' precisam só do checkbox; itens ')}<span class="text-amber-600 dark:text-amber-400 font-semibold">${esc('amarelos')}</span>${esc(' têm lacunas cujos campos complementares ainda vamos desenhar juntos.')}</p>
-            ${!candidatos.length ? `<p class="text-sm text-gray-500 italic py-4 text-center">${esc('Nenhum item candidato encontrado ainda — cadastre itens em Catalogar.')}</p>` : `
-            <div class="space-y-1 max-h-[32rem] overflow-y-auto">
-                ${candidatos.map(({ item, status }) => {
-                    const marcado = !!(item.progressao && item.progressao.usar);
-                    // Fundo/borda NEUTROS (mesmo padrão usado no resto do app,
-                    // ex.: tab-conformidade.js) — cores como bg-green-50/
-                    // bg-amber-50 não são remapeadas pelos temas coloridos de
-                    // Configurações › Tema (só as classes neutras e as
-                    // govbr-*/unifesp-* têm essa regra em styles.css), então
-                    // um card inteiro nessas cores ficava sempre "claro",
-                    // mesmo com um tema escuro ativo. A distinção verde/
-                    // amarelo agora é só um detalhe pequeno (ícone + friso à
-                    // esquerda), que fica legível em qualquer tema.
-                    const corIcone = status === 'verde' ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400';
-                    const friso = status === 'verde' ? 'border-l-green-500' : 'border-l-amber-500';
-                    const ano = itemYear(item);
-                    return `<div class="flex items-center justify-between gap-2 border border-l-4 ${friso} border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 rounded px-2 py-1.5 text-sm">
-                        <div class="min-w-0 flex-1 truncate">
-                            <span class="${corIcone}"><i aria-hidden="true" class="fa-solid ${marcado ? 'fa-square-check' : 'fa-square'}"></i></span>
-                            <span class="ml-1">${esc(LattesTypes.itemTitle(item))}</span>
-                            ${ano ? `<span class="text-xs text-gray-400 ml-1">(${esc(String(ano))})</span>` : ''}
-                        </div>
-                        <button type="button" data-editar="${esc(item.id)}" class="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600 shrink-0">${esc('Editar')}</button>
-                    </div>`;
-                }).join('')}
-            </div>`}
+            ${!totalItens ? `<p class="text-sm text-gray-500 italic py-4 text-center">${esc('Nenhum item candidato encontrado ainda — cadastre itens em Catalogar.')}</p>` : `
+            <div class="flex flex-wrap gap-2 mb-3">
+                ${statTileHtml('fa-list-check', 'text-govbr-600 dark:text-unifesp-400', 'Itens candidatos', String(totalItens), cfg.dataUltimaProgressao ? `desde ${cfg.dataUltimaProgressao}` : 'todos os períodos')}
+                ${statTileHtml('fa-square-check', 'text-green-600 dark:text-green-400', 'Validados', String(totalValidados), `${naoValidados} ainda não validados`)}
+                ${statTileHtml('fa-file-lines', 'text-amber-600 dark:text-amber-400', 'Informações complementares', `${totalCompletos}/${totalAmareloValidados}`, `${pendentesBloqueio} itens validados pendentes`)}
+            </div>
+            <div class="flex flex-wrap gap-2 mb-3">
+                ${pillFiltroHtml('Todas', totalItens, !filtroCategoria)}
+                ${grupos.map((g) => pillFiltroHtml(g.nome, g.itens.length, filtroCategoria === g.nome)).join('')}
+            </div>
+            <div class="space-y-3 max-h-[28rem] overflow-y-auto pr-1">
+                ${gruposVisiveis.map((g) => `<div>
+                    <div class="text-xs font-bold uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-1 px-1">${esc(g.nome)}</div>
+                    <div class="space-y-1">${g.itens.map(itemRowHtml).join('')}</div>
+                </div>`).join('')}
+            </div>
+            ${stepperHtml(totalCompletos, totalAmareloValidados)}
+            `}
         </section>`;
     }
     function wireCandidatosSection(panel) {
@@ -236,6 +353,15 @@ window.TabProgressao = (function () {
                 window.AppCore.switchTab('catalogar');
                 window.AppCore.buildForm(item);
                 window.scrollTo({ top: 0, behavior: 'smooth' });
+            });
+        });
+        $$('[data-filtro-cat]', panel).forEach((btn) => {
+            btn.addEventListener('click', () => {
+                filtroCategoria = btn.dataset.filtroCat || null;
+                const secao = $('#progressaoCandidatos');
+                if (!secao) return;
+                secao.outerHTML = candidatosSectionHtml();
+                wireCandidatosSection($('#tab-progressao'));
             });
         });
     }

@@ -119,6 +119,54 @@ test('Aba Progressão Docente: com "data da última progressão" definida, itens
     assert(texto.includes('Artigo Recente'), 'Item datado depois da última progressão deveria aparecer como candidato');
 });
 
+test('Aba Progressão Docente: candidatos aparecem agrupados por categoria do memorial (Mockup B)', async ({ page, baseUrl }) => {
+    const pesquisa = makeItem('ARTIGO_PERIODICO', 'PRODUCOES', { titulo: 'Artigo Categoria Pesquisa', periodico: 'Revista X', ano: '2024' });
+    const ensino = makeItem('FORMACAO_COMPLEMENTAR', 'FORMACAO', { titulo: 'Curso Categoria Ensino', instituicao: 'Instituto Y', anoObtencaoTitulo: '2024' });
+    await seedCatalog(page, baseUrl, [pesquisa, ensino]);
+    await habilitarProgressao(page);
+    await page.click('[data-tab="progressao"]');
+    await page.waitForTimeout(200);
+
+    const texto = await page.locator('#progressaoCandidatos').innerText();
+    assert(texto.includes('Atividades de Pesquisa'), 'Deveria mostrar o cabeçalho de categoria "Atividades de Pesquisa"');
+    assert(texto.includes('Atividades de Ensino'), 'Deveria mostrar o cabeçalho de categoria "Atividades de Ensino"');
+    assert(texto.includes('Artigo Categoria Pesquisa'), 'O item de Pesquisa deveria estar listado');
+    assert(texto.includes('Curso Categoria Ensino'), 'O item de Ensino deveria estar listado');
+});
+
+test('Aba Progressão Docente: clicar num filtro de categoria restringe a lista de candidatos', async ({ page, baseUrl }) => {
+    const pesquisa = makeItem('ARTIGO_PERIODICO', 'PRODUCOES', { titulo: 'Artigo Categoria Pesquisa', periodico: 'Revista X', ano: '2024' });
+    const ensino = makeItem('FORMACAO_COMPLEMENTAR', 'FORMACAO', { titulo: 'Curso Categoria Ensino', instituicao: 'Instituto Y', anoObtencaoTitulo: '2024' });
+    await seedCatalog(page, baseUrl, [pesquisa, ensino]);
+    await habilitarProgressao(page);
+    await page.click('[data-tab="progressao"]');
+    await page.waitForTimeout(200);
+
+    await page.click('[data-filtro-cat="Atividades de Pesquisa"]');
+    await page.waitForTimeout(150);
+    const texto = await page.locator('#progressaoCandidatos').innerText();
+    assert(texto.includes('Artigo Categoria Pesquisa'), 'O item da categoria filtrada deveria continuar visível');
+    assert(!texto.includes('Curso Categoria Ensino'), 'O item de outra categoria deveria sumir da lista com o filtro ativo');
+
+    await page.click('[data-filtro-cat=""]'); // "Todas"
+    await page.waitForTimeout(150);
+    const textoTodas = await page.locator('#progressaoCandidatos').innerText();
+    assert(textoTodas.includes('Curso Categoria Ensino'), '"Todas" deveria voltar a mostrar os itens das demais categorias');
+});
+
+test('Aba Progressão Docente: indicadores mostram total de candidatos e quantos já foram validados', async ({ page, baseUrl }) => {
+    const validado = makeItem('ARTIGO_PERIODICO', 'PRODUCOES', { titulo: 'Artigo Validado', periodico: 'Revista X', ano: '2024' }, { progressao: { usar: true } });
+    const naoValidado = makeItem('ARTIGO_ACEITO', 'PRODUCOES', { titulo: 'Artigo Não Validado', periodico: 'Revista Y', ano: '2024' });
+    await seedCatalog(page, baseUrl, [validado, naoValidado]);
+    await habilitarProgressao(page);
+    await page.click('[data-tab="progressao"]');
+    await page.waitForTimeout(200);
+
+    const valores = await page.$$eval('#progressaoCandidatos .text-2xl', (els) => els.map((el) => el.textContent.trim()));
+    assertEqual(valores[0], '2', 'O indicador "Itens candidatos" deveria mostrar 2');
+    assertEqual(valores[1], '1', 'O indicador "Validados" deveria mostrar 1');
+});
+
 test('Aba Progressão Docente: botão "Editar" de um candidato abre o item na aba Catalogar', async ({ page, baseUrl }) => {
     const item = makeItem('ARTIGO_PERIODICO', 'PRODUCOES', { titulo: 'Artigo Para Editar', periodico: 'Revista X', ano: '2024' });
     await seedCatalog(page, baseUrl, [item]);
