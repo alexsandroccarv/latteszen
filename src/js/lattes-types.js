@@ -274,6 +274,7 @@ window.LattesTypes = (function () {
         lattesXmlFolder() { return LATTES_XML_FOLDER; },
         rscFolder() { return RSC_PCCTAE_FOLDER; },
         sumulaFapespFolder() { return SUMULA_FAPESP_FOLDER; },
+        progressaoDocentesFolder() { return PROGRESSAO_DOCENTES_FOLDER; },
         lixeiraFolder() { return LIXEIRA_FOLDER; },
         getType(typeKey) { return TYPES[typeKey] || (typeKey === 'NAO_LATTES' ? NAO_LATTES_TYPE : null); },
         // compat: get() devolve o tipo (independe de categoria)

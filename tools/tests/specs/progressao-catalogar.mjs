@@ -210,12 +210,47 @@ test('Aba Progressão Docente: "Gerar prévia do item 3" produz o texto com os r
 
     assert(texto.includes('3. ATIVIDADES DE EXTENSÃO À COMUNIDADE, DE CURSOS E SERVIÇOS'), 'Deveria abrir com o título oficial do item 3');
     assert(texto.includes('3.1 Projetos e Programas de Extensão'), 'Deveria mostrar o cabeçalho da subseção 3.1');
+    assert(texto.includes('3.1.01'), 'O primeiro item da subseção 3.1 deveria ser numerado "3.1.01" (seção.subseção.item)');
     assert(texto.includes('Título do projeto: Extensão nas Escolas Municipais'), 'Deveria preencher "Título do projeto" com o dado real do item');
     assert(texto.includes('Resumo: Ações educativas em escolas da rede pública.'), 'Deveria preencher "Resumo" a partir da Descrição do item');
     assert(texto.includes('Início (mês/ano): 2023'), 'Deveria preencher "Início" com o ano do item');
     assert(texto.includes('Fim (mês/ano ou em andamento): Em andamento'), 'Situação "Em andamento" sem ano fim deveria virar "Em andamento"');
     assert(texto.includes('Código SIEX: [completar manualmente]'), 'Campo que o memorial pede mas não existe no catálogo (Código SIEX) deveria virar placeholder');
     assert(texto.includes('Link de divulgação: [completar manualmente]'), 'Campo sem correspondência no catálogo (Link de divulgação) deveria virar placeholder');
+});
+
+test('Aba Progressão Docente: prévia do item 3 é renderizada em HTML formatado (títulos + itens numerados visíveis), não só texto plano', async ({ page, baseUrl }) => {
+    const projeto1 = makeItem('PROJETO_EXTENSAO', 'PROJETOS', { titulo: 'Extensão A', descricao: 'Desc A', natureza: 'Projeto Social de Extensão', situacao: 'Concluído', anoInicio: '2022', anoFim: '2023' }, { progressao: { usar: true } });
+    const projeto2 = makeItem('PROJETO_EXTENSAO', 'PROJETOS', { titulo: 'Extensão B', descricao: 'Desc B', natureza: 'Programa Social de Extensão', situacao: 'Concluído', anoInicio: '2024', anoFim: '2024' }, { progressao: { usar: true } });
+    await seedCatalog(page, baseUrl, [projeto1, projeto2]);
+    await habilitarProgressao(page);
+    await page.click('[data-tab="progressao"]');
+    await page.waitForTimeout(200);
+
+    await page.click('#btnPreviaItem3');
+    await page.waitForTimeout(150);
+
+    // A prévia visível (fora do textarea escondido usado só pra "Copiar")
+    // deveria ter títulos de verdade (h4/h5) e um badge com o número de
+    // cada item, não um bloco de texto plano só.
+    const info = await page.evaluate(() => {
+        const secao = document.querySelector('#progressaoCandidatos');
+        const h4 = secao.querySelector('h4');
+        const h5s = Array.from(secao.querySelectorAll('h5')).map((h) => h.textContent.trim());
+        return {
+            h4Texto: h4 ? h4.textContent.trim() : null,
+            h5s,
+            qtdDl: secao.querySelectorAll('dl').length,
+            textareaEscondida: !!document.querySelector('#previaItem3Texto.hidden'),
+        };
+    });
+    assertEqual(info.h4Texto, '3. ATIVIDADES DE EXTENSÃO À COMUNIDADE, DE CURSOS E SERVIÇOS', 'O item 3 deveria ter um <h4> de verdade com o título oficial');
+    assert(info.h5s.some((h) => h.includes('3.1 Projetos e Programas de Extensão')), 'A subseção 3.1 deveria aparecer como um <h5>');
+    assertEqual(info.qtdDl, 2, 'Cada um dos 2 itens validados deveria virar uma lista de campos (<dl>) própria');
+    assert(info.textareaEscondida, 'O texto simples (pra copiar) deveria ficar num campo escondido, não ser o conteúdo principal exibido');
+
+    const numerosVisiveis = await page.evaluate(() => Array.from(document.querySelectorAll('#progressaoCandidatos .space-y-2 > div > div')).map((el) => el.textContent.trim()));
+    assert(numerosVisiveis.includes('3.1.01') && numerosVisiveis.includes('3.1.02'), `Os dois itens deveriam mostrar os números "3.1.01" e "3.1.02" visivelmente — obtido: ${JSON.stringify(numerosVisiveis)}`);
 });
 
 test('Aba Progressão Docente: "Gerar prévia do item 3" nunca fica bloqueada por falta de itens — só aponta a ausência num relatório inicial', async ({ page, baseUrl }) => {

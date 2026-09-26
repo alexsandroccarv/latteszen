@@ -223,3 +223,110 @@ test('"Limpar catálogo" também zera a configuração da Progressão Docente Un
     const s = await page.evaluate(() => JSON.parse(localStorage.getItem('lz_settings') || '{}'));
     assertEqual(s.progressao, {}, 'A configuração da Progressão Docente Unifesp deveria ser zerada por "Limpar catálogo"');
 });
+
+/* --------------- Evidência da "Data da última progressão" --------------- */
+// Anexo único (ex.: declaração da Propessoas confirmando a data), ao lado do
+// campo — mesmo Storage.writeAttachment/checkEvidenceFile usado pela bandeja
+// de evidências de Catalogar, só que como um anexo avulso (sem item do
+// catálogo por trás), numa pasta própria do módulo.
+async function abrirProgressao(page) {
+    await abrirModulos(page);
+    await page.click('#progressaoEnable');
+    await page.waitForTimeout(100);
+    await page.click('[data-tab="progressao"]');
+    await page.waitForTimeout(200);
+}
+
+test('Progressão Docente: sem diretório de armazenamento configurado, anexar evidência avisa e não salva metadado', async ({ page, baseUrl }) => {
+    await seedCatalog(page, baseUrl, []);
+    await abrirProgressao(page);
+
+    assertEqual(await page.locator('#btnEvidenciaUltimaProgressao').count(), 1, 'O botão "Anexar evidência" deveria existir ao lado de "Data da última progressão"');
+    await page.setInputFiles('#progressao-evidenciaInput', { name: 'declaracao.pdf', mimeType: 'application/pdf', buffer: Buffer.from('conteúdo falso') });
+    await page.waitForTimeout(200);
+
+    const toasts = await page.evaluate(() => Array.from(document.querySelectorAll('#toasts > div')).map((d) => d.textContent));
+    assert(toasts.some((t) => /configure um diretório/i.test(t)), 'Sem diretório configurado, deveria avisar pra configurar um antes de anexar');
+    const s = await page.evaluate(() => JSON.parse(localStorage.getItem('lz_settings') || '{}').progressao || {});
+    assert(!s.evidenciaUltimaProgressao, 'Sem diretório configurado, o metadado da evidência não deveria ser salvo (arquivo não gravado em lugar nenhum)');
+});
+
+test('Progressão Docente: com diretório configurado, anexar evidência grava o arquivo na pasta do módulo e mostra o link', async ({ page, baseUrl }) => {
+    await seedCatalog(page, baseUrl, []);
+    await abrirProgressao(page);
+
+    await page.evaluate(() => {
+        window.Storage.hasDirectory = () => true;
+        window.__attachSaves = [];
+        window.Storage.writeAttachment = async (basename, file, subdir, ext) => {
+            window.__attachSaves.push({ basename, subdir, ext, nome: file.name });
+        };
+    });
+
+    await page.setInputFiles('#progressao-evidenciaInput', { name: 'declaracao-propessoas.pdf', mimeType: 'application/pdf', buffer: Buffer.from('conteúdo falso') });
+    await page.waitForTimeout(200);
+
+    const saves = await page.evaluate(() => window.__attachSaves);
+    assertEqual(saves.length, 1, 'Deveria ter gravado exatamente um anexo');
+    assertEqual(saves[0].basename, 'evidencia-ultima-progressao', 'O anexo deveria usar um nome de base fixo (só existe um por vez)');
+    assertEqual(saves[0].subdir, 'Exportação/Progressão Docentes', 'O anexo deveria ir para a pasta própria do módulo (LattesTypes.progressaoDocentesFolder())');
+    assertEqual(saves[0].ext, 'pdf', 'A extensão gravada deveria bater com a do arquivo escolhido');
+
+    const linkTexto = await page.locator('#linkVerEvidenciaUltimaProgressao').innerText();
+    assertEqual(linkTexto, 'declaracao-propessoas.pdf', 'O nome do arquivo anexado deveria aparecer como link ao lado do campo');
+    const s = await page.evaluate(() => JSON.parse(localStorage.getItem('lz_settings') || '{}').progressao || {});
+    assertEqual(s.evidenciaUltimaProgressao, { nome: 'declaracao-propessoas.pdf', ext: 'pdf' }, 'O metadado da evidência (nome/extensão) deveria ser salvo em settings.progressao');
+});
+
+test('Progressão Docente: clicar em "Salvar" não apaga a evidência já anexada (mescla com o resto do formulário)', async ({ page, baseUrl }) => {
+    await seedCatalog(page, baseUrl, []);
+    await page.evaluate(() => {
+        const s = JSON.parse(localStorage.getItem('lz_settings') || '{}');
+        s.progressaoEnabled = true;
+        s.progressao = { evidenciaUltimaProgressao: { nome: 'declaracao-antiga.pdf', ext: 'pdf' } };
+        localStorage.setItem('lz_settings', JSON.stringify(s));
+    });
+    await page.reload();
+    await page.waitForTimeout(500);
+    await page.click('[data-tab="progressao"]');
+    await page.waitForTimeout(200);
+
+    assertEqual(await page.locator('#linkVerEvidenciaUltimaProgressao').innerText(), 'declaracao-antiga.pdf', 'A evidência já salva deveria aparecer ao carregar a aba');
+
+    await page.fill('#progressao-dataPosse', '01/03/2015');
+    await page.click('#btnSaveProgressaoCfg');
+    await page.waitForTimeout(200);
+
+    const s = await page.evaluate(() => JSON.parse(localStorage.getItem('lz_settings') || '{}').progressao || {});
+    assertEqual(s.dataPosse, '01/03/2015', 'O campo preenchido antes de salvar deveria ser salvo normalmente');
+    assertEqual(s.evidenciaUltimaProgressao, { nome: 'declaracao-antiga.pdf', ext: 'pdf' }, '"Salvar" não deveria apagar a evidência anexada anteriormente (ela não é um campo do formulário)');
+});
+
+test('Progressão Docente: "Remover" evidência apaga o arquivo e o metadado', async ({ page, baseUrl }) => {
+    await seedCatalog(page, baseUrl, []);
+    await page.evaluate(() => {
+        const s = JSON.parse(localStorage.getItem('lz_settings') || '{}');
+        s.progressaoEnabled = true;
+        s.progressao = { evidenciaUltimaProgressao: { nome: 'declaracao.pdf', ext: 'pdf' } };
+        localStorage.setItem('lz_settings', JSON.stringify(s));
+    });
+    await page.reload();
+    await page.waitForTimeout(500);
+    await page.click('[data-tab="progressao"]');
+    await page.waitForTimeout(200);
+
+    await page.evaluate(() => {
+        window.__deleteCalls = [];
+        window.Storage.deleteEntry = async (basename, subdir) => { window.__deleteCalls.push({ basename, subdir }); };
+    });
+
+    // O harness já aceita diálogos nativos (confirm()) automaticamente.
+    await page.click('#btnRemoverEvidenciaUltimaProgressao');
+    await page.waitForTimeout(200);
+
+    const calls = await page.evaluate(() => window.__deleteCalls);
+    assertEqual(calls, [{ basename: 'evidencia-ultima-progressao', subdir: 'Exportação/Progressão Docentes' }], 'Deveria remover o arquivo certo, na pasta certa');
+    assertEqual(await page.locator('#linkVerEvidenciaUltimaProgressao').count(), 0, 'O link da evidência deveria sumir depois de removida');
+    const s = await page.evaluate(() => JSON.parse(localStorage.getItem('lz_settings') || '{}').progressao || {});
+    assert(!s.evidenciaUltimaProgressao, 'O metadado da evidência deveria ser removido de settings.progressao');
+});

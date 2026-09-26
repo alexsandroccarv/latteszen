@@ -170,12 +170,11 @@ window.LzProgressaoMemorial = (function () {
         ATIV_EXTENSAO: campos_3_4,
     };
 
-    // Texto de UM item, no mesmo formato "Rótulo: valor" linha a linha do
-    // documento oficial.
-    function blocoItem(item) {
+    // Campos de UM item — array [rótulo, valor], mesmos rótulos do
+    // documento oficial (ver campos_3_* acima).
+    function camposItem(item) {
         const construtor = CAMPOS_POR_TYPEKEY[item.typeKey];
-        if (!construtor) return '';
-        return construtor(item).map(([rotulo, valor]) => `${rotulo}: ${valor}`).join('\n');
+        return construtor ? construtor(item) : [];
     }
 
     function agruparPorSubcategoria(candidatos) {
@@ -205,34 +204,63 @@ window.LzProgressaoMemorial = (function () {
         return linhas.join('\n');
     }
 
-    // Monta o texto completo do item 3 (relatório inicial + conteúdo),
-    // agrupado por subcategoria (3.1 a 3.4, na ordem oficial) e, dentro de
-    // cada uma, em ordem cronológica (mais antigo primeiro — mesma
+    // O número de cada subseção já está embutido no início do rótulo
+    // oficial ("3.1 Projetos e Programas de Extensão" → "3.1") — extrai só
+    // essa parte pra numerar os itens dentro dela.
+    function numeroDaSubcategoria(subcategoria) {
+        const m = /^(\d+(?:\.\d+)*)/.exec(subcategoria || '');
+        return m ? m[1] : '';
+    }
+
+    // Monta a ESTRUTURA do item 3 (dado puro, sem HTML nem texto pronto):
+    // relatório inicial + as subseções (3.1 a 3.4, na ordem oficial), cada
+    // uma com seus itens em ordem cronológica (mais antigo primeiro — mesma
     // convenção usada no restante do documento, ex.: "1.1 ... (ordenar
-    // cronologicamente)"). Subseções sem nenhum item candidato ficam de
-    // fora do conteúdo em si (não faz sentido colar um "3.2" vazio no
-    // documento final) — a ausência delas já foi sinalizada no relatório
-    // inicial. `candidatos` é a lista já filtrada (categoria === "3.
-    // ATIVIDADES DE EXTENSÃO..." e item.progressao.usar === true) — quem
-    // decide isso é quem chama; uma lista vazia é uma entrada válida, não
-    // um erro.
-    function gerarItem3(candidatos) {
+    // cronologicamente)") e numerados sequencialmente dentro da própria
+    // subseção: "3.1.01", "3.1.02", "3.2.01"... (seção.subseção.item, 2
+    // dígitos). Subseções sem nenhum item candidato ficam de fora (a
+    // ausência delas já foi sinalizada no relatório inicial — ver
+    // gerarRelatorioInicial). `candidatos` é a lista já filtrada
+    // (categoria === CATEGORIA_EXTENSAO e item.progressao.usar === true) —
+    // quem decide isso é quem chama; uma lista vazia é uma entrada válida,
+    // não um erro. Quem consome isso pode gerar texto simples (gerarItem3)
+    // ou HTML formatado (ver previaItem3Html em tab-progressao.js) a partir
+    // da MESMA estrutura, sem duplicar a lógica de agrupar/numerar.
+    function montarEstrutura(candidatos) {
         const porSub = agruparPorSubcategoria(candidatos);
         const ordemSub = window.LzProgressaoMapa.ordemSubcategorias(window.LzProgressaoMapa.CATEGORIA_EXTENSAO);
-        const blocos = [gerarRelatorioInicial(candidatos), '', '3. ATIVIDADES DE EXTENSÃO À COMUNIDADE, DE CURSOS E SERVIÇOS'];
-        ordemSub.forEach((sub) => {
-            const itens = porSub[sub];
-            if (!itens || !itens.length) return;
-            itens.sort((a, b) => (itemYear(a.item) || 0) - (itemYear(b.item) || 0));
+        const subsecoes = ordemSub
+            .map((sub) => {
+                const itens = (porSub[sub] || []).slice().sort((a, b) => (itemYear(a.item) || 0) - (itemYear(b.item) || 0));
+                const base = numeroDaSubcategoria(sub);
+                return {
+                    subcategoria: sub,
+                    itens: itens.map(({ item }, i) => ({
+                        numero: base ? `${base}.${String(i + 1).padStart(2, '0')}` : '',
+                        campos: camposItem(item),
+                    })),
+                };
+            })
+            .filter((sg) => sg.itens.length);
+        return { relatorio: gerarRelatorioInicial(candidatos), categoria: window.LzProgressaoMapa.CATEGORIA_EXTENSAO, subsecoes };
+    }
+
+    // Texto simples (pronto pra colar no documento oficial) a partir da
+    // MESMA estrutura usada pela versão em HTML.
+    function gerarItem3(candidatos) {
+        const estrutura = montarEstrutura(candidatos);
+        const blocos = [estrutura.relatorio, '', estrutura.categoria];
+        estrutura.subsecoes.forEach((sg) => {
             blocos.push('');
-            blocos.push(sub);
-            itens.forEach(({ item }) => {
+            blocos.push(sg.subcategoria);
+            sg.itens.forEach((it) => {
                 blocos.push('');
-                blocos.push(blocoItem(item));
+                blocos.push(it.numero);
+                it.campos.forEach(([rotulo, valor]) => blocos.push(`${rotulo}: ${valor}`));
             });
         });
         return blocos.join('\n');
     }
 
-    return { gerarItem3, gerarRelatorioInicial, PLACEHOLDER };
+    return { gerarItem3, gerarRelatorioInicial, montarEstrutura, PLACEHOLDER };
 })();

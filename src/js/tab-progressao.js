@@ -33,6 +33,12 @@
    ========================================================================== */
 window.TabProgressao = (function () {
     const { state, $, $$, esc, toast, itemYear, anoDe } = window.AppCore;
+    // fileExt/checkEvidenceFile/allowedExtsForAccept/EVID_ACCEPT_DEFAULT NÃO
+    // entram nessa desestruturação: são publicados em window.AppCore pelo
+    // app.js, que carrega DEPOIS de tab-progressao.js (ver <script> em
+    // index.html) — nesse instante ainda seriam `undefined`. Acessados como
+    // window.AppCore.X() só quando usados (já carregado a essa altura),
+    // mesmo padrão do checkEvidenceFile em tab-catalogar-evidencias.js.
 
     // Filtro por categoria da lista "itens candidatos" (Mockup B) — estado
     // do módulo, não de settings: só controla o que fica visível na tela,
@@ -139,6 +145,87 @@ window.TabProgressao = (function () {
         return `<div>${labelHtml('progressao-' + k, lbl)}
             <input id="progressao-${k}" type="text" value="${esc(c[k] || '')}" autocomplete="off" ${RO} inputmode="numeric" maxlength="10" placeholder="dd/mm/aaaa" data-datebr data-validate="dataCompleta" class="w-32 text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900"></div>`;
     }
+    // Evidência da "Data da última progressão" (ex.: declaração da
+    // Propessoas) — anexo único, salvo à parte do formulário (não dá pra
+    // adiar um File pro clique de "Salvar", já que ele não sobrevive a um
+    // reload da página): grava assim que escolhido, igual à bandeja de
+    // evidências de Catalogar (mesmo Storage.writeAttachment/checkEvidenceFile
+    // — ver tab-catalogar-evidencias.js), só que como um anexo AVULSO (sem
+    // item do catálogo por trás), numa pasta própria do módulo
+    // (LattesTypes.progressaoDocentesFolder()). Só metadado ({nome, ext}) fica
+    // em settings.progressao — o conteúdo do arquivo mora no diretório/Drive.
+    const EVIDENCIA_BASENAME = 'evidencia-ultima-progressao';
+    function inpDataUltimaProgressaoComEvidencia(c) {
+        const ev = c.evidenciaUltimaProgressao || null;
+        return `<div>${labelHtml('progressao-dataUltimaProgressao', 'Data da última progressão')}
+            <div class="flex items-center gap-2 flex-wrap">
+                <input id="progressao-dataUltimaProgressao" type="text" value="${esc(c.dataUltimaProgressao || '')}" autocomplete="off" ${RO} inputmode="numeric" maxlength="10" placeholder="dd/mm/aaaa" data-datebr data-validate="dataCompleta" class="w-32 text-sm px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900">
+                <button type="button" id="btnEvidenciaUltimaProgressao" class="text-xs px-2 py-1.5 rounded border border-gray-300 dark:border-gray-600 shrink-0"><i aria-hidden="true" class="fa-solid fa-paperclip mr-1"></i>${esc(ev ? 'Trocar evidência' : 'Anexar evidência')}</button>
+                <input type="file" id="progressao-evidenciaInput" class="hidden" accept="${esc(window.AppCore.EVID_ACCEPT_DEFAULT)}">
+            </div>
+            <div id="progressao-evidenciaInfo" class="text-xs mt-1">
+                ${ev
+                    ? `<a href="#" id="linkVerEvidenciaUltimaProgressao" class="text-govbr-600 dark:text-unifesp-400 underline">${esc(ev.nome)}</a> <button type="button" id="btnRemoverEvidenciaUltimaProgressao" class="ml-2 text-red-600 dark:text-red-400">${esc('Remover')}</button>`
+                    : `<span class="text-gray-500">${esc('Evidência (opcional): declaração da Propessoas confirmando a data.')}</span>`}
+            </div>
+        </div>`;
+    }
+    function wireEvidenciaUltimaProgressao() {
+        const btnAnexar = $('#btnEvidenciaUltimaProgressao');
+        const inputEv = $('#progressao-evidenciaInput');
+        if (btnAnexar && inputEv) {
+            btnAnexar.addEventListener('click', () => inputEv.click());
+            inputEv.addEventListener('change', async () => {
+                const file = inputEv.files && inputEv.files[0];
+                inputEv.value = '';
+                if (!file) return;
+                const err = window.AppCore.checkEvidenceFile(file, window.AppCore.allowedExtsForAccept(window.AppCore.EVID_ACCEPT_DEFAULT));
+                if (err) { toast(err, 'aviso'); return; }
+                if (!Storage.hasDirectory()) {
+                    toast('Configure um diretório de armazenamento (ou Google Drive) em Configurações antes de anexar evidências.', 'aviso');
+                    return;
+                }
+                const ext = window.AppCore.fileExt(file);
+                try {
+                    await Storage.writeAttachment(EVIDENCIA_BASENAME, file, LattesTypes.progressaoDocentesFolder(), ext);
+                } catch (e) {
+                    toast('Não foi possível salvar a evidência: ' + e.message, 'erro');
+                    return;
+                }
+                const cfg = { ...(state.progressao.cfg || {}), evidenciaUltimaProgressao: { nome: file.name, ext } };
+                state.progressao.cfg = cfg;
+                const s = Storage.loadSettings(); s.progressao = cfg; Storage.saveSettings(s);
+                window.AppCore.persistirProgressao();
+                toast('Evidência anexada.', 'ok');
+                render();
+            });
+        }
+        const linkVer = $('#linkVerEvidenciaUltimaProgressao');
+        if (linkVer) {
+            linkVer.addEventListener('click', async (e) => {
+                e.preventDefault();
+                const ev = (state.progressao.cfg || {}).evidenciaUltimaProgressao;
+                if (!ev) return;
+                const url = await Storage.readAttachmentUrl(EVIDENCIA_BASENAME, LattesTypes.progressaoDocentesFolder(), ev.ext);
+                if (!url) { toast('Não foi possível abrir a evidência.', 'erro'); return; }
+                window.open(url, '_blank');
+            });
+        }
+        const btnRemover = $('#btnRemoverEvidenciaUltimaProgressao');
+        if (btnRemover) {
+            btnRemover.addEventListener('click', async () => {
+                if (!confirm('Remover a evidência anexada?')) return;
+                try { await Storage.deleteEntry(EVIDENCIA_BASENAME, LattesTypes.progressaoDocentesFolder()); } catch (_) {}
+                const cfg = { ...(state.progressao.cfg || {}) };
+                delete cfg.evidenciaUltimaProgressao;
+                state.progressao.cfg = cfg;
+                const s = Storage.loadSettings(); s.progressao = cfg; Storage.saveSettings(s);
+                window.AppCore.persistirProgressao();
+                toast('Evidência removida.', 'ok');
+                render();
+            });
+        }
+    }
     function wireDateMask(container) {
         $$('[data-datebr]', container).forEach((el) => {
             el.addEventListener('input', () => {
@@ -158,7 +245,7 @@ window.TabProgressao = (function () {
             <p class="text-xs text-gray-500 mb-2">${esc('Nenhum desses dados existe em outro módulo do lattesZen — preencha manualmente.')}</p>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
                 ${inpData(c, 'dataPosse', 'Data de posse')}
-                ${inpData(c, 'dataUltimaProgressao', 'Data da última progressão')}
+                ${inpDataUltimaProgressaoComEvidencia(c)}
                 ${inpCampus(c)}
                 ${inpUnidade(c)}
                 ${inpTexto(c, 'departamento', 'Departamento')}
@@ -176,13 +263,18 @@ window.TabProgressao = (function () {
         window.AppCore.wireValidators(panel);
         wireDateMask(panel);
         wireUnidadeFiltro();
+        wireEvidenciaUltimaProgressao();
         $$('[data-ro-focus]', panel).forEach((el) => {
             el.addEventListener('focus', () => el.removeAttribute('readonly'), { once: true });
         });
         const btn = $('#btnSaveProgressaoCfg'); if (!btn) return;
         btn.addEventListener('click', () => {
             const keys = ['dataPosse', 'dataUltimaProgressao', 'campus', 'unidade', 'departamento', 'classe', 'nivel', 'regime'];
-            const cfg = {};
+            // Preserva chaves que não vêm do formulário em si (ex.:
+            // evidenciaUltimaProgressao, gravada à parte assim que o arquivo é
+            // escolhido — ver wireEvidenciaUltimaProgressao) em vez de zerar
+            // tudo que não está nesta lista.
+            const cfg = { ...(state.progressao.cfg || {}) };
             let temErro = false;
             keys.forEach((k) => {
                 const el = $('#progressao-' + k); if (!el) return;
@@ -337,19 +429,41 @@ window.TabProgressao = (function () {
     // partir dos itens já validados dessa categoria — ver
     // progressao-memorial.js. Só os itens marcados "usar na Progressão"
     // entram (os demais o(a) docente ainda não decidiu incluir).
+    // Cada item validado ganha um número sequencial dentro da própria
+    // subseção — "seção.subseção.item" (ex.: 3.1.01, 3.1.02, 3.2.01...),
+    // igual ao pedido do Alexsandro (ver montarEstrutura em
+    // progressao-memorial.js) — formatado aqui em HTML pra leitura, com o
+    // texto simples (pra colar no documento oficial) guardado à parte pro
+    // botão "Copiar".
     function previaItem3Html(candidatos) {
-        // A ausência de itens NÃO impede a prévia de aparecer — o próprio
-        // texto gerado já traz um "relatório inicial" apontando o que falta
-        // (ver progressao-memorial.js), em vez de esconder a seção inteira.
+        // A ausência de itens NÃO impede a prévia de aparecer — o relatório
+        // inicial já aponta o que falta (ver progressao-memorial.js), em
+        // vez de esconder a seção inteira.
         const itensExtensao = candidatos.filter((c) => c.categoria === window.LzProgressaoMapa.CATEGORIA_EXTENSAO && c.item.progressao && c.item.progressao.usar);
-        const texto = window.LzProgressaoMemorial.gerarItem3(itensExtensao);
+        const estrutura = window.LzProgressaoMemorial.montarEstrutura(itensExtensao);
+        const textoParaCopiar = window.LzProgressaoMemorial.gerarItem3(itensExtensao);
         return `<div class="mt-2 border border-gray-200 dark:border-gray-700 rounded-lg p-3 bg-gray-50 dark:bg-gray-900">
             <div class="flex items-center justify-between gap-2 mb-2">
                 <span class="text-[11px] font-bold uppercase tracking-wide text-gray-500">${esc('Pronta pra revisar e colar no memorial oficial')}</span>
                 <button type="button" id="btnCopiarItem3" class="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600 shrink-0">${esc('Copiar')}</button>
             </div>
-            <textarea id="previaItem3Texto" readonly rows="14" class="w-full text-xs font-mono px-2 py-2 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-950 whitespace-pre-wrap">${esc(texto)}</textarea>
-            <p class="text-[11px] text-gray-500 mt-1">${esc(`Trechos marcados "${window.LzProgressaoMemorial.PLACEHOLDER}" são campos que o memorial pede mas ainda não existem no catálogo — complete-os direto no documento final.`)}</p>
+            <div class="text-xs font-mono whitespace-pre-wrap px-2 py-2 rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-950 text-gray-600 dark:text-gray-400 mb-3">${esc(estrutura.relatorio)}</div>
+            <div class="space-y-3">
+                <h4 class="text-sm font-bold">${esc(estrutura.categoria)}</h4>
+                ${estrutura.subsecoes.map((sg) => `<div>
+                    <h5 class="text-xs font-bold uppercase tracking-wide text-gray-500 mb-1">${esc(sg.subcategoria)}</h5>
+                    <div class="space-y-2">
+                        ${sg.itens.map((it) => `<div class="border border-gray-200 dark:border-gray-700 rounded p-2 bg-white dark:bg-gray-950">
+                            <div class="text-xs font-bold text-govbr-600 dark:text-unifesp-400 mb-1">${esc(it.numero)}</div>
+                            <dl class="text-xs grid grid-cols-[max-content_1fr] gap-x-2 gap-y-0.5">
+                                ${it.campos.map(([rotulo, valor]) => `<dt class="font-semibold text-gray-600 dark:text-gray-400">${esc(rotulo)}:</dt><dd class="text-gray-800 dark:text-gray-200">${esc(valor)}</dd>`).join('')}
+                            </dl>
+                        </div>`).join('')}
+                    </div>
+                </div>`).join('')}
+            </div>
+            <textarea id="previaItem3Texto" class="hidden" aria-hidden="true" tabindex="-1">${esc(textoParaCopiar)}</textarea>
+            <p class="text-[11px] text-gray-500 mt-2">${esc(`Trechos marcados "${window.LzProgressaoMemorial.PLACEHOLDER}" são campos que o memorial pede mas ainda não existem no catálogo — complete-os direto no documento final.`)}</p>
         </div>`;
     }
 
@@ -439,8 +553,7 @@ window.TabProgressao = (function () {
                     await navigator.clipboard.writeText(ta.value);
                     toast('Texto do item 3 copiado.', 'ok');
                 } catch (e) {
-                    ta.select();
-                    toast('Selecione o texto e copie manualmente (Ctrl+C).', 'info');
+                    toast('Não foi possível copiar automaticamente — selecione o texto formatado acima e copie manualmente (Ctrl+C).', 'info');
                 }
             });
         }
