@@ -215,7 +215,12 @@ window.TabProgressao = (function () {
         const anoRefStr = anoDe(cfg.dataUltimaProgressao || '');
         const anoRef = anoRefStr ? parseInt(anoRefStr, 10) : null;
         return state.catalogo.items
-            .map((item) => ({ item, status: window.LzProgressaoMapa.status(item), categoria: window.LzProgressaoMapa.categoria(item.typeKey) }))
+            .map((item) => ({
+                item,
+                status: window.LzProgressaoMapa.status(item),
+                categoria: window.LzProgressaoMapa.categoria(item),
+                subcategoria: window.LzProgressaoMapa.subcategoria(item),
+            }))
             .filter(({ status, item }) => {
                 if (!status) return false;
                 if (anoRef == null) return true;
@@ -225,19 +230,31 @@ window.TabProgressao = (function () {
             .sort((a, b) => (itemYear(b.item) || 0) - (itemYear(a.item) || 0));
     }
 
-    // Agrupa os candidatos pela categoria do memorial (mesma ordem das
-    // seções oficiais da CPPD — ver ordemCategorias() em
-    // progressao-mapeamento.js), só incluindo categorias que têm pelo menos
-    // um candidato.
+    // Agrupa os candidatos pela categoria do memorial e, dentro dela, pela
+    // subcategoria (mesmos títulos e numeração do documento oficial — ver
+    // ordemCategorias()/ordemSubcategorias() em progressao-mapeamento.js),
+    // só incluindo (sub)categorias que têm pelo menos um candidato. Nem
+    // toda categoria tem subcategoria (ex.: "Formação e Títulos") — esses
+    // itens ficam em `itensDiretos`, exibidos direto sob o título da
+    // categoria, sem subcabeçalho.
     function agruparPorCategoria(candidatos) {
-        const porNome = {};
+        const porCategoria = {};
         candidatos.forEach((c) => {
             const nome = c.categoria || 'Outros';
-            (porNome[nome] = porNome[nome] || []).push(c);
+            (porCategoria[nome] = porCategoria[nome] || []).push(c);
         });
         return window.LzProgressaoMapa.ordemCategorias()
-            .filter((nome) => porNome[nome])
-            .map((nome) => ({ nome, itens: porNome[nome] }));
+            .filter((nome) => porCategoria[nome])
+            .map((nome) => {
+                const todos = porCategoria[nome];
+                const itensDiretos = todos.filter((c) => !c.subcategoria);
+                const porSub = {};
+                todos.forEach((c) => { if (c.subcategoria) (porSub[c.subcategoria] = porSub[c.subcategoria] || []).push(c); });
+                const subgrupos = window.LzProgressaoMapa.ordemSubcategorias(nome)
+                    .filter((s) => porSub[s])
+                    .map((s) => ({ nome: s, itens: porSub[s] }));
+                return { nome, itensDiretos, subgrupos, total: todos.length };
+            });
     }
 
     function statTileHtml(icon, colorClass, label, valor, sub) {
@@ -339,12 +356,16 @@ window.TabProgressao = (function () {
             </div>
             <div class="flex flex-wrap gap-2 mb-3">
                 ${pillFiltroHtml('Todas', totalItens, !filtroCategoria)}
-                ${grupos.map((g) => pillFiltroHtml(g.nome, g.itens.length, filtroCategoria === g.nome)).join('')}
+                ${grupos.map((g) => pillFiltroHtml(g.nome, g.total, filtroCategoria === g.nome)).join('')}
             </div>
             <div class="space-y-3 max-h-[28rem] overflow-y-auto pr-1">
                 ${gruposVisiveis.map((g) => `<div>
                     <div class="text-xs font-bold uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-1 px-1">${esc(g.nome)}</div>
-                    <div class="space-y-1">${g.itens.map(itemRowHtml).join('')}</div>
+                    ${g.itensDiretos.length ? `<div class="space-y-1 mb-2">${g.itensDiretos.map(itemRowHtml).join('')}</div>` : ''}
+                    ${g.subgrupos.map((sg) => `<div class="mb-2">
+                        <div class="text-[11px] font-semibold text-gray-500 dark:text-gray-400 mb-1 pl-3">${esc(sg.nome)}</div>
+                        <div class="space-y-1 pl-3">${sg.itens.map(itemRowHtml).join('')}</div>
+                    </div>`).join('')}
                 </div>`).join('')}
             </div>
             ${stepperHtml(totalCompletos, totalAmareloValidados)}

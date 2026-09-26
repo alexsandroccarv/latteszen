@@ -119,39 +119,44 @@ test('Aba Progressão Docente: com "data da última progressão" definida, itens
     assert(texto.includes('Artigo Recente'), 'Item datado depois da última progressão deveria aparecer como candidato');
 });
 
-test('Aba Progressão Docente: candidatos aparecem agrupados por categoria do memorial (Mockup B)', async ({ page, baseUrl }) => {
-    const pesquisa = makeItem('ARTIGO_PERIODICO', 'PRODUCOES', { titulo: 'Artigo Categoria Pesquisa', periodico: 'Revista X', ano: '2024' });
-    const ensino = makeItem('FORMACAO_COMPLEMENTAR', 'FORMACAO', { titulo: 'Curso Categoria Ensino', instituicao: 'Instituto Y', anoObtencaoTitulo: '2024' });
-    await seedCatalog(page, baseUrl, [pesquisa, ensino]);
+const CAT_PESQUISA = '2. ATIVIDADES DE PESQUISA';
+const CAT_GESTAO = '4. ATIVIDADES DE GESTÃO E REPRESENTAÇÃO ACADÊMICA';
+
+test('Aba Progressão Docente: candidatos aparecem agrupados por categoria E subcategoria do memorial, com a mesma numeração do documento oficial', async ({ page, baseUrl }) => {
+    const artigo = makeItem('ARTIGO_PERIODICO', 'PRODUCOES', { titulo: 'Artigo Categoria Pesquisa', periodico: 'Revista X', ano: '2024' });
+    const gestao = makeItem('ATIV_DIRECAO', 'ATUACAO', { titulo: 'Coordenação Categoria Gestão', instituicao: 'Unifesp', orgao: 'Departamento X', anoInicio: '2024' });
+    await seedCatalog(page, baseUrl, [artigo, gestao]);
     await habilitarProgressao(page);
     await page.click('[data-tab="progressao"]');
     await page.waitForTimeout(200);
 
     const texto = await page.locator('#progressaoCandidatos').innerText();
-    assert(texto.includes('Atividades de Pesquisa'), 'Deveria mostrar o cabeçalho de categoria "Atividades de Pesquisa"');
-    assert(texto.includes('Atividades de Ensino'), 'Deveria mostrar o cabeçalho de categoria "Atividades de Ensino"');
+    assert(texto.includes(CAT_PESQUISA), `Deveria mostrar o cabeçalho de categoria "${CAT_PESQUISA}"`);
+    assert(texto.includes(CAT_GESTAO), `Deveria mostrar o cabeçalho de categoria "${CAT_GESTAO}"`);
+    assert(texto.includes('2.2 Produção Científica'), 'Deveria mostrar a subcategoria "2.2 Produção Científica" (numeração igual à do memorial)');
+    assert(texto.includes('4.1 Gestão'), 'Deveria mostrar a subcategoria "4.1 Gestão" (numeração igual à do memorial)');
     assert(texto.includes('Artigo Categoria Pesquisa'), 'O item de Pesquisa deveria estar listado');
-    assert(texto.includes('Curso Categoria Ensino'), 'O item de Ensino deveria estar listado');
+    assert(texto.includes('Coordenação Categoria Gestão'), 'O item de Gestão deveria estar listado');
 });
 
 test('Aba Progressão Docente: clicar num filtro de categoria restringe a lista de candidatos', async ({ page, baseUrl }) => {
-    const pesquisa = makeItem('ARTIGO_PERIODICO', 'PRODUCOES', { titulo: 'Artigo Categoria Pesquisa', periodico: 'Revista X', ano: '2024' });
-    const ensino = makeItem('FORMACAO_COMPLEMENTAR', 'FORMACAO', { titulo: 'Curso Categoria Ensino', instituicao: 'Instituto Y', anoObtencaoTitulo: '2024' });
-    await seedCatalog(page, baseUrl, [pesquisa, ensino]);
+    const artigo = makeItem('ARTIGO_PERIODICO', 'PRODUCOES', { titulo: 'Artigo Categoria Pesquisa', periodico: 'Revista X', ano: '2024' });
+    const gestao = makeItem('ATIV_DIRECAO', 'ATUACAO', { titulo: 'Coordenação Categoria Gestão', instituicao: 'Unifesp', orgao: 'Departamento X', anoInicio: '2024' });
+    await seedCatalog(page, baseUrl, [artigo, gestao]);
     await habilitarProgressao(page);
     await page.click('[data-tab="progressao"]');
     await page.waitForTimeout(200);
 
-    await page.click('[data-filtro-cat="Atividades de Pesquisa"]');
+    await page.click(`[data-filtro-cat="${CAT_PESQUISA}"]`);
     await page.waitForTimeout(150);
     const texto = await page.locator('#progressaoCandidatos').innerText();
     assert(texto.includes('Artigo Categoria Pesquisa'), 'O item da categoria filtrada deveria continuar visível');
-    assert(!texto.includes('Curso Categoria Ensino'), 'O item de outra categoria deveria sumir da lista com o filtro ativo');
+    assert(!texto.includes('Coordenação Categoria Gestão'), 'O item de outra categoria deveria sumir da lista com o filtro ativo');
 
     await page.click('[data-filtro-cat=""]'); // "Todas"
     await page.waitForTimeout(150);
     const textoTodas = await page.locator('#progressaoCandidatos').innerText();
-    assert(textoTodas.includes('Curso Categoria Ensino'), '"Todas" deveria voltar a mostrar os itens das demais categorias');
+    assert(textoTodas.includes('Coordenação Categoria Gestão'), '"Todas" deveria voltar a mostrar os itens das demais categorias');
 });
 
 test('Aba Progressão Docente: indicadores mostram total de candidatos e quantos já foram validados', async ({ page, baseUrl }) => {
