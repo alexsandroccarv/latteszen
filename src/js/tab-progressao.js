@@ -136,6 +136,32 @@ window.TabProgressao = (function () {
     function inpRegime(c) {
         return inpSelectFechado('progressao-regime', 'Regime de trabalho', REGIME_OPCOES, c.regime || '');
     }
+    // Campos do requerimento formal à CPPD (analisado a partir do modelo
+    // oficial colado pelo Alexsandro) que ainda não existiam no módulo.
+    // Nome completo/telefone/e-mail NÃO entram aqui: já existem no perfil
+    // único IDENTIFICACAO do catálogo (mesmo padrão de reaproveitamento de
+    // tab-sumula.js) e serão lidos de lá quando o requerimento em si for
+    // gerado (etapa futura, não pedida agora). Registro Funcional e Siape
+    // não existem em nenhum outro tipo do catálogo (só como campos locais,
+    // não reaproveitáveis, dentro de tab-rsc.js) — por isso entram aqui.
+    function inpRegistroFuncional(c) {
+        return inpTexto(c, 'registroFuncional', 'Registro Funcional');
+    }
+    function inpSiape(c) {
+        return inpTexto(c, 'siape', 'Siape');
+    }
+    const TITULACAO_OPCOES = ['Graduado', 'Especialista', 'Mestre', 'Doutor', 'Livre-docente'];
+    function inpTitulacao(c) {
+        return inpSelectFechado('progressao-titulacao', 'Titulação', TITULACAO_OPCOES, c.titulacao || '');
+    }
+    // Classe/nível PRETENDIDOS na progressão ("venho REQUERER... para a
+    // Classe ___, nível ___") — distintos de Classe/Nível ATUAIS acima.
+    function inpClassePretendida(c) {
+        return inpSelectFechado('progressao-classePretendida', 'Classe pretendida', CLASSE_OPCOES, c.classePretendida || '');
+    }
+    function inpNivelPretendido(c) {
+        return inpSelectFechado('progressao-nivelPretendido', 'Nível pretendido', NIVEL_OPCOES, c.nivelPretendido || '');
+    }
     // Campo de data com a MESMA máscara dd/mm/aaaa (auto-insere as barras
     // enquanto digita, largura fixa) usada em qualquer campo de data de
     // Catalogar — ver wireDateBr em tab-catalogar.js. Módulo 100% pt-br
@@ -253,6 +279,16 @@ window.TabProgressao = (function () {
                 ${inpNivel(c)}
                 ${inpRegime(c)}
             </div>
+            <h4 class="font-bold text-xs mt-4 mb-2 pt-3 border-t border-gray-200 dark:border-gray-700">${esc('Requerimento à CPPD')}</h4>
+            <p class="text-xs text-gray-500 mb-2">${esc('Campos do requerimento formal que ainda não existem em outro módulo. Nome completo, telefone e e-mail já vêm do seu perfil e são reaproveitados na hora de gerar o requerimento.')}</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                ${inpRegistroFuncional(c)}
+                ${inpSiape(c)}
+                ${inpTitulacao(c)}
+                ${inpClassePretendida(c)}
+                ${inpNivelPretendido(c)}
+                ${inpData(c, 'dataFinalPeriodo', 'Data final do período do memorial')}
+            </div>
             <div class="flex gap-2 mt-3">
                 <button id="btnSaveProgressaoCfg" class="px-3 py-2 rounded bg-govbr-600 dark:bg-unifesp-700 text-white text-sm"><i class="fa-solid fa-floppy-disk mr-1"></i> ${esc('Salvar')}</button>
             </div>
@@ -269,7 +305,7 @@ window.TabProgressao = (function () {
         });
         const btn = $('#btnSaveProgressaoCfg'); if (!btn) return;
         btn.addEventListener('click', () => {
-            const keys = ['dataPosse', 'dataUltimaProgressao', 'campus', 'unidade', 'departamento', 'classe', 'nivel', 'regime'];
+            const keys = ['dataPosse', 'dataUltimaProgressao', 'campus', 'unidade', 'departamento', 'classe', 'nivel', 'regime', 'registroFuncional', 'siape', 'titulacao', 'classePretendida', 'nivelPretendido', 'dataFinalPeriodo'];
             // Preserva chaves que não vêm do formulário em si (ex.:
             // evidenciaUltimaProgressao, gravada à parte assim que o arquivo é
             // escolhido — ver wireEvidenciaUltimaProgressao) em vez de zerar

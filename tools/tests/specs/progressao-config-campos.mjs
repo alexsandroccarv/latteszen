@@ -224,6 +224,65 @@ test('"Limpar catálogo" também zera a configuração da Progressão Docente Un
     assertEqual(s.progressao, {}, 'A configuração da Progressão Docente Unifesp deveria ser zerada por "Limpar catálogo"');
 });
 
+/* ------------------- Campos do requerimento formal à CPPD ---------------- */
+// Analisados a partir do modelo oficial colado pelo Alexsandro: nome
+// completo/telefone/e-mail NÃO entram aqui (já existem no perfil único
+// IDENTIFICACAO do catálogo, reaproveitados quando o requerimento em si for
+// gerado); Registro Funcional/Siape/Titulação/Classe e nível pretendidos/
+// data final do período são os campos que faltavam.
+test('Progressão Docente: Registro Funcional, Siape e Data final do período salvam em settings.progressao', async ({ page, baseUrl }) => {
+    await seedCatalog(page, baseUrl, []);
+    await abrirModulos(page);
+    await page.click('#progressaoEnable');
+    await page.waitForTimeout(100);
+    await page.click('[data-tab="progressao"]');
+    await page.waitForTimeout(200);
+
+    await page.fill('#progressao-registroFuncional', '1234567');
+    await page.fill('#progressao-siape', '7654321');
+    await page.fill('#progressao-dataFinalPeriodo', '01/03/2025');
+    await page.click('#btnSaveProgressaoCfg');
+    await page.waitForTimeout(200);
+
+    const cfg = await page.evaluate(() => JSON.parse(localStorage.getItem('lz_settings') || '{}').progressao || {});
+    assertEqual(cfg.registroFuncional, '1234567', 'Registro Funcional deveria ser salvo');
+    assertEqual(cfg.siape, '7654321', 'Siape deveria ser salvo');
+    assertEqual(cfg.dataFinalPeriodo, '01/03/2025', 'Data final do período do memorial deveria ser salva');
+});
+
+test('Progressão Docente: "Titulação", "Classe pretendida" e "Nível pretendido" são listas fechadas e salvam separadas de "Classe atual"/"Nível atual"', async ({ page, baseUrl }) => {
+    await seedCatalog(page, baseUrl, []);
+    await abrirModulos(page);
+    await page.click('#progressaoEnable');
+    await page.waitForTimeout(100);
+    await page.click('[data-tab="progressao"]');
+    await page.waitForTimeout(200);
+
+    const titulacoes = await page.$$eval('#progressao-titulacao option', (opts) => opts.map((o) => o.value).filter(Boolean));
+    assertEqual(titulacoes, ['Graduado', 'Especialista', 'Mestre', 'Doutor', 'Livre-docente'], `Opções de Titulação inesperadas — obtido: ${JSON.stringify(titulacoes)}`);
+
+    const classesPretendidas = await page.$$eval('#progressao-classePretendida option', (opts) => opts.map((o) => o.value).filter(Boolean));
+    assertEqual(classesPretendidas, ['Auxiliar', 'Assistente', 'Adjunto', 'Associado', 'Titular'], `Opções de Classe pretendida inesperadas — obtido: ${JSON.stringify(classesPretendidas)}`);
+
+    const niveisPretendidos = await page.$$eval('#progressao-nivelPretendido option', (opts) => opts.map((o) => o.value).filter(Boolean));
+    assertEqual(niveisPretendidos, ['1', '2', '3', '4'], `Opções de Nível pretendido inesperadas — obtido: ${JSON.stringify(niveisPretendidos)}`);
+
+    await page.selectOption('#progressao-classe', 'Adjunto');
+    await page.selectOption('#progressao-nivel', '2');
+    await page.selectOption('#progressao-titulacao', 'Doutor');
+    await page.selectOption('#progressao-classePretendida', 'Associado');
+    await page.selectOption('#progressao-nivelPretendido', '1');
+    await page.click('#btnSaveProgressaoCfg');
+    await page.waitForTimeout(200);
+
+    const cfg = await page.evaluate(() => JSON.parse(localStorage.getItem('lz_settings') || '{}').progressao || {});
+    assertEqual(cfg.classe, 'Adjunto', 'Classe atual deveria continuar sendo salva separadamente');
+    assertEqual(cfg.nivel, '2', 'Nível atual deveria continuar sendo salvo separadamente');
+    assertEqual(cfg.titulacao, 'Doutor', 'Titulação deveria ser salva');
+    assertEqual(cfg.classePretendida, 'Associado', 'Classe pretendida deveria ser salva, distinta da Classe atual');
+    assertEqual(cfg.nivelPretendido, '1', 'Nível pretendido deveria ser salvo, distinto do Nível atual');
+});
+
 /* --------------- Evidência da "Data da última progressão" --------------- */
 // Anexo único (ex.: declaração da Propessoas confirmando a data), ao lado do
 // campo — mesmo Storage.writeAttachment/checkEvidenceFile usado pela bandeja
