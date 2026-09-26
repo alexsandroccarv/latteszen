@@ -187,3 +187,55 @@ test('Aba Progressão Docente: botão "Editar" de um candidato abre o item na ab
     const tituloCampo = await page.inputValue('[name="titulo"]');
     assertEqual(tituloCampo, 'Artigo Para Editar', 'O item clicado deveria estar carregado no formulário');
 });
+
+/* ------------------ Prévia do item 3 do memorial (Extensão) ------------------ */
+// Gera o texto do item "3. ATIVIDADES DE EXTENSÃO À COMUNIDADE, DE CURSOS E
+// SERVIÇOS" a partir dos itens de Extensão já validados ("usar na
+// Progressão"), com os MESMOS rótulos de campo do documento oficial da CPPD
+// (ver progressao-memorial.js) — campos que o memorial pede mas não existem
+// no catálogo (ex.: Código SIEX) viram "[completar manualmente]".
+test('Aba Progressão Docente: "Gerar prévia do item 3" produz o texto com os rótulos oficiais do memorial, preenchidos com os dados do item', async ({ page, baseUrl }) => {
+    const projeto = makeItem('PROJETO_EXTENSAO', 'PROJETOS', {
+        titulo: 'Extensão nas Escolas Municipais', descricao: 'Ações educativas em escolas da rede pública.',
+        natureza: 'Projeto Social de Extensão', situacao: 'Em andamento', anoInicio: '2023',
+    }, { progressao: { usar: true } });
+    await seedCatalog(page, baseUrl, [projeto]);
+    await habilitarProgressao(page);
+    await page.click('[data-tab="progressao"]');
+    await page.waitForTimeout(200);
+
+    await page.click('#btnPreviaItem3');
+    await page.waitForTimeout(150);
+    const texto = await page.inputValue('#previaItem3Texto');
+
+    assert(texto.includes('3. ATIVIDADES DE EXTENSÃO À COMUNIDADE, DE CURSOS E SERVIÇOS'), 'Deveria abrir com o título oficial do item 3');
+    assert(texto.includes('3.1 Projetos e Programas de Extensão'), 'Deveria mostrar o cabeçalho da subseção 3.1');
+    assert(texto.includes('Título do projeto: Extensão nas Escolas Municipais'), 'Deveria preencher "Título do projeto" com o dado real do item');
+    assert(texto.includes('Resumo: Ações educativas em escolas da rede pública.'), 'Deveria preencher "Resumo" a partir da Descrição do item');
+    assert(texto.includes('Início (mês/ano): 2023'), 'Deveria preencher "Início" com o ano do item');
+    assert(texto.includes('Fim (mês/ano ou em andamento): Em andamento'), 'Situação "Em andamento" sem ano fim deveria virar "Em andamento"');
+    assert(texto.includes('Código SIEX: [completar manualmente]'), 'Campo que o memorial pede mas não existe no catálogo (Código SIEX) deveria virar placeholder');
+    assert(texto.includes('Link de divulgação: [completar manualmente]'), 'Campo sem correspondência no catálogo (Link de divulgação) deveria virar placeholder');
+});
+
+test('Aba Progressão Docente: "Gerar prévia do item 3" avisa quando não há itens de Extensão validados', async ({ page, baseUrl }) => {
+    await seedCatalog(page, baseUrl, []);
+    await habilitarProgressao(page);
+    await page.click('[data-tab="progressao"]');
+    await page.waitForTimeout(200);
+
+    // Sem candidatos nenhum, o botão de prévia não aparece (a seção
+    // "itens candidatos" mostra o aviso de catálogo vazio).
+    assertEqual(await page.locator('#btnPreviaItem3').count(), 0, 'Sem candidatos, o botão de prévia do item 3 não deveria existir');
+
+    const naoValidado = makeItem('ATIV_EXTENSAO', 'ATUACAO', { titulo: 'Atividade de extensão não validada', instituicao: 'Unifesp', anoInicio: '2024' });
+    await seedCatalog(page, baseUrl, [naoValidado]);
+    await habilitarProgressao(page);
+    await page.click('[data-tab="progressao"]');
+    await page.waitForTimeout(200);
+
+    await page.click('#btnPreviaItem3');
+    await page.waitForTimeout(150);
+    const texto = await page.locator('#progressaoCandidatos').innerText();
+    assert(texto.includes('Nenhum item de Atividades de Extensão validado ainda'), 'Deveria avisar que não há itens de Extensão validados (o item existe, mas não foi marcado "usar na Progressão")');
+});

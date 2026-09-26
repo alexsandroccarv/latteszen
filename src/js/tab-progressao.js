@@ -38,6 +38,9 @@ window.TabProgressao = (function () {
     // do módulo, não de settings: só controla o que fica visível na tela,
     // não é salvo. null = "Todas".
     let filtroCategoria = null;
+    // Prévia do item 3 do memorial (Atividades de Extensão) — mesmo tipo de
+    // estado que filtroCategoria acima, também não salvo.
+    let mostrarPreviaItem3 = false;
 
     // Começa `readonly` até o primeiro foco — mesmo mecanismo usado em todo
     // formulário de Catalogar (ver RO/wireReadonlyUntilFocus em
@@ -330,6 +333,26 @@ window.TabProgressao = (function () {
         </div>`;
     }
 
+    // Prévia do item 3 do memorial ("Atividades de Extensão"), gerada a
+    // partir dos itens já validados dessa categoria — ver
+    // progressao-memorial.js. Só os itens marcados "usar na Progressão"
+    // entram (os demais o(a) docente ainda não decidiu incluir).
+    function previaItem3Html(candidatos) {
+        const itensExtensao = candidatos.filter((c) => c.categoria === window.LzProgressaoMapa.CATEGORIA_EXTENSAO && c.item.progressao && c.item.progressao.usar);
+        if (!itensExtensao.length) {
+            return `<p class="text-xs text-gray-500 italic mt-2">${esc('Nenhum item de Atividades de Extensão validado ainda — marque "usar na Progressão" em Catalogar.')}</p>`;
+        }
+        const texto = window.LzProgressaoMemorial.gerarItem3(itensExtensao);
+        return `<div class="mt-2 border border-gray-200 dark:border-gray-700 rounded-lg p-3 bg-gray-50 dark:bg-gray-900">
+            <div class="flex items-center justify-between gap-2 mb-2">
+                <span class="text-[11px] font-bold uppercase tracking-wide text-gray-500">${esc('Pronta pra revisar e colar no memorial oficial')}</span>
+                <button type="button" id="btnCopiarItem3" class="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600 shrink-0">${esc('Copiar')}</button>
+            </div>
+            <textarea id="previaItem3Texto" readonly rows="14" class="w-full text-xs font-mono px-2 py-2 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-950 whitespace-pre-wrap">${esc(texto)}</textarea>
+            <p class="text-[11px] text-gray-500 mt-1">${esc(`Trechos marcados "${window.LzProgressaoMemorial.PLACEHOLDER}" são campos que o memorial pede mas ainda não existem no catálogo — complete-os direto no documento final.`)}</p>
+        </div>`;
+    }
+
     function candidatosSectionHtml() {
         const candidatos = candidatosProgressao();
         const cfg = state.progressao.cfg || {};
@@ -369,6 +392,12 @@ window.TabProgressao = (function () {
                 </div>`).join('')}
             </div>
             ${stepperHtml(totalCompletos, totalAmareloValidados)}
+            <div class="mt-3">
+                <button type="button" id="btnPreviaItem3" class="text-xs font-semibold px-3 py-1.5 rounded border border-gray-300 dark:border-gray-600">
+                    <i aria-hidden="true" class="fa-solid fa-file-lines mr-1"></i> ${esc(mostrarPreviaItem3 ? 'Ocultar prévia do item 3' : 'Gerar prévia do item 3 — Atividades de Extensão')}
+                </button>
+                ${mostrarPreviaItem3 ? previaItem3Html(candidatos) : ''}
+            </div>
             `}
         </section>`;
     }
@@ -391,6 +420,30 @@ window.TabProgressao = (function () {
                 wireCandidatosSection($('#tab-progressao'));
             });
         });
+        const btnPrevia = $('#btnPreviaItem3', panel);
+        if (btnPrevia) {
+            btnPrevia.addEventListener('click', () => {
+                mostrarPreviaItem3 = !mostrarPreviaItem3;
+                const secao = $('#progressaoCandidatos');
+                if (!secao) return;
+                secao.outerHTML = candidatosSectionHtml();
+                wireCandidatosSection($('#tab-progressao'));
+            });
+        }
+        const btnCopiar = $('#btnCopiarItem3', panel);
+        if (btnCopiar) {
+            btnCopiar.addEventListener('click', async () => {
+                const ta = $('#previaItem3Texto');
+                if (!ta) return;
+                try {
+                    await navigator.clipboard.writeText(ta.value);
+                    toast('Texto do item 3 copiado.', 'ok');
+                } catch (e) {
+                    ta.select();
+                    toast('Selecione o texto e copie manualmente (Ctrl+C).', 'info');
+                }
+            });
+        }
     }
 
     function render() {

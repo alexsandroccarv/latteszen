@@ -207,5 +207,11 @@ window.LzProgressaoMapa = (function () {
         return (ORDEM_SUBCATEGORIAS[nomeCategoria] || []).slice();
     }
 
-    return { status, elegivel, categoria, subcategoria, ordemCategorias, ordemSubcategorias };
+    return {
+        status, elegivel, categoria, subcategoria, ordemCategorias, ordemSubcategorias,
+        // Nomes exatos das categorias — expostos pra quem precisa referenciar
+        // uma categoria específica sem duplicar a string literal em outro
+        // arquivo (ver progressao-memorial.js).
+        CATEGORIA_EXTENSAO: CAT_EXTENSAO,
+    };
 })();
