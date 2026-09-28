@@ -184,6 +184,11 @@ window.ImportCargaHoraria = (function () {
         return String(valor || '').replace(/\D/g, '');
     }
 
+    // Nome completo da instituição (pedido do Alexsandro — nome por extenso,
+    // não a sigla sozinha) usado em todo campo "Instituição" dos candidatos:
+    // o relatório é sempre da própria Unifesp.
+    const INSTITUICAO_UNIFESP = 'Universidade Federal de São Paulo (Unifesp)';
+
     // Seção "Extensão e Cultura" (perfil "eventos"): cada linha vira 1 OU 2
     // candidatos, nunca escolhidos às cegas — regra confirmada pelo
     // Alexsandro:
@@ -207,7 +212,7 @@ window.ImportCargaHoraria = (function () {
                 typeKeySugerido: 'CURSO_MINISTRADO', typeKeyOpcoes: ['CURSO_MINISTRADO', 'PARTICIPACAO_EVENTO'],
                 titulo, avisos: [],
                 fields: {
-                    nivel: 'Extensão', titulo, ano, instituicao: 'Unifesp',
+                    nivel: 'Extensão', titulo, ano, instituicao: INSTITUICAO_UNIFESP, idioma: 'Português', url: window.AppCore.NA_VALUE,
                     participacaoAutores: /COORDENADOR/i.test(envolvimento) ? 'Organizador' : 'Docente',
                     cargaHoraria, unidade: 'h',
                 },
@@ -221,7 +226,7 @@ window.ImportCargaHoraria = (function () {
             out.push({
                 typeKeySugerido: 'APRESENTACAO', typeKeyOpcoes: ['APRESENTACAO', 'PARTICIPACAO_EVENTO'],
                 titulo, avisos: ['Natureza da apresentação não vem no relatório — revise antes de importar.'],
-                fields: { natureza: 'Conferência ou palestra', titulo, ano, evento: titulo, instituicao: 'Unifesp' },
+                fields: { natureza: 'Conferência ou palestra', titulo, ano, evento: titulo, instituicao: INSTITUICAO_UNIFESP, idioma: 'Português', url: window.AppCore.NA_VALUE },
                 extras,
             });
         }
@@ -236,7 +241,7 @@ window.ImportCargaHoraria = (function () {
             out.push({
                 typeKeySugerido: 'ORGANIZACAO_EVENTO', typeKeyOpcoes: ['ORGANIZACAO_EVENTO', 'PARTICIPACAO_EVENTO'],
                 titulo, avisos: ['Tipo/Natureza do evento não vêm no relatório — revise antes de importar.'],
-                fields: { tipoEvento: 'Outro', natureza: 'Organização', titulo, ano, instituicao: 'Unifesp' },
+                fields: { tipoEvento: 'Outro', natureza: 'Organização', titulo, ano, instituicao: INSTITUICAO_UNIFESP, idioma: 'Português', url: window.AppCore.NA_VALUE },
                 extras,
             });
         }
@@ -256,7 +261,7 @@ window.ImportCargaHoraria = (function () {
             titulo: disciplina,
             avisos: ['Cargo e carga horária do relatório não têm campo correspondente — preservados em "Outras informações".'],
             fields: {
-                instituicao: 'Unifesp', nivel, curso: disciplina, anoInicio: paraDatebr(ano), situacao: 'Anterior (finalizado)', anoFim: paraDatebr(ano),
+                instituicao: INSTITUICAO_UNIFESP, nivel, curso: disciplina, anoInicio: paraDatebr(ano), situacao: 'Anterior (finalizado)', anoFim: paraDatebr(ano),
                 outrasInfo: `Código da disciplina: ${codigo} | Cargo: ${cargo} | Carga horária (relatório Unifesp): ${ch}`,
             },
             extras: { código: codigo, cargo, ch },

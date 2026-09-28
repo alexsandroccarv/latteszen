@@ -36,7 +36,7 @@ function candidatosExemplo() {
             {
                 secao: 'Extensão e Cultura', typeKeySugerido: 'CURSO_MINISTRADO', typeKeyOpcoes: ['CURSO_MINISTRADO', 'PARTICIPACAO_EVENTO'],
                 titulo: 'CICLO DE ESTUDOS PARA FORMAÇÃO DE CONSELHEIRAS E CONSELHEIROS', avisos: [],
-                fields: { nivel: 'Extensão', titulo: 'CICLO DE ESTUDOS PARA FORMAÇÃO DE CONSELHEIRAS E CONSELHEIROS', ano: '12032021', instituicao: 'Unifesp', participacaoAutores: 'Organizador', cargaHoraria: 24, unidade: 'h' },
+                fields: { nivel: 'Extensão', titulo: 'CICLO DE ESTUDOS PARA FORMAÇÃO DE CONSELHEIRAS E CONSELHEIROS', ano: '12032021', instituicao: 'Universidade Federal de São Paulo (Unifesp)', idioma: 'Português', url: 'Não se aplica', participacaoAutores: 'Organizador', cargaHoraria: 24, unidade: 'h' },
                 extras: {},
             },
             {
@@ -229,6 +229,26 @@ test('Envolvimento sem palavra-chave de organização nem "Palestrante" (ex.: "M
     const cands = await candidatosPara(page, 'MODERADOR(A)');
     assertEqual(cands.map((c) => c.typeKeySugerido), ['ORGANIZACAO_EVENTO'], `"MODERADOR(A)" sozinho deveria sugerir ORGANIZACAO_EVENTO (pedido do Alexsandro: "neste documento sempre é organização") — obtido: ${JSON.stringify(cands.map((c) => c.typeKeySugerido))}`);
     assertEqual(cands[0].typeKeyOpcoes, ['ORGANIZACAO_EVENTO', 'PARTICIPACAO_EVENTO'], 'PARTICIPACAO_EVENTO deveria continuar disponível como alternativa manual na revisão');
+});
+
+/* --------- Instituição/idioma/URL padrão dos candidatos (lógica pura) ----
+   Pedido do Alexsandro: todo candidato da seção "Extensão e Cultura" (perfil
+   "eventos") já vem com Instituição = nome completo da Unifesp (não a sigla
+   sozinha), Idioma = Português e URL/Link marcado N/A — evita ter que
+   preencher esses 3 campos manualmente em cada um dos itens importados. */
+test('Candidatos de "eventos" (CURSO_MINISTRADO/APRESENTACAO/ORGANIZACAO_EVENTO) já vêm com Instituição, Idioma e URL=N/A preenchidos', async ({ page, baseUrl }) => {
+    await seedCatalog(page, baseUrl, []);
+    const cursoExtensao = await page.evaluate(() => window.ImportCargaHoraria.candidatosDeLinhaEventos({
+        indice: 1, valores: ['1', '20/02/2024', 'CURSO DE EXTENSÃO', '12345', 'CURSO DE EXEMPLO', 'TAE', 'COORDENADOR/A', '8'],
+    }));
+    const evento = await candidatosPara(page, 'COORDENADOR / A (RESPONSÁVEL TÉCNICO-CIENTÍFICO), PALESTRANTE');
+    for (const cand of [...cursoExtensao, ...evento]) {
+        assertEqual(cand.fields.instituicao, 'Universidade Federal de São Paulo (Unifesp)', `${cand.typeKeySugerido}: Instituição deveria ser o nome completo da Unifesp`);
+    }
+    for (const cand of evento) { // CURSO_MINISTRADO não tem campo idioma/url no schema Lattes — só os tipos de "EVENTO"
+        assertEqual(cand.fields.idioma, 'Português', `${cand.typeKeySugerido}: Idioma deveria ser "Português"`);
+        assertEqual(cand.fields.url, 'Não se aplica', `${cand.typeKeySugerido}: URL/Link deveria vir marcado N/A ("Não se aplica")`);
+    }
 });
 
 /* --------------- Reconstrução de tabela (lógica pura) --------------------

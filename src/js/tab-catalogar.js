@@ -152,7 +152,7 @@ window.TabCatalogar = (function () {
             ${doLattes ? `<label class="flex items-center gap-1.5"><input type="checkbox" id="visExportarLattes" ${exportarLattes ? 'checked' : ''}> <i aria-hidden="true" class="fa-solid fa-file-export"></i> ${esc(t('tab_catalogar.publicar_lattes', 'Lattes'))}</label>` : ''}
             <label class="flex items-center gap-1.5"><input type="checkbox" id="visPublicarWeb" ${publicarWeb ? 'checked' : ''}> <i aria-hidden="true" class="fa-solid fa-globe"></i> ${esc(t('tab_catalogar.publicar_web', 'Web'))}</label>
             ${doRsc ? `<label class="flex items-center gap-1.5"><input type="checkbox" id="rscConta" ${rsc.conta ? 'checked' : ''}> <i aria-hidden="true" class="fa-solid fa-award"></i> ${esc('usar para RSC')}</label>` : ''}
-            ${doProgressao ? `<label class="flex items-center gap-1.5"><input type="checkbox" id="progressaoUsar" ${progressao.usar ? 'checked' : ''}> <i aria-hidden="true" class="fa-solid fa-arrow-up-right-dots"></i> ${esc('usar na Progressão')}</label>` : ''}
+            ${doProgressao ? `<label class="flex items-center gap-1.5"><input type="checkbox" id="progressaoUsar" ${progressao.usar ? 'checked' : ''}> <i aria-hidden="true" class="fa-solid fa-arrow-up-right-dots"></i> ${esc('Prog. Docente')}</label>` : ''}
         </div>`;
 
         const expChk = $('#visExportarLattes');

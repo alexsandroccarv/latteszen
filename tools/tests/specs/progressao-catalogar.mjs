@@ -41,20 +41,20 @@ test('Sem o módulo Progressão habilitado, não aparece o checkbox "usar na Pro
     assertEqual(await page.locator('#visibilidadeBlock #progressaoUsar').count(), 0, 'Sem Progressão habilitado, "usar na Progressão" não deveria existir');
 });
 
-test('Com Progressão habilitado + tipo mapeado no memorial, "Publicar" ganha o checkbox "usar na Progressão"', async ({ page, baseUrl }) => {
+test('Com Progressão habilitado + tipo mapeado no memorial, "Publicar" ganha o checkbox "Prog. Docente" (usar na Progressão)', async ({ page, baseUrl }) => {
     await page.goto(baseUrl + '/index.html');
     await habilitarProgressao(page);
     await selectTipo(page, 'Formação', 'Formação complementar'); // FORMACAO_COMPLEMENTAR — verde no mapeamento
     const info = await page.evaluate(() => {
         const box = document.querySelector('#visibilidadeBlock');
-        const label = Array.from(box.querySelectorAll('label')).find((l) => l.textContent.includes('usar na Progressão'));
+        const label = Array.from(box.querySelectorAll('label')).find((l) => l.textContent.includes('Prog. Docente'));
         return {
             existe: !!box.querySelector('#progressaoUsar'),
             icone: label ? !!label.querySelector('i.fa-arrow-up-right-dots') : false,
         };
     });
-    assert(info.existe, 'O checkbox "usar na Progressão" (#progressaoUsar) deveria existir');
-    assert(info.icone, 'Checkbox "usar na Progressão" deveria ter o ícone fa-arrow-up-right-dots');
+    assert(info.existe, 'O checkbox "Prog. Docente" (#progressaoUsar) deveria existir');
+    assert(info.icone, 'Checkbox "Prog. Docente" deveria ter o ícone fa-arrow-up-right-dots');
 });
 
 test('Com Progressão habilitado, um tipo SEM correspondência no memorial (ex.: Idiomas) não mostra o checkbox', async ({ page, baseUrl }) => {
