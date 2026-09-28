@@ -184,46 +184,66 @@ window.ImportCargaHoraria = (function () {
         return String(valor || '').replace(/\D/g, '');
     }
 
-    // Seção "Extensão e Cultura" (perfil "eventos"): cada linha vira
-    // CURSO_MINISTRADO (Descrição = "CURSO DE EXTENSÃO") ou
-    // PARTICIPACAO_EVENTO/ORGANIZACAO_EVENTO (Descrição = "EVENTO",
-    // escolhido pelo Envolvimento) — heurística, por isso o candidato
-    // sempre carrega `typeKeyOpcoes` pra revisão poder trocar antes de
-    // importar, nunca compromete o typeKey escolhido automaticamente.
-    function candidatoDeLinhaEventos(linha) {
+    // Seção "Extensão e Cultura" (perfil "eventos"): cada linha vira 1 OU 2
+    // candidatos, nunca escolhidos às cegas — regra confirmada pelo
+    // Alexsandro:
+    //   - Descrição = "CURSO DE EXTENSÃO" → sempre CURSO_MINISTRADO.
+    //   - Descrição = "EVENTO": Coordenador/Vice-coordenador/Comissão
+    //     científica/Supervisor → ORGANIZACAO_EVENTO; Palestrante →
+    //     APRESENTACAO ("Apresentação de trabalho e palestra"). Uma linha
+    //     com AS DUAS anotações (ex.: "COORDENADOR..., PALESTRANTE") vira
+    //     candidato NOS DOIS tipos, não só um. Nenhuma das duas anotações
+    //     presente (ex.: só "MODERADOR(A)") cai no fallback
+    //     PARTICIPACAO_EVENTO de sempre.
+    // Sempre com `typeKeyOpcoes` pra revisão poder trocar antes de
+    // importar — nunca compromete o typeKey escolhido automaticamente.
+    function candidatosDeLinhaEventos(linha) {
         const [, data, descricao, codigo, titulo, , envolvimento, ch] = linha.valores;
         const ano = paraDatebr(data);
         const cargaHoraria = parseFloat(String(ch).replace(',', '.')) || undefined;
-        const avisos = [];
+        const extras = { código: codigo, envolvimento, ch };
         if (descricao.trim().toUpperCase() === 'CURSO DE EXTENSÃO') {
-            return {
-                origem: linha, typeKeySugerido: 'CURSO_MINISTRADO', typeKeyOpcoes: ['CURSO_MINISTRADO', 'PARTICIPACAO_EVENTO'],
-                titulo, avisos,
+            return [{
+                typeKeySugerido: 'CURSO_MINISTRADO', typeKeyOpcoes: ['CURSO_MINISTRADO', 'PARTICIPACAO_EVENTO'],
+                titulo, avisos: [],
                 fields: {
                     nivel: 'Extensão', titulo, ano, instituicao: 'Unifesp',
                     participacaoAutores: /COORDENADOR/i.test(envolvimento) ? 'Organizador' : 'Docente',
                     cargaHoraria, unidade: 'h',
                 },
-                extras: { código: codigo, envolvimento, ch },
-            };
+                extras,
+            }];
         }
-        const ehOrganizador = /^COORDENADOR/i.test(envolvimento.trim()) && !/VICE|COMISSÃO/i.test(envolvimento);
+        const ehOrganizador = /COORDENADOR|COMISS[ÃA]O CIENT[ÍI]FICA|SUPERVISOR/i.test(envolvimento);
+        const ehPalestrante = /PALESTRANTE/i.test(envolvimento);
+        const out = [];
         if (ehOrganizador) {
-            return {
-                origem: linha, typeKeySugerido: 'ORGANIZACAO_EVENTO', typeKeyOpcoes: ['ORGANIZACAO_EVENTO', 'PARTICIPACAO_EVENTO'],
-                titulo, avisos: [...avisos, 'Tipo/Natureza do evento não vêm no relatório — revise antes de importar.'],
+            out.push({
+                typeKeySugerido: 'ORGANIZACAO_EVENTO', typeKeyOpcoes: ['ORGANIZACAO_EVENTO', 'PARTICIPACAO_EVENTO'],
+                titulo, avisos: ['Tipo/Natureza do evento não vêm no relatório — revise antes de importar.'],
                 fields: { tipoEvento: 'Outro', natureza: 'Organização', titulo, ano, instituicao: 'Unifesp' },
-                extras: { código: codigo, envolvimento, ch },
-            };
+                extras,
+            });
         }
-        const formaParticipacao = /PALESTRANTE|MODERADOR|SUPERVISOR/i.test(envolvimento) ? 'Convidado' : 'Participante';
-        const tipoParticipacao = /MODERADOR/i.test(envolvimento) ? 'Moderador' : (/PALESTRANTE/i.test(envolvimento) ? 'Conferencista' : '');
-        return {
-            origem: linha, typeKeySugerido: 'PARTICIPACAO_EVENTO', typeKeyOpcoes: ['PARTICIPACAO_EVENTO', 'ORGANIZACAO_EVENTO'],
-            titulo, avisos: [...avisos, 'Natureza do evento (Congresso/Seminário/...) não vem no relatório — revise antes de importar.'],
-            fields: { titulo, natureza: 'Outra', formaParticipacao, tipoParticipacao, ano, cargaHoraria },
-            extras: { código: codigo, envolvimento, ch },
-        };
+        if (ehPalestrante) {
+            out.push({
+                typeKeySugerido: 'APRESENTACAO', typeKeyOpcoes: ['APRESENTACAO', 'PARTICIPACAO_EVENTO'],
+                titulo, avisos: ['Natureza da apresentação não vem no relatório — revise antes de importar.'],
+                fields: { natureza: 'Conferência ou palestra', titulo, ano, evento: titulo, instituicao: 'Unifesp' },
+                extras,
+            });
+        }
+        if (!out.length) {
+            const formaParticipacao = /MODERADOR|SUPERVISOR/i.test(envolvimento) ? 'Convidado' : 'Participante';
+            const tipoParticipacao = /MODERADOR/i.test(envolvimento) ? 'Moderador' : '';
+            out.push({
+                typeKeySugerido: 'PARTICIPACAO_EVENTO', typeKeyOpcoes: ['PARTICIPACAO_EVENTO', 'ORGANIZACAO_EVENTO'],
+                titulo, avisos: ['Natureza do evento (Congresso/Seminário/...) não vem no relatório — revise antes de importar.'],
+                fields: { titulo, natureza: 'Outra', formaParticipacao, tipoParticipacao, ano, cargaHoraria },
+                extras,
+            });
+        }
+        return out;
     }
 
     // Seção de disciplinas (Graduação/Pós-Graduação/Pós-Graduação Lato,
@@ -249,13 +269,18 @@ window.ImportCargaHoraria = (function () {
     // Monta os candidatos de TODAS as seções já reconstruídas — cada
     // candidato carrega a linha de origem (`origem`) pra a tela de revisão
     // poder mostrar exatamente o que veio do PDF, lado a lado com o que vai
-    // ser gravado.
+    // ser gravado. Uma linha de "eventos" pode virar 2 candidatos (ver
+    // candidatosDeLinhaEventos) — ex.: organizador E palestrante do mesmo
+    // evento lançam nos dois lugares, não só um.
     function candidatos(secoes) {
         const out = [];
         for (const secao of secoes) {
             for (const linha of secao.linhas) {
-                if (secao.perfil === 'eventos') out.push({ secao: secao.nome, ...candidatoDeLinhaEventos(linha) });
-                else if (secao.perfil === 'disciplinas') out.push({ secao: secao.nome, ...candidatoDeLinhaDisciplinas(linha, secao.nome) });
+                if (secao.perfil === 'eventos') {
+                    for (const c of candidatosDeLinhaEventos(linha)) out.push({ secao: secao.nome, origem: linha, ...c });
+                } else if (secao.perfil === 'disciplinas') {
+                    out.push({ secao: secao.nome, ...candidatoDeLinhaDisciplinas(linha, secao.nome) });
+                }
             }
         }
         return out;
@@ -274,7 +299,7 @@ window.ImportCargaHoraria = (function () {
     return {
         // pontas puras (sem pdf.js) — expostas pra teste direto com fixtures
         parsePaginas, detectarCabecalho, reconstruirLinhas, detectarNomeSecao,
-        candidatoDeLinhaEventos, candidatoDeLinhaDisciplinas, candidatos,
+        candidatosDeLinhaEventos, candidatoDeLinhaDisciplinas, candidatos,
         // ponta assíncrona (usa window.pdfjsLib)
         extrairPaginas, parsePdf,
     };

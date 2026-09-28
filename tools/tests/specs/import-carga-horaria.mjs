@@ -153,6 +153,48 @@ test('Um candidato que já existe no catálogo (mesma assinatura) aparece como "
     assertEqual(cursos.length, 1, 'Não deveria duplicar o CURSO_MINISTRADO já existente');
 });
 
+/* --------- Mapeamento organizador/palestrante (lógica pura) --------------
+   Regra confirmada pelo Alexsandro: Coordenador/Vice-coordenador/Comissão
+   científica/Supervisor → ORGANIZACAO_EVENTO; Palestrante →
+   APRESENTACAO ("Apresentação de trabalho e palestra"). Uma linha com AS
+   DUAS anotações lança nos DOIS lugares (2 candidatos), não só um. */
+function linha(envolvimento) {
+    return { indice: 1, valores: ['1', '20/02/2024', 'EVENTO', '12345', 'TÍTULO DE EXEMPLO', 'TAE', envolvimento, '8'] };
+}
+async function candidatosPara(page, envolvimento) {
+    return page.evaluate((l) => window.ImportCargaHoraria.candidatosDeLinhaEventos(l), linha(envolvimento));
+}
+
+test('Envolvimento só com papel de organização (Coordenador/Vice-coordenador/Comissão científica/Supervisor) vira só ORGANIZACAO_EVENTO', async ({ page, baseUrl }) => {
+    await seedCatalog(page, baseUrl, []);
+    for (const envolvimento of ['COORDENADOR/A', 'VICE-COORDENADOR(A)', 'COMISSÃO CIENTÍFICA', 'SUPERVISOR(A) (RESPONSÁVEL TÉCNICO-CIENTÍFICO)']) {
+        const cands = await candidatosPara(page, envolvimento);
+        assertEqual(cands.map((c) => c.typeKeySugerido), ['ORGANIZACAO_EVENTO'], `Envolvimento "${envolvimento}" deveria virar só ORGANIZACAO_EVENTO — obtido: ${JSON.stringify(cands.map((c) => c.typeKeySugerido))}`);
+    }
+});
+
+test('Envolvimento só com "Palestrante" vira só APRESENTACAO (Apresentação de trabalho e palestra)', async ({ page, baseUrl }) => {
+    await seedCatalog(page, baseUrl, []);
+    const cands = await candidatosPara(page, 'PALESTRANTE');
+    assertEqual(cands.map((c) => c.typeKeySugerido), ['APRESENTACAO'], `"PALESTRANTE" sozinho deveria virar só APRESENTACAO — obtido: ${JSON.stringify(cands.map((c) => c.typeKeySugerido))}`);
+    assertEqual(cands[0].fields.natureza, 'Conferência ou palestra', 'A natureza sugerida deveria ser "Conferência ou palestra"');
+});
+
+test('Envolvimento com organização E palestra na mesma linha (ex.: "COORDENADOR/A, PALESTRANTE") lança nos DOIS lugares', async ({ page, baseUrl }) => {
+    await seedCatalog(page, baseUrl, []);
+    const cands = await candidatosPara(page, 'COORDENADOR / A (RESPONSÁVEL TÉCNICO-CIENTÍFICO), PALESTRANTE');
+    assertEqual(cands.length, 2, 'Uma linha com organizador E palestrante deveria virar 2 candidatos, um de cada tipo');
+    const tipos = cands.map((c) => c.typeKeySugerido).sort();
+    assertEqual(tipos, ['APRESENTACAO', 'ORGANIZACAO_EVENTO'], `Deveria ter exatamente ORGANIZACAO_EVENTO + APRESENTACAO — obtido: ${JSON.stringify(tipos)}`);
+});
+
+test('Envolvimento sem organização nem palestra (ex.: "MODERADOR(A)") cai no fallback PARTICIPACAO_EVENTO', async ({ page, baseUrl }) => {
+    await seedCatalog(page, baseUrl, []);
+    const cands = await candidatosPara(page, 'MODERADOR(A)');
+    assertEqual(cands.map((c) => c.typeKeySugerido), ['PARTICIPACAO_EVENTO'], '"MODERADOR(A)" sozinho não é organizador nem palestrante — deveria cair no fallback PARTICIPACAO_EVENTO');
+    assertEqual(cands[0].fields.tipoParticipacao, 'Moderador', 'Deveria sugerir "Moderador" como tipo de participação');
+});
+
 /* --------------- Reconstrução de tabela (lógica pura) --------------------
    Fixture sintética (posições x/y no mesmo formato devolvido por pdf.js —
    conteúdo genérico, NÃO os dados reais de ninguém) reproduzindo os 2 bugs
