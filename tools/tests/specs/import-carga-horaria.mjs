@@ -188,11 +188,11 @@ test('Envolvimento com organização E palestra na mesma linha (ex.: "COORDENADO
     assertEqual(tipos, ['APRESENTACAO', 'ORGANIZACAO_EVENTO'], `Deveria ter exatamente ORGANIZACAO_EVENTO + APRESENTACAO — obtido: ${JSON.stringify(tipos)}`);
 });
 
-test('Envolvimento sem organização nem palestra (ex.: "MODERADOR(A)") cai no fallback PARTICIPACAO_EVENTO', async ({ page, baseUrl }) => {
+test('Envolvimento sem palavra-chave de organização nem "Palestrante" (ex.: "MODERADOR(A)") também vira ORGANIZACAO_EVENTO — neste relatório, tudo que não é palestra é organização', async ({ page, baseUrl }) => {
     await seedCatalog(page, baseUrl, []);
     const cands = await candidatosPara(page, 'MODERADOR(A)');
-    assertEqual(cands.map((c) => c.typeKeySugerido), ['PARTICIPACAO_EVENTO'], '"MODERADOR(A)" sozinho não é organizador nem palestrante — deveria cair no fallback PARTICIPACAO_EVENTO');
-    assertEqual(cands[0].fields.tipoParticipacao, 'Moderador', 'Deveria sugerir "Moderador" como tipo de participação');
+    assertEqual(cands.map((c) => c.typeKeySugerido), ['ORGANIZACAO_EVENTO'], `"MODERADOR(A)" sozinho deveria sugerir ORGANIZACAO_EVENTO (pedido do Alexsandro: "neste documento sempre é organização") — obtido: ${JSON.stringify(cands.map((c) => c.typeKeySugerido))}`);
+    assertEqual(cands[0].typeKeyOpcoes, ['ORGANIZACAO_EVENTO', 'PARTICIPACAO_EVENTO'], 'PARTICIPACAO_EVENTO deveria continuar disponível como alternativa manual na revisão');
 });
 
 /* --------------- Reconstrução de tabela (lógica pura) --------------------

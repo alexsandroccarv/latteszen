@@ -217,14 +217,6 @@ window.ImportCargaHoraria = (function () {
         const ehOrganizador = /COORDENADOR|COMISS[ÃA]O CIENT[ÍI]FICA|SUPERVISOR/i.test(envolvimento);
         const ehPalestrante = /PALESTRANTE/i.test(envolvimento);
         const out = [];
-        if (ehOrganizador) {
-            out.push({
-                typeKeySugerido: 'ORGANIZACAO_EVENTO', typeKeyOpcoes: ['ORGANIZACAO_EVENTO', 'PARTICIPACAO_EVENTO'],
-                titulo, avisos: ['Tipo/Natureza do evento não vêm no relatório — revise antes de importar.'],
-                fields: { tipoEvento: 'Outro', natureza: 'Organização', titulo, ano, instituicao: 'Unifesp' },
-                extras,
-            });
-        }
         if (ehPalestrante) {
             out.push({
                 typeKeySugerido: 'APRESENTACAO', typeKeyOpcoes: ['APRESENTACAO', 'PARTICIPACAO_EVENTO'],
@@ -233,13 +225,18 @@ window.ImportCargaHoraria = (function () {
                 extras,
             });
         }
-        if (!out.length) {
-            const formaParticipacao = /MODERADOR|SUPERVISOR/i.test(envolvimento) ? 'Convidado' : 'Participante';
-            const tipoParticipacao = /MODERADOR/i.test(envolvimento) ? 'Moderador' : '';
+        // Neste relatório, qualquer papel que NÃO seja só "Palestrante" é
+        // organização (confirmado pelo Alexsandro) — cobre tanto os papéis
+        // já reconhecidos como organizador (Coordenador/Vice-coordenador/
+        // Comissão científica/Supervisor) quanto qualquer outro papel que a
+        // heurística acima não reconheça (ex.: só "MODERADOR(A)"), sempre
+        // com PARTICIPACAO_EVENTO como alternativa no dropdown de revisão
+        // pra quem identificar um caso que realmente não é organização.
+        if (ehOrganizador || !ehPalestrante) {
             out.push({
-                typeKeySugerido: 'PARTICIPACAO_EVENTO', typeKeyOpcoes: ['PARTICIPACAO_EVENTO', 'ORGANIZACAO_EVENTO'],
-                titulo, avisos: ['Natureza do evento (Congresso/Seminário/...) não vem no relatório — revise antes de importar.'],
-                fields: { titulo, natureza: 'Outra', formaParticipacao, tipoParticipacao, ano, cargaHoraria },
+                typeKeySugerido: 'ORGANIZACAO_EVENTO', typeKeyOpcoes: ['ORGANIZACAO_EVENTO', 'PARTICIPACAO_EVENTO'],
+                titulo, avisos: ['Tipo/Natureza do evento não vêm no relatório — revise antes de importar.'],
+                fields: { tipoEvento: 'Outro', natureza: 'Organização', titulo, ano, instituicao: 'Unifesp' },
                 extras,
             });
         }
