@@ -44,7 +44,7 @@ window.AppCore = (function () {
         // fonte, todas mutuamente exclusivas na tela (Importar):
         // lattes = parse do XML; orcid = busca de publicações no ORCID;
         // bib = parse de um arquivo BibTeX/RIS.
-        importacoes: { lattes: null, orcid: null, bib: null },
+        importacoes: { lattes: null, orcid: null, bib: null, cargaHoraria: null },
         // Estado transiente de UI (issue #140) — o que está na tela AGORA
         // (aba ativa, filtros/ordenação escolhidos, formulário sujo), bem
         // diferente do dado persistido em `items`/`trash` etc.

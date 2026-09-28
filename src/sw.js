@@ -19,7 +19,7 @@
    (ver js/pwa.js). Sem isso, uma aba já aberta pode continuar servindo JS
    antigo por tempo indefinido mesmo depois de um conserto já publicado.
    ========================================================================== */
-const CACHE_VERSION = 'v27';
+const CACHE_VERSION = 'v28';
 const PRECACHE = `lattesZen-precache-${CACHE_VERSION}`;
 const RUNTIME = `lattesZen-runtime-${CACHE_VERSION}`;
 
@@ -81,6 +81,9 @@ const PRECACHE_URLS = [
     './js/storage.js',
     './js/lattes-xml.js',
     './js/lattes-xml-export.js',
+    './js/import-carga-horaria.js',
+    './js/vendor/pdfjs/pdf.min.js',
+    './js/vendor/pdfjs/pdf.worker.min.js',
     './js/bibtex-ris.js',
     './js/publish.js',
     './js/rsc.js',
@@ -106,6 +109,7 @@ const PRECACHE_URLS = [
     './js/tab-config-shared.js',
     './js/tab-config-dedup.js',
     './js/tab-config-xml.js',
+    './js/tab-config-carga-horaria.js',
     './js/tab-config-orcid.js',
     './js/tab-config-bibtex.js',
     './js/tab-config.js',

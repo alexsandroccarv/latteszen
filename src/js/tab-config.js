@@ -38,6 +38,7 @@
    corpos das funções — app.js carrega DEPOIS deste módulo.
    ========================================================================== */
 import { xmlImportItemHtml, wireExportLattes, onXmlSelected } from './tab-config-xml.js';
+import { cargaHorariaImportItemHtml, onCargaHorariaSelected } from './tab-config-carga-horaria.js';
 import { orcidImportItemHtml, wireOrcidImport } from './tab-config-orcid.js';
 import { bibImportItemHtml, bibExportItemHtml, onBibFileSelected, wireBibExport } from './tab-config-bibtex.js';
 import { pdfReportExportItemHtml, wirePdfReportExport } from './tab-config-pdf-report.js';
@@ -278,6 +279,7 @@ window.TabConfig = (function () {
                 <h2 class="text-lg font-bold mb-3 flex items-center gap-2"><i aria-hidden="true" class="fa-solid fa-file-import text-govbr-600 dark:text-unifesp-400"></i> ${esc(t('tab_config.importar', 'Importar'))}</h2>
                 <div class="space-y-3">
                     ${xmlImportItemHtml()}
+                    ${cargaHorariaImportItemHtml()}
                     ${orcidImportItemHtml()}
                     ${bibImportItemHtml()}
                     ${jsonImportItemHtml()}
@@ -863,6 +865,7 @@ window.TabConfig = (function () {
         wireBibExport();
         wirePdfReportExport();
         $('#xmlInput').addEventListener('change', onXmlSelected);
+        $('#cargaHorariaInput').addEventListener('change', onCargaHorariaSelected);
         const idPrefixInput = $('#idPrefix');
         if (idPrefixInput) idPrefixInput.addEventListener('input', (e) => {
             $('#idPrefixEx').textContent = `${window.AppCore.sanitizePrefix(e.target.value)}-k7p`;
@@ -1097,6 +1100,7 @@ window.TabConfig = (function () {
             state.importacoes.lattes = null;    // prévia de importação do XML
             state.importacoes.orcid = null;     // prévia de importação do ORCID
             state.importacoes.bib = null;       // prévia de importação de BibTeX/RIS
+            state.importacoes.cargaHoraria = null; // prévia de importação da Carga Horária (PDF)
             state.catalogo.editingId = null;       // sai de qualquer edição em curso
             state.catalogo.evEditing = [];         // evidências em edição
             state.vocab = {};             // listas de autocomplete (curadas)

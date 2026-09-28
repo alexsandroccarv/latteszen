@@ -63,6 +63,7 @@ import './specs/producao-por-tipo.mjs';
 import './specs/header-config.mjs';
 import './specs/catalogar-botoes-evidencia.mjs';
 import './specs/config-xml-lattes.mjs';
+import './specs/import-carga-horaria.mjs';
 import './specs/tema.mjs';
 import './specs/config-reorganizacao.mjs';
 import './specs/sumula-config-campos.mjs';
