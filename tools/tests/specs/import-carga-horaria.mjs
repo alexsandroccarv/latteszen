@@ -113,6 +113,42 @@ test('"Importar selecionados" cria os itens no catálogo com os typeKeys correto
     assert(toasts.some((tx) => tx.startsWith('2 item')), `Deveria confirmar quantos itens foram importados — toasts: ${JSON.stringify(toasts)}`);
 });
 
+/* -------- Evidência coletiva: não pública → ícone âmbar em Conformidade --
+   O mesmo PDF vira evidência de VÁRIOS itens de uma vez (prova coletiva do
+   relatório da Unifesp, não um comprovante dedicado a cada item) — por
+   isso é gravada com `publica: false`. Isso já é suficiente pra fazer o
+   ícone de evidência aparecer em âmbar (não verde) em Conformidade, já
+   que evidenceIconsHtml() colore só pela presença de alguma evidência
+   `publica: true` — nenhuma lógica nova precisou ser criada lá, ver
+   tab-conformidade.js. */
+test('A evidência da Carga Horária é gravada como NÃO pública (ícone âmbar em Conformidade, não verde)', async ({ page, baseUrl }) => {
+    await abrirImportarCargaHoraria(page, baseUrl);
+    await page.evaluate(() => {
+        window.Storage.hasDirectory = () => true;
+        window.Storage.writeJson = async () => {};
+        window.Storage.writeAttachment = async () => {};
+    });
+    await mockParsePdf(page, candidatosExemplo());
+    await page.setInputFiles('#cargaHorariaInput', { name: 'carga-horaria.pdf', mimeType: 'application/pdf', buffer: Buffer.from('%PDF-fake') });
+    await page.waitForTimeout(200);
+    await page.click('#btnChImport');
+    await page.waitForTimeout(300);
+
+    const items = await page.evaluate(() => JSON.parse(localStorage.getItem('lz_catalog') || '[]'));
+    assertEqual(items.length, 2, 'Os 2 candidatos deveriam virar itens do catálogo');
+    assert(items.every((i) => i.evidencias.length === 1 && i.evidencias[0].publica === false), 'A evidência da Carga Horária deveria ser gravada como NÃO pública em todo item importado');
+
+    await page.click('[data-tab="conformidade"]');
+    await page.waitForTimeout(300);
+    for (const item of items) {
+        const btn = page.locator(`button[data-act="pdf"][data-id="${item.id}"]`);
+        assertEqual(await btn.count(), 1, `O ícone de evidência do item ${item.id} deveria existir em Conformidade`);
+        const classe = await btn.getAttribute('class');
+        assert(classe.includes('text-amber-600'), `O ícone de evidência deveria estar em âmbar (não pública) — classe obtida: ${classe}`);
+        assert(!classe.includes('text-green-600'), `O ícone de evidência NÃO deveria estar verde — classe obtida: ${classe}`);
+    }
+});
+
 test('Sem diretório de armazenamento configurado, os itens são criados mas sem evidência anexada (avisa)', async ({ page, baseUrl }) => {
     await abrirImportarCargaHoraria(page, baseUrl);
     await page.evaluate(() => { window.Storage.hasDirectory = () => false; });

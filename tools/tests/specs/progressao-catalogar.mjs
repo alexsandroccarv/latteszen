@@ -106,6 +106,42 @@ test('Aba Progressão Docente: lista "itens candidatos" com cor verde/amarela co
     assert(cores.amareloClasse.includes('amber'), 'O item PROJETO_PESQUISA (amarelo) deveria usar as classes de cor âmbar');
 });
 
+/* ------------------- Ícone de evidência (mesmo modelo de Conformidade) ---
+   Pedido do Alexsandro: os itens candidatos da Progressão devem mostrar a
+   mesma verificação de qualidade de evidência que já existe em
+   Conformidade (evidenceIconsHtml/evidenceState em tab-conformidade.js) —
+   verde: alguma evidência pública; âmbar: tem evidência mas nenhuma
+   pública (ex.: o PDF coletivo importado de "Carga Horária: Consolidada"
+   da Unifesp, anexado a vários itens de uma vez); vermelho: sem nenhuma
+   evidência. */
+test('Aba Progressão Docente: cada candidato mostra um ícone de evidência (verde/âmbar/vermelho), mesmo modelo de Conformidade', async ({ page, baseUrl }) => {
+    const semEvidencia = makeItem('ARTIGO_PERIODICO', 'PRODUCOES', { titulo: 'Artigo Sem Evidência', periodico: 'Revista X', ano: '2024' }, { evidencias: [] });
+    const evidenciaPublica = makeItem('ARTIGO_PERIODICO', 'PRODUCOES', { titulo: 'Artigo Evidência Pública', periodico: 'Revista Y', ano: '2024' }, {
+        evidencias: [{ basename: 'ev1', ext: 'pdf', name: 'artigo.pdf', publica: true, tag: '' }],
+    });
+    const evidenciaColetiva = makeItem('CURSO_MINISTRADO', 'PRODUCOES', { nivel: 'Extensão', titulo: 'Curso Com Evidência Coletiva', ano: '2024' }, {
+        evidencias: [{ basename: 'ev2', ext: 'pdf', name: 'carga-horaria.pdf', publica: false, tag: 'Carga horária (Unifesp)' }],
+    });
+    await seedCatalog(page, baseUrl, [semEvidencia, evidenciaPublica, evidenciaColetiva]);
+    await habilitarProgressao(page);
+    await page.click('[data-tab="progressao"]');
+    await page.waitForTimeout(200);
+
+    const estados = await page.evaluate(() => {
+        const linhas = Array.from(document.querySelectorAll('#tab-progressao [data-editar]')).map((btn) => btn.closest('div.flex'));
+        const acha = (txt) => linhas.find((l) => l.textContent.includes(txt));
+        const estadoDe = (txt) => { const el = acha(txt); const ic = el ? el.querySelector('[data-evidencia-estado]') : null; return ic ? ic.getAttribute('data-evidencia-estado') : null; };
+        return {
+            semEvidencia: estadoDe('Artigo Sem Evidência'),
+            publica: estadoDe('Artigo Evidência Pública'),
+            coletiva: estadoDe('Curso Com Evidência Coletiva'),
+        };
+    });
+    assertEqual(estados.semEvidencia, 'red', 'Item sem evidência deveria mostrar o ícone vermelho');
+    assertEqual(estados.publica, 'green', 'Item com evidência pública deveria mostrar o ícone verde');
+    assertEqual(estados.coletiva, 'amber', 'Item com evidência coletiva (não pública, ex.: Carga Horária da Unifesp) deveria mostrar o ícone âmbar, não verde');
+});
+
 test('Aba Progressão Docente: com "data da última progressão" definida, itens de anos anteriores saem da lista de candidatos', async ({ page, baseUrl }) => {
     const antigo = makeItem('ARTIGO_PERIODICO', 'PRODUCOES', { titulo: 'Artigo Antigo', periodico: 'Revista X', ano: '2018' });
     const recente = makeItem('ARTIGO_PERIODICO', 'PRODUCOES', { titulo: 'Artigo Recente', periodico: 'Revista X', ano: '2024' });

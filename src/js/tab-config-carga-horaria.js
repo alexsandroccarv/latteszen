@@ -148,7 +148,14 @@ async function importCargaHorariaSelected() {
                     const basename = `${item.id}-${window.AppCore.randCode(2)}`;
                     try {
                         await Storage.writeAttachment(basename, st.arquivo, LattesTypes.categoryFolder(categoryKey), ext);
-                        item.evidencias = [{ basename, ext, name: st.arquivo.name, publica: true, tag: t('tab_config_carga_horaria.tag_evidencia', 'Carga horária (Unifesp)') }];
+                        // publica: false (de propósito) — o mesmo PDF vira evidência de
+                        // VÁRIOS itens (é uma prova coletiva do relatório da Unifesp, não
+                        // um comprovante dedicado a este item específico). Em Conformidade
+                        // isso faz o ícone de evidência aparecer em âmbar, não verde (ver
+                        // evidenceIconsHtml em tab-conformidade.js — a cor já depende só de
+                        // `publica`, sem precisar de nenhuma lógica nova) — sinalizando que
+                        // o ideal é substituir por uma evidência própria quando possível.
+                        item.evidencias = [{ basename, ext, name: st.arquivo.name, publica: false, tag: t('tab_config_carga_horaria.tag_evidencia', 'Carga horária (Unifesp)') }];
                         item.hasPdf = true; item.pdfName = st.arquivo.name; item.fileExt = ext;
                     } catch (_) { semEvidencia++; }
                 }

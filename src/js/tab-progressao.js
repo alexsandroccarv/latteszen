@@ -412,6 +412,27 @@ window.TabProgressao = (function () {
     // "claro", mesmo com um tema escuro ativo. A distinção verde/amarelo é
     // só um detalhe pequeno (ícone + friso à esquerda), legível em qualquer
     // tema.
+    // Estado de evidência do item candidato — MESMA regra de
+    // evidenceState() em tab-conformidade.js (verde: alguma evidência
+    // pública; âmbar: tem evidência, mas nenhuma pública — ex.: o PDF
+    // coletivo da Carga Horária da Unifesp, anexado a vários itens de uma
+    // vez; vermelho: nenhuma evidência). Duplicada aqui (em vez de
+    // importada) porque tab-conformidade.js não expõe essa função em
+    // AppCore — mudar uma regra exige lembrar de mudar as duas.
+    function evidenciaEstado(item) {
+        const evid = Array.isArray(item.evidencias) ? item.evidencias : [];
+        if (!evid.length) return 'red';
+        return evid.some((e) => e.publica) ? 'green' : 'amber';
+    }
+    function evidenciaIconHtml(item) {
+        const estado = evidenciaEstado(item);
+        const cor = estado === 'green' ? 'text-green-600 dark:text-green-500' : estado === 'amber' ? 'text-amber-600 dark:text-amber-500' : 'text-red-600 dark:text-red-500';
+        const icone = estado === 'red' ? 'fa-file-circle-xmark' : 'fa-file-pdf';
+        const titulo = estado === 'green' ? 'Evidência pública anexada'
+            : estado === 'amber' ? 'Evidência anexada, mas não pública (ex.: documento coletivo, como o relatório de Carga Horária da Unifesp — considere uma evidência dedicada quando possível)'
+                : 'Sem evidência anexada';
+        return `<span title="${esc(titulo)}" data-evidencia-estado="${estado}" class="w-6 h-6 inline-flex items-center justify-center ${cor} shrink-0"><i aria-hidden="true" class="fa-solid ${icone}"></i></span>`;
+    }
     function itemRowHtml({ item, status }) {
         const marcado = !!(item.progressao && item.progressao.usar);
         const corIcone = status === 'verde' ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400';
@@ -435,6 +456,7 @@ window.TabProgressao = (function () {
                 ${ano ? `<span class="text-xs text-gray-400 shrink-0 ml-1">(${esc(String(ano))})</span>` : ''}
             </div>
             ${infoHtml}
+            ${evidenciaIconHtml(item)}
             <button type="button" data-editar="${esc(item.id)}" class="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600 shrink-0">${esc('Editar')}</button>
         </div>`;
     }
